@@ -14,6 +14,7 @@ anyhow = "1"
 async-graphql = {version = "7.0", features = ["chrono", "tracing"] }
 async-graphql-axum = "7.0"
 axum = "0.7"
+axum-prometheus = "0.7"
 ciborium = "0.2"
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4.5", features = ["derive", "env", "cargo"] }

@@ -97,7 +97,7 @@ async fn main() -> anyhow::Result<()> {
             .context("Parsing TCP listener address failed")?;
         let stop_signal = cancel_token.child_token();
         info!("Monitoring server is running at {:?}", cli.monitoring_listen);
-        tokio::spawn(router::serve(registry, tcp_listener, pool, stop_signal))
+        tokio::spawn(router::serve(tcp_listener, pool, stop_signal))
     };
     // Await for signal to shutdown or any of the tasks to stop.
     tokio::select! {

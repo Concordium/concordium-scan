@@ -194,6 +194,7 @@ impl Service {
             .allow_origin(Any)  // Open access to selected route
             .allow_methods(Any)
             .allow_headers(Any);
+
         let app = axum::Router::new()
             .route("/", axum::routing::get(Self::graphiql))
             .route(

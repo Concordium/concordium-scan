@@ -10,6 +10,7 @@ use crate::{
     },
 };
 use anyhow::Context;
+use axum_prometheus::metrics::{counter, describe_counter, describe_histogram, gauge, histogram};
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
@@ -124,7 +125,10 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
                 .await?
                 .hash
                 .parse()?;
-
+        describe_histogram!(
+            "indexer_processor_processing_duration_seconds",
+            "Time taken for processing a block."
+        );
         let block_pre_processor = BlockPreProcessor::new(
             genesis_block_hash,
             config.max_successive_failures.into(),
@@ -301,7 +305,7 @@ impl Indexer for BlockPreProcessor {
         }
         info!("Connection established to node at uri: {}", endpoint.uri());
         let label = NodeMetricLabels::new(&endpoint);
-        self.established_node_connections.get_or_create(&label).inc();
+        counter!("indexer_preprocessor_established_node_connections_total").increment(1);
         Ok(label)
     }
 
@@ -318,7 +322,8 @@ impl Indexer for BlockPreProcessor {
         label: &'a Self::Context,
         fbi: FinalizedBlockInfo,
     ) -> QueryResult<Self::Data> {
-        self.blocks_being_preprocessed.get_or_create(label).inc();
+        let labels = [("node", label.node.to_string())];
+        gauge!("indexer_preprocessor_blocks_being_preprocessed", &labels).increment(1);
         // We block together the computation, so we can update the metric in the error
         // case, before returning early.
         let result =
@@ -384,9 +389,8 @@ impl Indexer for BlockPreProcessor {
                     } => total_staked_capital,
                 };
                 let node_response_time = start_fetching.elapsed();
-                self.node_response_time
-                    .get_or_create(label)
-                    .observe(node_response_time.as_secs_f64());
+                histogram!("indexer_preprocessor_node_response_time_seconds")
+                    .record(node_response_time.as_secs_f64());
 
                 let data = BlockData {
                     finalized_block_info: fbi,
@@ -405,7 +409,7 @@ impl Indexer for BlockPreProcessor {
                 Ok(prepared_block)
             }
             .await;
-        self.blocks_being_preprocessed.get_or_create(label).dec();
+        gauge!("indexer_preprocessor_blocks_being_preprocessed", &labels).decrement(1);
         result
     }
 
@@ -420,7 +424,8 @@ impl Indexer for BlockPreProcessor {
         err: TraverseError,
     ) -> bool {
         info!("Failed preprocessing {} times in row: {}", successive_failures, err);
-        self.preprocessing_failures.get_or_create(&NodeMetricLabels::new(&endpoint)).inc();
+        let labels = [("node", endpoint.uri().to_string())];
+        counter!("indexer_processor_processing_failures_total", &labels).increment(1);
         successive_failures > self.max_successive_failures
     }
 }
@@ -452,19 +457,12 @@ async fn compute_total_stake_capital(
 /// blocks.
 struct BlockProcessor {
     /// Database connection pool
-    pool: PgPool,
-    /// Histogram collecting batch size
-    batch_size: Histogram,
-    /// Metric counting the total number of failed attempts to process
-    /// blocks.
-    processing_failures: Counter,
-    /// Histogram collecting the time it took to process a block.
-    processing_duration_seconds: Histogram,
+    pool:                    PgPool,
     /// Max number of acceptable successive failures before shutting down the
     /// service.
     max_successive_failures: u32,
     /// Starting context which is tracked across processing blocks.
-    current_context: BlockProcessingContext,
+    current_context:         BlockProcessingContext,
 }
 impl BlockProcessor {
     /// Construct the block processor by loading the initial state from the
@@ -508,29 +506,14 @@ LIMIT 1
             last_block_slot_time:    last_block.slot_time,
             last_cumulative_num_txs: last_block.cumulative_num_txs,
         };
-
-        let processing_failures = Counter::default();
-        registry.register(
-            "processing_failures",
-            "Number of blocks save to the database",
-            processing_failures.clone(),
-        );
-        let processing_duration_seconds =
-            Histogram::new(histogram::exponential_buckets(0.01, 2.0, 10));
-        registry.register(
-            "processing_duration_seconds",
-            "Time taken for processing a block",
-            processing_duration_seconds.clone(),
-        );
+        describe_counter!("indexer_processing_failures", "TODO");
+        describe_histogram!("indexer_processing_duration_seconds", "TODO");
+        describe_histogram!("indexer_processing_duration_seconds", "TODO");
         let batch_size = Histogram::new(histogram::linear_buckets(1.0, 1.0, 10));
-        registry.register("batch_size", "Batch sizes", batch_size.clone());
-
+        registry.register("indexer_processor_batch", "Batch sizes", batch_size.clone());
         Ok(Self {
             pool,
             current_context: starting_context,
-            batch_size,
-            processing_failures,
-            processing_duration_seconds,
             max_successive_failures,
         })
     }
@@ -573,9 +556,9 @@ impl ProcessEvent for BlockProcessor {
             .await
             .context("Processing scheduled releases")?;
         tx.commit().await.context("Failed to commit SQL transaction")?;
-        self.batch_size.observe(batch.len() as f64);
-        let duration = start_time.elapsed();
-        self.processing_duration_seconds.observe(duration.as_secs_f64());
+        histogram!("indexer_processor_batch").record(batch.len() as f64);
+        histogram!("indexer_processor_processing_duration")
+            .record(start_time.elapsed().as_secs_f64());
         self.current_context = new_context;
         Ok(out)
     }
@@ -595,7 +578,7 @@ impl ProcessEvent for BlockProcessor {
         successive_failures: u32,
     ) -> Result<bool, Self::Error> {
         info!("Failed processing {} times in row: \n{:?}", successive_failures, error);
-        self.processing_failures.inc();
+        counter!("indexer_preprocessor_preprocessing_failures").increment(1);
         Ok(self.max_successive_failures >= successive_failures)
     }
 }

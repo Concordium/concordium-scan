@@ -1,4 +1,5 @@
 use axum::{extract::State, routing::get, Json, Router};
+use axum_prometheus::{PrometheusMetricLayer, PrometheusMetricLayerBuilder};
 use prometheus_client::registry::Registry;
 use serde_json::json;
 use sqlx::PgPool;
@@ -8,14 +9,21 @@ use tokio_util::sync::CancellationToken;
 
 /// Run server exposing the Prometheus metrics
 pub async fn serve(
-    registry: Registry,
     tcp_listener: TcpListener,
     pool: PgPool,
     stop_signal: CancellationToken,
 ) -> anyhow::Result<()> {
+    let (metric_layer, metric_handle) = PrometheusMetricLayerBuilder::new()
+        .with_prefix("ccdscan")
+        .with_default_metrics()
+        .build_pair();
+
     let health_routes = Router::new().route("/", get(health)).with_state(pool);
-    let metric_routes = Router::new().route("/", get(metrics)).with_state(Arc::new(registry));
-    let app = Router::new().nest("/metrics", metric_routes).nest("/health", health_routes);
+    let app = Router::new()
+        .route("/metrics", get(|| async move { metric_handle.render() }))
+        .nest("/health", health_routes)
+        .layer(metric_layer);
+
     axum::serve(tcp_listener, app).with_graceful_shutdown(stop_signal.cancelled_owned()).await?;
     Ok(())
 }
