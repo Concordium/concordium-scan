@@ -1,5 +1,11 @@
 ## Unreleased changes
 
+## 1.10.0
+
+- Added
+  - Minimal support for Concordium Protocol Version 8.
+  - Introduce `ChainParametersV3` in the GraphQL API.
+
 ## 1.9.2
 
 - Bugfix

@@ -59,6 +59,7 @@ public abstract class ChainParameters
             Concordium.Sdk.Types.ChainParametersV0 chainParametersV0 => ChainParametersV0.From(chainParametersV0),
             Concordium.Sdk.Types.ChainParametersV1 chainParametersV1 => ChainParametersV1.From(chainParametersV1),
             Concordium.Sdk.Types.ChainParametersV2 chainParametersV2 => ChainParametersV2.From(chainParametersV2),
+            Concordium.Sdk.Types.ChainParametersV3 chainParametersV3 => ChainParametersV3.From(chainParametersV3),
             _ => throw new NotImplementedException()
         };
     }

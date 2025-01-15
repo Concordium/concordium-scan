@@ -97,7 +97,8 @@ public sealed class _00_UpdateValidatorCommissionRatesTests
                     AmountFraction.From(blockCommission)),
                 BakerPoolOpenStatus.OpenForAll, ""),
             null,
-            CcdAmount.Zero, null
+            CcdAmount.Zero, null,
+            false
         );
     }
 

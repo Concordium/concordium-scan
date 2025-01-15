@@ -104,7 +104,8 @@ public class BakerImportHandlerTest
                 ),
             afterStatus,
             CcdAmount.Zero,
-            null
+            null,
+            false
             );
         var bakerPoolStatuses = () => Task.FromResult(new[] { bakerPoolStatus });
         
@@ -225,7 +226,8 @@ public class BakerImportHandlerTest
                     ""),
                 null,
                 CcdAmount.Zero,
-                null
+                null,
+                false
             )
         });
 
