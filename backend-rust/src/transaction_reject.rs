@@ -2,9 +2,14 @@ use crate::{
     address::{AccountAddress, Address, ContractAddress},
     scalar_types::{Amount, BakerId},
 };
-use async_graphql::{SimpleObject, Union};
+use anyhow::Context;
+use async_graphql::{Enum, SimpleObject, Union};
+use concordium_rust_sdk::base::{
+    contracts_common::schema::{VersionedModuleSchema, VersionedSchemaError},
+    smart_contracts::ReceiveName,
+};
 
-#[derive(Union, serde::Serialize, serde::Deserialize)]
+#[derive(Union, Clone, serde::Serialize, serde::Deserialize)]
 pub enum TransactionRejectReason {
     ModuleNotWf(ModuleNotWf),
     ModuleHashAlreadyExists(ModuleHashAlreadyExists),
@@ -63,7 +68,7 @@ pub enum TransactionRejectReason {
     PoolClosed(PoolClosed),
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone, Copy)]
 pub struct ModuleNotWf {
     #[graphql(
         name = "_",
@@ -73,39 +78,39 @@ pub struct ModuleNotWf {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct ModuleHashAlreadyExists {
     module_ref: String,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct InvalidInitMethod {
     module_ref: String,
     init_name:  String,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct InvalidReceiveMethod {
     module_ref:   String,
     receive_name: String,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct InvalidAccountReference {
     account_address: AccountAddress,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct InvalidModuleReference {
     module_ref: String,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct InvalidContractAddress {
     contract_address: ContractAddress,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct RuntimeFailure {
     #[graphql(
         name = "_",
@@ -115,13 +120,13 @@ pub struct RuntimeFailure {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct AmountTooLarge {
     address: Address,
     amount:  Amount,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct SerializationFailure {
     #[graphql(
         name = "_",
@@ -131,7 +136,7 @@ pub struct SerializationFailure {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct OutOfEnergy {
     #[graphql(
         name = "_",
@@ -141,26 +146,62 @@ pub struct OutOfEnergy {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct RejectedInit {
     reject_reason: i32,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+/// Transaction updating a smart contract instance was rejected.
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct RejectedReceive {
-    reject_reason:    i32,
-    contract_address: ContractAddress,
-    receive_name:     String,
-    message_as_hex:   String,
-    // TODO message: String,
+    /// Reject reason code produced by the smart contract instance.
+    reject_reason:          i32,
+    /// Address of the smart contract instance which rejected the update.
+    contract_address:       ContractAddress,
+    /// The name of the entry point called in the smart contract instance (in
+    /// ReceiveName format '<contract_name>.<entrypoint>').
+    receive_name:           String,
+    /// The HEX representation of the message provided for the smart contract
+    /// instance as parameter.
+    message_as_hex:         String,
+    /// The JSON representation of the message provided for the smart contract
+    /// instance as parameter. Decoded using the smart contract module
+    /// schema if present otherwise undefined. Failing to parse the message
+    /// will result in this being undefined and `message_parsing_status`
+    /// representing the error.
+    message:                Option<String>,
+    /// The status of parsing `message` into its JSON representation using the
+    /// smart contract module schema.
+    message_parsing_status: InstanceMessageParsingStatus,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+/// The status of parsing `message` into its JSON representation using the
+/// smart contract module schema.
+#[derive(Enum, PartialEq, Eq, Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub enum InstanceMessageParsingStatus {
+    /// Parsing succeeded.
+    Success,
+    /// No message was provided.
+    EmptyMessage,
+    /// No module schema found in the deployed smart contract module.
+    ModuleSchemaNotFound,
+    /// Relevant smart contract not found in smart contract module schema.
+    ContractNotFound,
+    /// Relevant smart contract function not found in smart contract schema.
+    FunctionNotFound,
+    /// Schema for parameter not found in smart contract schema.
+    ParamNotFound,
+    /// Failed to construct the JSON representation from message using the smart
+    /// contract schema.
+    Failed,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct NonExistentRewardAccount {
     account_address: AccountAddress,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct InvalidProof {
     #[graphql(
         name = "_",
@@ -170,17 +211,17 @@ pub struct InvalidProof {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct AlreadyABaker {
     baker_id: BakerId,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct NotABaker {
     account_address: AccountAddress,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct InsufficientBalanceForBakerStake {
     #[graphql(
         name = "_",
@@ -190,7 +231,7 @@ pub struct InsufficientBalanceForBakerStake {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct InsufficientBalanceForDelegationStake {
     #[graphql(
         name = "_",
@@ -200,7 +241,7 @@ pub struct InsufficientBalanceForDelegationStake {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct InsufficientDelegationStake {
     #[graphql(
         name = "_",
@@ -210,7 +251,7 @@ pub struct InsufficientDelegationStake {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct StakeUnderMinimumThresholdForBaking {
     #[graphql(
         name = "_",
@@ -220,7 +261,7 @@ pub struct StakeUnderMinimumThresholdForBaking {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct StakeOverMaximumThresholdForPool {
     #[graphql(
         name = "_",
@@ -230,7 +271,7 @@ pub struct StakeOverMaximumThresholdForPool {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct BakerInCooldown {
     #[graphql(
         name = "_",
@@ -240,12 +281,12 @@ pub struct BakerInCooldown {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct DuplicateAggregationKey {
     aggregation_key: String,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct NonExistentCredentialId {
     #[graphql(
         name = "_",
@@ -255,7 +296,7 @@ pub struct NonExistentCredentialId {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct KeyIndexAlreadyInUse {
     #[graphql(
         name = "_",
@@ -265,7 +306,7 @@ pub struct KeyIndexAlreadyInUse {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct InvalidAccountThreshold {
     #[graphql(
         name = "_",
@@ -275,7 +316,7 @@ pub struct InvalidAccountThreshold {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct InvalidCredentialKeySignThreshold {
     #[graphql(
         name = "_",
@@ -285,7 +326,7 @@ pub struct InvalidCredentialKeySignThreshold {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct InvalidEncryptedAmountTransferProof {
     #[graphql(
         name = "_",
@@ -295,7 +336,7 @@ pub struct InvalidEncryptedAmountTransferProof {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct InvalidTransferToPublicProof {
     #[graphql(
         name = "_",
@@ -305,12 +346,12 @@ pub struct InvalidTransferToPublicProof {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct EncryptedAmountSelfTransfer {
     account_address: AccountAddress,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct InvalidIndexOnEncryptedTransfer {
     #[graphql(
         name = "_",
@@ -320,7 +361,7 @@ pub struct InvalidIndexOnEncryptedTransfer {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct ZeroScheduledAmount {
     #[graphql(
         name = "_",
@@ -330,7 +371,7 @@ pub struct ZeroScheduledAmount {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct NonIncreasingSchedule {
     #[graphql(
         name = "_",
@@ -340,7 +381,7 @@ pub struct NonIncreasingSchedule {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct FirstScheduledReleaseExpired {
     #[graphql(
         name = "_",
@@ -350,12 +391,12 @@ pub struct FirstScheduledReleaseExpired {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct ScheduledSelfTransfer {
     account_address: AccountAddress,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct InvalidCredentials {
     #[graphql(
         name = "_",
@@ -365,17 +406,17 @@ pub struct InvalidCredentials {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct DuplicateCredIds {
     cred_ids: Vec<String>,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct NonExistentCredIds {
     cred_ids: Vec<String>,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct RemoveFirstCredential {
     #[graphql(
         name = "_",
@@ -385,7 +426,7 @@ pub struct RemoveFirstCredential {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct CredentialHolderDidNotSign {
     #[graphql(
         name = "_",
@@ -395,7 +436,7 @@ pub struct CredentialHolderDidNotSign {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct NotAllowedMultipleCredentials {
     #[graphql(
         name = "_",
@@ -405,7 +446,7 @@ pub struct NotAllowedMultipleCredentials {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct NotAllowedToReceiveEncrypted {
     #[graphql(
         name = "_",
@@ -415,7 +456,7 @@ pub struct NotAllowedToReceiveEncrypted {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct NotAllowedToHandleEncrypted {
     #[graphql(
         name = "_",
@@ -425,7 +466,7 @@ pub struct NotAllowedToHandleEncrypted {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct MissingBakerAddParameters {
     #[graphql(
         name = "_",
@@ -435,7 +476,7 @@ pub struct MissingBakerAddParameters {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct FinalizationRewardCommissionNotInRange {
     #[graphql(
         name = "_",
@@ -445,7 +486,7 @@ pub struct FinalizationRewardCommissionNotInRange {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct BakingRewardCommissionNotInRange {
     #[graphql(
         name = "_",
@@ -455,7 +496,7 @@ pub struct BakingRewardCommissionNotInRange {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct TransactionFeeCommissionNotInRange {
     #[graphql(
         name = "_",
@@ -465,7 +506,7 @@ pub struct TransactionFeeCommissionNotInRange {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct AlreadyADelegator {
     #[graphql(
         name = "_",
@@ -475,7 +516,7 @@ pub struct AlreadyADelegator {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct MissingDelegationAddParameters {
     #[graphql(
         name = "_",
@@ -485,7 +526,7 @@ pub struct MissingDelegationAddParameters {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct DelegatorInCooldown {
     #[graphql(
         name = "_",
@@ -495,17 +536,17 @@ pub struct DelegatorInCooldown {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct NotADelegator {
     account_address: AccountAddress,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct DelegationTargetNotABaker {
     baker_id: BakerId,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct PoolWouldBecomeOverDelegated {
     #[graphql(
         name = "_",
@@ -515,7 +556,7 @@ pub struct PoolWouldBecomeOverDelegated {
     dummy: bool,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct PoolClosed {
     #[graphql(
         name = "_",
@@ -525,322 +566,436 @@ pub struct PoolClosed {
     dummy: bool,
 }
 
-impl TryFrom<concordium_rust_sdk::types::RejectReason> for TransactionRejectReason {
-    type Error = anyhow::Error;
+/// TransactionRejectReason being prepared for indexing.
+/// Most reject reasons can just be inserted, but a few require some processing
+/// before inserting.
+pub enum PreparedTransactionRejectReason {
+    /// Reject reasons which are ready for indexing.
+    Ready(serde_json::Value),
+    /// Reject receive which require processing.
+    RejectedReceive(PreparedRejectedReceive),
+}
 
-    fn try_from(reason: concordium_rust_sdk::types::RejectReason) -> Result<Self, Self::Error> {
+impl PreparedTransactionRejectReason {
+    pub fn prepare(
+        sdk_reject_reason: concordium_rust_sdk::types::RejectReason,
+    ) -> anyhow::Result<Self> {
         use concordium_rust_sdk::types::RejectReason;
-        match reason {
-            RejectReason::ModuleNotWF => Ok(TransactionRejectReason::ModuleNotWf(ModuleNotWf {
+        if let RejectReason::RejectedReceive {
+            reject_reason,
+            contract_address,
+            receive_name,
+            parameter,
+        } = sdk_reject_reason
+        {
+            return Ok(Self::RejectedReceive(PreparedRejectedReceive {
+                reject_reason,
+                contract_address: contract_address.into(),
+                receive_name: receive_name.to_string(),
+                message_as_hex: hex::encode(parameter.as_ref()),
+            }));
+        }
+        let reason = match sdk_reject_reason {
+            RejectReason::RejectedReceive {
+                ..
+            } => anyhow::bail!(
+                "Unexpected RejectedReceive. This reject reason needs further processing, and \
+                 should be handled above"
+            ),
+            RejectReason::ModuleNotWF => TransactionRejectReason::ModuleNotWf(ModuleNotWf {
                 dummy: true,
-            })),
+            }),
             RejectReason::ModuleHashAlreadyExists {
                 contents,
-            } => Ok(TransactionRejectReason::ModuleHashAlreadyExists(ModuleHashAlreadyExists {
+            } => TransactionRejectReason::ModuleHashAlreadyExists(ModuleHashAlreadyExists {
                 module_ref: contents.to_string(),
-            })),
+            }),
             RejectReason::InvalidAccountReference {
                 contents,
-            } => Ok(TransactionRejectReason::InvalidAccountReference(InvalidAccountReference {
+            } => TransactionRejectReason::InvalidAccountReference(InvalidAccountReference {
                 account_address: contents.into(),
-            })),
+            }),
             RejectReason::InvalidInitMethod {
                 contents,
-            } => Ok(TransactionRejectReason::InvalidInitMethod(InvalidInitMethod {
+            } => TransactionRejectReason::InvalidInitMethod(InvalidInitMethod {
                 module_ref: contents.0.to_string(),
                 init_name:  contents.1.to_string(),
-            })),
+            }),
             RejectReason::InvalidReceiveMethod {
                 contents,
-            } => Ok(TransactionRejectReason::InvalidReceiveMethod(InvalidReceiveMethod {
+            } => TransactionRejectReason::InvalidReceiveMethod(InvalidReceiveMethod {
                 module_ref:   contents.0.to_string(),
                 receive_name: contents.1.to_string(),
-            })),
+            }),
             RejectReason::InvalidModuleReference {
                 contents,
-            } => Ok(TransactionRejectReason::InvalidModuleReference(InvalidModuleReference {
+            } => TransactionRejectReason::InvalidModuleReference(InvalidModuleReference {
                 module_ref: contents.to_string(),
-            })),
+            }),
             RejectReason::InvalidContractAddress {
                 contents,
-            } => Ok(TransactionRejectReason::InvalidContractAddress(InvalidContractAddress {
+            } => TransactionRejectReason::InvalidContractAddress(InvalidContractAddress {
                 contract_address: contents.into(),
-            })),
+            }),
             RejectReason::RuntimeFailure => {
-                Ok(TransactionRejectReason::RuntimeFailure(RuntimeFailure {
+                TransactionRejectReason::RuntimeFailure(RuntimeFailure {
                     dummy: true,
-                }))
+                })
             }
             RejectReason::AmountTooLarge {
                 contents,
-            } => Ok(TransactionRejectReason::AmountTooLarge(AmountTooLarge {
+            } => TransactionRejectReason::AmountTooLarge(AmountTooLarge {
                 address: contents.0.into(),
                 amount:  contents.1.micro_ccd().into(),
-            })),
+            }),
             RejectReason::SerializationFailure => {
-                Ok(TransactionRejectReason::SerializationFailure(SerializationFailure {
+                TransactionRejectReason::SerializationFailure(SerializationFailure {
                     dummy: true,
-                }))
+                })
             }
-            RejectReason::OutOfEnergy => Ok(TransactionRejectReason::OutOfEnergy(OutOfEnergy {
+            RejectReason::OutOfEnergy => TransactionRejectReason::OutOfEnergy(OutOfEnergy {
                 dummy: true,
-            })),
+            }),
             RejectReason::RejectedInit {
                 reject_reason,
-            } => Ok(TransactionRejectReason::RejectedInit(RejectedInit {
+            } => TransactionRejectReason::RejectedInit(RejectedInit {
                 reject_reason,
-            })),
-            RejectReason::RejectedReceive {
-                reject_reason,
-                contract_address,
-                receive_name,
-                parameter,
-            } => {
-                Ok(TransactionRejectReason::RejectedReceive(RejectedReceive {
-                    reject_reason,
-                    contract_address: contract_address.into(),
-                    receive_name: receive_name.to_string(),
-                    message_as_hex: hex::encode(parameter.as_ref()),
-                    // message: todo!(),
-                }))
-            }
-            RejectReason::InvalidProof => Ok(TransactionRejectReason::InvalidProof(InvalidProof {
+            }),
+            RejectReason::InvalidProof => TransactionRejectReason::InvalidProof(InvalidProof {
                 dummy: true,
-            })),
+            }),
             RejectReason::AlreadyABaker {
                 contents,
-            } => Ok(TransactionRejectReason::AlreadyABaker(AlreadyABaker {
+            } => TransactionRejectReason::AlreadyABaker(AlreadyABaker {
                 baker_id: contents.id.index.try_into()?,
-            })),
+            }),
             RejectReason::NotABaker {
                 contents,
-            } => Ok(TransactionRejectReason::NotABaker(NotABaker {
+            } => TransactionRejectReason::NotABaker(NotABaker {
                 account_address: contents.into(),
-            })),
+            }),
             RejectReason::InsufficientBalanceForBakerStake => {
-                Ok(TransactionRejectReason::InsufficientBalanceForBakerStake(
+                TransactionRejectReason::InsufficientBalanceForBakerStake(
                     InsufficientBalanceForBakerStake {
                         dummy: true,
                     },
-                ))
+                )
             }
             RejectReason::StakeUnderMinimumThresholdForBaking => {
-                Ok(TransactionRejectReason::StakeUnderMinimumThresholdForBaking(
+                TransactionRejectReason::StakeUnderMinimumThresholdForBaking(
                     StakeUnderMinimumThresholdForBaking {
                         dummy: true,
                     },
-                ))
+                )
             }
             RejectReason::BakerInCooldown => {
-                Ok(TransactionRejectReason::BakerInCooldown(BakerInCooldown {
+                TransactionRejectReason::BakerInCooldown(BakerInCooldown {
                     dummy: true,
-                }))
+                })
             }
             RejectReason::DuplicateAggregationKey {
                 contents,
-            } => Ok(TransactionRejectReason::DuplicateAggregationKey(DuplicateAggregationKey {
+            } => TransactionRejectReason::DuplicateAggregationKey(DuplicateAggregationKey {
                 aggregation_key: serde_json::to_string(&contents)?,
-            })),
+            }),
             RejectReason::NonExistentCredentialID => {
-                Ok(TransactionRejectReason::NonExistentCredentialId(NonExistentCredentialId {
+                TransactionRejectReason::NonExistentCredentialId(NonExistentCredentialId {
                     dummy: true,
-                }))
+                })
             }
             RejectReason::KeyIndexAlreadyInUse => {
-                Ok(TransactionRejectReason::KeyIndexAlreadyInUse(KeyIndexAlreadyInUse {
+                TransactionRejectReason::KeyIndexAlreadyInUse(KeyIndexAlreadyInUse {
                     dummy: true,
-                }))
+                })
             }
             RejectReason::InvalidAccountThreshold => {
-                Ok(TransactionRejectReason::InvalidAccountThreshold(InvalidAccountThreshold {
+                TransactionRejectReason::InvalidAccountThreshold(InvalidAccountThreshold {
                     dummy: true,
-                }))
+                })
             }
             RejectReason::InvalidCredentialKeySignThreshold => {
-                Ok(TransactionRejectReason::InvalidCredentialKeySignThreshold(
+                TransactionRejectReason::InvalidCredentialKeySignThreshold(
                     InvalidCredentialKeySignThreshold {
                         dummy: true,
                     },
-                ))
+                )
             }
             RejectReason::InvalidEncryptedAmountTransferProof => {
-                Ok(TransactionRejectReason::InvalidEncryptedAmountTransferProof(
+                TransactionRejectReason::InvalidEncryptedAmountTransferProof(
                     InvalidEncryptedAmountTransferProof {
                         dummy: true,
                     },
-                ))
+                )
             }
             RejectReason::InvalidTransferToPublicProof => {
-                Ok(TransactionRejectReason::InvalidTransferToPublicProof(
+                TransactionRejectReason::InvalidTransferToPublicProof(
                     InvalidTransferToPublicProof {
                         dummy: true,
                     },
-                ))
+                )
             }
             RejectReason::EncryptedAmountSelfTransfer {
                 contents,
-            } => Ok(TransactionRejectReason::EncryptedAmountSelfTransfer(
-                EncryptedAmountSelfTransfer {
+            } => {
+                TransactionRejectReason::EncryptedAmountSelfTransfer(EncryptedAmountSelfTransfer {
                     account_address: contents.into(),
-                },
-            )),
+                })
+            }
             RejectReason::InvalidIndexOnEncryptedTransfer => {
-                Ok(TransactionRejectReason::InvalidIndexOnEncryptedTransfer(
+                TransactionRejectReason::InvalidIndexOnEncryptedTransfer(
                     InvalidIndexOnEncryptedTransfer {
                         dummy: true,
                     },
-                ))
+                )
             }
             RejectReason::ZeroScheduledAmount => {
-                Ok(TransactionRejectReason::ZeroScheduledAmount(ZeroScheduledAmount {
+                TransactionRejectReason::ZeroScheduledAmount(ZeroScheduledAmount {
                     dummy: true,
-                }))
+                })
             }
             RejectReason::NonIncreasingSchedule => {
-                Ok(TransactionRejectReason::NonIncreasingSchedule(NonIncreasingSchedule {
+                TransactionRejectReason::NonIncreasingSchedule(NonIncreasingSchedule {
                     dummy: true,
-                }))
+                })
             }
             RejectReason::FirstScheduledReleaseExpired => {
-                Ok(TransactionRejectReason::FirstScheduledReleaseExpired(
+                TransactionRejectReason::FirstScheduledReleaseExpired(
                     FirstScheduledReleaseExpired {
                         dummy: true,
                     },
-                ))
+                )
             }
             RejectReason::ScheduledSelfTransfer {
                 contents,
-            } => Ok(TransactionRejectReason::ScheduledSelfTransfer(ScheduledSelfTransfer {
+            } => TransactionRejectReason::ScheduledSelfTransfer(ScheduledSelfTransfer {
                 account_address: contents.into(),
-            })),
+            }),
             RejectReason::InvalidCredentials => {
-                Ok(TransactionRejectReason::InvalidCredentials(InvalidCredentials {
+                TransactionRejectReason::InvalidCredentials(InvalidCredentials {
                     dummy: true,
-                }))
+                })
             }
             RejectReason::DuplicateCredIDs {
                 contents,
-            } => Ok(TransactionRejectReason::DuplicateCredIds(DuplicateCredIds {
+            } => TransactionRejectReason::DuplicateCredIds(DuplicateCredIds {
                 cred_ids: contents.into_iter().map(|cred_id| cred_id.to_string()).collect(),
-            })),
+            }),
             RejectReason::NonExistentCredIDs {
                 contents,
-            } => Ok(TransactionRejectReason::NonExistentCredIds(NonExistentCredIds {
+            } => TransactionRejectReason::NonExistentCredIds(NonExistentCredIds {
                 cred_ids: contents.into_iter().map(|cred_id| cred_id.to_string()).collect(),
-            })),
+            }),
             RejectReason::RemoveFirstCredential => {
-                Ok(TransactionRejectReason::RemoveFirstCredential(RemoveFirstCredential {
+                TransactionRejectReason::RemoveFirstCredential(RemoveFirstCredential {
                     dummy: true,
-                }))
+                })
             }
-            RejectReason::CredentialHolderDidNotSign => Ok(
+            RejectReason::CredentialHolderDidNotSign => {
                 TransactionRejectReason::CredentialHolderDidNotSign(CredentialHolderDidNotSign {
                     dummy: true,
-                }),
-            ),
+                })
+            }
+
             RejectReason::NotAllowedMultipleCredentials => {
-                Ok(TransactionRejectReason::NotAllowedMultipleCredentials(
+                TransactionRejectReason::NotAllowedMultipleCredentials(
                     NotAllowedMultipleCredentials {
                         dummy: true,
                     },
-                ))
+                )
             }
             RejectReason::NotAllowedToReceiveEncrypted => {
-                Ok(TransactionRejectReason::NotAllowedToReceiveEncrypted(
+                TransactionRejectReason::NotAllowedToReceiveEncrypted(
                     NotAllowedToReceiveEncrypted {
                         dummy: true,
                     },
-                ))
+                )
             }
-            RejectReason::NotAllowedToHandleEncrypted => Ok(
+            RejectReason::NotAllowedToHandleEncrypted => {
                 TransactionRejectReason::NotAllowedToHandleEncrypted(NotAllowedToHandleEncrypted {
                     dummy: true,
-                }),
-            ),
+                })
+            }
             RejectReason::MissingBakerAddParameters => {
-                Ok(TransactionRejectReason::MissingBakerAddParameters(MissingBakerAddParameters {
+                TransactionRejectReason::MissingBakerAddParameters(MissingBakerAddParameters {
                     dummy: true,
-                }))
+                })
             }
             RejectReason::FinalizationRewardCommissionNotInRange => {
-                Ok(TransactionRejectReason::FinalizationRewardCommissionNotInRange(
+                TransactionRejectReason::FinalizationRewardCommissionNotInRange(
                     FinalizationRewardCommissionNotInRange {
                         dummy: true,
                     },
-                ))
+                )
             }
             RejectReason::BakingRewardCommissionNotInRange => {
-                Ok(TransactionRejectReason::BakingRewardCommissionNotInRange(
+                TransactionRejectReason::BakingRewardCommissionNotInRange(
                     BakingRewardCommissionNotInRange {
                         dummy: true,
                     },
-                ))
+                )
             }
             RejectReason::TransactionFeeCommissionNotInRange => {
-                Ok(TransactionRejectReason::TransactionFeeCommissionNotInRange(
+                TransactionRejectReason::TransactionFeeCommissionNotInRange(
                     TransactionFeeCommissionNotInRange {
                         dummy: true,
                     },
-                ))
+                )
             }
             RejectReason::AlreadyADelegator => {
-                Ok(TransactionRejectReason::AlreadyADelegator(AlreadyADelegator {
+                TransactionRejectReason::AlreadyADelegator(AlreadyADelegator {
                     dummy: true,
-                }))
+                })
             }
             RejectReason::InsufficientBalanceForDelegationStake => {
-                Ok(TransactionRejectReason::InsufficientBalanceForDelegationStake(
+                TransactionRejectReason::InsufficientBalanceForDelegationStake(
                     InsufficientBalanceForDelegationStake {
                         dummy: true,
                     },
-                ))
+                )
             }
             RejectReason::MissingDelegationAddParameters => {
-                Ok(TransactionRejectReason::MissingDelegationAddParameters(
+                TransactionRejectReason::MissingDelegationAddParameters(
                     MissingDelegationAddParameters {
                         dummy: true,
                     },
-                ))
+                )
             }
-            RejectReason::InsufficientDelegationStake => Ok(
+            RejectReason::InsufficientDelegationStake => {
                 TransactionRejectReason::InsufficientDelegationStake(InsufficientDelegationStake {
                     dummy: true,
-                }),
-            ),
+                })
+            }
             RejectReason::DelegatorInCooldown => {
-                Ok(TransactionRejectReason::DelegatorInCooldown(DelegatorInCooldown {
+                TransactionRejectReason::DelegatorInCooldown(DelegatorInCooldown {
                     dummy: true,
-                }))
+                })
             }
             RejectReason::NotADelegator {
                 address,
-            } => Ok(TransactionRejectReason::NotADelegator(NotADelegator {
+            } => TransactionRejectReason::NotADelegator(NotADelegator {
                 account_address: address.into(),
-            })),
+            }),
             RejectReason::DelegationTargetNotABaker {
                 target,
-            } => {
-                Ok(TransactionRejectReason::DelegationTargetNotABaker(DelegationTargetNotABaker {
-                    baker_id: target.id.index.try_into()?,
-                }))
-            }
+            } => TransactionRejectReason::DelegationTargetNotABaker(DelegationTargetNotABaker {
+                baker_id: target.id.index.try_into()?,
+            }),
             RejectReason::StakeOverMaximumThresholdForPool => {
-                Ok(TransactionRejectReason::StakeOverMaximumThresholdForPool(
+                TransactionRejectReason::StakeOverMaximumThresholdForPool(
                     StakeOverMaximumThresholdForPool {
                         dummy: true,
                     },
-                ))
+                )
             }
             RejectReason::PoolWouldBecomeOverDelegated => {
-                Ok(TransactionRejectReason::PoolWouldBecomeOverDelegated(
+                TransactionRejectReason::PoolWouldBecomeOverDelegated(
                     PoolWouldBecomeOverDelegated {
                         dummy: true,
                     },
-                ))
+                )
             }
-            RejectReason::PoolClosed => Ok(TransactionRejectReason::PoolClosed(PoolClosed {
+            RejectReason::PoolClosed => TransactionRejectReason::PoolClosed(PoolClosed {
                 dummy: true,
-            })),
+            }),
+        };
+        let value = serde_json::to_value(&reason)?;
+        Ok(Self::Ready(value))
+    }
+
+    pub async fn process(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<serde_json::Value> {
+        let reason = match self {
+            Self::Ready(reason) => reason.clone(),
+            Self::RejectedReceive(prepared) => {
+                let reject = TransactionRejectReason::RejectedReceive(prepared.process(tx).await?);
+                serde_json::to_value(reject)?
+            }
+        };
+        Ok(reason)
+    }
+}
+
+/// Reject receive which require processing the contract update message
+/// using the smart contract module schema before insertion.
+pub struct PreparedRejectedReceive {
+    reject_reason:    i32,
+    contract_address: ContractAddress,
+    receive_name:     String,
+    message_as_hex:   String,
+}
+
+impl PreparedRejectedReceive {
+    pub async fn process(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<RejectedReceive> {
+        // Handle and store errors
+        let (message, message_parsing_status) = self.process_message(tx).await?;
+        Ok(RejectedReceive {
+            reject_reason: self.reject_reason,
+            contract_address: self.contract_address,
+            receive_name: self.receive_name.clone(),
+            message_as_hex: self.message_as_hex.clone(),
+            message,
+            message_parsing_status,
+        })
+    }
+
+    /// Parse the message using the smart contract module of the smart contract
+    /// instance.
+    async fn process_message(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<(Option<String>, InstanceMessageParsingStatus)> {
+        use InstanceMessageParsingStatus as Status;
+        if self.message_as_hex.is_empty() {
+            return Ok((None, Status::EmptyMessage));
         }
+        let schema = sqlx::query_scalar!(
+            "SELECT
+                schema
+            FROM contracts
+                JOIN smart_contract_modules
+                    ON smart_contract_modules.module_reference = contracts.module_reference
+            WHERE index = $1 AND sub_index = $2",
+            i64::try_from(self.contract_address.index.0)?,
+            i64::try_from(self.contract_address.sub_index.0)?
+        )
+        .fetch_one(tx.as_mut())
+        .await?;
+        let Some(schema) = schema else {
+            // No schema found in the smart contract module.
+            return Ok((None, Status::ModuleSchemaNotFound));
+        };
+        let schema = VersionedModuleSchema::new(&schema, &None)
+            .context("Failed to parse smart contract module schema")?;
+        let receive_name = ReceiveName::new(&self.receive_name)
+            .context("Invalid receive name for RejectedReceive")?;
+        let schema_type = match schema.get_receive_param_schema(
+            receive_name.contract_name(),
+            receive_name.entrypoint_name().into(),
+        ) {
+            Ok(t) => t,
+            Err(VersionedSchemaError::NoContractInModule) => {
+                return Ok((None, Status::ContractNotFound))
+            }
+            Err(VersionedSchemaError::NoReceiveInContract) => {
+                return Ok((None, Status::FunctionNotFound))
+            }
+            Err(VersionedSchemaError::NoParamsInReceive) => {
+                return Ok((None, Status::ParamNotFound))
+            }
+            Err(err) => {
+                anyhow::bail!("Database bytes should be a valid VersionedModuleSchema: {}", err);
+            }
+        };
+        let message = hex::decode(&self.message_as_hex)
+            .context("Failed hex decoding of RejectedReceive message")?;
+        let Ok(message) = schema_type.to_json_string_pretty(&message) else {
+            return Ok((None, Status::Failed));
+        };
+        Ok((Some(message), Status::Success))
     }
 }
