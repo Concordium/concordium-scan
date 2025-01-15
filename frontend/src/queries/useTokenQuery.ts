@@ -26,7 +26,7 @@ transaction {
 }
 event {
   __typename
-  ...on CisBurnEvent {
+  ...on Cis2BurnEvent {
     fromAddress {
       __typename
       ... on AccountAddress {
@@ -38,14 +38,10 @@ event {
         asString
       }
     }
-    contractIndex
-    contractSubIndex
     tokenAmount
     tokenId
-    transactionHash
-    parsed
   }
-  ...on CisMintEvent {
+  ...on Cis2MintEvent {
     toAddress {
       __typename
       ... on AccountAddress {
@@ -58,22 +54,14 @@ event {
       }
     }
     tokenAmount
-    contractIndex
-    contractSubIndex
     tokenId
-    transactionHash
-    parsed
   }
-  ...on CisTokenMetadataEvent {
+  ...on Cis2TokenMetadataEvent {
     hashHex
     metadataUrl
-    contractIndex
-    contractSubIndex
     tokenId
-    transactionHash
-    parsed
   }
-  ... on CisTransferEvent {
+  ... on Cis2TransferEvent {
     toAddress {
       __typename
       ... on AccountAddress {
@@ -97,11 +85,7 @@ event {
       }
     }
     tokenAmount
-    contractIndex
-    contractSubIndex
     tokenId
-    transactionHash
-    parsed
   }
 }
 `
