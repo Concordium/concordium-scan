@@ -51,7 +51,6 @@ use concordium_rust_sdk::{
 };
 use derive_more::Display;
 use futures::prelude::*;
-use prometheus_client::registry::Registry;
 use regex::Regex;
 use sqlx::PgPool;
 use std::{
@@ -170,13 +169,12 @@ pub struct Service {
 impl Service {
     pub fn new(
         subscription: Subscription,
-        registry: &mut Registry,
         pool: PgPool,
         config: ApiServiceConfig,
     ) -> Self {
         let schema = Schema::build(Query::default(), EmptyMutation, subscription)
             .extension(async_graphql::extensions::Tracing)
-            .extension(monitor::MonitorExtension::new(registry))
+            .extension(monitor::MonitorExtension::new())
             .data(pool)
             .data(config)
             .finish();
@@ -224,22 +222,13 @@ impl Service {
 mod monitor {
     use async_graphql::async_trait::async_trait;
     use futures::prelude::*;
-    use prometheus_client::{
-        encoding::EncodeLabelSet,
-        metrics::{
-            counter::Counter,
-            family::Family,
-            gauge::Gauge,
-            histogram::{self, Histogram},
-        },
-        registry::Registry,
-    };
     use std::sync::Arc;
+    use axum_prometheus::metrics::{counter, describe_counter, describe_gauge, describe_histogram, gauge, histogram};
     use tokio::time::Instant;
 
     /// Type representing the Prometheus labels used for metrics related to
     /// queries.
-    #[derive(Debug, Clone, EncodeLabelSet, PartialEq, Eq, Hash)]
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
     struct QueryLabels {
         /// Identifier of the top level query.
         query: String,
@@ -247,49 +236,15 @@ mod monitor {
     /// Extension for async_graphql adding monitoring.
     #[derive(Clone)]
     pub struct MonitorExtension {
-        /// Metric for tracking current number of requests in-flight.
-        in_flight_requests:   Family<QueryLabels, Gauge>,
-        /// Metric for counting total number of requests.
-        total_requests:       Family<QueryLabels, Counter>,
-        /// Metric for collecting execution duration for requests.
-        request_duration:     Family<QueryLabels, Histogram>,
-        /// Metric tracking current open subscriptions.
-        active_subscriptions: Gauge,
     }
     impl MonitorExtension {
-        pub fn new(registry: &mut Registry) -> Self {
-            let in_flight_requests: Family<QueryLabels, Gauge> = Default::default();
-            registry.register(
-                "in_flight_queries",
-                "Current number of queries in-flight",
-                in_flight_requests.clone(),
-            );
-            let total_requests: Family<QueryLabels, Counter> = Default::default();
-            registry.register(
-                "requests",
-                "Total number of requests received",
-                total_requests.clone(),
-            );
-            let request_duration: Family<QueryLabels, Histogram> =
-                Family::new_with_constructor(|| {
-                    Histogram::new(histogram::exponential_buckets(0.010, 2.0, 10))
-                });
-            registry.register(
-                "request_duration_seconds",
-                "Duration of seconds used to fetch all of the block information",
-                request_duration.clone(),
-            );
-            let active_subscriptions: Gauge = Default::default();
-            registry.register(
-                "active_subscription",
-                "Current number of active subscriptions",
-                active_subscriptions.clone(),
-            );
+        pub fn new() -> Self {
+            describe_gauge!("active_subscription", "Current number of active subscriptions");
+            describe_histogram!("request_duration_seconds", "Duration of seconds used to fetch all of the block information");
+            describe_counter!("requests", "Total number of requests received");
+            describe_gauge!("in_flight_queries", "Current number of queries in-flight");
+
             MonitorExtension {
-                in_flight_requests,
-                total_requests,
-                request_duration,
-                active_subscriptions,
             }
         }
     }
@@ -307,13 +262,13 @@ mod monitor {
             let label = QueryLabels {
                 query: operation_name.unwrap_or("<none>").to_owned(),
             };
-            self.in_flight_requests.get_or_create(&label).inc();
-            self.total_requests.get_or_create(&label).inc();
+            gauge!("in_flight_queries").increment(1);
+            counter!("requests").increment(1);
             let start = Instant::now();
             let response = next.run(ctx, operation_name).await;
             let duration = start.elapsed();
-            self.request_duration.get_or_create(&label).observe(duration.as_secs_f64());
-            self.in_flight_requests.get_or_create(&label).dec();
+            histogram!("request_duration_seconds").record(duration.as_secs_f64());
+            gauge!("in_flight_queries").decrement(1);
             response
         }
 
@@ -325,24 +280,21 @@ mod monitor {
             next: async_graphql::extensions::NextSubscribe<'_>,
         ) -> stream::BoxStream<'s, async_graphql::Response> {
             let stream = next.run(ctx, stream);
-            let wrapped_stream = WrappedStream::new(stream, self.active_subscriptions.clone());
+            let wrapped_stream = WrappedStream::new(stream);
             wrapped_stream.boxed()
         }
     }
     /// Wrapper around a stream to update metrics when it gets dropped.
     struct WrappedStream<'s> {
         inner:                stream::BoxStream<'s, async_graphql::Response>,
-        active_subscriptions: Gauge,
     }
     impl<'s> WrappedStream<'s> {
         fn new(
             stream: stream::BoxStream<'s, async_graphql::Response>,
-            active_subscriptions: Gauge,
         ) -> Self {
-            active_subscriptions.inc();
+            gauge!("active_subscription").increment(1);
             Self {
                 inner: stream,
-                active_subscriptions,
             }
         }
     }
@@ -357,7 +309,7 @@ mod monitor {
         }
     }
     impl std::ops::Drop for WrappedStream<'_> {
-        fn drop(&mut self) { self.active_subscriptions.dec(); }
+        fn drop(&mut self) { gauge!("active_subscription").decrement(1); }
     }
 }
 

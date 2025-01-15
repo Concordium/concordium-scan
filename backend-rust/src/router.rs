@@ -1,9 +1,7 @@
 use axum::{extract::State, routing::get, Json, Router};
-use axum_prometheus::{PrometheusMetricLayer, PrometheusMetricLayerBuilder};
-use prometheus_client::registry::Registry;
+use axum_prometheus::{PrometheusMetricLayerBuilder};
 use serde_json::json;
 use sqlx::PgPool;
-use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 
@@ -12,9 +10,10 @@ pub async fn serve(
     tcp_listener: TcpListener,
     pool: PgPool,
     stop_signal: CancellationToken,
+    prefix: String
 ) -> anyhow::Result<()> {
     let (metric_layer, metric_handle) = PrometheusMetricLayerBuilder::new()
-        .with_prefix("ccdscan")
+        .with_prefix(prefix)
         .with_default_metrics()
         .build_pair();
 
@@ -23,18 +22,8 @@ pub async fn serve(
         .route("/metrics", get(|| async move { metric_handle.render() }))
         .nest("/health", health_routes)
         .layer(metric_layer);
-
     axum::serve(tcp_listener, app).with_graceful_shutdown(stop_signal.cancelled_owned()).await?;
     Ok(())
-}
-
-/// GET Handler for route `/metrics`.
-/// Exposes the metrics in the registry in the Prometheus format.
-async fn metrics(State(registry): State<Arc<Registry>>) -> Result<String, String> {
-    let mut buffer = String::new();
-    prometheus_client::encoding::text::encode(&mut buffer, &registry)
-        .map_err(|err| err.to_string())?;
-    Ok(buffer)
 }
 
 async fn health(State(pool): State<PgPool>) -> Json<serde_json::Value> {

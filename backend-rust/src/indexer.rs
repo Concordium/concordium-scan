@@ -37,15 +37,6 @@ use concordium_rust_sdk::{
     },
 };
 use futures::{future::join_all, StreamExt, TryStreamExt};
-use prometheus_client::{
-    metrics::{
-        counter::Counter,
-        family::Family,
-        gauge::Gauge,
-        histogram::{self, Histogram},
-    },
-    registry::Registry,
-};
 use sqlx::PgPool;
 use std::{convert::TryInto, sync::Arc};
 use tokio::{time::Instant, try_join};
@@ -101,7 +92,6 @@ impl IndexerService {
     pub async fn new(
         endpoints: Vec<v2::Endpoint>,
         pool: PgPool,
-        registry: &mut Registry,
         config: IndexerServiceConfig,
     ) -> anyhow::Result<Self> {
         let last_height_stored = sqlx::query!(
@@ -132,12 +122,10 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
         let block_pre_processor = BlockPreProcessor::new(
             genesis_block_hash,
             config.max_successive_failures.into(),
-            registry.sub_registry_with_prefix("preprocessor"),
         );
         let block_processor = BlockProcessor::new(
             pool,
             config.max_successive_failures,
-            registry.sub_registry_with_prefix("processor"),
         )
         .await?;
 
@@ -195,7 +183,7 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
 }
 
 /// Represents the labels used for metrics related to Concordium Node.
-#[derive(Clone, Debug, Hash, PartialEq, Eq, prometheus_client::encoding::EncodeLabelSet)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 struct NodeMetricLabels {
     /// URI of the node
     node: String,
@@ -214,17 +202,6 @@ impl NodeMetricLabels {
 struct BlockPreProcessor {
     /// Genesis hash, used to ensure the nodes are on the expected network.
     genesis_hash:                 sdk_types::hashes::BlockHash,
-    /// Metric counting the total number of connections ever established to a
-    /// node.
-    established_node_connections: Family<NodeMetricLabels, Counter>,
-    /// Metric counting the total number of failed attempts to preprocess
-    /// blocks.
-    preprocessing_failures:       Family<NodeMetricLabels, Counter>,
-    /// Metric tracking the number of blocks currently being preprocessed.
-    blocks_being_preprocessed:    Family<NodeMetricLabels, Gauge>,
-    /// Histogram collecting the time it takes for fetching all the block data
-    /// from the node.
-    node_response_time:           Family<NodeMetricLabels, Histogram>,
     /// Max number of acceptable successive failures before shutting down the
     /// service.
     max_successive_failures:      u64,
@@ -233,42 +210,11 @@ impl BlockPreProcessor {
     fn new(
         genesis_hash: sdk_types::hashes::BlockHash,
         max_successive_failures: u64,
-        registry: &mut Registry,
     ) -> Self {
-        let established_node_connections = Family::default();
-        registry.register(
-            "established_node_connections",
-            "Total number of established Concordium Node connections",
-            established_node_connections.clone(),
-        );
-        let preprocessing_failures = Family::default();
-        registry.register(
-            "preprocessing_failures",
-            "Total number of failed attempts to preprocess blocks",
-            preprocessing_failures.clone(),
-        );
-        let blocks_being_preprocessed = Family::default();
-        registry.register(
-            "blocks_being_preprocessed",
-            "Current number of blocks being preprocessed",
-            blocks_being_preprocessed.clone(),
-        );
-        let node_response_time: Family<NodeMetricLabels, Histogram> =
-            Family::new_with_constructor(|| {
-                Histogram::new(histogram::exponential_buckets(0.010, 2.0, 10))
-            });
-        registry.register(
-            "node_response_time_seconds",
-            "Duration of seconds used to fetch all of the block information",
-            node_response_time.clone(),
-        );
+        // TODO
 
         Self {
             genesis_hash,
-            established_node_connections,
-            preprocessing_failures,
-            blocks_being_preprocessed,
-            node_response_time,
             max_successive_failures,
         }
     }
@@ -471,7 +417,6 @@ impl BlockProcessor {
     async fn new(
         pool: PgPool,
         max_successive_failures: u32,
-        registry: &mut Registry,
     ) -> anyhow::Result<Self> {
         let last_finalized_block = sqlx::query!(
             "
@@ -509,8 +454,6 @@ LIMIT 1
         describe_counter!("indexer_processing_failures", "TODO");
         describe_histogram!("indexer_processing_duration_seconds", "TODO");
         describe_histogram!("indexer_processing_duration_seconds", "TODO");
-        let batch_size = Histogram::new(histogram::linear_buckets(1.0, 1.0, 10));
-        registry.register("indexer_processor_batch", "Batch sizes", batch_size.clone());
         Ok(Self {
             pool,
             current_context: starting_context,

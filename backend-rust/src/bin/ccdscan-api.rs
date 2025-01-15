@@ -2,10 +2,6 @@ use anyhow::Context;
 use async_graphql::SDLExportOptions;
 use clap::Parser;
 use concordium_scan::{graphql_api, router};
-use prometheus_client::{
-    metrics::{family::Family, gauge::Gauge},
-    registry::Registry,
-};
 use sqlx::postgres::PgPoolOptions;
 use std::{net::SocketAddr, path::PathBuf};
 use tokio::net::TcpListener;
@@ -61,21 +57,6 @@ async fn main() -> anyhow::Result<()> {
         .await
         .context("Failed constructing database connection pool")?;
     let cancel_token = CancellationToken::new();
-    let service_info_family = Family::<Vec<(&str, String)>, Gauge>::default();
-    let gauge =
-        service_info_family.get_or_create(&vec![("version", clap::crate_version!().to_string())]);
-    gauge.set(1);
-    let mut registry = Registry::with_prefix("api");
-    registry.register(
-        "service_info",
-        "Information about the software",
-        service_info_family.clone(),
-    );
-    registry.register(
-        "service_startup_timestamp_millis",
-        "Timestamp of starting up the API service (Unix time in milliseconds)",
-        prometheus_client::metrics::gauge::ConstGauge::new(chrono::Utc::now().timestamp_millis()),
-    );
 
     let (subscription, subscription_listener) =
         graphql_api::Subscription::new(cli.database_retry_delay_secs);
@@ -87,7 +68,7 @@ async fn main() -> anyhow::Result<()> {
 
     let mut queries_task = {
         let pool = pool.clone();
-        let service = graphql_api::Service::new(subscription, &mut registry, pool, cli.api_config);
+        let service = graphql_api::Service::new(subscription, pool, cli.api_config);
         if let Some(schema_file) = cli.schema_out {
             info!("Writing schema to {}", schema_file.to_string_lossy());
             std::fs::write(
@@ -110,7 +91,7 @@ async fn main() -> anyhow::Result<()> {
             .context("Parsing TCP listener address failed")?;
         let stop_signal = cancel_token.child_token();
         info!("Monitoring server is running at {:?}", cli.monitoring_listen);
-        tokio::spawn(router::serve(tcp_listener, pool, stop_signal))
+        tokio::spawn(router::serve(tcp_listener, pool, stop_signal, "api".to_string()))
     };
 
     // Await for signal to shutdown or any of the tasks to stop.
