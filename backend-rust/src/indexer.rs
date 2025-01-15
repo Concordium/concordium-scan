@@ -46,11 +46,7 @@ use prometheus_client::{
     registry::Registry,
 };
 use sqlx::PgPool;
-use std::{
-    convert::TryInto,
-    sync::Arc,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::{convert::TryInto, sync::Arc};
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
@@ -589,13 +585,6 @@ impl ProcessEvent for BlockProcessor {
         self.batch_size.observe(batch.len() as f64);
         let duration = start_time.elapsed();
         self.processing_duration_seconds.observe(duration.as_secs_f64());
-        // Update the current context when we are certain that nothing failed during
-        // processing.
-        if let Ok(duration_since_epoch) = SystemTime::now().duration_since(UNIX_EPOCH) {
-            let current_timestamp = duration_since_epoch.as_secs() as i64;
-            self.processing_last_successful_batch_save.set(current_timestamp);
-        }
-
         self.current_context = new_context;
         Ok(out)
     }
