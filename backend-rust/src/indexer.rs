@@ -46,7 +46,11 @@ use prometheus_client::{
     registry::Registry,
 };
 use sqlx::PgPool;
-use std::{convert::TryInto, sync::Arc};
+use std::{
+    convert::TryInto,
+    sync::Arc,
+    time::{SystemTime, UNIX_EPOCH},
+};
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
@@ -453,11 +457,15 @@ async fn compute_total_stake_capital(
 struct BlockProcessor {
     /// Database connection pool
     pool: PgPool,
+    /// Metric counting how many blocks was saved to the database successfully.
+    batch_size: Histogram,
     /// Metric counting the total number of failed attempts to process
     /// blocks.
     processing_failures: Counter,
     /// Histogram collecting the time it took to process a block.
     processing_duration_seconds: Histogram,
+    /// Last time batch has been successfully written to the database
+    processing_last_successful_batch_save: Gauge,
     /// Max number of acceptable successive failures before shutting down the
     /// service.
     max_successive_failures: u32,
@@ -520,11 +528,21 @@ LIMIT 1
             "Time taken for processing a block",
             processing_duration_seconds.clone(),
         );
+        let processing_last_successful_batch_save = Gauge::default();
+        registry.register(
+            "processing_last_successful_write",
+            "Last time a successful batch was written to the database",
+            processing_last_successful_batch_save.clone(),
+        );
+        let batch_size = Histogram::new(histogram::linear_buckets(1.0, 1.0, 10));
+        registry.register("batch_size", "Batch sizes", batch_size.clone());
 
         Ok(Self {
             pool,
             current_context: starting_context,
+            batch_size,
             processing_failures,
+            processing_last_successful_batch_save,
             processing_duration_seconds,
             max_successive_failures,
         })
@@ -548,6 +566,7 @@ impl ProcessEvent for BlockProcessor {
     /// error. This property is relied upon by the [`ProcessorConfig`] to retry
     /// failed attempts.
     async fn process(&mut self, batch: &Self::Data) -> Result<Self::Description, Self::Error> {
+        let start_time = Instant::now();
         let mut out = format!("Processed {} blocks:", batch.len());
         let mut tx = self.pool.begin().await.context("Failed to create SQL transaction")?;
         // Clone the context, to avoid mutating the current context until we are certain
@@ -555,7 +574,6 @@ impl ProcessEvent for BlockProcessor {
         let mut new_context = self.current_context.clone();
         PreparedBlock::batch_save(batch, &mut new_context, &mut tx).await?;
         for block in batch {
-            let start_time = Instant::now();
             for item in block.prepared_block_items.iter() {
                 item.save(&mut tx).await?;
             }
@@ -563,15 +581,21 @@ impl ProcessEvent for BlockProcessor {
                 item.save(&mut tx, None).await?;
             }
             out.push_str(format!("\n- {}:{}", block.height, block.hash).as_str());
-            let duration = start_time.elapsed();
-            self.processing_duration_seconds.observe(duration.as_secs_f64());
         }
         process_release_schedules(new_context.last_block_slot_time, &mut tx)
             .await
             .context("Processing scheduled releases")?;
         tx.commit().await.context("Failed to commit SQL transaction")?;
+        self.batch_size.observe(batch.len() as f64);
+        let duration = start_time.elapsed();
+        self.processing_duration_seconds.observe(duration.as_secs_f64());
         // Update the current context when we are certain that nothing failed during
         // processing.
+        if let Ok(duration_since_epoch) = SystemTime::now().duration_since(UNIX_EPOCH) {
+            let current_timestamp = duration_since_epoch.as_secs() as i64;
+            self.processing_last_successful_batch_save.set(current_timestamp);
+        }
+
         self.current_context = new_context;
         Ok(out)
     }
