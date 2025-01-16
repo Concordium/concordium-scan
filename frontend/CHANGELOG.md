@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Fix
 
 - Remove unused sub-query for account transactions in the accounts page.
+- Remove unused fields in query for block metrics.
 
 ## [1.6.0] - 2024-11-05
 
