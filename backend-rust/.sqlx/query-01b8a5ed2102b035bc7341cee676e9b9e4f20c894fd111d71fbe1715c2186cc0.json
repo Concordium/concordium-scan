@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                MAX(transaction_index_per_contract) + 1\n            FROM contract_reject_transactions\n            WHERE contract_reject_transactions.contract_index = $1\n                AND contract_reject_transactions.contract_sub_index = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "?column?",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "01b8a5ed2102b035bc7341cee676e9b9e4f20c894fd111d71fbe1715c2186cc0"
+}

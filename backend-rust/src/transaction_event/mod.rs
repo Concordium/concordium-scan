@@ -547,14 +547,14 @@ pub fn events_from_summary(
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct Cis2TransferEvent {
+pub struct CisTransferEvent {
     pub raw_token_id: cis2::TokenId,
     pub amount:       cis2::TokenAmount,
     pub from:         Address,
     pub to:           Address,
 }
 #[Object]
-impl Cis2TransferEvent {
+impl CisTransferEvent {
     async fn to_address(&self) -> ScalarAddress { self.to.into() }
 
     async fn from_address(&self) -> ScalarAddress { self.from.into() }
@@ -567,13 +567,13 @@ impl Cis2TransferEvent {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct Cis2MintEvent {
+pub struct CisMintEvent {
     pub raw_token_id: cis2::TokenId,
     pub amount:       cis2::TokenAmount,
     pub owner:        Address,
 }
 #[Object]
-impl Cis2MintEvent {
+impl CisMintEvent {
     async fn to_address(&self) -> ScalarAddress { self.owner.into() }
 
     async fn token_amount(&self) -> crate::scalar_types::BigInteger {
@@ -584,13 +584,13 @@ impl Cis2MintEvent {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct Cis2BurnEvent {
+pub struct CisBurnEvent {
     pub raw_token_id: cis2::TokenId,
     pub amount:       cis2::TokenAmount,
     pub owner:        Address,
 }
 #[Object]
-impl Cis2BurnEvent {
+impl CisBurnEvent {
     async fn from_address(&self) -> ScalarAddress { self.owner.into() }
 
     async fn token_amount(&self) -> crate::scalar_types::BigInteger {
@@ -601,12 +601,12 @@ impl Cis2BurnEvent {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct Cis2TokenMetadataEvent {
+pub struct CisTokenMetadataEvent {
     pub raw_token_id: cis2::TokenId,
     pub metadata_url: concordium_rust_sdk::cis2::MetadataUrl,
 }
 #[Object]
-impl Cis2TokenMetadataEvent {
+impl CisTokenMetadataEvent {
     async fn metadata_url(&self) -> String { self.metadata_url.url().to_string() }
 
     async fn hash_hex(&self) -> Option<String> {
@@ -617,22 +617,22 @@ impl Cis2TokenMetadataEvent {
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-pub struct Cis2UnknownEvent {
+pub struct CisUnknownEvent {
     pub dummy: crate::scalar_types::UnsignedLong,
 }
 
 // Note: This enum does NOT have an `UpdateOperator` variant since this event
 // cannot be linked to a specific token.
 #[derive(Union, serde::Serialize, serde::Deserialize)]
-pub enum ScalarCis2TokenEvent {
-    Transfer(Cis2TransferEvent),
-    Mint(Cis2MintEvent),
-    Burn(Cis2BurnEvent),
-    TokenMetadata(Cis2TokenMetadataEvent),
-    Unknown(Cis2UnknownEvent),
+pub enum CisEvent {
+    Transfer(CisTransferEvent),
+    Mint(CisMintEvent),
+    Burn(CisBurnEvent),
+    TokenMetadata(CisTokenMetadataEvent),
+    Unknown(CisUnknownEvent),
 }
 
-impl From<cis2::Event> for ScalarCis2TokenEvent {
+impl From<cis2::Event> for CisEvent {
     fn from(event: cis2::Event) -> Self {
         match event {
             cis2::Event::Transfer {
@@ -640,7 +640,7 @@ impl From<cis2::Event> for ScalarCis2TokenEvent {
                 amount,
                 from,
                 to,
-            } => ScalarCis2TokenEvent::Transfer(Cis2TransferEvent {
+            } => CisEvent::Transfer(CisTransferEvent {
                 raw_token_id: token_id,
                 amount,
                 from,
@@ -650,7 +650,7 @@ impl From<cis2::Event> for ScalarCis2TokenEvent {
                 token_id,
                 amount,
                 owner,
-            } => ScalarCis2TokenEvent::Mint(Cis2MintEvent {
+            } => CisEvent::Mint(CisMintEvent {
                 raw_token_id: token_id,
                 amount,
                 owner,
@@ -659,7 +659,7 @@ impl From<cis2::Event> for ScalarCis2TokenEvent {
                 token_id,
                 amount,
                 owner,
-            } => ScalarCis2TokenEvent::Burn(Cis2BurnEvent {
+            } => CisEvent::Burn(CisBurnEvent {
                 raw_token_id: token_id,
                 amount,
                 owner,
@@ -667,11 +667,11 @@ impl From<cis2::Event> for ScalarCis2TokenEvent {
             cis2::Event::TokenMetadata {
                 token_id,
                 metadata_url,
-            } => ScalarCis2TokenEvent::TokenMetadata(Cis2TokenMetadataEvent {
+            } => CisEvent::TokenMetadata(CisTokenMetadataEvent {
                 raw_token_id: token_id,
                 metadata_url,
             }),
-            _ => ScalarCis2TokenEvent::Unknown(Cis2UnknownEvent {
+            _ => CisEvent::Unknown(CisUnknownEvent {
                 dummy: UnsignedLong(0u64),
             }),
         }

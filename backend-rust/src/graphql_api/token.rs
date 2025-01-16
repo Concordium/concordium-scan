@@ -5,7 +5,7 @@ use super::{
 use crate::{
     address::ContractIndex,
     scalar_types::{BigInteger, TransactionIndex},
-    transaction_event::ScalarCis2TokenEvent,
+    transaction_event::CisEvent,
 };
 use async_graphql::{ComplexObject, Context, Object, SimpleObject};
 use sqlx::PgPool;
@@ -232,7 +232,7 @@ impl Token {
                 contract_sub_index,
                 transaction_index,
                 index_per_token,
-                cis2_token_event as "event: sqlx::types::Json<ScalarCis2TokenEvent>"
+                cis2_token_event as "event: sqlx::types::Json<CisEvent>"
             FROM cis2_token_events
             JOIN tokens
                 ON tokens.contract_index = $1
@@ -262,7 +262,7 @@ impl Token {
 
         let total_count: i32 = sqlx::query_scalar!(
             "SELECT
-                MAX(index_per_token)
+                MAX(index_per_token) + 1
             FROM cis2_token_events
             JOIN tokens
                 ON tokens.contract_index = $1
@@ -283,7 +283,7 @@ impl Token {
                 has_next_page,
                 has_previous_page,
             },
-            total_count: total_count + 1,
+            total_count,
             items,
         })
     }
@@ -308,7 +308,7 @@ pub struct Cis2Event {
     pub transaction_index:  TransactionIndex,
     pub index_per_token:    i64,
     #[graphql(skip)]
-    pub event:              Option<sqlx::types::Json<ScalarCis2TokenEvent>>,
+    pub event:              Option<sqlx::types::Json<CisEvent>>,
 }
 
 #[ComplexObject]
@@ -319,7 +319,7 @@ impl Cis2Event {
         )
     }
 
-    async fn event(&self) -> Option<&ScalarCis2TokenEvent> {
+    async fn event(&self) -> Option<&CisEvent> {
         self.event.as_ref().map(|json_event| &json_event.0)
     }
 }

@@ -637,6 +637,8 @@ CREATE TABLE cis2_token_events (
         NOT NULL
 );
 
+CREATE INDEX cis2_token_events_idx ON cis2_token_events (token_index, index_per_token);
+
 CREATE OR REPLACE FUNCTION block_added_notify_trigger_function() RETURNS trigger AS $trigger$
 DECLARE
   rec blocks;
