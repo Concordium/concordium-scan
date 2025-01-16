@@ -26,7 +26,7 @@ transaction {
 }
 event {
   __typename
-  ...on Cis2BurnEvent {
+  ...on CisBurnEvent {
     fromAddress {
       __typename
       ... on AccountAddress {
@@ -41,7 +41,7 @@ event {
     tokenAmount
     tokenId
   }
-  ...on Cis2MintEvent {
+  ...on CisMintEvent {
     toAddress {
       __typename
       ... on AccountAddress {
@@ -56,12 +56,12 @@ event {
     tokenAmount
     tokenId
   }
-  ...on Cis2TokenMetadataEvent {
+  ...on CisTokenMetadataEvent {
     hashHex
     metadataUrl
     tokenId
   }
-  ... on Cis2TransferEvent {
+  ... on CisTransferEvent {
     toAddress {
       __typename
       ... on AccountAddress {
