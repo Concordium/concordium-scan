@@ -44,13 +44,9 @@ struct Cli {
     monitoring_listen: SocketAddr,
     #[command(flatten, next_help_heading = "Performance tuning")]
     indexer_config:    IndexerServiceConfig,
-    #[arg(
-        long = "log-level",
-        default_value = "info",
-        help = "The maximum log level. Possible values are: `trace`, `debug`, `info`, `warn`, and \
-                `error`.",
-        env = "LOG_LEVEL"
-    )]
+    /// The maximum log level. Possible values are: `trace`, `debug`, `info`,
+    /// `warn`, and `error`.
+    #[arg(long = "log-level", default_value = "info", env = "LOG_LEVEL")]
     log_level:         tracing_subscriber::filter::LevelFilter,
 }
 

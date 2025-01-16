@@ -47,10 +47,10 @@ use prometheus_client::{
     registry::Registry,
 };
 use sqlx::PgPool;
-use std::{convert::TryInto, sync::Arc};
+use std::{convert::TryInto, sync::Arc, time::Duration};
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 
 /// Service traversing each block of the chain, indexing it into a database.
 ///
@@ -74,6 +74,12 @@ pub struct IndexerService {
 
 #[derive(clap::Args)]
 pub struct IndexerServiceConfig {
+    /// Request timeout in seconds when querying a Concordium Node.
+    #[arg(long, env = "CCDSCAN_INDEXER_CONFIG_NODE_REQUEST_TIMEOUT", default_value = "60")]
+    pub node_request_timeout:             u64,
+    /// Connection timeout in seconds when connecting a Concordium Node.
+    #[arg(long, env = "CCDSCAN_INDEXER_CONFIG_NODE_CONNECT_TIMEOUT", default_value = "10")]
+    pub node_connect_timeout:             u64,
     /// Maximum number of blocks being preprocessed in parallel.
     #[arg(
         long,
@@ -153,18 +159,22 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
         // Set up endpoints to the node.
         let mut endpoints_with_schema = Vec::new();
         for endpoint in self.endpoints {
-            if endpoint
+            let endpoint = if endpoint
                 .uri()
                 .scheme()
                 .map_or(false, |x| x == &concordium_rust_sdk::v2::Scheme::HTTPS)
             {
-                let new_endpoint = endpoint
+                endpoint
                     .tls_config(tonic::transport::ClientTlsConfig::new())
-                    .context("Unable to construct TLS configuration for the Concordium node.")?;
-                endpoints_with_schema.push(new_endpoint);
+                    .context("Unable to construct TLS configuration for the Concordium node.")?
             } else {
-                endpoints_with_schema.push(endpoint);
-            }
+                endpoint
+            };
+            endpoints_with_schema.push(
+                endpoint
+                    .timeout(Duration::from_secs(self.config.node_request_timeout))
+                    .connect_timeout(Duration::from_secs(self.config.node_connect_timeout)),
+            );
         }
 
         let traverse_config = TraverseConfig::new(endpoints_with_schema, self.start_height.into())
@@ -320,6 +330,7 @@ impl Indexer for BlockPreProcessor {
         fbi: FinalizedBlockInfo,
     ) -> QueryResult<Self::Data> {
         self.blocks_being_preprocessed.get_or_create(label).inc();
+        info!("Preprocessing block {}:{}", fbi.height, fbi.block_hash);
         // We block together the computation, so we can update the metric in the error
         // case, before returning early.
         let result =
@@ -407,6 +418,7 @@ impl Indexer for BlockPreProcessor {
             }
             .await;
         self.blocks_being_preprocessed.get_or_create(label).dec();
+        debug!("Preprocessing block {}:{} completed", fbi.height, fbi.block_hash);
         result
     }
 
