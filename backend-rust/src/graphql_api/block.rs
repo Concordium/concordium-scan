@@ -14,8 +14,8 @@ pub(crate) struct QueryBlocks;
 
 #[Object]
 impl QueryBlocks {
-    async fn block<'a>(&self, ctx: &Context<'a>, height_id: types::ID) -> ApiResult<Block> {
-        let height: BlockHeight = height_id.try_into().map_err(ApiError::InvalidIdInt)?;
+    async fn block<'a>(&self, ctx: &Context<'a>, id: types::ID) -> ApiResult<Block> {
+        let height: BlockHeight = id.try_into().map_err(ApiError::InvalidIdInt)?;
         Block::query_by_height(get_pool(ctx)?, height).await
     }
 
