@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO cis2_token_events (\n                    index_per_token,\n                    transaction_index,\n                    token_index,\n                    cis2_token_event\n                )\n                SELECT\n                    COALESCE((SELECT MAX(index_per_token) + 1 FROM cis2_token_events), 0),\n                    $1,\n                    tokens.index,\n                    $3\n                FROM tokens\n                WHERE tokens.token_address = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "93e91467e607e10f59ea7625e010487d93a801fbec90b768c62d93f462da39eb"
+}

@@ -626,16 +626,13 @@ CREATE TABLE cis2_token_events (
     transaction_index
         BIGINT
         NOT NULL,
-    -- Trace element index of the event traces from above transaction.
-    trace_element_index
-        BIGINT
-        NOT NULL,
     -- The token index (row in the `tokens` table) of the associated token.
     token_index
         BIGINT
         NOT NULL,
-    -- The cis2Event.
-    cis2_event
+    -- The cis2 token event. Only `Mint`, `Burn`, `Transfer` and `TokenMetadata` events can occure in the field 
+    -- (no `UpdateOperator` event because the event cannot be linked to a specific token).
+    cis2_token_event
         JSONB
         NOT NULL
 );

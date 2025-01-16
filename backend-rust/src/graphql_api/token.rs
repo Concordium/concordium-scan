@@ -5,7 +5,7 @@ use super::{
 use crate::{
     address::ContractIndex,
     scalar_types::{BigInteger, TransactionIndex},
-    transaction_event::ScalarCis2Event,
+    transaction_event::ScalarCis2TokenEvent,
 };
 use async_graphql::{ComplexObject, Context, Object, SimpleObject};
 use sqlx::PgPool;
@@ -232,7 +232,7 @@ impl Token {
                 contract_sub_index,
                 transaction_index,
                 index_per_token,
-                cis2_event as "event: sqlx::types::Json<ScalarCis2Event>"
+                cis2_token_event as "event: sqlx::types::Json<ScalarCis2TokenEvent>"
             FROM cis2_token_events
             JOIN tokens
                 ON tokens.contract_index = $1
@@ -308,7 +308,7 @@ pub struct Cis2Event {
     pub transaction_index:  TransactionIndex,
     pub index_per_token:    i64,
     #[graphql(skip)]
-    pub event:              Option<sqlx::types::Json<ScalarCis2Event>>,
+    pub event:              Option<sqlx::types::Json<ScalarCis2TokenEvent>>,
 }
 
 #[ComplexObject]
@@ -319,7 +319,7 @@ impl Cis2Event {
         )
     }
 
-    async fn event(&self) -> Option<&ScalarCis2Event> {
+    async fn event(&self) -> Option<&ScalarCis2TokenEvent> {
         self.event.as_ref().map(|json_event| &json_event.0)
     }
 }
