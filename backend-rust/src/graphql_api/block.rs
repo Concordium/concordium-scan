@@ -7,7 +7,6 @@ use crate::{
 use async_graphql::{
     connection, types, ComplexObject, Context, Enum, Interface, Object, SimpleObject, Union,
 };
-use futures::TryStreamExt;
 
 #[derive(Default)]
 pub(crate) struct QueryBlocks;
@@ -27,9 +26,10 @@ impl QueryBlocks {
         Block::query_by_hash(get_pool(ctx)?, block_hash).await
     }
 
-    async fn blocks<'a>(
+    /// Query the list of blocks ordered descendingly by block height.
+    async fn blocks(
         &self,
-        ctx: &Context<'a>,
+        ctx: &Context<'_>,
         #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
@@ -46,11 +46,11 @@ impl QueryBlocks {
             before,
             config.block_connection_limit,
         )?;
-        // The CCDScan front-end currently expects an ASC order of the nodes/edges
+        // The CCDScan front-end currently expects an DESC order of the nodes/edges
         // returned (outer `ORDER BY`), while the inner `ORDER BY` is a trick to
         // get the correct nodes/edges selected based on the `after/before` key
         // specified.
-        let mut row_stream = sqlx::query_as!(
+        let rows = sqlx::query_as!(
             Block,
             "SELECT * FROM (
                 SELECT
@@ -64,29 +64,35 @@ impl QueryBlocks {
                 FROM blocks
                 WHERE height > $1 AND height < $2
                 ORDER BY
-                    (CASE WHEN $4 THEN height END) DESC,
-                    (CASE WHEN NOT $4 THEN height END) ASC
+                    (CASE WHEN $4 THEN height END) ASC,
+                    (CASE WHEN NOT $4 THEN height END) DESC
                 LIMIT $3
-            ) ORDER BY height ASC",
+            ) ORDER BY height DESC",
             query.from,
             query.to,
             query.limit,
             query.desc
         )
-        .fetch(pool);
-
-        let mut connection = connection::Connection::new(true, true);
-        while let Some(block) = row_stream.try_next().await? {
-            connection.edges.push(connection::Edge::new(block.height.to_string(), block));
+        .fetch_all(pool)
+        .await?;
+        let has_prev_page = if let Some(first) = rows.first() {
+            sqlx::query_scalar!("SELECT true FROM blocks WHERE height > $1 LIMIT 1", first.height)
+                .fetch_optional(pool)
+                .await?
+                .flatten()
+                .unwrap_or_default()
+        } else {
+            false
+        };
+        let has_next_page = if let Some(last) = rows.last() {
+            last.height > 0
+        } else {
+            false
+        };
+        let mut connection = connection::Connection::new(has_prev_page, has_next_page);
+        for row in rows {
+            connection.edges.push(connection::Edge::new(row.height.to_string(), row));
         }
-        if last.is_some() {
-            if let Some(edge) = connection.edges.last() {
-                connection.has_previous_page = edge.node.height != 0;
-            }
-        } else if let Some(edge) = connection.edges.first() {
-            connection.has_previous_page = edge.node.height != 0;
-        }
-
         Ok(connection)
     }
 }
