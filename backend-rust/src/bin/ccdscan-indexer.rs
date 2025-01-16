@@ -5,12 +5,9 @@ use concordium_scan::{
     indexer::{self, IndexerServiceConfig},
     router,
 };
-use prometheus_client::{
-    metrics::{family::Family, gauge::Gauge},
-    registry::Registry,
-};
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
+use axum_prometheus::metrics::gauge;
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
@@ -67,27 +64,11 @@ async fn main() -> anyhow::Result<()> {
         .context("Failed constructing database connection pool")?;
     let cancel_token = CancellationToken::new();
 
-    let mut registry = Registry::with_prefix("indexer");
-    let service_info_family = Family::<Vec<(&str, String)>, Gauge>::default();
-    let gauge =
-        service_info_family.get_or_create(&vec![("version", clap::crate_version!().to_string())]);
-    gauge.set(1);
-    registry.register(
-        "service_info",
-        "Information about the software",
-        service_info_family.clone(),
-    );
-    registry.register(
-        "service_startup_timestamp_millis",
-        "Timestamp of starting up the Indexer service (Unix time in milliseconds)",
-        prometheus_client::metrics::gauge::ConstGauge::new(chrono::Utc::now().timestamp_millis()),
-    );
-
     let mut indexer_task = {
         let pool = pool.clone();
         let stop_signal = cancel_token.child_token();
         let indexer =
-            indexer::IndexerService::new(cli.node, pool, &mut registry, cli.indexer_config).await?;
+            indexer::IndexerService::new(cli.node, pool, cli.indexer_config).await?;
         tokio::spawn(async move { indexer.run(stop_signal).await })
     };
     let mut monitoring_task = {

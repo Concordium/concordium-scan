@@ -57,7 +57,6 @@ async fn main() -> anyhow::Result<()> {
         .await
         .context("Failed constructing database connection pool")?;
     let cancel_token = CancellationToken::new();
-
     let (subscription, subscription_listener) =
         graphql_api::Subscription::new(cli.database_retry_delay_secs);
     let mut pgnotify_listener = {
