@@ -21,13 +21,8 @@ const BlockMetricsQuery = gql<BlockMetricsQueryResponse>`
 				bucketWidth
 				x_Time
 				y_BlocksAdded
-				y_BlockTimeMin
 				y_BlockTimeAvg
-				y_BlockTimeMax
-				y_LastTotalMicroCcd
 				y_FinalizationTimeAvg
-				y_MinTotalMicroCcdStaked
-				y_MaxTotalMicroCcdStaked
 				y_LastTotalMicroCcdStaked
 			}
 		}
