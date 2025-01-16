@@ -2,7 +2,8 @@ use crate::{
     graphql_api::AccountStatementEntryType,
     transaction_event::{
         baker::BakerPoolOpenStatus, events_from_summary,
-        smart_contracts::ModuleReferenceContractLinkAction,
+        smart_contracts::ModuleReferenceContractLinkAction, Cis2BurnEvent, Cis2MintEvent,
+        Cis2TokenMetadataEvent, Cis2TransferEvent, ScalarCis2Event,
     },
     transaction_type::{
         AccountTransactionType, CredentialDeploymentTransactionType, DbTransactionType,
@@ -2184,7 +2185,7 @@ struct PreparedContractInitialized {
     name:              String,
     amount:            i64,
     module_link_event: PreparedModuleLinkAction,
-    cis2_events:       Vec<cis2::Event>,
+    cis2_events:       Vec<ScalarCis2Event>,
     account_statement: PreparedAccountStatement,
 }
 
@@ -2255,7 +2256,7 @@ impl PreparedContractInitialized {
             .is_ok_and(|r| r.response.is_support());
 
             if supports_cis2 {
-                potential_cis2_events
+                potential_cis2_events.into_iter().map(|event: cis2::Event| event.into()).collect()
             } else {
                 // If contract does not support `CIS2`, don't consider the events as CIS2
                 // events.
@@ -2358,7 +2359,7 @@ struct PreparedContractUpdate {
     contract_sub_index:         i64,
     /// Potential module link events from a smart contract upgrade
     module_link_event:          Option<PreparedContractUpgrade>,
-    cis2_events:                Vec<cis2::Event>,
+    cis2_events:                Vec<ScalarCis2Event>,
     trace_element_index:        i64,
     prepared_account_statement: Option<PreparedUpdateAccountBalance>,
 }
@@ -2478,7 +2479,7 @@ impl PreparedContractUpdate {
             .is_ok_and(|r| r.response.is_support());
 
             if supports_cis2 {
-                potential_cis2_events
+                potential_cis2_events.into_iter().map(|event: cis2::Event| event.into()).collect()
             } else {
                 // If contract does not support `CIS2`, don't consider the events as CIS2
                 // events.
@@ -2661,7 +2662,7 @@ impl PreparedRejectContractUpdateTransaction {
 }
 
 async fn process_cis2_event(
-    cis2_event: &cis2::Event,
+    cis2_event: &ScalarCis2Event,
     contract_index: i64,
     contract_sub_index: i64,
     transaction_index: i64,
@@ -2676,14 +2677,14 @@ async fn process_cis2_event(
         // Only `Mint`, `Burn`, and `Transfer` events affect the `balance` of a token owner.
         // - The `tokenEvent` is inserted in the database here.
         // Only `Mint`, `Burn`, `Transfer`, and `TokenMetadata` events are tracked as token events.
-        cis2::Event::Mint {
-            token_id,
+        cis2_mint_event @ ScalarCis2Event::Mint(Cis2MintEvent {
+            raw_token_id,
             amount,
             owner,
-        } => {
+        }) => {
             let token_address = TokenAddress::new(
                 ContractAddress::new(contract_index as u64, contract_sub_index as u64),
-                token_id.clone(),
+                raw_token_id.clone(),
             )
             .to_string();
 
@@ -2717,7 +2718,7 @@ async fn process_cis2_event(
                 contract_index,
                 contract_sub_index,
                 tokens_minted.clone(),
-                token_id.to_string(),
+                raw_token_id.to_string(),
                 transaction_index
             )
             .execute(tx.as_mut())
@@ -2757,18 +2758,21 @@ async fn process_cis2_event(
                     index_per_token,
                     transaction_index,
                     trace_element_index,
-                    token_index
+                    token_index,
+                    cis2_event
                 )
                 SELECT
                     COALESCE((SELECT MAX(index_per_token) + 1 FROM cis2_token_events), 0),
                     $1,
                     $2,
-                    tokens.index
+                    tokens.index,
+                    $4
                 FROM tokens
                 WHERE tokens.token_address = $3",
                 transaction_index,
                 trace_element_index,
                 token_address,
+                serde_json::to_value(cis2_mint_event)?,
             )
             .execute(tx.as_mut())
             .await?;
@@ -2784,14 +2788,14 @@ async fn process_cis2_event(
         // Note: Some `buggy` CIS2 token contracts might burn more tokens than they have
         // initially minted. The `total_supply/balance` can have a negative value in that case
         // and even underflow.
-        cis2::Event::Burn {
-            token_id,
+        cis2_burn_event @ ScalarCis2Event::Burn(Cis2BurnEvent {
+            raw_token_id,
             amount,
             owner,
-        } => {
+        }) => {
             let token_address = TokenAddress::new(
                 ContractAddress::new(contract_index as u64, contract_sub_index as u64),
-                token_id.clone(),
+                raw_token_id.clone(),
             )
             .to_string();
 
@@ -2826,7 +2830,7 @@ async fn process_cis2_event(
                 contract_index,
                 contract_sub_index,
                 -tokens_burned.clone(),
-                token_id.to_string(),
+                raw_token_id.to_string(),
                 transaction_index
             )
             .execute(tx.as_mut())
@@ -2862,18 +2866,21 @@ async fn process_cis2_event(
                     index_per_token,
                     transaction_index,
                     trace_element_index,
-                    token_index
+                    token_index,
+                    cis2_event
                 )
                 SELECT
                     COALESCE((SELECT MAX(index_per_token) + 1 FROM cis2_token_events), 0),
                     $1,
                     $2,
-                    tokens.index
+                    tokens.index,
+                    $4
                 FROM tokens
                 WHERE tokens.token_address = $3",
                 transaction_index,
                 trace_element_index,
                 token_address,
+                serde_json::to_value(cis2_burn_event)?,
             )
             .execute(tx.as_mut())
             .await?;
@@ -2886,15 +2893,15 @@ async fn process_cis2_event(
         // Only `Mint`, `Burn`, `Transfer`, and `TokenMetadata` events are tracked as token events.
         // Note: Some `buggy` CIS2 token contracts might transfer more tokens than an owner owns.
         // The `balance` can have a negative value in that case.
-        cis2::Event::Transfer {
-            token_id,
+        cis2_transfer_event @ ScalarCis2Event::Transfer(Cis2TransferEvent {
+            raw_token_id,
             amount,
             from,
             to,
-        } => {
+        }) => {
             let token_address = TokenAddress::new(
                 ContractAddress::new(contract_index as u64, contract_sub_index as u64),
-                token_id.clone(),
+                raw_token_id.clone(),
             )
             .to_string();
 
@@ -2962,18 +2969,21 @@ async fn process_cis2_event(
                     index_per_token,
                     transaction_index,
                     trace_element_index,
-                    token_index
+                    token_index,
+                    cis2_event
                 )
                 SELECT
                     COALESCE((SELECT MAX(index_per_token) + 1 FROM cis2_token_events), 0),
                     $1,
                     $2,
-                    tokens.index
+                    tokens.index,
+                    $4
                 FROM tokens
                 WHERE tokens.token_address = $3",
                 transaction_index,
                 trace_element_index,
                 token_address,
+                serde_json::to_value(cis2_transfer_event)?,
             )
             .execute(tx.as_mut())
             .await?;
@@ -2984,13 +2994,13 @@ async fn process_cis2_event(
         // token.
         // - The `tokenEvent` is inserted in the database here.
         // Only `Mint`, `Burn`, `Transfer`, and `TokenMetadata` events are tracked as token events.
-        cis2::Event::TokenMetadata {
-            token_id,
+        cis2_token_metadata_event @ ScalarCis2Event::TokenMetadata(Cis2TokenMetadataEvent {
+            raw_token_id,
             metadata_url,
-        } => {
+        }) => {
             let token_address = TokenAddress::new(
                 ContractAddress::new(contract_index as u64, contract_sub_index as u64),
-                token_id.clone(),
+                raw_token_id.clone(),
             )
             .to_string();
 
@@ -3023,7 +3033,7 @@ async fn process_cis2_event(
                 contract_index,
                 contract_sub_index,
                 metadata_url.as_str(),
-                token_id.to_string(),
+                raw_token_id.to_string(),
                 transaction_index
             )
             .execute(tx.as_mut())
@@ -3036,18 +3046,21 @@ async fn process_cis2_event(
                     index_per_token,
                     transaction_index,
                     trace_element_index,
-                    token_index
+                    token_index,
+                    cis2_event
                 )
                 SELECT
                     COALESCE((SELECT MAX(index_per_token) + 1 FROM cis2_token_events), 0),
                     $1,
                     $2,
-                    tokens.index
+                    tokens.index,
+                    $4
                 FROM tokens
                 WHERE tokens.token_address = $3",
                 transaction_index,
                 trace_element_index,
                 token_address,
+                serde_json::to_value(cis2_token_metadata_event)?,
             )
             .execute(tx.as_mut())
             .await?;

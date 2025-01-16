@@ -1,11 +1,13 @@
 use crate::{
-    address::Address,
+    address::Address as ScalarAddress,
     decoded_text::DecodedText,
     graphql_api::{ApiError, ApiResult},
-    scalar_types::{Byte, DateTime},
+    scalar_types::{BigInteger, Byte, DateTime, UnsignedLong},
 };
 use anyhow::Context;
-use async_graphql::{ComplexObject, SimpleObject, Union};
+use async_graphql::{ComplexObject, Object, SimpleObject, Union};
+use bigdecimal::BigDecimal;
+use concordium_rust_sdk::{cis2, types::Address};
 use tracing::error;
 
 pub mod baker;
@@ -135,7 +137,7 @@ pub fn events_from_summary(
                             to,
                         } => Ok(Event::Transferred(transfers::Transferred {
                             amount: amount.micro_ccd().into(),
-                            from:   Address::ContractAddress(from.into()),
+                            from:   ScalarAddress::ContractAddress(from.into()),
                             to:     to.into(),
                         })),
                         ContractTraceElement::Interrupted {
@@ -170,7 +172,7 @@ pub fn events_from_summary(
             } => {
                 vec![Event::Transferred(transfers::Transferred {
                     amount: amount.micro_ccd().into(),
-                    from:   Address::AccountAddress(details.sender.into()),
+                    from:   ScalarAddress::AccountAddress(details.sender.into()),
                     to:     to.into(),
                 })]
             }
@@ -182,7 +184,7 @@ pub fn events_from_summary(
                 vec![
                     Event::Transferred(transfers::Transferred {
                         amount: amount.micro_ccd().into(),
-                        from:   Address::AccountAddress(details.sender.into()),
+                        from:   ScalarAddress::AccountAddress(details.sender.into()),
                         to:     to.into(),
                     }),
                     Event::TransferMemo(memo.into()),
@@ -542,4 +544,130 @@ pub fn events_from_summary(
         }
     };
     Ok(events)
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct Cis2TransferEvent {
+    pub raw_token_id: cis2::TokenId,
+    pub amount:       cis2::TokenAmount,
+    pub from:         Address,
+    pub to:           Address,
+}
+#[Object]
+impl Cis2TransferEvent {
+    async fn to_address(&self) -> ScalarAddress { self.to.into() }
+
+    async fn from_address(&self) -> ScalarAddress { self.from.into() }
+
+    async fn token_amount(&self) -> crate::scalar_types::BigInteger {
+        BigInteger::from(BigDecimal::from_biguint(self.amount.0.clone(), 0))
+    }
+
+    async fn token_id(&self) -> crate::scalar_types::TokenId { self.raw_token_id.clone().into() }
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct Cis2MintEvent {
+    pub raw_token_id: cis2::TokenId,
+    pub amount:       cis2::TokenAmount,
+    pub owner:        Address,
+}
+#[Object]
+impl Cis2MintEvent {
+    async fn to_address(&self) -> ScalarAddress { self.owner.into() }
+
+    async fn token_amount(&self) -> crate::scalar_types::BigInteger {
+        BigInteger::from(BigDecimal::from_biguint(self.amount.0.clone(), 0))
+    }
+
+    async fn token_id(&self) -> crate::scalar_types::TokenId { self.raw_token_id.clone().into() }
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct Cis2BurnEvent {
+    pub raw_token_id: cis2::TokenId,
+    pub amount:       cis2::TokenAmount,
+    pub owner:        Address,
+}
+#[Object]
+impl Cis2BurnEvent {
+    async fn from_address(&self) -> ScalarAddress { self.owner.into() }
+
+    async fn token_amount(&self) -> crate::scalar_types::BigInteger {
+        BigInteger::from(BigDecimal::from_biguint(self.amount.0.clone(), 0))
+    }
+
+    async fn token_id(&self) -> crate::scalar_types::TokenId { self.raw_token_id.clone().into() }
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct Cis2TokenMetadataEvent {
+    pub raw_token_id: cis2::TokenId,
+    pub metadata_url: concordium_rust_sdk::cis2::MetadataUrl,
+}
+#[Object]
+impl Cis2TokenMetadataEvent {
+    async fn metadata_url(&self) -> String { self.metadata_url.url().to_string() }
+
+    async fn token_id(&self) -> crate::scalar_types::TokenId { self.raw_token_id.clone().into() }
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct Cis2UnknownEvent {
+    pub dummy: crate::scalar_types::UnsignedLong,
+}
+
+#[derive(Union, serde::Serialize, serde::Deserialize)]
+pub enum ScalarCis2Event {
+    Transfer(Cis2TransferEvent),
+    Mint(Cis2MintEvent),
+    Burn(Cis2BurnEvent),
+    TokenMetadata(Cis2TokenMetadataEvent),
+    Unknown(Cis2UnknownEvent),
+}
+
+impl From<cis2::Event> for ScalarCis2Event {
+    fn from(event: cis2::Event) -> Self {
+        match event {
+            cis2::Event::Transfer {
+                token_id,
+                amount,
+                from,
+                to,
+            } => ScalarCis2Event::Transfer(Cis2TransferEvent {
+                raw_token_id: token_id,
+                amount,
+                from,
+                to,
+            }),
+            cis2::Event::Mint {
+                token_id,
+                amount,
+                owner,
+            } => ScalarCis2Event::Mint(Cis2MintEvent {
+                raw_token_id: token_id,
+                amount,
+                owner,
+            }),
+            cis2::Event::Burn {
+                token_id,
+                amount,
+                owner,
+            } => ScalarCis2Event::Burn(Cis2BurnEvent {
+                raw_token_id: token_id,
+                amount,
+                owner,
+            }),
+            cis2::Event::TokenMetadata {
+                token_id,
+                metadata_url,
+            } => ScalarCis2Event::TokenMetadata(Cis2TokenMetadataEvent {
+                raw_token_id: token_id,
+                metadata_url,
+            }),
+            _ => ScalarCis2Event::Unknown(Cis2UnknownEvent {
+                dummy: UnsignedLong(0u64),
+            }),
+        }
+    }
 }

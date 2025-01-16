@@ -633,6 +633,10 @@ CREATE TABLE cis2_token_events (
     -- The token index (row in the `tokens` table) of the associated token.
     token_index
         BIGINT
+        NOT NULL,
+    -- The cis2Event.
+    cis2_event
+        JSONB
         NOT NULL
 );
 

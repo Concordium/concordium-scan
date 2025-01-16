@@ -5,6 +5,7 @@ use super::{
 use crate::{
     address::ContractIndex,
     scalar_types::{BigInteger, TransactionIndex},
+    transaction_event::ScalarCis2Event,
 };
 use async_graphql::{ComplexObject, Context, Object, SimpleObject};
 use sqlx::PgPool;
@@ -225,12 +226,13 @@ impl Token {
 
         let mut items = sqlx::query_as!(
             Cis2Event,
-            "SELECT
+            r#"SELECT
                 token_id,
                 contract_index,
                 contract_sub_index,
                 transaction_index,
-                index_per_token
+                index_per_token,
+                cis2_event as "event: sqlx::types::Json<ScalarCis2Event>"
             FROM cis2_token_events
             JOIN tokens
                 ON tokens.contract_index = $1
@@ -239,7 +241,7 @@ impl Token {
                 AND tokens.index = cis2_token_events.token_index
                 AND index_per_token >= $4
             LIMIT $5
-        ",
+        "#,
             self.contract_index,
             self.contract_sub_index,
             self.token_id,
@@ -297,7 +299,7 @@ pub struct TokenEventsCollectionSegment {
     pub total_count: i32,
 }
 
-#[derive(Debug, SimpleObject)]
+#[derive(SimpleObject)]
 #[graphql(complex)]
 pub struct Cis2Event {
     pub token_id:           String,
@@ -305,6 +307,8 @@ pub struct Cis2Event {
     pub contract_sub_index: i64,
     pub transaction_index:  TransactionIndex,
     pub index_per_token:    i64,
+    #[graphql(skip)]
+    pub event:              Option<sqlx::types::Json<ScalarCis2Event>>,
 }
 
 #[ComplexObject]
@@ -313,6 +317,10 @@ impl Cis2Event {
         Transaction::query_by_index(get_pool(ctx)?, self.transaction_index).await?.ok_or(
             ApiError::InternalError("Token: No transaction at transaction_index".to_string()),
         )
+    }
+
+    async fn event(&self) -> Option<&ScalarCis2Event> {
+        self.event.as_ref().map(|json_event| &json_event.0)
     }
 }
 
