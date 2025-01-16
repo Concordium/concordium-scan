@@ -85,6 +85,7 @@ impl QueryBlocks {
             false
         };
         let has_next_page = if let Some(last) = rows.last() {
+            // Genesis block have height 0, so we check whether the last block is higher.
             last.height > 0
         } else {
             false
