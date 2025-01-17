@@ -5,6 +5,7 @@ use super::{
 use crate::{
     address::ContractIndex,
     scalar_types::{BigInteger, TransactionIndex},
+    transaction_event::CisEvent,
 };
 use async_graphql::{ComplexObject, Context, Object, SimpleObject};
 use sqlx::PgPool;
@@ -40,7 +41,6 @@ pub struct Token {
     pub metadata_url:           Option<String>,
     pub raw_total_supply:       bigdecimal::BigDecimal,
     pub token_address:          String,
-    // TODO tokenEvents(skip: Int take: Int): TokenEventsCollectionSegment
 }
 
 impl Token {
@@ -209,6 +209,118 @@ impl Token {
             total_count,
             items,
         })
+    }
+
+    async fn token_events(
+        &self,
+        ctx: &Context<'_>,
+        skip: Option<u64>,
+        take: Option<u64>,
+    ) -> ApiResult<TokenEventsCollectionSegment> {
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+        let min_index = i64::try_from(skip.unwrap_or(0))?;
+        let limit = i64::try_from(take.map_or(config.token_events_collection_limit, |t| {
+            config.token_events_collection_limit.min(t)
+        }))?;
+
+        let mut items = sqlx::query_as!(
+            Cis2Event,
+            r#"SELECT
+                token_id,
+                contract_index,
+                contract_sub_index,
+                transaction_index,
+                index_per_token,
+                cis2_token_event as "event: sqlx::types::Json<CisEvent>"
+            FROM cis2_token_events
+            JOIN tokens
+                ON tokens.contract_index = $1
+                AND tokens.contract_sub_index = $2
+                AND tokens.token_id = $3
+                AND tokens.index = cis2_token_events.token_index
+                AND index_per_token >= $4
+            LIMIT $5
+        "#,
+            self.contract_index,
+            self.contract_sub_index,
+            self.token_id,
+            min_index,
+            limit + 1
+        )
+        .fetch_all(pool)
+        .await?;
+
+        // Determine if there is a next page by checking if we got more than `limit`
+        // rows.
+        let has_next_page = items.len() > limit as usize;
+        // If there is a next page, remove the extra row used for pagination detection.
+        if has_next_page {
+            items.pop();
+        }
+        let has_previous_page = min_index > 0;
+
+        let total_count: i32 = sqlx::query_scalar!(
+            "SELECT
+                MAX(index_per_token) + 1
+            FROM cis2_token_events
+            JOIN tokens
+                ON tokens.contract_index = $1
+                AND tokens.contract_sub_index = $2
+                AND tokens.token_id = $3
+                AND tokens.index = cis2_token_events.token_index",
+            self.contract_index,
+            self.contract_sub_index,
+            self.token_id,
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0)
+        .try_into()?;
+
+        Ok(TokenEventsCollectionSegment {
+            page_info: CollectionSegmentInfo {
+                has_next_page,
+                has_previous_page,
+            },
+            total_count,
+            items,
+        })
+    }
+}
+
+/// A segment of a collection.
+#[derive(SimpleObject)]
+pub struct TokenEventsCollectionSegment {
+    /// Information to aid in pagination.
+    pub page_info:   CollectionSegmentInfo,
+    /// A flattened list of the items.
+    pub items:       Vec<Cis2Event>,
+    pub total_count: i32,
+}
+
+#[derive(SimpleObject)]
+#[graphql(complex)]
+pub struct Cis2Event {
+    pub token_id:           String,
+    pub contract_index:     i64,
+    pub contract_sub_index: i64,
+    pub transaction_index:  TransactionIndex,
+    pub index_per_token:    i64,
+    #[graphql(skip)]
+    pub event:              Option<sqlx::types::Json<CisEvent>>,
+}
+
+#[ComplexObject]
+impl Cis2Event {
+    async fn transaction(&self, ctx: &Context<'_>) -> ApiResult<Transaction> {
+        Transaction::query_by_index(get_pool(ctx)?, self.transaction_index).await?.ok_or(
+            ApiError::InternalError("Token: No transaction at transaction_index".to_string()),
+        )
+    }
+
+    async fn event(&self) -> Option<&CisEvent> {
+        self.event.as_ref().map(|json_event| &json_event.0)
     }
 }
 

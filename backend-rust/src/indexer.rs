@@ -2,7 +2,8 @@ use crate::{
     graphql_api::AccountStatementEntryType,
     transaction_event::{
         baker::BakerPoolOpenStatus, events_from_summary,
-        smart_contracts::ModuleReferenceContractLinkAction,
+        smart_contracts::ModuleReferenceContractLinkAction, CisBurnEvent, CisEvent, CisMintEvent,
+        CisTokenMetadataEvent, CisTransferEvent,
     },
     transaction_reject::PreparedTransactionRejectReason,
     transaction_type::{
@@ -2192,7 +2193,7 @@ struct PreparedContractInitialized {
     name:              String,
     amount:            i64,
     module_link_event: PreparedModuleLinkAction,
-    cis2_events:       Vec<cis2::Event>,
+    cis2_token_events: Vec<CisEvent>,
     account_statement: PreparedAccountStatement,
 }
 
@@ -2249,7 +2250,7 @@ impl PreparedContractInitialized {
         // If the vector `potential_cis2_events` is not empty, we verify that the smart
         // contract supports the CIS2 standard before accepting the events as
         // valid.
-        let cis2_events = if potential_cis2_events.is_empty() {
+        let cis2_token_events = if potential_cis2_events.is_empty() {
             vec![]
         } else {
             let supports_cis2 = cis0::supports(
@@ -2263,7 +2264,7 @@ impl PreparedContractInitialized {
             .is_ok_and(|r| r.response.is_support());
 
             if supports_cis2 {
-                potential_cis2_events
+                potential_cis2_events.into_iter().map(|event: cis2::Event| event.into()).collect()
             } else {
                 // If contract does not support `CIS2`, don't consider the events as CIS2
                 // events.
@@ -2278,7 +2279,7 @@ impl PreparedContractInitialized {
             name,
             amount,
             module_link_event,
-            cis2_events,
+            cis2_token_events,
             account_statement,
         })
     }
@@ -2313,8 +2314,8 @@ impl PreparedContractInitialized {
             .await
             .context("Failed linking new contract to module")?;
 
-        for log in self.cis2_events.iter() {
-            process_cis2_event(log, self.index, self.sub_index, transaction_index, tx)
+        for log in self.cis2_token_events.iter() {
+            process_cis2_token_event(log, self.index, self.sub_index, transaction_index, tx)
                 .await
                 .context("Failed processing a CIS-2 event")?
         }
@@ -2360,13 +2361,13 @@ impl PreparedRejectModuleTransaction {
 }
 
 struct PreparedContractUpdate {
-    trace_element_index:        i64,
     height:                     i64,
     contract_index:             i64,
     contract_sub_index:         i64,
     /// Potential module link events from a smart contract upgrade
     module_link_event:          Option<PreparedContractUpgrade>,
-    cis2_events:                Vec<cis2::Event>,
+    cis2_token_events:          Vec<CisEvent>,
+    trace_element_index:        i64,
     prepared_account_statement: Option<PreparedUpdateAccountBalance>,
 }
 
@@ -2463,7 +2464,7 @@ impl PreparedContractUpdate {
         // If the vector `potential_cis2_events` is not empty, we verify that the smart
         // contract supports the CIS2 standard before accepting the events as
         // valid.
-        let cis2_events = if potential_cis2_events.is_empty() {
+        let cis2_token_events = if potential_cis2_events.is_empty() {
             vec![]
         } else {
             let contract_info = node_client
@@ -2485,7 +2486,7 @@ impl PreparedContractUpdate {
             .is_ok_and(|r| r.response.is_support());
 
             if supports_cis2 {
-                potential_cis2_events
+                potential_cis2_events.into_iter().map(|event: cis2::Event| event.into()).collect()
             } else {
                 // If contract does not support `CIS2`, don't consider the events as CIS2
                 // events.
@@ -2499,7 +2500,7 @@ impl PreparedContractUpdate {
             contract_index: index,
             contract_sub_index: sub_index,
             module_link_event,
-            cis2_events,
+            cis2_token_events,
             prepared_account_statement,
         })
     }
@@ -2539,8 +2540,8 @@ impl PreparedContractUpdate {
             prepared_account_statement.save(tx, transaction_index).await?;
         }
 
-        for log in self.cis2_events.iter() {
-            process_cis2_event(
+        for log in self.cis2_token_events.iter() {
+            process_cis2_token_event(
                 log,
                 self.contract_index,
                 self.contract_sub_index,
@@ -2666,27 +2667,29 @@ impl PreparedRejectContractUpdateTransaction {
     }
 }
 
-async fn process_cis2_event(
-    cis2_event: &cis2::Event,
+async fn process_cis2_token_event(
+    cis2_token_event: &CisEvent,
     contract_index: i64,
     contract_sub_index: i64,
     transaction_index: i64,
     tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
 ) -> anyhow::Result<()> {
-    match cis2_event {
+    match cis2_token_event {
         // - The `total_supply` value of a token is inserted/updated in the database here.
         // Only `Mint` and `Burn` events affect the `total_supply` of a
         // token.
         // - The `balance` value of the token owner is inserted/updated in the database here.
         // Only `Mint`, `Burn`, and `Transfer` events affect the `balance` of a token owner.
-        cis2::Event::Mint {
-            token_id,
+        // - The `tokenEvent` is inserted in the database here.
+        // Only `Mint`, `Burn`, `Transfer`, and `TokenMetadata` events are tracked as token events.
+        cis2_mint_event @ CisEvent::Mint(CisMintEvent {
+            raw_token_id,
             amount,
             owner,
-        } => {
+        }) => {
             let token_address = TokenAddress::new(
                 ContractAddress::new(contract_index as u64, contract_sub_index as u64),
-                token_id.clone(),
+                raw_token_id.clone(),
             )
             .to_string();
 
@@ -2720,7 +2723,7 @@ async fn process_cis2_event(
                 contract_index,
                 contract_sub_index,
                 tokens_minted.clone(),
-                token_id.to_string(),
+                raw_token_id.to_string(),
                 transaction_index
             )
             .execute(tx.as_mut())
@@ -2753,6 +2756,29 @@ async fn process_cis2_event(
                 .await
                 .context("Failed inserting or updating account balance from mint event")?;
             }
+
+            // Insert the token event into the table.
+            sqlx::query!(
+                "INSERT INTO cis2_token_events (
+                    index_per_token,
+                    transaction_index,
+                    token_index,
+                    cis2_token_event
+                )
+                SELECT
+                    COALESCE((SELECT MAX(index_per_token) + 1 FROM cis2_token_events WHERE \
+                 cis2_token_events.token_index = tokens.index), 0),
+                    $1,
+                    tokens.index,
+                    $3
+                FROM tokens
+                WHERE tokens.token_address = $2",
+                transaction_index,
+                token_address,
+                serde_json::to_value(cis2_mint_event)?,
+            )
+            .execute(tx.as_mut())
+            .await?;
         }
 
         // - The `total_supply` value of a token is inserted/updated in the database here.
@@ -2760,17 +2786,19 @@ async fn process_cis2_event(
         // token.
         // - The `balance` value of the token owner is inserted/updated in the database here.
         // Only `Mint`, `Burn`, and `Transfer` events affect the `balance` of a token owner.
+        // - The `tokenEvent` is inserted in the database here.
+        // Only `Mint`, `Burn`, `Transfer`, and `TokenMetadata` events are tracked as token events.
         // Note: Some `buggy` CIS2 token contracts might burn more tokens than they have
         // initially minted. The `total_supply/balance` can have a negative value in that case
         // and even underflow.
-        cis2::Event::Burn {
-            token_id,
+        cis2_burn_event @ CisEvent::Burn(CisBurnEvent {
+            raw_token_id,
             amount,
             owner,
-        } => {
+        }) => {
             let token_address = TokenAddress::new(
                 ContractAddress::new(contract_index as u64, contract_sub_index as u64),
-                token_id.clone(),
+                raw_token_id.clone(),
             )
             .to_string();
 
@@ -2805,7 +2833,7 @@ async fn process_cis2_event(
                 contract_index,
                 contract_sub_index,
                 -tokens_burned.clone(),
-                token_id.to_string(),
+                raw_token_id.to_string(),
                 transaction_index
             )
             .execute(tx.as_mut())
@@ -2834,22 +2862,47 @@ async fn process_cis2_event(
                 .await
                 .context("Failed inserting or updating account balance from burn event")?;
             }
+
+            // Insert the token event into the table.
+            sqlx::query!(
+                "INSERT INTO cis2_token_events (
+                    index_per_token,
+                    transaction_index,
+                    token_index,
+                    cis2_token_event
+                )
+                SELECT
+                    COALESCE((SELECT MAX(index_per_token) + 1 FROM cis2_token_events WHERE \
+                 cis2_token_events.token_index = tokens.index), 0),
+                    $1,
+                    tokens.index,
+                    $3
+                FROM tokens
+                WHERE tokens.token_address = $2",
+                transaction_index,
+                token_address,
+                serde_json::to_value(cis2_burn_event)?,
+            )
+            .execute(tx.as_mut())
+            .await?;
         }
 
         // - The `balance` values of the token are inserted/updated in the database here for the
         //   `from` and `to` addresses.
         // Only `Mint`, `Burn`, and `Transfer` events affect the `balance` of a token owner.
+        // - The `tokenEvent` is inserted in the database here.
+        // Only `Mint`, `Burn`, `Transfer`, and `TokenMetadata` events are tracked as token events.
         // Note: Some `buggy` CIS2 token contracts might transfer more tokens than an owner owns.
         // The `balance` can have a negative value in that case.
-        cis2::Event::Transfer {
-            token_id,
+        cis2_transfer_event @ CisEvent::Transfer(CisTransferEvent {
+            raw_token_id,
             amount,
             from,
             to,
-        } => {
+        }) => {
             let token_address = TokenAddress::new(
                 ContractAddress::new(contract_index as u64, contract_sub_index as u64),
-                token_id.clone(),
+                raw_token_id.clone(),
             )
             .to_string();
 
@@ -2910,18 +2963,43 @@ async fn process_cis2_event(
                 .await
                 .context("Failed inserting or updating account balance from transfer event (to)")?;
             }
+
+            // Insert the token event into the table.
+            sqlx::query!(
+                "INSERT INTO cis2_token_events (
+                    index_per_token,
+                    transaction_index,
+                    token_index,
+                    cis2_token_event
+                )
+                SELECT
+                    COALESCE((SELECT MAX(index_per_token) + 1 FROM cis2_token_events WHERE \
+                 cis2_token_events.token_index = tokens.index), 0),
+                    $1,
+                    tokens.index,
+                    $3
+                FROM tokens
+                WHERE tokens.token_address = $2",
+                transaction_index,
+                token_address,
+                serde_json::to_value(cis2_transfer_event)?,
+            )
+            .execute(tx.as_mut())
+            .await?;
         }
 
-        // The `metadata_url` of a token is inserted/updated in the database here.
+        // - The `metadata_url` of a token is inserted/updated in the database here.
         // Only `TokenMetadata` events affect the `metadata_url` of a
         // token.
-        cis2::Event::TokenMetadata {
-            token_id,
+        // - The `tokenEvent` is inserted in the database here.
+        // Only `Mint`, `Burn`, `Transfer`, and `TokenMetadata` events are tracked as token events.
+        cis2_token_metadata_event @ CisEvent::TokenMetadata(CisTokenMetadataEvent {
+            raw_token_id,
             metadata_url,
-        } => {
+        }) => {
             let token_address = TokenAddress::new(
                 ContractAddress::new(contract_index as u64, contract_sub_index as u64),
-                token_id.clone(),
+                raw_token_id.clone(),
             )
             .to_string();
 
@@ -2954,15 +3032,37 @@ async fn process_cis2_event(
                 contract_index,
                 contract_sub_index,
                 metadata_url.as_str(),
-                token_id.to_string(),
+                raw_token_id.to_string(),
                 transaction_index
             )
             .execute(tx.as_mut())
             .await
             .context("Failed inserting or updating token from token metadata event")?;
-        }
 
-        _ => {}
+            // Insert the token event into the table.
+            sqlx::query!(
+                "INSERT INTO cis2_token_events (
+                    index_per_token,
+                    transaction_index,
+                    token_index,
+                    cis2_token_event
+                )
+                SELECT
+                    COALESCE((SELECT MAX(index_per_token) + 1 FROM cis2_token_events WHERE \
+                 cis2_token_events.token_index = tokens.index), 0),
+                    $1,
+                    tokens.index,
+                    $3
+                FROM tokens
+                WHERE tokens.token_address = $2",
+                transaction_index,
+                token_address,
+                serde_json::to_value(cis2_token_metadata_event)?,
+            )
+            .execute(tx.as_mut())
+            .await?;
+        }
+        _ => (),
     }
     Ok(())
 }

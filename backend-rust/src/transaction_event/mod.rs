@@ -1,11 +1,13 @@
 use crate::{
-    address::Address,
+    address::Address as ScalarAddress,
     decoded_text::DecodedText,
     graphql_api::{ApiError, ApiResult},
-    scalar_types::{Byte, DateTime},
+    scalar_types::{BigInteger, Byte, DateTime, UnsignedLong},
 };
 use anyhow::Context;
-use async_graphql::{ComplexObject, SimpleObject, Union};
+use async_graphql::{ComplexObject, Object, SimpleObject, Union};
+use bigdecimal::BigDecimal;
+use concordium_rust_sdk::{cis2, types::Address};
 use tracing::error;
 
 pub mod baker;
@@ -135,7 +137,7 @@ pub fn events_from_summary(
                             to,
                         } => Ok(Event::Transferred(transfers::Transferred {
                             amount: amount.micro_ccd().into(),
-                            from:   Address::ContractAddress(from.into()),
+                            from:   ScalarAddress::ContractAddress(from.into()),
                             to:     to.into(),
                         })),
                         ContractTraceElement::Interrupted {
@@ -170,7 +172,7 @@ pub fn events_from_summary(
             } => {
                 vec![Event::Transferred(transfers::Transferred {
                     amount: amount.micro_ccd().into(),
-                    from:   Address::AccountAddress(details.sender.into()),
+                    from:   ScalarAddress::AccountAddress(details.sender.into()),
                     to:     to.into(),
                 })]
             }
@@ -182,7 +184,7 @@ pub fn events_from_summary(
                 vec![
                     Event::Transferred(transfers::Transferred {
                         amount: amount.micro_ccd().into(),
-                        from:   Address::AccountAddress(details.sender.into()),
+                        from:   ScalarAddress::AccountAddress(details.sender.into()),
                         to:     to.into(),
                     }),
                     Event::TransferMemo(memo.into()),
@@ -542,4 +544,136 @@ pub fn events_from_summary(
         }
     };
     Ok(events)
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct CisTransferEvent {
+    pub raw_token_id: cis2::TokenId,
+    pub amount:       cis2::TokenAmount,
+    pub from:         Address,
+    pub to:           Address,
+}
+#[Object]
+impl CisTransferEvent {
+    async fn to_address(&self) -> ScalarAddress { self.to.into() }
+
+    async fn from_address(&self) -> ScalarAddress { self.from.into() }
+
+    async fn token_amount(&self) -> crate::scalar_types::BigInteger {
+        BigInteger::from(BigDecimal::from_biguint(self.amount.0.clone(), 0))
+    }
+
+    async fn token_id(&self) -> crate::scalar_types::TokenId { self.raw_token_id.clone().into() }
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct CisMintEvent {
+    pub raw_token_id: cis2::TokenId,
+    pub amount:       cis2::TokenAmount,
+    pub owner:        Address,
+}
+#[Object]
+impl CisMintEvent {
+    async fn to_address(&self) -> ScalarAddress { self.owner.into() }
+
+    async fn token_amount(&self) -> crate::scalar_types::BigInteger {
+        BigInteger::from(BigDecimal::from_biguint(self.amount.0.clone(), 0))
+    }
+
+    async fn token_id(&self) -> crate::scalar_types::TokenId { self.raw_token_id.clone().into() }
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct CisBurnEvent {
+    pub raw_token_id: cis2::TokenId,
+    pub amount:       cis2::TokenAmount,
+    pub owner:        Address,
+}
+#[Object]
+impl CisBurnEvent {
+    async fn from_address(&self) -> ScalarAddress { self.owner.into() }
+
+    async fn token_amount(&self) -> crate::scalar_types::BigInteger {
+        BigInteger::from(BigDecimal::from_biguint(self.amount.0.clone(), 0))
+    }
+
+    async fn token_id(&self) -> crate::scalar_types::TokenId { self.raw_token_id.clone().into() }
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct CisTokenMetadataEvent {
+    pub raw_token_id: cis2::TokenId,
+    pub metadata_url: concordium_rust_sdk::cis2::MetadataUrl,
+}
+#[Object]
+impl CisTokenMetadataEvent {
+    async fn metadata_url(&self) -> String { self.metadata_url.url().to_string() }
+
+    async fn hash_hex(&self) -> Option<String> {
+        self.metadata_url.hash().map(|hash| hash.to_string())
+    }
+
+    async fn token_id(&self) -> crate::scalar_types::TokenId { self.raw_token_id.clone().into() }
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct CisUnknownEvent {
+    pub dummy: crate::scalar_types::UnsignedLong,
+}
+
+// Note: This enum does NOT have an `UpdateOperator` variant since this event
+// cannot be linked to a specific token.
+#[derive(Union, serde::Serialize, serde::Deserialize)]
+pub enum CisEvent {
+    Transfer(CisTransferEvent),
+    Mint(CisMintEvent),
+    Burn(CisBurnEvent),
+    TokenMetadata(CisTokenMetadataEvent),
+    Unknown(CisUnknownEvent),
+}
+
+impl From<cis2::Event> for CisEvent {
+    fn from(event: cis2::Event) -> Self {
+        match event {
+            cis2::Event::Transfer {
+                token_id,
+                amount,
+                from,
+                to,
+            } => CisEvent::Transfer(CisTransferEvent {
+                raw_token_id: token_id,
+                amount,
+                from,
+                to,
+            }),
+            cis2::Event::Mint {
+                token_id,
+                amount,
+                owner,
+            } => CisEvent::Mint(CisMintEvent {
+                raw_token_id: token_id,
+                amount,
+                owner,
+            }),
+            cis2::Event::Burn {
+                token_id,
+                amount,
+                owner,
+            } => CisEvent::Burn(CisBurnEvent {
+                raw_token_id: token_id,
+                amount,
+                owner,
+            }),
+            cis2::Event::TokenMetadata {
+                token_id,
+                metadata_url,
+            } => CisEvent::TokenMetadata(CisTokenMetadataEvent {
+                raw_token_id: token_id,
+                metadata_url,
+            }),
+            _ => CisEvent::Unknown(CisUnknownEvent {
+                dummy: UnsignedLong(0u64),
+            }),
+        }
+    }
 }
