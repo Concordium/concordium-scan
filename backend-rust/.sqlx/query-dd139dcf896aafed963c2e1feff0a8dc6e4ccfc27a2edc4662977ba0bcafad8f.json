@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                COUNT(*)\n            FROM contract_events\n                WHERE contract_index = $1 AND contract_sub_index = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "dd139dcf896aafed963c2e1feff0a8dc6e4ccfc27a2edc4662977ba0bcafad8f"
+}

@@ -16,7 +16,7 @@
       {
         "ordinal": 2,
         "name": "address",
-        "type_info": "Bpchar"
+        "type_info": "Varchar"
       },
       {
         "ordinal": 3,
@@ -46,7 +46,7 @@
     ],
     "parameters": {
       "Left": [
-        "Bpchar"
+        "Text"
       ]
     },
     "nullable": [

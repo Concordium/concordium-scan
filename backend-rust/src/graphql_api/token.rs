@@ -182,7 +182,7 @@ impl Token {
         // with a large number of account token holdings currently, since a large
         // number of rows would be traversed. This might have to be improved in the
         // future by indexing more.
-        let total_count: i32 = sqlx::query_scalar!(
+        let total_count: u64 = sqlx::query_scalar!(
             "SELECT
                 COUNT(*)
             FROM account_tokens
@@ -260,7 +260,7 @@ impl Token {
         }
         let has_previous_page = min_index > 0;
 
-        let total_count: i32 = sqlx::query_scalar!(
+        let total_count: u64 = sqlx::query_scalar!(
             "SELECT
                 MAX(index_per_token) + 1
             FROM cis2_token_events
@@ -296,7 +296,7 @@ pub struct TokenEventsCollectionSegment {
     pub page_info:   CollectionSegmentInfo,
     /// A flattened list of the items.
     pub items:       Vec<Cis2Event>,
-    pub total_count: i32,
+    pub total_count: u64,
 }
 
 #[derive(SimpleObject)]
@@ -331,7 +331,7 @@ pub struct TokensCollectionSegment {
     pub page_info:   CollectionSegmentInfo,
     /// A flattened list of the items.
     pub items:       Vec<Token>,
-    pub total_count: i32,
+    pub total_count: u64,
 }
 
 /// A segment of a collection.
@@ -341,7 +341,7 @@ pub struct AccountsCollectionSegment {
     pub page_info:   CollectionSegmentInfo,
     /// A flattened list of the items.
     pub items:       Vec<AccountToken>,
-    pub total_count: i32,
+    pub total_count: u64,
 }
 #[derive(SimpleObject)]
 #[graphql(complex)]

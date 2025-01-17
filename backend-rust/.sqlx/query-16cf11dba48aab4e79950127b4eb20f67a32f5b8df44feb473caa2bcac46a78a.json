@@ -36,7 +36,7 @@
       {
         "ordinal": 6,
         "name": "creator",
-        "type_info": "Bpchar"
+        "type_info": "Varchar"
       }
     ],
     "parameters": {
