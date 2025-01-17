@@ -38,12 +38,8 @@ event {
         asString
       }
     }
-    contractIndex
-    contractSubIndex
     tokenAmount
     tokenId
-    transactionHash
-    parsed
   }
   ...on CisMintEvent {
     toAddress {
@@ -58,20 +54,12 @@ event {
       }
     }
     tokenAmount
-    contractIndex
-    contractSubIndex
     tokenId
-    transactionHash
-    parsed
   }
   ...on CisTokenMetadataEvent {
     hashHex
     metadataUrl
-    contractIndex
-    contractSubIndex
     tokenId
-    transactionHash
-    parsed
   }
   ... on CisTransferEvent {
     toAddress {
@@ -97,11 +85,7 @@ event {
       }
     }
     tokenAmount
-    contractIndex
-    contractSubIndex
     tokenId
-    transactionHash
-    parsed
   }
 }
 `
