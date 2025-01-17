@@ -13,6 +13,12 @@ export default defineNuxtConfig({
 			// URL to use when using websockets in GraphQL CCDscan API.
 			// (env NUXT_PUBLIC_WS_URL)
 			wsUrl: 'ws://localhost:5090/graphql',
+			// URL to use when sending GraphQL queries to the CCDscan API.
+			// (env NUXT_PUBLIC_API_URL_RUST)
+			apiUrlRust: 'http://localhost:8000/api/graphql',
+			// URL to use when using websockets in GraphQL CCDscan API.
+			// (env NUXT_PUBLIC_WS_URL_RUST)
+			wsUrlRust: 'ws://localhost:8000/api/graphql',
 			// Settings for how to display the explorer.
 			explorer: {
 				// The name to display for the explorer.
@@ -36,6 +42,7 @@ export default defineNuxtConfig({
 		},
 	},
 	// Directory for finding the source files.
+
 	srcDir: 'src/',
 	// Directories to search for components.
 	components: [

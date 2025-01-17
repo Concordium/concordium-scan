@@ -115,6 +115,7 @@ export const useBlockQuery = ({ id, hash, eventsVariables }: QueryParams) => {
 	const { data, fetching, error } = useQuery<
 		BlockResponse | BlockByBlockHashResponse | undefined
 	>({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query,
 		requestPolicy: 'cache-first',
 		variables: {
