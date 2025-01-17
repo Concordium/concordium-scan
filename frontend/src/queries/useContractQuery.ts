@@ -241,6 +241,7 @@ export const useContractQuery = ({
 	fetching: Ref<boolean>
 } => {
 	const { data, fetching, error } = useQuery<ContractQueryResponse>({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: ContractQuery,
 		requestPolicy: 'cache-first',
 		variables: {

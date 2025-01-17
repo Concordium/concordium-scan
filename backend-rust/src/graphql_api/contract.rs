@@ -432,7 +432,7 @@ impl Contract {
 
         let total_count: i32 = sqlx::query_scalar!(
             "SELECT
-                MAX(transaction_index_per_contract)
+                MAX(transaction_index_per_contract) + 1
             FROM contract_reject_transactions
             WHERE contract_reject_transactions.contract_index = $1
                 AND contract_reject_transactions.contract_sub_index = $2",

@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                MAX(index_per_token) + 1\n            FROM cis2_token_events\n            JOIN tokens\n                ON tokens.contract_index = $1\n                AND tokens.contract_sub_index = $2\n                AND tokens.token_id = $3\n                AND tokens.index = cis2_token_events.token_index",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "?column?",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "bc3c2fdfb08f76b813ffe16759fd9be4d5899884a143cc06fb46b5966144aa1d"
+}

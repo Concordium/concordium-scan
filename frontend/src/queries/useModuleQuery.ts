@@ -97,6 +97,7 @@ export const useModuleReferenceEventQuery = ({
 	fetching: Ref<boolean>
 } => {
 	const { data, fetching, error } = useQuery<ModuleReferenceEventResponse>({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: ContractQuery,
 		requestPolicy: 'cache-first',
 		variables: {

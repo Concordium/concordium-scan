@@ -4,9 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Allowed queries `useBlockListQuery`, `useBlockQuery`, `useChartBlockMetrics`, `useContractQuery`, `useContractsListQuery`, `useTokenQuery`, `useTokenListQuery` and `useModuleQuery` to use a separate API.
+
 ### Fix
 
+- Remove unused fields in query for cis2 token events.
 - Remove unused sub-query for account transactions in the accounts page.
+- Remove unused fields in query for block metrics.
 
 ## [1.6.0] - 2024-11-05
 

@@ -38,12 +38,8 @@ event {
         asString
       }
     }
-    contractIndex
-    contractSubIndex
     tokenAmount
     tokenId
-    transactionHash
-    parsed
   }
   ...on CisMintEvent {
     toAddress {
@@ -58,20 +54,12 @@ event {
       }
     }
     tokenAmount
-    contractIndex
-    contractSubIndex
     tokenId
-    transactionHash
-    parsed
   }
   ...on CisTokenMetadataEvent {
     hashHex
     metadataUrl
-    contractIndex
-    contractSubIndex
     tokenId
-    transactionHash
-    parsed
   }
   ... on CisTransferEvent {
     toAddress {
@@ -97,11 +85,7 @@ event {
       }
     }
     tokenAmount
-    contractIndex
-    contractSubIndex
     tokenId
-    transactionHash
-    parsed
   }
 }
 `
@@ -132,7 +116,7 @@ query (
       block {
         blockSlotTime
       }
-    }    
+    }
     accounts(skip: $skipAccount, take: $takeAccount) {
       items {
         accountId
@@ -140,7 +124,7 @@ query (
           address {
             asString
           }
-        }        
+        }
         balance
         contractIndex
         contractSubIndex
@@ -169,6 +153,7 @@ export const useTokenQuery = ({
 	fetching: Ref<boolean>
 } => {
 	const { data, fetching, error } = useQuery<TokenQueryResponse>({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: TokenQuery,
 		requestPolicy: 'cache-first',
 		variables: {
