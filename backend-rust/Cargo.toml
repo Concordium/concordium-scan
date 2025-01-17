@@ -14,6 +14,7 @@ anyhow = "1"
 async-graphql = {version = "7.0", features = ["chrono", "tracing"] }
 async-graphql-axum = "7.0"
 axum = "0.7"
+axum-metrics = "0.1"
 ciborium = "0.2"
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4.5", features = ["derive", "env", "cargo"] }
@@ -35,7 +36,7 @@ iso8601-duration = { version = "0.2", features = ["chrono"] }
 tokio-util = "0.7"
 prometheus-client = "0.22"
 tonic = { version = "0.10.2", features = ["tls-roots", "tls"]}
-tower-http = { version = "0.6", features = ["cors"] }
+tower-http = { version = "0.6", features = ["cors", "trace"] }
 bigdecimal = "0.4.7"
 regex = "1.10.4"
 

@@ -547,6 +547,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "axum-metrics"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4388453857d3d845c087a74b58e688a71388c412a436092ee15c78ce2c7bc080"
+dependencies = [
+ "axum 0.7.5",
+ "bytes",
+ "http-body 1.0.0",
+ "metrics",
+ "pin-project-lite",
+ "tower-layer",
+ "tower-service",
+]
+
+[[package]]
 name = "backtrace"
 version = "0.3.71"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -910,6 +925,7 @@ dependencies = [
  "async-graphql",
  "async-graphql-axum",
  "axum 0.7.5",
+ "axum-metrics",
  "bigdecimal",
  "chrono",
  "ciborium",
@@ -2111,6 +2127,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c8640c5d730cb13ebd907d8d04b52f55ac9a2eec55b440c8892f40d56c76c1d"
 
 [[package]]
+name = "metrics"
+version = "0.24.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a7deb012b3b2767169ff203fadb4c6b0b82b947512e5eb9e0b78c2e186ad9e3"
+dependencies = [
+ "ahash 0.8.11",
+ "portable-atomic",
+]
+
+[[package]]
 name = "mime"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2534,6 +2560,12 @@ dependencies = [
  "opaque-debug",
  "universal-hash",
 ]
+
+[[package]]
+name = "portable-atomic"
+version = "1.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "280dc24453071f1b63954171985a0b0d30058d287960968b9b2aca264c8d4ee6"
 
 [[package]]
 name = "powerfmt"
@@ -3819,9 +3851,11 @@ dependencies = [
  "bitflags 2.5.0",
  "bytes",
  "http 1.1.0",
+ "http-body 1.0.0",
  "pin-project-lite",
  "tower-layer",
  "tower-service",
+ "tracing",
 ]
 
 [[package]]

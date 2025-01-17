@@ -12,6 +12,7 @@ mod module_reference_event;
 mod token;
 mod transaction;
 mod transaction_metrics;
+mod monitoring;
 
 // TODO remove this macro, when done with first iteration
 /// Short hand for returning API error with the message not implemented.
@@ -60,6 +61,7 @@ use std::{
     str::FromStr,
     sync::Arc,
 };
+use axum::middleware::from_fn;
 use token::{AccountToken, AccountTokenInterim, Token};
 use tokio::{net::TcpListener, sync::broadcast};
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
@@ -166,6 +168,7 @@ pub struct Query(
 
 pub struct Service {
     pub schema: Schema<Query, EmptyMutation, Subscription>,
+    pub http_monitor_extension: HttpMonitorExtension
 }
 impl Service {
     pub fn new(
@@ -176,7 +179,7 @@ impl Service {
     ) -> Self {
         let schema = Schema::build(Query::default(), EmptyMutation, subscription)
             .extension(async_graphql::extensions::Tracing)
-            .extension(monitor::MonitorExtension::new(registry))
+            .extension(monitor::GraphQLMonitorExtension::new(registry))
             .data(pool)
             .data(config)
             .finish();
@@ -189,6 +192,7 @@ impl Service {
         self,
         tcp_listener: TcpListener,
         stop_signal: CancellationToken,
+        registry: &mut Registry,
     ) -> anyhow::Result<()> {
         let cors_layer = CorsLayer::new()
             .allow_origin(Any)  // Open access to selected route
@@ -201,7 +205,8 @@ impl Service {
                 axum::routing::post_service(async_graphql_axum::GraphQL::new(self.schema.clone())),
             )
             .route_service("/ws/graphql", GraphQLSubscription::new(self.schema))
-            .layer(cors_layer);
+            .layer(cors_layer)
+            .layer(axum_metrics::MetricLayer::default());
 
         axum::serve(tcp_listener, app)
             .with_graceful_shutdown(stop_signal.cancelled_owned())
@@ -243,9 +248,10 @@ mod monitor {
         /// Identifier of the top level query.
         query: String,
     }
+
     /// Extension for async_graphql adding monitoring.
     #[derive(Clone)]
-    pub struct MonitorExtension {
+    pub struct GraphQLMonitorExtension {
         /// Metric for tracking current number of requests in-flight.
         in_flight_requests:   Family<QueryLabels, Gauge>,
         /// Metric for counting total number of requests.
@@ -255,7 +261,7 @@ mod monitor {
         /// Metric tracking current open subscriptions.
         active_subscriptions: Gauge,
     }
-    impl MonitorExtension {
+    impl GraphQLMonitorExtension {
         pub fn new(registry: &mut Registry) -> Self {
             let in_flight_requests: Family<QueryLabels, Gauge> = Default::default();
             registry.register(
@@ -284,7 +290,7 @@ mod monitor {
                 "Current number of active subscriptions",
                 active_subscriptions.clone(),
             );
-            MonitorExtension {
+            GraphQLMonitorExtension {
                 in_flight_requests,
                 total_requests,
                 request_duration,
@@ -292,11 +298,11 @@ mod monitor {
             }
         }
     }
-    impl async_graphql::extensions::ExtensionFactory for MonitorExtension {
+    impl async_graphql::extensions::ExtensionFactory for GraphQLMonitorExtension {
         fn create(&self) -> Arc<dyn async_graphql::extensions::Extension> { Arc::new(self.clone()) }
     }
     #[async_trait]
-    impl async_graphql::extensions::Extension for MonitorExtension {
+    impl async_graphql::extensions::Extension for GraphQLMonitorExtension {
         async fn execute(
             &self,
             ctx: &async_graphql::extensions::ExtensionContext<'_>,
