@@ -61,7 +61,12 @@ use std::{
     str::FromStr,
     sync::Arc,
 };
-use axum::middleware::from_fn;
+use axum::extract::Request;
+use axum::http::StatusCode;
+use axum::middleware::{from_fn, Next};
+use axum::response::Response;
+use prometheus_client::metrics::counter::Counter;
+use prometheus_client::metrics::family::Family;
 use token::{AccountToken, AccountTokenInterim, Token};
 use tokio::{net::TcpListener, sync::broadcast};
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
@@ -170,8 +175,18 @@ pub struct Query(
 
 pub struct Service {
     pub schema: Schema<Query, EmptyMutation, Subscription>,
-    pub http_monitor_extension: HttpMonitorExtension
 }
+
+async fn http_metrics(
+    request: Request,
+    next: Next,
+    http_status_codes: Arc<Family<Vec<(String, String)>, Counter>>,
+) -> Result<Response, StatusCode> {
+    let response = next.run(request).await;
+    http_status_codes.get_or_create(&vec![("code".to_string(), response.status().as_u16().to_string())]).inc();
+    Ok(response)
+}
+
 impl Service {
     pub fn new(
         subscription: Subscription,
@@ -194,12 +209,13 @@ impl Service {
         self,
         tcp_listener: TcpListener,
         stop_signal: CancellationToken,
-        registry: &mut Registry,
+        http_status_codes: Arc<Family<Vec<(String, String)>, Counter>>,
     ) -> anyhow::Result<()> {
         let cors_layer = CorsLayer::new()
             .allow_origin(Any)  // Open access to selected route
             .allow_methods(Any)
             .allow_headers(Any);
+
         let app = axum::Router::new()
             .route("/", axum::routing::get(Self::graphiql))
             .route(
@@ -208,7 +224,13 @@ impl Service {
             )
             .route_service("/ws/graphql", GraphQLSubscription::new(self.schema))
             .layer(cors_layer)
-            .layer(axum_metrics::MetricLayer::default());
+            .layer(from_fn({
+            move |req, next| {
+                let http_status_codes = Arc::clone(&http_status_codes);
+                async move { http_metrics(req, next, http_status_codes).await
+                }
+            }
+        }));
 
         axum::serve(tcp_listener, app)
             .with_graceful_shutdown(stop_signal.cancelled_owned())

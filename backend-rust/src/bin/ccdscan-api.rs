@@ -8,6 +8,8 @@ use prometheus_client::{
 };
 use sqlx::postgres::PgPoolOptions;
 use std::{net::SocketAddr, path::PathBuf};
+use std::sync::Arc;
+use prometheus_client::metrics::counter::Counter;
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
@@ -87,6 +89,12 @@ async fn main() -> anyhow::Result<()> {
 
     let mut queries_task = {
         let pool = pool.clone();
+        let http_status_codes: Family<Vec<(String, String)>, Counter> = Default::default();
+        registry.register(
+            "status_codes",
+            "Http response codes",
+            http_status_codes.clone(),
+        );
         let service = graphql_api::Service::new(subscription, &mut registry, pool, cli.api_config);
         if let Some(schema_file) = cli.schema_out {
             info!("Writing schema to {}", schema_file.to_string_lossy());
@@ -102,7 +110,7 @@ async fn main() -> anyhow::Result<()> {
             TcpListener::bind(cli.listen).await.context("Parsing TCP listener address failed")?;
         let stop_signal = cancel_token.child_token();
         info!("Server is running at {:?}", cli.listen);
-        tokio::spawn(async move { service.serve(tcp_listener, stop_signal).await })
+        tokio::spawn(async move { service.serve(tcp_listener, stop_signal, Arc::new(http_status_codes)).await })
     };
     let mut monitoring_task = {
         let tcp_listener = TcpListener::bind(cli.monitoring_listen)

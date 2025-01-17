@@ -15,18 +15,6 @@ use prometheus_client::{
 use std::sync::Arc;
 use tokio::time::Instant;
 
-#[derive(Debug, Clone, EncodeLabelSet, PartialEq, Eq, Hash)]
-struct QueryLabels {
-    /// Identifier of the top level query.
-    query: String,
-}
-
-#[derive(Clone)]
-pub struct HttpMonitorExtension {
-    /// Metric for tracking current number of requests in-flight.
-    http_status_codes:   Family<QueryLabels, Gauge>,
-}
-
 /// Type representing the Prometheus labels used for metrics related to
 /// queries.
 #[derive(Debug, Clone, EncodeLabelSet, PartialEq, Eq, Hash)]
@@ -37,7 +25,7 @@ struct QueryLabels {
 
 /// Extension for async_graphql adding monitoring.
 #[derive(Clone)]
-pub struct GraphQLMonitorExtension {
+pub struct MonitorExtension {
     /// Metric for tracking current number of requests in-flight.
     in_flight_requests:   Family<QueryLabels, Gauge>,
     /// Metric for counting total number of requests.
@@ -47,7 +35,7 @@ pub struct GraphQLMonitorExtension {
     /// Metric tracking current open subscriptions.
     active_subscriptions: Gauge,
 }
-impl GraphQLMonitorExtension {
+impl MonitorExtension {
     pub fn new(registry: &mut Registry) -> Self {
         let in_flight_requests: Family<QueryLabels, Gauge> = Default::default();
         registry.register(
@@ -76,7 +64,7 @@ impl GraphQLMonitorExtension {
             "Current number of active subscriptions",
             active_subscriptions.clone(),
         );
-        GraphQLMonitorExtension {
+        MonitorExtension {
             in_flight_requests,
             total_requests,
             request_duration,
@@ -84,11 +72,11 @@ impl GraphQLMonitorExtension {
         }
     }
 }
-impl async_graphql::extensions::ExtensionFactory for GraphQLMonitorExtension {
+impl async_graphql::extensions::ExtensionFactory for MonitorExtension {
     fn create(&self) -> Arc<dyn async_graphql::extensions::Extension> { Arc::new(self.clone()) }
 }
 #[async_trait]
-impl async_graphql::extensions::Extension for GraphQLMonitorExtension {
+impl async_graphql::extensions::Extension for MonitorExtension {
     async fn execute(
         &self,
         ctx: &async_graphql::extensions::ExtensionContext<'_>,
