@@ -710,8 +710,8 @@ CREATE TABLE account_statements (
     -- Index of the account associated with this entry.
     account_index
         BIGINT
-        REFERENCES accounts(index)
-        NOT NULL,
+        NOT NULL
+        REFERENCES accounts(index),
     -- Type of the account statement entry.
     entry_type
         account_statement_entry_type
@@ -731,8 +731,8 @@ CREATE TABLE account_statements (
     -- Links to the blocks table to associate the entry with a specific block.
     block_height
         BIGINT
-        REFERENCES blocks(height)
-        NOT NULL,
+        NOT NULL
+        REFERENCES blocks(height),
     -- Used as reference for all account statements not of type reward type
     transaction_id
         BIGINT

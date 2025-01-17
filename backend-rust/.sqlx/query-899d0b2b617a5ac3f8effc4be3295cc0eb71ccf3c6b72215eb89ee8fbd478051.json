@@ -11,7 +11,7 @@
     ],
     "parameters": {
       "Left": [
-        "Bpchar",
+        "Varchar",
         "Int8"
       ]
     },
