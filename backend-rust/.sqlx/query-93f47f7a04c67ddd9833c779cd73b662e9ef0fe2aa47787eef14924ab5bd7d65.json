@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE contracts SET amount = amount + $1 WHERE index = $2 AND sub_index = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "93f47f7a04c67ddd9833c779cd73b662e9ef0fe2aa47787eef14924ab5bd7d65"
+}
