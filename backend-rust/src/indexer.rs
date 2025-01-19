@@ -1250,7 +1250,8 @@ impl PreparedBlockItemEvent {
 }
 
 struct PreparedAccountTransaction {
-    /// Update the balance of the sender account with the cost (transaction fee).
+    /// Update the balance of the sender account with the cost (transaction
+    /// fee).
     fee:   PreparedUpdateAccountBalance,
     /// Updates based on the events of the account transaction.
     event: PreparedEvent,
