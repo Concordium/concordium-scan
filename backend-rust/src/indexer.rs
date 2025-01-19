@@ -439,6 +439,20 @@ impl Indexer for BlockPreProcessor {
     }
 }
 
+enum CryptoOperation {
+    Decrypt,
+    Encrypt,
+}
+
+impl From<CryptoOperation> for AccountStatementEntryType {
+    fn from(operation: CryptoOperation) -> Self {
+        match operation {
+            CryptoOperation::Decrypt => AccountStatementEntryType::AmountDecrypted,
+            CryptoOperation::Encrypt => AccountStatementEntryType::AmountEncrypted,
+        }
+    }
+}
+
 /// Compute the total stake capital by summing all the stake of the bakers.
 /// This is only needed for older blocks, which does not provide this
 /// information as part of the tokenomics info query.
@@ -1484,13 +1498,16 @@ impl PreparedEvent {
                 sender,
                 data.amount,
                 height,
-                false,
+                CryptoOperation::Encrypt,
             )?),
             AccountTransactionEffects::TransferredToPublic {
                 amount,
                 ..
             } => PreparedEvent::EncryptedBalance(PreparedUpdateEncryptedBalance::prepare(
-                sender, *amount, height, true,
+                sender,
+                *amount,
+                height,
+                CryptoOperation::Decrypt,
             )?),
             AccountTransactionEffects::TransferredWithSchedule {
                 to,
@@ -3330,16 +3347,16 @@ impl PreparedUpdateEncryptedBalance {
         sender: Arc<String>,
         amount: Amount,
         block_height: AbsoluteBlockHeight,
-        is_decrypt: bool,
+        operation: CryptoOperation,
     ) -> anyhow::Result<Self> {
         let amount: i64 = amount.micro_ccd().try_into()?;
-        let (amount, entry_type) = if is_decrypt {
-            (amount, AccountStatementEntryType::AmountDecrypted)
-        } else {
-            (-amount, AccountStatementEntryType::AmountEncrypted)
+        let amount = match operation {
+            CryptoOperation::Encrypt => -amount,
+            CryptoOperation::Decrypt => amount,
         };
+
         let public_balance_change =
-            PreparedUpdateAccountBalance::prepare(sender, amount, block_height, entry_type)?;
+            PreparedUpdateAccountBalance::prepare(sender, amount, block_height, operation.into())?;
         Ok(Self {
             public_balance_change,
         })
