@@ -26,11 +26,12 @@ use concordium_rust_sdk::{
     indexer::{async_trait, Indexer, ProcessEvent, TraverseConfig, TraverseError},
     smart_contracts::engine::utils::{get_embedded_schema_v0, get_embedded_schema_v1},
     types::{
-        self as sdk_types, queries::BlockInfo, AbsoluteBlockHeight, AccountStakingInfo,
-        AccountTransactionDetails, AccountTransactionEffects, BlockItemSummary,
-        BlockItemSummaryDetails, ContractAddress, ContractInitializedEvent, ContractTraceElement,
-        DelegationTarget, PartsPerHundredThousands, RejectReason, RewardsOverview,
-        SpecialTransactionOutcome, TransactionType,
+        self as sdk_types, block_certificates::BlockCertificates, queries::BlockInfo,
+        AbsoluteBlockHeight, AccountStakingInfo, AccountTransactionDetails,
+        AccountTransactionEffects, BakerId, BlockItemSummary, BlockItemSummaryDetails,
+        ContractAddress, ContractInitializedEvent, ContractTraceElement, DelegationTarget,
+        PartsPerHundredThousands, RejectReason, RewardsOverview, SpecialTransactionOutcome,
+        TransactionType,
     },
     v2::{
         self, BlockIdentifier, ChainParameters, FinalizedBlockInfo, QueryError, QueryResult,
@@ -334,90 +335,96 @@ impl Indexer for BlockPreProcessor {
         info!("Preprocessing block {}:{}", fbi.height, fbi.block_hash);
         // We block together the computation, so we can update the metric in the error
         // case, before returning early.
-        let result =
-            async move {
-                let mut client1 = client.clone();
-                let mut client2 = client.clone();
-                let mut client3 = client.clone();
-                let mut client4 = client.clone();
-                let mut client5 = client.clone();
-                let get_events = async move {
-                    let events = client3
-                        .get_block_transaction_events(fbi.height)
-                        .await?
-                        .response
-                        .try_collect::<Vec<_>>()
-                        .await?;
-                    Ok(events)
-                };
+        let result = async move {
+            let mut client1 = client.clone();
+            let mut client2 = client.clone();
+            let mut client3 = client.clone();
+            let mut client4 = client.clone();
+            let mut client5 = client.clone();
+            let mut client6 = client.clone();
+            let get_events = async move {
+                let events = client3
+                    .get_block_transaction_events(fbi.height)
+                    .await?
+                    .response
+                    .try_collect::<Vec<_>>()
+                    .await?;
+                Ok(events)
+            };
 
-                let get_items = async move {
-                    let items = client4
-                        .get_block_items(fbi.height)
-                        .await?
-                        .response
-                        .try_collect::<Vec<_>>()
-                        .await?;
-                    Ok(items)
-                };
+            let get_items = async move {
+                let items = client4
+                    .get_block_items(fbi.height)
+                    .await?
+                    .response
+                    .try_collect::<Vec<_>>()
+                    .await?;
+                Ok(items)
+            };
 
-                let get_special_items = async move {
-                    let items = client5
-                        .get_block_special_events(fbi.height)
-                        .await?
-                        .response
-                        .try_collect::<Vec<_>>()
-                        .await?;
-                    Ok(items)
-                };
+            let get_special_items = async move {
+                let items = client5
+                    .get_block_special_events(fbi.height)
+                    .await?
+                    .response
+                    .try_collect::<Vec<_>>()
+                    .await?;
+                Ok(items)
+            };
 
-                let start_fetching = Instant::now();
-                let (block_info, chain_parameters, events, items, tokenomics_info, special_events) =
-                    try_join!(
-                        client1.get_block_info(fbi.height),
-                        client2.get_block_chain_parameters(fbi.height),
-                        get_events,
-                        get_items,
-                        client.get_tokenomics_info(fbi.height),
-                        get_special_items
-                    )?;
-                let total_staked_capital = match tokenomics_info.response {
-                    RewardsOverview::V0 {
-                        ..
-                    } => {
-                        compute_total_stake_capital(
-                            &mut client,
-                            BlockIdentifier::AbsoluteHeight(fbi.height),
-                        )
-                        .await?
-                    }
-                    RewardsOverview::V1 {
-                        total_staked_capital,
-                        ..
-                    } => total_staked_capital,
-                };
-                let node_response_time = start_fetching.elapsed();
-                self.node_response_time
-                    .get_or_create(label)
-                    .observe(node_response_time.as_secs_f64());
-
-                let data = BlockData {
-                    finalized_block_info: fbi,
-                    block_info: block_info.response,
-                    events,
-                    items,
-                    chain_parameters: chain_parameters.response,
-                    tokenomics_info: tokenomics_info.response,
+            let start_fetching = Instant::now();
+            let (
+                block_info,
+                chain_parameters,
+                events,
+                items,
+                tokenomics_info,
+                special_events,
+                certificates,
+            ) = try_join!(
+                client1.get_block_info(fbi.height),
+                client2.get_block_chain_parameters(fbi.height),
+                get_events,
+                get_items,
+                client.get_tokenomics_info(fbi.height),
+                get_special_items,
+                client6.get_block_certificates(fbi.height)
+            )?;
+            let total_staked_capital = match tokenomics_info.response {
+                RewardsOverview::V0 {
+                    ..
+                } => {
+                    compute_total_stake_capital(
+                        &mut client,
+                        BlockIdentifier::AbsoluteHeight(fbi.height),
+                    )
+                    .await?
+                }
+                RewardsOverview::V1 {
                     total_staked_capital,
-                    special_events,
-                };
+                    ..
+                } => total_staked_capital,
+            };
+            let node_response_time = start_fetching.elapsed();
+            self.node_response_time.get_or_create(label).observe(node_response_time.as_secs_f64());
 
-                let prepared_block = PreparedBlock::prepare(&mut client, &data)
-                    .await
-                    .map_err(RPCError::ParseError)?;
-                Ok(prepared_block)
-            }
-            .await;
+            let data = BlockData {
+                finalized_block_info: fbi,
+                block_info: block_info.response,
+                events,
+                items,
+                chain_parameters: chain_parameters.response,
+                tokenomics_info: tokenomics_info.response,
+                total_staked_capital,
+                special_events,
+                certificates: certificates.response,
+            };
+
+            let prepared_block =
+                PreparedBlock::prepare(&mut client, &data).await.map_err(RPCError::ParseError)?;
+            Ok(prepared_block)
+        }
+        .await;
         self.blocks_being_preprocessed.get_or_create(label).dec();
         debug!("Preprocessing block {}:{} completed", fbi.height, fbi.block_hash);
         result
@@ -593,8 +600,9 @@ impl ProcessEvent for BlockProcessor {
                 item.save(&mut tx).await?;
             }
             for item in block.special_items.iter() {
-                item.save(&mut tx, None).await?;
+                item.save(&mut tx).await?;
             }
+            block.baker_unmark_suspended.save(&mut tx).await?;
             out.push_str(format!("\n- {}:{}", block.height, block.hash).as_str());
         }
         process_release_schedules(new_context.last_block_slot_time, &mut tx)
@@ -668,6 +676,7 @@ struct BlockData {
     tokenomics_info:      RewardsOverview,
     total_staked_capital: Amount,
     special_events:       Vec<SpecialTransactionOutcome>,
+    certificates:         BlockCertificates,
 }
 
 /// Function for initializing the database with the genesis block.
@@ -783,24 +792,27 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
 /// Preprocessed block which is ready to be saved in the database.
 struct PreparedBlock {
     /// Hash of the block.
-    hash:                 String,
+    hash:                   String,
     /// Absolute height of the block.
-    height:               i64,
+    height:                 i64,
     /// Block slot time (UTC).
-    slot_time:            DateTime<Utc>,
+    slot_time:              DateTime<Utc>,
     /// Id of the validator which constructed the block. Is only None for the
     /// genesis block.
-    baker_id:             Option<i64>,
+    baker_id:               Option<i64>,
     /// Total amount of CCD in existence at the time of this block.
-    total_amount:         i64,
+    total_amount:           i64,
     /// Total staked CCD at the time of this block.
-    total_staked:         i64,
+    total_staked:           i64,
     /// Block hash of the last finalized block.
-    block_last_finalized: String,
+    block_last_finalized:   String,
     /// Preprocessed block items, ready to be saved in the database.
-    prepared_block_items: Vec<PreparedBlockItem>,
+    prepared_block_items:   Vec<PreparedBlockItem>,
     /// Preprocessed block special items, ready to be saved in the database.
-    special_items:        Vec<PreparedUpdateAccountBalance>,
+    special_items:          Vec<PreparedSpecialTransactionOutcome>,
+    /// Unmark the baker and signers of the Quarum Certificate from being primed
+    /// for suspension.
+    baker_unmark_suspended: PreparedUnmarkPrimedForSuspension,
 }
 
 impl PreparedBlock {
@@ -826,16 +838,11 @@ impl PreparedBlock {
         let special_items: Vec<_> = data
             .special_events
             .iter()
-            .flat_map(|event| {
-                PreparedUpdateAccountBalance::prepare_from_special_transaction(
-                    event,
-                    data.block_info.block_height,
-                )
+            .map(|event| {
+                PreparedSpecialTransactionOutcome::prepare(event, data.block_info.block_height)
             })
-            .flatten()
-            .filter(|event| event.change > 0)
-            .collect();
-
+            .collect::<Result<_, _>>()?;
+        let baker_unmark_suspended = PreparedUnmarkPrimedForSuspension::prepare(data)?;
         Ok(Self {
             hash,
             height,
@@ -846,6 +853,7 @@ impl PreparedBlock {
             block_last_finalized,
             prepared_block_items,
             special_items,
+            baker_unmark_suspended,
         })
     }
 
@@ -2079,7 +2087,8 @@ impl PreparedBakerEvent {
                     "UPDATE bakers
                      SET
                          self_suspended = $2,
-                         inactive_suspended = NULL
+                         inactive_suspended = NULL,
+                         primed_for_suspension = NULL
                      WHERE id=$1",
                     baker_id,
                     transaction_index
@@ -2094,7 +2103,8 @@ impl PreparedBakerEvent {
                     "UPDATE bakers
                      SET
                          self_suspended = NULL,
-                         inactive_suspended = NULL
+                         inactive_suspended = NULL,
+                         primed_for_suspension = NULL
                      WHERE id=$1",
                     baker_id
                 )
@@ -3451,123 +3461,6 @@ impl PreparedUpdateAccountBalance {
         })
     }
 
-    fn prepare_from_special_transaction(
-        event: &SpecialTransactionOutcome,
-        block_height: AbsoluteBlockHeight,
-    ) -> anyhow::Result<Vec<Self>> {
-        let results = match &event {
-            SpecialTransactionOutcome::BakingRewards {
-                baker_rewards,
-                ..
-            } => baker_rewards
-                .iter()
-                .map(|(account_address, amount)| {
-                    PreparedUpdateAccountBalance::prepare(
-                        Arc::new(account_address.to_string()),
-                        amount.micro_ccd.try_into()?,
-                        block_height,
-                        AccountStatementEntryType::BakerReward,
-                    )
-                })
-                .collect::<Result<Vec<_>, _>>()?,
-            SpecialTransactionOutcome::Mint {
-                foundation_account,
-                mint_platform_development_charge,
-                ..
-            } => vec![PreparedUpdateAccountBalance::prepare(
-                Arc::new(foundation_account.to_string()),
-                mint_platform_development_charge.micro_ccd.try_into()?,
-                block_height,
-                AccountStatementEntryType::FoundationReward,
-            )?],
-            SpecialTransactionOutcome::FinalizationRewards {
-                finalization_rewards,
-                ..
-            } => finalization_rewards
-                .iter()
-                .map(|(account_address, amount)| {
-                    PreparedUpdateAccountBalance::prepare(
-                        Arc::new(account_address.to_string()),
-                        amount.micro_ccd.try_into()?,
-                        block_height,
-                        AccountStatementEntryType::FinalizationReward,
-                    )
-                })
-                .collect::<Result<Vec<_>, _>>()?,
-            SpecialTransactionOutcome::BlockReward {
-                baker,
-                foundation_account,
-                baker_reward,
-                foundation_charge,
-                ..
-            } => vec![
-                PreparedUpdateAccountBalance::prepare(
-                    Arc::new(foundation_account.to_string()),
-                    foundation_charge.micro_ccd.try_into()?,
-                    block_height,
-                    AccountStatementEntryType::FoundationReward,
-                )?,
-                PreparedUpdateAccountBalance::prepare(
-                    Arc::new(baker.to_string()),
-                    baker_reward.micro_ccd.try_into()?,
-                    block_height,
-                    AccountStatementEntryType::BakerReward,
-                )?,
-            ],
-            SpecialTransactionOutcome::PaydayFoundationReward {
-                foundation_account,
-                development_charge,
-            } => vec![PreparedUpdateAccountBalance::prepare(
-                Arc::new(foundation_account.to_string()),
-                development_charge.micro_ccd.try_into()?,
-                block_height,
-                AccountStatementEntryType::FoundationReward,
-            )?],
-            SpecialTransactionOutcome::PaydayAccountReward {
-                account,
-                transaction_fees,
-                baker_reward,
-                finalization_reward,
-            } => {
-                let account_address = Arc::new(account.to_string());
-                vec![
-                    PreparedUpdateAccountBalance::prepare(
-                        account_address.clone(),
-                        transaction_fees.micro_ccd.try_into()?,
-                        block_height,
-                        AccountStatementEntryType::TransactionFeeReward,
-                    )?,
-                    PreparedUpdateAccountBalance::prepare(
-                        account_address.clone(),
-                        baker_reward.micro_ccd.try_into()?,
-                        block_height,
-                        AccountStatementEntryType::BakerReward,
-                    )?,
-                    PreparedUpdateAccountBalance::prepare(
-                        account_address,
-                        finalization_reward.micro_ccd.try_into()?,
-                        block_height,
-                        AccountStatementEntryType::FinalizationReward,
-                    )?,
-                ]
-            }
-            // TODO: Support these two types. (Deviates from Old CCDScan)
-            SpecialTransactionOutcome::BlockAccrueReward {
-                ..
-            }
-            | SpecialTransactionOutcome::PaydayPoolReward {
-                ..
-            } => Vec::new(),
-            SpecialTransactionOutcome::ValidatorSuspended {
-                ..
-            } => Vec::new(), // TODO
-            SpecialTransactionOutcome::ValidatorPrimedForSuspension {
-                ..
-            } => Vec::new(), // TODO
-        };
-        Ok(results)
-    }
-
     pub async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
@@ -3590,7 +3483,7 @@ impl PreparedUpdateAccountBalance {
 }
 
 /// Represent the event of a transfer of CCD from one account to another.
-pub struct PreparedCcdTransferEvent {
+struct PreparedCcdTransferEvent {
     /// Updating the sender account balance.
     update_sender:   PreparedUpdateAccountBalance,
     /// Updating the receivers account balance.
@@ -3598,7 +3491,7 @@ pub struct PreparedCcdTransferEvent {
 }
 
 impl PreparedCcdTransferEvent {
-    pub fn prepare(
+    fn prepare(
         sender_address: Arc<String>,
         receiver_address: Arc<String>,
         amount: Amount,
@@ -3623,13 +3516,277 @@ impl PreparedCcdTransferEvent {
         })
     }
 
-    pub async fn save(
+    async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         self.update_sender.save(tx, Some(transaction_index)).await?;
         self.update_receiver.save(tx, Some(transaction_index)).await?;
+        Ok(())
+    }
+}
+
+enum PreparedSpecialTransactionOutcome {
+    Rewards(Vec<PreparedUpdateAccountBalance>),
+    ValidatorPrimedForSuspension(PreparedMarkPrimedForSuspension),
+    ValidatorSuspended(PreparedValitatorSuspension),
+}
+
+impl PreparedSpecialTransactionOutcome {
+    fn prepare(
+        event: &SpecialTransactionOutcome,
+        block_height: AbsoluteBlockHeight,
+    ) -> anyhow::Result<Self> {
+        let results = match &event {
+            SpecialTransactionOutcome::BakingRewards {
+                baker_rewards,
+                ..
+            } => {
+                let rewards = baker_rewards
+                    .iter()
+                    .map(|(account_address, amount)| {
+                        PreparedUpdateAccountBalance::prepare(
+                            Arc::new(account_address.to_string()),
+                            amount.micro_ccd.try_into()?,
+                            block_height,
+                            AccountStatementEntryType::BakerReward,
+                        )
+                    })
+                    .collect::<Result<Vec<_>, _>>()?;
+                Self::Rewards(rewards)
+            }
+            SpecialTransactionOutcome::Mint {
+                foundation_account,
+                mint_platform_development_charge,
+                ..
+            } => Self::Rewards(vec![PreparedUpdateAccountBalance::prepare(
+                Arc::new(foundation_account.to_string()),
+                mint_platform_development_charge.micro_ccd.try_into()?,
+                block_height,
+                AccountStatementEntryType::FoundationReward,
+            )?]),
+            SpecialTransactionOutcome::FinalizationRewards {
+                finalization_rewards,
+                ..
+            } => {
+                let rewards = finalization_rewards
+                    .iter()
+                    .map(|(account_address, amount)| {
+                        PreparedUpdateAccountBalance::prepare(
+                            Arc::new(account_address.to_string()),
+                            amount.micro_ccd.try_into()?,
+                            block_height,
+                            AccountStatementEntryType::FinalizationReward,
+                        )
+                    })
+                    .collect::<Result<Vec<_>, _>>()?;
+                Self::Rewards(rewards)
+            }
+            SpecialTransactionOutcome::BlockReward {
+                baker,
+                foundation_account,
+                baker_reward,
+                foundation_charge,
+                ..
+            } => Self::Rewards(vec![
+                PreparedUpdateAccountBalance::prepare(
+                    Arc::new(foundation_account.to_string()),
+                    foundation_charge.micro_ccd.try_into()?,
+                    block_height,
+                    AccountStatementEntryType::FoundationReward,
+                )?,
+                PreparedUpdateAccountBalance::prepare(
+                    Arc::new(baker.to_string()),
+                    baker_reward.micro_ccd.try_into()?,
+                    block_height,
+                    AccountStatementEntryType::BakerReward,
+                )?,
+            ]),
+            SpecialTransactionOutcome::PaydayFoundationReward {
+                foundation_account,
+                development_charge,
+            } => Self::Rewards(vec![PreparedUpdateAccountBalance::prepare(
+                Arc::new(foundation_account.to_string()),
+                development_charge.micro_ccd.try_into()?,
+                block_height,
+                AccountStatementEntryType::FoundationReward,
+            )?]),
+            SpecialTransactionOutcome::PaydayAccountReward {
+                account,
+                transaction_fees,
+                baker_reward,
+                finalization_reward,
+            } => {
+                let account_address = Arc::new(account.to_string());
+                Self::Rewards(vec![
+                    PreparedUpdateAccountBalance::prepare(
+                        account_address.clone(),
+                        transaction_fees.micro_ccd.try_into()?,
+                        block_height,
+                        AccountStatementEntryType::TransactionFeeReward,
+                    )?,
+                    PreparedUpdateAccountBalance::prepare(
+                        account_address.clone(),
+                        baker_reward.micro_ccd.try_into()?,
+                        block_height,
+                        AccountStatementEntryType::BakerReward,
+                    )?,
+                    PreparedUpdateAccountBalance::prepare(
+                        account_address,
+                        finalization_reward.micro_ccd.try_into()?,
+                        block_height,
+                        AccountStatementEntryType::FinalizationReward,
+                    )?,
+                ])
+            }
+            // TODO: Support these two types. (Deviates from Old CCDScan)
+            SpecialTransactionOutcome::BlockAccrueReward {
+                ..
+            }
+            | SpecialTransactionOutcome::PaydayPoolReward {
+                ..
+            } => Self::Rewards(Vec::new()),
+            SpecialTransactionOutcome::ValidatorSuspended {
+                baker_id,
+                ..
+            } => Self::ValidatorSuspended(PreparedValitatorSuspension::prepare(
+                baker_id,
+                block_height,
+            )?),
+            SpecialTransactionOutcome::ValidatorPrimedForSuspension {
+                baker_id,
+                ..
+            } => Self::ValidatorPrimedForSuspension(PreparedMarkPrimedForSuspension::prepare(
+                baker_id,
+                block_height,
+            )?),
+        };
+        Ok(results)
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        match self {
+            Self::Rewards(events) => {
+                for event in events {
+                    event.save(tx, None).await?
+                }
+                Ok(())
+            }
+            Self::ValidatorPrimedForSuspension(event) => event.save(tx).await,
+            Self::ValidatorSuspended(event) => event.save(tx).await,
+        }
+    }
+}
+
+/// Update the flag on the baker, marking it primed for suspension.
+struct PreparedMarkPrimedForSuspension {
+    baker_id:     i64,
+    block_height: i64,
+}
+
+impl PreparedMarkPrimedForSuspension {
+    fn prepare(baker_id: &BakerId, block_height: AbsoluteBlockHeight) -> anyhow::Result<Self> {
+        Ok(Self {
+            baker_id:     baker_id.id.index.try_into()?,
+            block_height: block_height.height.try_into()?,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            "UPDATE bakers
+                SET
+                    self_suspended = NULL,
+                    inactive_suspended = NULL,
+                    primed_for_suspension = $2
+                WHERE id=$1",
+            self.baker_id,
+            self.block_height
+        )
+        .execute(tx.as_mut())
+        .await?;
+        Ok(())
+    }
+}
+
+/// Represent the potential event of baker being "unprimed" for suspension.
+/// The baker of the block, plus the signers of the quarum certificate when
+/// included in the block. This might include baker IDs which are not primed at
+/// the time.
+struct PreparedUnmarkPrimedForSuspension {
+    baker_ids: Vec<i64>,
+}
+
+impl PreparedUnmarkPrimedForSuspension {
+    fn prepare(data: &BlockData) -> anyhow::Result<Self> {
+        let mut baker_ids = Vec::new();
+        if let Some(baker_id) = data.block_info.block_baker {
+            baker_ids.push(baker_id.id.index.try_into()?);
+        }
+        if let Some(qc) = data.certificates.quorum_certificate.as_ref() {
+            for signer in qc.signatories.iter() {
+                baker_ids.push(signer.id.index.try_into()?);
+            }
+        }
+        Ok(Self {
+            baker_ids,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            "UPDATE bakers
+                SET primed_for_suspension = NULL
+                WHERE
+                    primed_for_suspension IS NOT NULL
+                    AND id = ANY ($1)",
+            &self.baker_ids,
+        )
+        .execute(tx.as_mut())
+        .await?;
+        Ok(())
+    }
+}
+
+struct PreparedValitatorSuspension {
+    baker_id:     i64,
+    block_height: i64,
+}
+
+impl PreparedValitatorSuspension {
+    fn prepare(baker_id: &BakerId, block_height: AbsoluteBlockHeight) -> anyhow::Result<Self> {
+        Ok(Self {
+            baker_id:     baker_id.id.index.try_into()?,
+            block_height: block_height.height.try_into()?,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            "UPDATE bakers
+                SET
+                    self_suspended = NULL,
+                    inactive_suspended = $2,
+                    primed_for_suspension = NULL
+                WHERE id=$1",
+            self.baker_id,
+            self.block_height
+        )
+        .execute(tx.as_mut())
+        .await?;
         Ok(())
     }
 }

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE bakers\n                SET primed_for_suspension = NULL\n                WHERE\n                    primed_for_suspension IS NOT NULL\n                    AND id = ANY ($1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "00b66b47884b328b5351ba233a970f2b4a0188b9b639d5d647380f909827fb80"
+}
