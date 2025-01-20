@@ -1,15 +1,49 @@
+name: Release CCDScan Backend (.NET)
+
 on:
   push:
     tags:
       - backend/*
 
 jobs:
-  release-ccdscan:
-    uses: concordium/.github/.github/workflows/docker-release-workflow.yaml@v1
-    with:
-      SERVICE_NAME: "ccdscan"
-      BUILD_ARGS: |
-        DOTNET_VERSION=6.0
-      DOCKER_FILE_PATH: backend/Dockerfile
-      DOCKER_CONTEXT: backend
-    secrets: inherit
+  release-docker:
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: 'concordium'
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Clone repo
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set image tag if correctly formatted
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          TAG_VERSION=${TAG##backend/}
+          echo "TAG_VERSION=${TAG_VERSION}" >> $GITHUB_ENV
+
+      - name: Check if images exists
+        run: |
+          set +e
+          docker manifest inspect concordium/ccdscan:${{ env.TAG_VERSION }}
+          EXITCODE=$?
+          if [ $EXITCODE -eq "0" ]; then
+            echo "::error::concordium/ccdscan:${{ env.TAG_VERSION }} already exists."
+            exit 1
+          fi
+
+      - name: Build backend docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/Dockerfile
+          tags: concordium/ccdscan:${{ env.TAG_VERSION }}
+          push: true
+          build-args: |
+            DOTNET_VERSION=6.0
