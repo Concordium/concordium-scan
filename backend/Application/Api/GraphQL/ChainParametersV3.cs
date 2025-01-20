@@ -31,7 +31,7 @@ public class ChainParametersV3 : ChainParameters, IEquatable<ChainParametersV3>
     {
         if (ReferenceEquals(null, obj)) return false;
         if (ReferenceEquals(this, obj)) return true;
-        return obj.GetType() == GetType() && Equals(obj as ChainParametersV2);
+        return obj.GetType() == GetType() && Equals(obj as ChainParametersV3);
     }
 
     public override int GetHashCode()
