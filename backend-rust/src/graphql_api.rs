@@ -12,7 +12,6 @@ mod module_reference_event;
 mod token;
 mod transaction;
 mod transaction_metrics;
-mod monitoring;
 
 // TODO remove this macro, when done with first iteration
 /// Short hand for returning API error with the message not implemented.
