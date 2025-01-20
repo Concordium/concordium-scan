@@ -31,10 +31,10 @@ jobs:
       - name: Check if images exists
         run: |
           set +e
-          docker manifest inspect concordium/ccdscan:$TAG_VERSION
+          docker manifest inspect concordium/ccdscan:${{ env.TAG_VERSION }}
           EXITCODE=$?
           if [ $EXITCODE -eq "0" ]; then
-            echo "::error::concordium/ccdscan:$TAG_VERSION already exists."
+            echo "::error::concordium/ccdscan:${{ env.TAG_VERSION }} already exists."
             exit 1
           fi
 
