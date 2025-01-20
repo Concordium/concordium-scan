@@ -706,6 +706,14 @@ type ChainParametersV2 implements ChainParameters {
   foundationAccountAddress: AccountAddress!
 }
 
+type ChainParametersV3 implements ChainParameters {
+  rewardPeriodLength: UnsignedLong!
+  euroPerEnergy: ExchangeRate!
+  microCcdPerEuro: ExchangeRate!
+  accountCreationLimit: Int!
+  foundationAccountAddress: AccountAddress!
+}
+
 type ChainUpdateEnqueued {
   effectiveTime: DateTime!
   effectiveImmediately: Boolean!
@@ -2127,7 +2135,7 @@ enum AccountTransactionType {
   SIMPLE_TRANSFER
   "Transfer encrypted amount."
   ENCRYPTED_TRANSFER
-  "Same as transfer, but with a memo field."
+  "Same as transfer but with a memo field."
   SIMPLE_TRANSFER_WITH_MEMO
   "Same as encrypted transfer, but with a memo."
   ENCRYPTED_TRANSFER_WITH_MEMO
@@ -2196,9 +2204,9 @@ enum ContractVersion {
 
 "Enumeration of the types of credentials."
 enum CredentialDeploymentTransactionType {
-  "Initial credential is a credential that is submitted by the identity\nprovider on behalf of the user. There is at most one initial credential\nper identity."
+  "Initial credential is a credential that is submitted by the identity\nprovider on behalf of the user. There is only one initial credential\nper identity."
   INITIAL
-  "A normal credential is one where the identity behind it is only known to\nthe owner of the account, unless the identity disclosure process was\nhas been initiated."
+  "A normal credential is one where the identity behind it is only known to\nthe owner of the account, unless the anonymity revocation process was\nfollowed."
   NORMAL
 }
 
@@ -2307,6 +2315,8 @@ enum UpdateTransactionType {
   BLOCK_ENERGY_LIMIT_UPDATE
   "Update of finalization committee parameters."
   FINALIZATION_COMMITTEE_PARAMETERS_UPDATE
+  "Update of validator score parameters."
+  VALIDATOR_SCORE_PARAMETERS_UPDATE
 }
 
 "The `@specifiedBy` directive is used within the type system definition language to provide a URL for specifying the behavior of custom scalar definitions."

@@ -15,7 +15,7 @@
         "Int8",
         "Int8",
         "Int8",
-        "Bpchar",
+        "Text",
         {
           "Custom": {
             "name": "transaction_type",

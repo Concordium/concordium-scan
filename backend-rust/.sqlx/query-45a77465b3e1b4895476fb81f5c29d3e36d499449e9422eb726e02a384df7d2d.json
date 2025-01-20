@@ -31,7 +31,7 @@
       {
         "ordinal": 5,
         "name": "sender",
-        "type_info": "Bpchar"
+        "type_info": "Varchar"
       }
     ],
     "parameters": {

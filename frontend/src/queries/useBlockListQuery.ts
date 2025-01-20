@@ -33,6 +33,7 @@ const BlocksQuery = gql<BlockListResponse>`
 
 export const useBlockListQuery = (variables: Partial<QueryVariables>) => {
 	const { data, executeQuery } = useQuery({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: BlocksQuery,
 		requestPolicy: 'cache-and-network',
 		variables,

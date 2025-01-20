@@ -1,10 +1,11 @@
 use anyhow::Context;
 use async_graphql::{scalar, InputValueError, InputValueResult, Scalar, ScalarType, Value};
 
-pub type Amount = i64; // TODO: should be UnsignedLong in graphQL
+pub type Amount = UnsignedLong;
+pub type TokenId = String;
 pub type Energy = i64; // TODO: should be UnsignedLong in graphQL
 pub type DateTime = chrono::DateTime<chrono::Utc>; // TODO check format matches.
-pub type BakerId = i64;
+pub type BakerId = Long;
 pub type BlockHeight = i64;
 pub type BlockHash = String;
 pub type TransactionHash = String;
@@ -27,6 +28,7 @@ pub type MetadataUrl = String;
 )]
 #[repr(transparent)]
 #[serde(transparent)]
+#[display("{_0}")]
 pub struct UnsignedLong(pub u64);
 #[Scalar]
 impl ScalarType for UnsignedLong {
@@ -44,15 +46,35 @@ impl ScalarType for UnsignedLong {
     fn to_value(&self) -> Value { Value::Number(self.0.into()) }
 }
 
+impl From<UnsignedLong> for bigdecimal::BigDecimal {
+    fn from(UnsignedLong(v): UnsignedLong) -> Self { v.into() }
+}
+
 impl TryFrom<i64> for UnsignedLong {
     type Error = <u64 as TryFrom<i64>>::Error;
 
     fn try_from(number: i64) -> Result<Self, Self::Error> { Ok(UnsignedLong(number.try_into()?)) }
 }
 
+impl TryFrom<UnsignedLong> for i64 {
+    type Error = <i64 as TryFrom<u64>>::Error;
+
+    fn try_from(number: UnsignedLong) -> Result<Self, Self::Error> { number.0.try_into() }
+}
+
 /// The `Long` scalar type represents non-fractional signed whole 64-bit numeric
 /// values. Long can represent values between -(2^63) and 2^63 - 1.
-#[derive(serde::Serialize, serde::Deserialize, derive_more::From)]
+#[derive(
+    Debug,
+    serde::Serialize,
+    serde::Deserialize,
+    Clone,
+    Copy,
+    derive_more::From,
+    derive_more::FromStr,
+    derive_more::Into,
+    derive_more::Display,
+)]
 #[repr(transparent)]
 #[serde(transparent)]
 pub struct Long(pub i64);
@@ -70,6 +92,11 @@ impl ScalarType for Long {
     }
 
     fn to_value(&self) -> Value { Value::Number(self.0.into()) }
+}
+impl TryFrom<u64> for Long {
+    type Error = std::num::TryFromIntError;
+
+    fn try_from(value: u64) -> Result<Self, Self::Error> { Ok(Self(value.try_into()?)) }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, derive_more::From)]

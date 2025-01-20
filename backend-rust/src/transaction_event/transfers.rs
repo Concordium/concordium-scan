@@ -11,7 +11,7 @@ use tracing::error;
 pub struct Transferred {
     pub amount: Amount,
     pub from:   Address,
-    pub to:     AccountAddress,
+    pub to:     Address,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]

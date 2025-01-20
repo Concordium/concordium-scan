@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                schema\n            FROM contracts\n                JOIN smart_contract_modules\n                    ON smart_contract_modules.module_reference = contracts.module_reference\n            WHERE index = $1 AND sub_index = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "schema",
+        "type_info": "Bytea"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "8575ddef04c3bbda3a1adb25bc8c268442a908bb1902fca2a45844f22ade8dee"
+}

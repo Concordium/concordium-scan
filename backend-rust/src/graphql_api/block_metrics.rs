@@ -171,7 +171,7 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
             buckets.y_finalization_time_avg.push(y_finalization_time_avg);
             buckets
                 .y_last_total_micro_ccd_staked
-                .push(row.y_last_total_micro_ccd_staked.unwrap_or(0));
+                .push(row.y_last_total_micro_ccd_staked.unwrap_or(0).try_into()?);
         }
 
         Ok(BlockMetrics {
@@ -179,9 +179,12 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
             avg_block_time: period_query.avg_block_time.map(|i| i as f64 / 1000.0),
             avg_finalization_time: period_query.avg_finalization_time.map(|i| i as f64 / 1000.0),
             last_block_height: latest_block.height,
-            last_total_micro_ccd: latest_block.total_amount,
-            last_total_micro_ccd_staked: latest_block.total_staked,
-            last_total_micro_ccd_released: latest_block.total_amount_released.unwrap_or(0),
+            last_total_micro_ccd: latest_block.total_amount.try_into()?,
+            last_total_micro_ccd_staked: latest_block.total_staked.try_into()?,
+            last_total_micro_ccd_released: latest_block
+                .total_amount_released
+                .unwrap_or(0)
+                .try_into()?,
             last_total_micro_ccd_unlocked: None, // TODO implement unlocking schedule
             // TODO check what format this is expected to be in.
             buckets,

@@ -5,7 +5,10 @@ use concordium_scan::{
     indexer::{self, IndexerServiceConfig},
     router,
 };
-use prometheus_client::registry::Registry;
+use prometheus_client::{
+    metrics::{family::Family, gauge::Gauge},
+    registry::Registry,
+};
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
@@ -41,13 +44,9 @@ struct Cli {
     monitoring_listen: SocketAddr,
     #[command(flatten, next_help_heading = "Performance tuning")]
     indexer_config:    IndexerServiceConfig,
-    #[arg(
-        long = "log-level",
-        default_value = "info",
-        help = "The maximum log level. Possible values are: `trace`, `debug`, `info`, `warn`, and \
-                `error`.",
-        env = "LOG_LEVEL"
-    )]
+    /// The maximum log level. Possible values are: `trace`, `debug`, `info`,
+    /// `warn`, and `error`.
+    #[arg(long = "log-level", default_value = "info", env = "LOG_LEVEL")]
     log_level:         tracing_subscriber::filter::LevelFilter,
 }
 
@@ -65,10 +64,14 @@ async fn main() -> anyhow::Result<()> {
     let cancel_token = CancellationToken::new();
 
     let mut registry = Registry::with_prefix("indexer");
+    let service_info_family = Family::<Vec<(&str, String)>, Gauge>::default();
+    let gauge =
+        service_info_family.get_or_create(&vec![("version", clap::crate_version!().to_string())]);
+    gauge.set(1);
     registry.register(
-        "service",
+        "service_info",
         "Information about the software",
-        prometheus_client::metrics::info::Info::new(vec![("version", clap::crate_version!())]),
+        service_info_family.clone(),
     );
     registry.register(
         "service_startup_timestamp_millis",

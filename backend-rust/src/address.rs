@@ -22,7 +22,7 @@ impl From<String> for AccountAddress {
 
 pub type ContractIndex = UnsignedLong; // TODO check format.
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone, Copy)]
 #[graphql(complex)]
 pub struct ContractAddress {
     pub index:     ContractIndex,
@@ -52,7 +52,7 @@ impl From<concordium_rust_sdk::types::ContractAddress> for ContractAddress {
     }
 }
 
-#[derive(Union, serde::Serialize, serde::Deserialize)]
+#[derive(Union, serde::Serialize, serde::Deserialize, Clone)]
 pub enum Address {
     ContractAddress(ContractAddress),
     AccountAddress(AccountAddress),
@@ -65,5 +65,11 @@ impl From<concordium_rust_sdk::types::Address> for Address {
             Addr::Account(a) => Address::AccountAddress(a.into()),
             Addr::Contract(c) => Address::ContractAddress(c.into()),
         }
+    }
+}
+
+impl From<concordium_rust_sdk::common::types::AccountAddress> for Address {
+    fn from(address: concordium_rust_sdk::common::types::AccountAddress) -> Self {
+        Address::AccountAddress(address.into())
     }
 }

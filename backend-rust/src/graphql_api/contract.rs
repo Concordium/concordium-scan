@@ -52,7 +52,7 @@ impl QueryContract {
             contract_address_sub_index,
             contract_name: row.contract_name,
             module_reference: row.module_reference,
-            amount: row.amount,
+            amount: row.amount.try_into()?,
         };
 
         Ok(Contract {
@@ -90,10 +90,10 @@ impl QueryContract {
             config.contract_connection_limit,
         )?;
 
-        // The CCDScan front-end currently expects an ASC order of the nodes/edges
+        // The CCDScan front-end currently expects an DESC order of the nodes/edges
         // returned (outer `ORDER BY`), while the inner `ORDER BY` is a trick to
-        // get the correct nodes/edges selected based on the `after/before` key
-        // specified.
+        // get the correct nodes/edges selected based on whether the `first` or `last`
+        // query parameter is specified.
         let mut row_stream = sqlx::query!(
             "SELECT * FROM (
                 SELECT
@@ -112,11 +112,11 @@ impl QueryContract {
                 JOIN accounts ON transactions.sender = accounts.index
                 WHERE contracts.index > $1 AND contracts.index < $2
                 ORDER BY
-                    (CASE WHEN $4 THEN contracts.index END) DESC,
-                    (CASE WHEN NOT $4 THEN contracts.index END) ASC
+                    (CASE WHEN $4 THEN contracts.index END) ASC,
+                    (CASE WHEN NOT $4 THEN contracts.index END) DESC
                 LIMIT $3
             ) AS contract_data
-            ORDER BY contract_data.index ASC",
+            ORDER BY contract_data.index DESC",
             query.from,
             query.to,
             query.limit,
@@ -142,7 +142,7 @@ impl QueryContract {
                 contract_address_sub_index,
                 contract_name: row.contract_name,
                 module_reference: row.module_reference,
-                amount: row.amount,
+                amount: row.amount.try_into()?,
             };
 
             let contract = Contract {
@@ -196,28 +196,30 @@ impl Contract {
     async fn contract_events(
         &self,
         ctx: &Context<'_>,
-        skip: u32,
-        take: u32,
+        skip: Option<u64>,
+        take: Option<u64>,
     ) -> ApiResult<ContractEventsCollectionSegment> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
+        let skip = skip.unwrap_or(0);
+        let take = take.unwrap_or(config.contract_events_collection_limit);
 
         // If `skip` is 0 and at least one event is taken, include the
         // `init_transaction_event`.
         let include_initial_event = skip == 0 && take > 0;
         // Adjust the `take` and `skip` values considering if the
         // `init_transaction_event` is requested to be included or not.
-        let take_without_initial_event = take.saturating_sub(include_initial_event as u32);
+        let take_without_initial_event = take.saturating_sub(include_initial_event as u64);
         let skip_without_initial_event = skip.saturating_sub(1);
 
         // Limit the number of events to be fetched from the `contract_events` table.
         let limit = std::cmp::min(
-            take_without_initial_event as u64,
+            take_without_initial_event,
             config.contract_events_collection_limit.saturating_sub(include_initial_event as u64),
         );
 
         let mut contract_events = vec![];
-        let mut total_events_count = 0;
+        let mut initial_contract_event_exists_in_database = false;
 
         // Get the events from the `contract_events` table.
         let mut rows = sqlx::query!(
@@ -307,13 +309,11 @@ impl Contract {
             };
 
             contract_events.push(contract_event);
-            total_events_count += 1;
         }
 
         // Get the `init_transaction_event`.
-        if include_initial_event {
-            let row = sqlx::query!(
-                "
+        let row = sqlx::query!(
+            "
                 SELECT
                     module_reference,
                     name as contract_name,
@@ -330,12 +330,18 @@ impl Contract {
                 JOIN accounts ON transactions.sender = accounts.index
                 WHERE contracts.index = $1 AND contracts.sub_index = $2
                 ",
-                self.contract_address_index.0 as i64,
-                self.contract_address_sub_index.0 as i64
-            )
-            .fetch_optional(pool)
-            .await?
-            .ok_or(ApiError::NotFound)?;
+            self.contract_address_index.0 as i64,
+            self.contract_address_sub_index.0 as i64
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        if row.is_some() {
+            initial_contract_event_exists_in_database = true;
+        }
+
+        if include_initial_event {
+            let row = row.ok_or(ApiError::NotFound)?;
 
             let Some(events) = row.events else {
                 return Err(ApiError::InternalError("Missing events in database".to_string()));
@@ -367,8 +373,20 @@ impl Contract {
                 block_slot_time: row.block_slot_time,
             };
             contract_events.push(initial_event);
-            total_events_count += 1;
         }
+
+        let total_contract_events_count: u64 = sqlx::query_scalar!(
+            "SELECT
+                COUNT(*)
+            FROM contract_events
+                WHERE contract_index = $1 AND contract_sub_index = $2",
+            self.contract_address_index.0 as i64,
+            self.contract_address_sub_index.0 as i64
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0)
+        .try_into()?;
 
         Ok(ContractEventsCollectionSegment {
             page_info:   CollectionSegmentInfo {
@@ -376,7 +394,8 @@ impl Contract {
                 has_previous_page: skip > 0,
             },
             items:       contract_events,
-            total_count: total_events_count,
+            total_count: total_contract_events_count
+                + initial_contract_event_exists_in_database as u64,
         })
     }
 
@@ -428,9 +447,9 @@ impl Contract {
             items.pop();
         }
 
-        let total_count: i32 = sqlx::query_scalar!(
+        let total_count: u64 = sqlx::query_scalar!(
             "SELECT
-                MAX(transaction_index_per_contract)
+                MAX(transaction_index_per_contract) + 1
             FROM contract_reject_transactions
             WHERE contract_reject_transactions.contract_index = $1
                 AND contract_reject_transactions.contract_sub_index = $2",
@@ -487,6 +506,7 @@ impl Contract {
         let mut items = sqlx::query_as!(
             Token,
             "SELECT
+                index,
                 total_supply as raw_total_supply,
                 token_id,
                 contract_index,
@@ -517,12 +537,25 @@ impl Contract {
         }
         let has_previous_page = max_token_index > max_index;
 
+        let total_count: u64 = sqlx::query_scalar!(
+            "SELECT
+                COUNT(*)
+            FROM tokens
+                WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2",
+            self.contract_address_index.0 as i64,
+            self.contract_address_sub_index.0 as i64,
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0)
+        .try_into()?;
+
         Ok(TokensCollectionSegment {
             page_info: CollectionSegmentInfo {
                 has_next_page,
                 has_previous_page,
             },
-            total_count: items.len().try_into()?,
+            total_count,
             items,
         })
     }
@@ -535,7 +568,7 @@ struct ContractRejectEventsCollectionSegment {
     page_info:   CollectionSegmentInfo,
     /// A flattened list of the items.
     items:       Vec<ContractRejectEvent>,
-    total_count: i32,
+    total_count: u64,
 }
 
 struct ContractRejectEvent {
@@ -575,7 +608,7 @@ struct ContractEventsCollectionSegment {
     page_info:   CollectionSegmentInfo,
     /// A flattened list of the items.
     items:       Vec<ContractEvent>,
-    total_count: i32,
+    total_count: u64,
 }
 
 #[derive(SimpleObject)]

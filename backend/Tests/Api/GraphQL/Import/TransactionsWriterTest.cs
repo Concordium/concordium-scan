@@ -638,7 +638,10 @@ public class TransactionsWriterTest
                 {
                     new(Convert.FromHexString(firstEvent)),
                     new(Convert.FromHexString(secondEvent))
-                }));
+                },
+                null
+            )
+        );
         
         var accountTransactionDetails = new AccountTransactionDetailsBuilder(contractInitialized)
             .Build();

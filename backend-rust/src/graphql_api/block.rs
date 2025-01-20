@@ -7,15 +7,14 @@ use crate::{
 use async_graphql::{
     connection, types, ComplexObject, Context, Enum, Interface, Object, SimpleObject, Union,
 };
-use futures::TryStreamExt;
 
 #[derive(Default)]
 pub(crate) struct QueryBlocks;
 
 #[Object]
 impl QueryBlocks {
-    async fn block<'a>(&self, ctx: &Context<'a>, height_id: types::ID) -> ApiResult<Block> {
-        let height: BlockHeight = height_id.try_into().map_err(ApiError::InvalidIdInt)?;
+    async fn block<'a>(&self, ctx: &Context<'a>, id: types::ID) -> ApiResult<Block> {
+        let height: BlockHeight = id.try_into().map_err(ApiError::InvalidIdInt)?;
         Block::query_by_height(get_pool(ctx)?, height).await
     }
 
@@ -27,9 +26,10 @@ impl QueryBlocks {
         Block::query_by_hash(get_pool(ctx)?, block_hash).await
     }
 
-    async fn blocks<'a>(
+    /// Query the list of blocks ordered descendingly by block height.
+    async fn blocks(
         &self,
-        ctx: &Context<'a>,
+        ctx: &Context<'_>,
         #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
@@ -46,11 +46,11 @@ impl QueryBlocks {
             before,
             config.block_connection_limit,
         )?;
-        // The CCDScan front-end currently expects an ASC order of the nodes/edges
+        // The CCDScan front-end currently expects an DESC order of the nodes/edges
         // returned (outer `ORDER BY`), while the inner `ORDER BY` is a trick to
         // get the correct nodes/edges selected based on the `after/before` key
         // specified.
-        let mut row_stream = sqlx::query_as!(
+        let rows = sqlx::query_as!(
             Block,
             "SELECT * FROM (
                 SELECT
@@ -64,29 +64,36 @@ impl QueryBlocks {
                 FROM blocks
                 WHERE height > $1 AND height < $2
                 ORDER BY
-                    (CASE WHEN $4 THEN height END) DESC,
-                    (CASE WHEN NOT $4 THEN height END) ASC
+                    (CASE WHEN $4 THEN height END) ASC,
+                    (CASE WHEN NOT $4 THEN height END) DESC
                 LIMIT $3
-            ) ORDER BY height ASC",
+            ) ORDER BY height DESC",
             query.from,
             query.to,
             query.limit,
             query.desc
         )
-        .fetch(pool);
-
-        let mut connection = connection::Connection::new(true, true);
-        while let Some(block) = row_stream.try_next().await? {
-            connection.edges.push(connection::Edge::new(block.height.to_string(), block));
+        .fetch_all(pool)
+        .await?;
+        let has_prev_page = if let Some(first) = rows.first() {
+            sqlx::query_scalar!("SELECT true FROM blocks WHERE height > $1 LIMIT 1", first.height)
+                .fetch_optional(pool)
+                .await?
+                .flatten()
+                .unwrap_or_default()
+        } else {
+            false
+        };
+        let has_next_page = if let Some(last) = rows.last() {
+            // Genesis block have height 0, so we check whether the last block is higher.
+            last.height > 0
+        } else {
+            false
+        };
+        let mut connection = connection::Connection::new(has_prev_page, has_next_page);
+        for row in rows {
+            connection.edges.push(connection::Edge::new(row.height.to_string(), row));
         }
-        if last.is_some() {
-            if let Some(edge) = connection.edges.last() {
-                connection.has_previous_page = edge.node.height != 0;
-            }
-        } else if let Some(edge) = connection.edges.first() {
-            connection.has_previous_page = edge.node.height != 0;
-        }
-
         Ok(connection)
     }
 }
@@ -105,10 +112,8 @@ pub struct Block {
     /// finalization proof or quorum certificate that justifies this block
     /// being finalized.
     finalization_time: Option<i32>,
-    // finalized_by:      Option<BlockHeight>,
-    baker_id:          Option<BakerId>,
-    total_amount:      Amount,
-    // total_staked:      Amount,
+    baker_id:          Option<i64>,
+    total_amount:      i64,
 }
 
 impl Block {
@@ -165,9 +170,9 @@ impl Block {
 
     async fn block_height(&self) -> &BlockHeight { &self.height }
 
-    async fn baker_id(&self) -> Option<BakerId> { self.baker_id }
+    async fn baker_id(&self) -> Option<BakerId> { self.baker_id.map(BakerId::from) }
 
-    async fn total_amount(&self) -> &Amount { &self.total_amount }
+    async fn total_amount(&self) -> ApiResult<Amount> { Ok(self.total_amount.try_into()?) }
 
     /// Time of the block being baked.
     async fn block_slot_time(&self) -> &DateTime { &self.slot_time }

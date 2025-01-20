@@ -904,7 +904,7 @@ dependencies = [
 
 [[package]]
 name = "concordium-scan"
-version = "0.1.7"
+version = "0.1.13"
 dependencies = [
  "anyhow",
  "async-graphql",
@@ -921,6 +921,7 @@ dependencies = [
  "hex",
  "iso8601-duration",
  "prometheus-client",
+ "regex",
  "rust_decimal",
  "serde",
  "serde_json",

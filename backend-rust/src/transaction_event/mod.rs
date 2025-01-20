@@ -1,11 +1,13 @@
 use crate::{
-    address::Address,
+    address::Address as ScalarAddress,
     decoded_text::DecodedText,
     graphql_api::{ApiError, ApiResult},
-    scalar_types::{Byte, DateTime},
+    scalar_types::{BigInteger, Byte, DateTime, UnsignedLong},
 };
 use anyhow::Context;
-use async_graphql::{ComplexObject, SimpleObject, Union};
+use async_graphql::{ComplexObject, Object, SimpleObject, Union};
+use bigdecimal::BigDecimal;
+use concordium_rust_sdk::{cis2, types::Address};
 use tracing::error;
 
 pub mod baker;
@@ -109,7 +111,7 @@ pub fn events_from_summary(
                 vec![Event::ContractInitialized(smart_contracts::ContractInitialized {
                     module_ref:        data.origin_ref.to_string(),
                     contract_address:  data.address.into(),
-                    amount:            i64::try_from(data.amount.micro_ccd)?,
+                    amount:            data.amount.micro_ccd().into(),
                     init_name:         data.init_name.to_string(),
                     version:           data.contract_version.into(),
                     contract_logs_raw: data.events.iter().map(|e| e.as_ref().to_vec()).collect(),
@@ -127,7 +129,7 @@ pub fn events_from_summary(
                         } => Ok(Event::ContractUpdated(smart_contracts::ContractUpdated {
                             contract_address:  data.address.into(),
                             instigator:        data.instigator.into(),
-                            amount:            data.amount.micro_ccd().try_into()?,
+                            amount:            data.amount.micro_ccd().into(),
                             receive_name:      data.receive_name.to_string(),
                             version:           data.contract_version.into(),
                             input_parameter:   data.message.as_ref().to_vec(),
@@ -142,8 +144,8 @@ pub fn events_from_summary(
                             amount,
                             to,
                         } => Ok(Event::Transferred(transfers::Transferred {
-                            amount: amount.micro_ccd().try_into()?,
-                            from:   Address::ContractAddress(from.into()),
+                            amount: amount.micro_ccd().into(),
+                            from:   ScalarAddress::ContractAddress(from.into()),
                             to:     to.into(),
                         })),
                         ContractTraceElement::Interrupted {
@@ -177,8 +179,8 @@ pub fn events_from_summary(
                 to,
             } => {
                 vec![Event::Transferred(transfers::Transferred {
-                    amount: i64::try_from(amount.micro_ccd)?,
-                    from:   Address::AccountAddress(details.sender.into()),
+                    amount: amount.micro_ccd().into(),
+                    from:   ScalarAddress::AccountAddress(details.sender.into()),
                     to:     to.into(),
                 })]
             }
@@ -189,8 +191,8 @@ pub fn events_from_summary(
             } => {
                 vec![
                     Event::Transferred(transfers::Transferred {
-                        amount: i64::try_from(amount.micro_ccd)?,
-                        from:   Address::AccountAddress(details.sender.into()),
+                        amount: amount.micro_ccd().into(),
+                        from:   ScalarAddress::AccountAddress(details.sender.into()),
                         to:     to.into(),
                     }),
                     Event::TransferMemo(memo.into()),
@@ -200,7 +202,7 @@ pub fn events_from_summary(
                 data,
             } => {
                 vec![Event::BakerAdded(baker::BakerAdded {
-                    staked_amount:    data.stake.micro_ccd.try_into()?,
+                    staked_amount:    data.stake.micro_ccd().into(),
                     restake_earnings: data.restake_earnings,
                     baker_id:         data.keys_event.baker_id.id.index.try_into()?,
                     sign_key:         serde_json::to_string(&data.keys_event.sign_key)?,
@@ -222,12 +224,12 @@ pub fn events_from_summary(
                     if data.increased {
                         vec![Event::BakerStakeIncreased(baker::BakerStakeIncreased {
                             baker_id:          data.baker_id.id.index.try_into()?,
-                            new_staked_amount: data.new_stake.micro_ccd.try_into()?,
+                            new_staked_amount: data.new_stake.micro_ccd().into(),
                         })]
                     } else {
                         vec![Event::BakerStakeDecreased(baker::BakerStakeDecreased {
                             baker_id:          data.baker_id.id.index.try_into()?,
-                            new_staked_amount: data.new_stake.micro_ccd.try_into()?,
+                            new_staked_amount: data.new_stake.micro_ccd().into(),
                         })]
                     }
                 } else {
@@ -279,7 +281,7 @@ pub fn events_from_summary(
                 vec![Event::EncryptedSelfAmountAdded(transfers::EncryptedSelfAmountAdded {
                     account_address:      data.account.into(),
                     new_encrypted_amount: serde_json::to_string(&data.new_amount)?,
-                    amount:               data.amount.micro_ccd.try_into()?,
+                    amount:               data.amount.micro_ccd().into(),
                 })]
             }
             AccountTransactionEffects::TransferredToPublic {
@@ -289,7 +291,7 @@ pub fn events_from_summary(
                 vec![
                     Event::EncryptedAmountsRemoved((*removed).try_into()?),
                     Event::AmountAddedByDecryption(transfers::AmountAddedByDecryption {
-                        amount:          amount.micro_ccd().try_into()?,
+                        amount:          amount.micro_ccd().into(),
                         account_address: details.sender.into(),
                     }),
                 ]
@@ -305,7 +307,7 @@ pub fn events_from_summary(
                         .into_iter()
                         .map(|(_, amount)| amount.micro_ccd())
                         .sum::<u64>()
-                        .try_into()?,
+                        .into(),
                 })]
             }
             AccountTransactionEffects::TransferredWithScheduleAndMemo {
@@ -321,7 +323,7 @@ pub fn events_from_summary(
                             .into_iter()
                             .map(|(_, amount)| amount.micro_ccd())
                             .sum::<u64>()
-                            .try_into()?,
+                            .into(),
                     }),
                     Event::TransferMemo(memo.into()),
                 ]
@@ -368,7 +370,7 @@ pub fn events_from_summary(
                         BakerEvent::BakerAdded {
                             data,
                         } => Ok(Event::BakerAdded(baker::BakerAdded {
-                            staked_amount:    data.stake.micro_ccd.try_into()?,
+                            staked_amount:    data.stake.micro_ccd().into(),
                             restake_earnings: data.restake_earnings,
                             baker_id:         data.keys_event.baker_id.id.index.try_into()?,
                             sign_key:         serde_json::to_string(&data.keys_event.sign_key)?,
@@ -387,14 +389,14 @@ pub fn events_from_summary(
                             new_stake,
                         } => Ok(Event::BakerStakeIncreased(baker::BakerStakeIncreased {
                             baker_id:          baker_id.id.index.try_into()?,
-                            new_staked_amount: new_stake.micro_ccd.try_into()?,
+                            new_staked_amount: new_stake.micro_ccd().into(),
                         })),
                         BakerEvent::BakerStakeDecreased {
                             baker_id,
                             new_stake,
                         } => Ok(Event::BakerStakeDecreased(baker::BakerStakeDecreased {
                             baker_id:          baker_id.id.index.try_into()?,
-                            new_staked_amount: new_stake.micro_ccd.try_into()?,
+                            new_staked_amount: new_stake.micro_ccd().into(),
                         })),
                         BakerEvent::BakerRestakeEarningsUpdated {
                             baker_id,
@@ -492,7 +494,7 @@ pub fn events_from_summary(
                             delegation::DelegationStakeIncreased {
                                 delegator_id:      delegator_id.id.index.try_into()?,
                                 account_address:   details.sender.into(),
-                                new_staked_amount: new_stake.micro_ccd().try_into()?,
+                                new_staked_amount: new_stake.micro_ccd().into(),
                             },
                         )),
                         DelegationEvent::DelegationStakeDecreased {
@@ -502,7 +504,7 @@ pub fn events_from_summary(
                             delegation::DelegationStakeDecreased {
                                 delegator_id:      delegator_id.id.index.try_into()?,
                                 account_address:   details.sender.into(),
-                                new_staked_amount: new_stake.micro_ccd().try_into()?,
+                                new_staked_amount: new_stake.micro_ccd().into(),
                             },
                         )),
                         DelegationEvent::DelegationSetRestakeEarnings {
@@ -563,4 +565,136 @@ pub fn events_from_summary(
         }
     };
     Ok(events)
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct CisTransferEvent {
+    pub raw_token_id: cis2::TokenId,
+    pub amount:       cis2::TokenAmount,
+    pub from:         Address,
+    pub to:           Address,
+}
+#[Object]
+impl CisTransferEvent {
+    async fn to_address(&self) -> ScalarAddress { self.to.into() }
+
+    async fn from_address(&self) -> ScalarAddress { self.from.into() }
+
+    async fn token_amount(&self) -> crate::scalar_types::BigInteger {
+        BigInteger::from(BigDecimal::from_biguint(self.amount.0.clone(), 0))
+    }
+
+    async fn token_id(&self) -> crate::scalar_types::TokenId { self.raw_token_id.clone().into() }
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct CisMintEvent {
+    pub raw_token_id: cis2::TokenId,
+    pub amount:       cis2::TokenAmount,
+    pub owner:        Address,
+}
+#[Object]
+impl CisMintEvent {
+    async fn to_address(&self) -> ScalarAddress { self.owner.into() }
+
+    async fn token_amount(&self) -> crate::scalar_types::BigInteger {
+        BigInteger::from(BigDecimal::from_biguint(self.amount.0.clone(), 0))
+    }
+
+    async fn token_id(&self) -> crate::scalar_types::TokenId { self.raw_token_id.clone().into() }
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct CisBurnEvent {
+    pub raw_token_id: cis2::TokenId,
+    pub amount:       cis2::TokenAmount,
+    pub owner:        Address,
+}
+#[Object]
+impl CisBurnEvent {
+    async fn from_address(&self) -> ScalarAddress { self.owner.into() }
+
+    async fn token_amount(&self) -> crate::scalar_types::BigInteger {
+        BigInteger::from(BigDecimal::from_biguint(self.amount.0.clone(), 0))
+    }
+
+    async fn token_id(&self) -> crate::scalar_types::TokenId { self.raw_token_id.clone().into() }
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct CisTokenMetadataEvent {
+    pub raw_token_id: cis2::TokenId,
+    pub metadata_url: concordium_rust_sdk::cis2::MetadataUrl,
+}
+#[Object]
+impl CisTokenMetadataEvent {
+    async fn metadata_url(&self) -> String { self.metadata_url.url().to_string() }
+
+    async fn hash_hex(&self) -> Option<String> {
+        self.metadata_url.hash().map(|hash| hash.to_string())
+    }
+
+    async fn token_id(&self) -> crate::scalar_types::TokenId { self.raw_token_id.clone().into() }
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct CisUnknownEvent {
+    pub dummy: crate::scalar_types::UnsignedLong,
+}
+
+// Note: This enum does NOT have an `UpdateOperator` variant since this event
+// cannot be linked to a specific token.
+#[derive(Union, serde::Serialize, serde::Deserialize)]
+pub enum CisEvent {
+    Transfer(CisTransferEvent),
+    Mint(CisMintEvent),
+    Burn(CisBurnEvent),
+    TokenMetadata(CisTokenMetadataEvent),
+    Unknown(CisUnknownEvent),
+}
+
+impl From<cis2::Event> for CisEvent {
+    fn from(event: cis2::Event) -> Self {
+        match event {
+            cis2::Event::Transfer {
+                token_id,
+                amount,
+                from,
+                to,
+            } => CisEvent::Transfer(CisTransferEvent {
+                raw_token_id: token_id,
+                amount,
+                from,
+                to,
+            }),
+            cis2::Event::Mint {
+                token_id,
+                amount,
+                owner,
+            } => CisEvent::Mint(CisMintEvent {
+                raw_token_id: token_id,
+                amount,
+                owner,
+            }),
+            cis2::Event::Burn {
+                token_id,
+                amount,
+                owner,
+            } => CisEvent::Burn(CisBurnEvent {
+                raw_token_id: token_id,
+                amount,
+                owner,
+            }),
+            cis2::Event::TokenMetadata {
+                token_id,
+                metadata_url,
+            } => CisEvent::TokenMetadata(CisTokenMetadataEvent {
+                raw_token_id: token_id,
+                metadata_url,
+            }),
+            _ => CisEvent::Unknown(CisUnknownEvent {
+                dummy: UnsignedLong(0u64),
+            }),
+        }
+    }
 }

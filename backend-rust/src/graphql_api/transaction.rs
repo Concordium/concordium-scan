@@ -104,7 +104,7 @@ pub struct Transaction {
     pub index: TransactionIndex,
     pub block_height: BlockHeight,
     pub hash: TransactionHash,
-    pub ccd_cost: Amount,
+    pub ccd_cost: i64,
     pub energy_cost: Energy,
     pub sender: Option<AccountIndex>,
     pub tx_type: DbTransactionType,
@@ -183,7 +183,7 @@ impl Transaction {
 
     async fn transaction_hash(&self) -> &TransactionHash { &self.hash }
 
-    async fn ccd_cost(&self) -> Amount { self.ccd_cost }
+    async fn ccd_cost(&self) -> ApiResult<Amount> { Ok(self.ccd_cost.try_into()?) }
 
     async fn energy_cost(&self) -> Energy { self.energy_cost }
 

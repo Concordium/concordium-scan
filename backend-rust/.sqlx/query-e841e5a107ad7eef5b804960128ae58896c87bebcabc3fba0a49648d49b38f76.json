@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT MAX(index) as max_id, MIN(index) as min_id\n                    FROM accounts\n                    WHERE\n                        address LIKE $1 || '%'\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "max_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "min_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "e841e5a107ad7eef5b804960128ae58896c87bebcabc3fba0a49648d49b38f76"
+}

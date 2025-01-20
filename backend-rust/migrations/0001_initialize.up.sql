@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 CREATE TYPE account_transaction_type AS ENUM (
     'InitializeSmartContractInstance',
     'UpdateSmartContractInstance',
@@ -136,6 +138,9 @@ CREATE TABLE blocks(
 
 -- Important for quickly filtering blocks by slot time, such as is done in the transactions metrics query.
 CREATE INDEX blocks_slot_time_idx ON blocks (slot_time);
+-- Used when updating the finalization time for a block to efficiently find blocks which are not yet
+-- finalized during indexing.
+CREATE INDEX blocks_height_null_fin_time ON blocks (height) WHERE finalization_time IS NULL;
 
 -- Every transaction on chain.
 CREATE TABLE transactions(
@@ -200,7 +205,7 @@ CREATE TABLE accounts(
         PRIMARY KEY,
     -- Account address bytes encoded using base58check.
     address
-        CHAR(50)
+        VARCHAR(50)
         UNIQUE
         NOT NULL,
     -- Index of the transaction creating this account.
@@ -241,6 +246,7 @@ CREATE TABLE accounts(
 CREATE INDEX accounts_amount_idx ON accounts (amount);
 CREATE INDEX accounts_delegated_stake_idx ON accounts (delegated_stake);
 CREATE INDEX accounts_num_txs_idx ON accounts (num_txs);
+CREATE INDEX accounts_address_trgm_idx ON accounts USING gin (address gin_trgm_ops);
 
 -- Add foreign key constraint now that the account table is created.
 ALTER TABLE transactions
@@ -434,10 +440,7 @@ CREATE TABLE contract_events (
 );
 
 -- Important for quickly filtering/sorting events by the order they were emitted by a contract.
-CREATE INDEX event_index_per_contract_idx ON contract_events (event_index_per_contract);
-
--- Important for quickly filtering contract events by a specific contract.
-CREATE INDEX contract_events_idx ON contract_events (contract_index, contract_sub_index);
+CREATE INDEX event_index_per_contract_idx ON contract_events (contract_index, contract_sub_index, event_index_per_contract);
 
 -- Table indexing the rejected update transactions for each contract instance, tracking an incrementing
 -- index allowing for efficient offset pagination.
@@ -585,7 +588,10 @@ CREATE TABLE tokens (
 CREATE INDEX token_idx ON tokens (contract_index, contract_sub_index, token_id);
 
 -- Important for quickly filtering/sorting tokens by the order they were created by a contract.
-CREATE INDEX token_index_per_contract_idx ON tokens (token_index_per_contract);
+CREATE INDEX token_index_per_contract_idx ON tokens (contract_index, contract_sub_index, token_index_per_contract);
+
+-- This sequence is used to sort/filter the newest tokens transferred to an account address.
+CREATE SEQUENCE account_tokens_update_seq;
 
 -- Relations between accounts and CIS2 tokens. Rows are added or updated in this table whenever a CIS2 `MintEvent`, `BurnEvent`
 -- or `TransferEvent` is logged by a contract claiming to follow the `CIS2 standard`.
@@ -609,10 +615,44 @@ CREATE TABLE account_tokens (
         NUMERIC
         NOT NULL
         DEFAULT 0,
+    -- Every time an `account_token` is inserted or updated in this table, a sequential index is assigned 
+    -- to the operation and tracked in this sequence.
+    -- This sequence is used to sort/filter the newest tokens transferred to an account address.
+    change_seq BIGINT DEFAULT nextval('account_tokens_update_seq'),
 
     -- Ensure that each token_index and account_index pair is unique.
     CONSTRAINT unique_token_account_relationship UNIQUE (token_index, account_index)
 );
+
+CREATE INDEX non_zero_account_token_idx ON account_tokens (account_index, change_seq) WHERE balance != 0;
+
+-- Table to collect CIS2 token events (`Mint`, `Burn`, `Transfer` and `TokenMetadata` events).
+CREATE TABLE cis2_token_events (
+    -- An index/id for the event (row number).
+    index
+        BIGINT GENERATED ALWAYS AS IDENTITY
+        PRIMARY KEY,
+    -- Every time an event is associated with a token, this index is incremented for that token.
+    -- This value is used to quickly filter/sort events associated with a given token.
+    index_per_token
+        BIGINT
+        NOT NULL,
+    -- Index (row in the `transaction` table) of the transaction with the token event.
+    transaction_index
+        BIGINT
+        NOT NULL,
+    -- The token index (row in the `tokens` table) of the associated token.
+    token_index
+        BIGINT
+        NOT NULL,
+    -- The cis2 token event. Only `Mint`, `Burn`, `Transfer` and `TokenMetadata` events can occure in the field 
+    -- (no `UpdateOperator` event because the event cannot be linked to a specific token).
+    cis2_token_event
+        JSONB
+        NOT NULL
+);
+
+CREATE INDEX cis2_token_events_idx ON cis2_token_events (token_index, index_per_token);
 
 CREATE OR REPLACE FUNCTION block_added_notify_trigger_function() RETURNS trigger AS $trigger$
 DECLARE
@@ -657,6 +697,20 @@ CREATE TRIGGER account_updated_notify_trigger AFTER INSERT
 ON affected_accounts
 FOR EACH ROW EXECUTE PROCEDURE account_updated_notify_trigger_function();
 
+-- Function to update the change_seq column with the next sequence value
+CREATE OR REPLACE FUNCTION update_change_seq()
+RETURNS trigger AS $trigger$
+BEGIN
+    -- Fetch the next value from the sequence and assign it to change_seq
+    NEW.change_seq := nextval('account_tokens_update_seq');
+    RETURN NEW;
+END;
+$trigger$ LANGUAGE plpgsql;
+
+-- Create a trigger for INSERT and UPDATE events
+CREATE TRIGGER set_change_seq BEFORE INSERT OR UPDATE ON account_tokens
+FOR EACH ROW EXECUTE PROCEDURE update_change_seq();
+
 -- Table for logging all account-related activities on-chain.
 -- This table tracks individual entries related to changes in account balances.
 CREATE TABLE account_statements (
@@ -668,8 +722,8 @@ CREATE TABLE account_statements (
     -- Index of the account associated with this entry.
     account_index
         BIGINT
-        REFERENCES accounts(index)
-        NOT NULL,
+        NOT NULL
+        REFERENCES accounts(index),
     -- Type of the account statement entry.
     entry_type
         account_statement_entry_type
@@ -689,8 +743,8 @@ CREATE TABLE account_statements (
     -- Links to the blocks table to associate the entry with a specific block.
     block_height
         BIGINT
-        REFERENCES blocks(height)
-        NOT NULL,
+        NOT NULL
+        REFERENCES blocks(height),
     -- Used as reference for all account statements not of type reward type
     transaction_id
         BIGINT

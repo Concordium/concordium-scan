@@ -16,7 +16,7 @@ type TokenQueryResponse = {
 	token: Token
 }
 
-const eventsFragment = `
+const tokenEventsFragment = `
 __typename
 tokenId
 contractIndex
@@ -38,12 +38,8 @@ event {
         asString
       }
     }
-    contractIndex
-    contractSubIndex
     tokenAmount
     tokenId
-    transactionHash
-    parsed
   }
   ...on CisMintEvent {
     toAddress {
@@ -58,20 +54,12 @@ event {
       }
     }
     tokenAmount
-    contractIndex
-    contractSubIndex
     tokenId
-    transactionHash
-    parsed
   }
   ...on CisTokenMetadataEvent {
     hashHex
     metadataUrl
-    contractIndex
-    contractSubIndex
     tokenId
-    transactionHash
-    parsed
   }
   ... on CisTransferEvent {
     toAddress {
@@ -97,40 +85,7 @@ event {
       }
     }
     tokenAmount
-    contractIndex
-    contractSubIndex
     tokenId
-    transactionHash
-    parsed
-  }
-  ... on CisUpdateOperatorEvent {
-    operator{
-      __typename
-      ... on AccountAddress {
-        asString
-      }
-      ... on ContractAddress {
-        index
-        subIndex
-        asString
-      }
-    }
-    owner {
-      __typename
-      ... on AccountAddress {
-        asString
-      }
-      ... on ContractAddress {
-        index
-        subIndex
-        asString
-      }
-    }
-    update
-    contractIndex
-    contractSubIndex
-    transactionHash
-    parsed
   }
 }
 `
@@ -161,7 +116,7 @@ query (
       block {
         blockSlotTime
       }
-    }    
+    }
     accounts(skip: $skipAccount, take: $takeAccount) {
       items {
         accountId
@@ -169,7 +124,7 @@ query (
           address {
             asString
           }
-        }        
+        }
         balance
         contractIndex
         contractSubIndex
@@ -178,7 +133,7 @@ query (
       totalCount
     }
     tokenEvents(skip: $skipEvent, take: $takeEvent) {
-      items { ${eventsFragment} }
+      items { ${tokenEventsFragment} }
       totalCount
     }
   }
@@ -198,6 +153,7 @@ export const useTokenQuery = ({
 	fetching: Ref<boolean>
 } => {
 	const { data, fetching, error } = useQuery<TokenQueryResponse>({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: TokenQuery,
 		requestPolicy: 'cache-first',
 		variables: {

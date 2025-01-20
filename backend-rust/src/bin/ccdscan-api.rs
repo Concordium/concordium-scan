@@ -2,7 +2,10 @@ use anyhow::Context;
 use async_graphql::SDLExportOptions;
 use clap::Parser;
 use concordium_scan::{graphql_api, router};
-use prometheus_client::registry::Registry;
+use prometheus_client::{
+    metrics::{family::Family, gauge::Gauge},
+    registry::Registry,
+};
 use sqlx::postgres::PgPoolOptions;
 use std::{net::SocketAddr, path::PathBuf};
 use tokio::net::TcpListener;
@@ -32,7 +35,7 @@ struct Cli {
     #[arg(long, env = "CCDSCAN_API_ADDRESS", default_value = "127.0.0.1:8000")]
     listen:                    SocketAddr,
     /// Address to listen for monitoring related requests
-    #[arg(long, env = "CCDSCAN_INDEXER_MONITORING_ADDRESS", default_value = "127.0.0.1:8003")]
+    #[arg(long, env = "CCDSCAN_API_MONITORING_ADDRESS", default_value = "127.0.0.1:8003")]
     monitoring_listen:         SocketAddr,
     #[command(flatten, next_help_heading = "Configuration")]
     api_config:                graphql_api::ApiServiceConfig,
@@ -58,12 +61,15 @@ async fn main() -> anyhow::Result<()> {
         .await
         .context("Failed constructing database connection pool")?;
     let cancel_token = CancellationToken::new();
-
+    let service_info_family = Family::<Vec<(&str, String)>, Gauge>::default();
+    let gauge =
+        service_info_family.get_or_create(&vec![("version", clap::crate_version!().to_string())]);
+    gauge.set(1);
     let mut registry = Registry::with_prefix("api");
     registry.register(
-        "service",
+        "service_info",
         "Information about the software",
-        prometheus_client::metrics::info::Info::new(vec![("version", clap::crate_version!())]),
+        service_info_family.clone(),
     );
     registry.register(
         "service_startup_timestamp_millis",

@@ -52,6 +52,7 @@ use concordium_rust_sdk::{
 use derive_more::Display;
 use futures::prelude::*;
 use prometheus_client::registry::Registry;
+use regex::Regex;
 use sqlx::PgPool;
 use std::{
     cmp::{max, min},
@@ -59,7 +60,7 @@ use std::{
     str::FromStr,
     sync::Arc,
 };
-use token::AccountToken;
+use token::{AccountToken, AccountTokenInterim, Token};
 use tokio::{net::TcpListener, sync::broadcast};
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_util::sync::CancellationToken;
@@ -101,6 +102,8 @@ pub struct ApiServiceConfig {
         default_value = "100"
     )]
     transaction_event_connection_limit: u64,
+    #[arg(long, env = "CCDSCAN_API_CONFIG_TOKENS_CONNECTION_LIMIT", default_value = "100")]
+    tokens_connection_limit: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_CONTRACT_TOKENS_COLLECTION_LIMIT",
@@ -145,6 +148,8 @@ pub struct ApiServiceConfig {
         default_value = "100"
     )]
     token_holder_addresses_collection_limit: u64,
+    #[arg(long, env = "CCDSCAN_API_CONFIG_TOKEN_EVENTS_COLLECTION_LIMIT", default_value = "100")]
+    token_events_collection_limit: u64,
 }
 
 #[derive(MergedObject, Default)]
@@ -514,10 +519,6 @@ impl BaseQuery {
             config.account_connection_limit,
         )?;
 
-        // The CCDScan front-end currently expects an ASC order of the nodes/edges
-        // returned (outer `ORDER BY`), while the inner `ORDER BY` is a trick to
-        // get the correct nodes/edges selected based on the `after/before` key
-        // specified.
         let mut accounts = sqlx::query_as!(
             Account,
             r"SELECT * FROM (
@@ -606,9 +607,90 @@ impl BaseQuery {
         Ok(connection)
     }
 
+    async fn tokens(
+        &self,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        before: Option<String>,
+    ) -> ApiResult<connection::Connection<String, Token>> {
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+
+        let query = ConnectionQuery::<i64>::new(
+            first,
+            after,
+            last,
+            before,
+            config.tokens_connection_limit,
+        )?;
+
+        let mut row_stream = sqlx::query_as!(
+            Token,
+            "SELECT * FROM (
+                SELECT
+                    index,
+                    init_transaction_index,
+                    total_supply as raw_total_supply,
+                    token_id,
+                    contract_index,
+                    contract_sub_index,
+                    token_address,
+                    metadata_url
+                FROM tokens
+                WHERE tokens.index > $1 AND tokens.index < $2
+                ORDER BY
+                    (CASE WHEN $4 THEN tokens.index END) DESC,
+                    (CASE WHEN NOT $4 THEN tokens.index END) ASC
+                LIMIT $3
+            ) AS token_data
+            ORDER BY token_data.index ASC",
+            query.from,
+            query.to,
+            query.limit,
+            query.desc
+        )
+        .fetch(pool);
+
+        let mut connection = connection::Connection::new(false, false);
+
+        let mut page_max_index = None;
+        while let Some(token) = row_stream.try_next().await? {
+            page_max_index = Some(match page_max_index {
+                None => token.index,
+                Some(current_max) => max(current_max, token.index),
+            });
+            connection.edges.push(connection::Edge::new(token.index.to_string(), token));
+        }
+
+        if let Some(page_max_index) = page_max_index {
+            let max_index = sqlx::query_scalar!(
+                "
+                    SELECT MAX(index) as max_index
+                    FROM tokens
+                "
+            )
+            .fetch_one(pool)
+            .await?;
+
+            if let Some(edge) = connection.edges.last() {
+                connection.has_next_page = max_index.map_or(false, |db_max| db_max > page_max_index)
+            }
+        }
+
+        if let Some(edge) = connection.edges.first() {
+            connection.has_previous_page = edge.node.index != 0;
+        }
+
+        Ok(connection)
+    }
+
     async fn search(&self, query: String) -> SearchResult {
         SearchResult {
-            _query: query,
+            query,
         }
     }
 
@@ -628,11 +710,6 @@ impl BaseQuery {
     // "Returns the last _n_ elements from the list." last: Int "Returns the
     // elements in the list that come before the specified cursor." before: String):
     // NodeStatusesConnection nodeStatus(id: ID!): NodeStatus
-    // tokens("Returns the first _n_ elements from the list." first: Int "Returns
-    // the elements in the list that come after the specified cursor." after:
-    // String "Returns the last _n_ elements from the list." last: Int "Returns
-    // the elements in the list that come before the specified cursor." before:
-    // String): TokensConnection
 }
 
 pub struct Subscription {
@@ -814,7 +891,8 @@ pub struct AccountReward {
     timestamp:    DateTime,
     #[graphql(skip)]
     entry_type:   AccountStatementEntryType,
-    amount:       Amount,
+    #[graphql(skip)]
+    amount:       i64,
 }
 #[ComplexObject]
 impl AccountReward {
@@ -823,6 +901,8 @@ impl AccountReward {
     async fn block(&self, ctx: &Context<'_>) -> ApiResult<Block> {
         Block::query_by_height(get_pool(ctx)?, self.block_height).await
     }
+
+    async fn amount(&self) -> ApiResult<Amount> { Ok(self.amount.try_into()?) }
 
     async fn reward_type(&self, ctx: &Context<'_>) -> ApiResult<RewardType> {
         let transaction: RewardType = self.entry_type.try_into().map_err(|_| {
@@ -868,8 +948,10 @@ struct AccountStatementEntry {
     id:              i64,
     timestamp:       DateTime,
     entry_type:      AccountStatementEntryType,
-    amount:          Amount,
-    account_balance: Amount,
+    #[graphql(skip)]
+    amount:          i64,
+    #[graphql(skip)]
+    account_balance: i64,
     #[graphql(skip)]
     transaction_id:  Option<TransactionIndex>,
     #[graphql(skip)]
@@ -879,6 +961,10 @@ struct AccountStatementEntry {
 #[ComplexObject]
 impl AccountStatementEntry {
     async fn id(&self) -> types::ID { types::ID::from(self.id) }
+
+    async fn amount(&self) -> ApiResult<Amount> { Ok(self.amount.try_into()?) }
+
+    async fn account_balance(&self) -> ApiResult<Amount> { Ok(self.account_balance.try_into()?) }
 
     async fn reference(&self, ctx: &Context<'_>) -> ApiResult<BlockOrTransaction> {
         if let Some(id) = self.transaction_id {
@@ -910,7 +996,7 @@ struct AccountReleaseScheduleItem {
     index:             AccountReleaseScheduleItemIndex,
     transaction_index: TransactionIndex,
     timestamp:         DateTime,
-    amount:            Amount,
+    amount:            i64,
 }
 #[Object]
 impl AccountReleaseScheduleItem {
@@ -924,10 +1010,9 @@ impl AccountReleaseScheduleItem {
 
     async fn timestamp(&self) -> DateTime { self.timestamp }
 
-    async fn amount(&self) -> Amount { self.amount }
+    async fn amount(&self) -> ApiResult<Amount> { Ok(self.amount.try_into()?) }
 }
 
-#[derive(sqlx::FromRow)]
 struct Account {
     // release_schedule: AccountReleaseSchedule,
     index:             i64,
@@ -935,12 +1020,11 @@ struct Account {
     /// Only `None` for genesis accounts.
     transaction_index: Option<i64>,
     /// The address of the account in Base58Check.
-    #[sqlx(try_from = "String")]
     address:           AccountAddress,
     /// The total amount of CCD hold by the account.
-    amount:            Amount,
+    amount:            i64,
     /// The total delegated stake of this account.
-    delegated_stake:   Amount,
+    delegated_stake:   i64,
     /// The total number of transactions this account has been involved in or
     /// affected by.
     num_txs:           i64,
@@ -987,23 +1071,24 @@ impl Account {
     async fn address(&self) -> &AccountAddress { &self.address }
 
     /// The total amount of CCD hold by the account.
-    async fn amount(&self) -> Amount { self.amount }
+    async fn amount(&self) -> ApiResult<Amount> { Ok(self.amount.try_into()?) }
 
-    async fn delegation(&self) -> Option<Delegation> {
-        self.delegated_restake_earnings.map(|restake_earnings| Delegation {
+    async fn delegation(&self) -> ApiResult<Option<Delegation>> {
+        let staked_amount = self.delegated_stake.try_into()?;
+        Ok(self.delegated_restake_earnings.map(|restake_earnings| Delegation {
             delegator_id: self.index,
             restake_earnings,
-            staked_amount: self.delegated_stake,
+            staked_amount,
             delegation_target: if let Some(target) = self.delegated_target_baker_id {
                 DelegationTarget::BakerDelegationTarget(BakerDelegationTarget {
-                    baker_id: target,
+                    baker_id: target.into(),
                 })
             } else {
                 DelegationTarget::PassiveDelegationTarget(PassiveDelegationTarget {
                     dummy: false,
                 })
             },
-        })
+        }))
     }
 
     /// Timestamp of the block where this account was created.
@@ -1032,22 +1117,109 @@ impl Account {
 
     /// Number of transactions where this account is used as sender.
     async fn transaction_count<'a>(&self, ctx: &Context<'a>) -> ApiResult<i64> {
-        let rec = sqlx::query!("SELECT COUNT(*) FROM transactions WHERE sender=$1", self.index)
-            .fetch_one(get_pool(ctx)?)
-            .await?;
-        Ok(rec.count.unwrap_or(0))
+        let count =
+            sqlx::query_scalar!("SELECT COUNT(*) FROM transactions WHERE sender=$1", self.index)
+                .fetch_one(get_pool(ctx)?)
+                .await?;
+        Ok(count.unwrap_or(0))
     }
 
     async fn tokens(
         &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: i32,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        after: String,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: i32,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        before: String,
+        before: Option<String>,
     ) -> ApiResult<connection::Connection<String, AccountToken>> {
-        todo_api!()
+        let config = get_config(ctx)?;
+        let pool = get_pool(ctx)?;
+        let query = ConnectionQuery::<i64>::new(
+            first,
+            after,
+            last,
+            before,
+            config.contract_connection_limit,
+        )?;
+
+        // Tokens with 0 balance are filtered out. We still display tokens with a
+        // negative balance (buggy cis2 smart contract) to help smart contract
+        // developers to debug their smart contracts.
+        // The tokens are sorted/filtered by the newest tokens transferred to an account
+        // address.
+        let mut row_stream = sqlx::query_as!(
+            AccountTokenInterim,
+            "
+            SELECT * FROM (
+                SELECT
+                    token_id,
+                    contract_index,
+                    contract_sub_index,
+                    balance AS raw_balance,
+                    account_index AS account_id,
+                    change_seq
+                FROM account_tokens
+                JOIN tokens
+                    ON tokens.index = account_tokens.token_index
+                WHERE account_tokens.balance != 0 
+                    AND account_tokens.account_index = $5
+                    AND $1 < change_seq 
+                    AND change_seq < $2
+                ORDER BY
+                    CASE WHEN NOT $4 THEN change_seq END DESC,
+                    CASE WHEN $4 THEN change_seq END ASC
+                LIMIT $3
+            ) ORDER BY change_seq DESC
+            ",
+            query.from,
+            query.to,
+            query.limit,
+            query.desc,
+            &self.index
+        )
+        .fetch(pool);
+
+        let mut connection = connection::Connection::new(false, false);
+
+        let mut page_max_index = None;
+        let mut page_min_index = None;
+        while let Some(token) = row_stream.try_next().await? {
+            let token = AccountToken::try_from(token)?;
+
+            page_max_index = Some(match page_max_index {
+                None => token.change_seq,
+                Some(current_max) => max(current_max, token.change_seq),
+            });
+
+            page_min_index = Some(match page_min_index {
+                None => token.change_seq,
+                Some(current_min) => min(current_min, token.change_seq),
+            });
+
+            connection.edges.push(connection::Edge::new(token.change_seq.to_string(), token));
+        }
+
+        if let (Some(page_min_id), Some(page_max_id)) = (page_min_index, page_max_index) {
+            let result = sqlx::query!(
+                "
+                    SELECT MAX(change_seq) as max_id, MIN(change_seq) as min_id 
+                    FROM account_tokens
+                    WHERE account_tokens.balance != 0
+                        AND account_tokens.account_index = $1
+                ",
+                &self.index
+            )
+            .fetch_one(pool)
+            .await?;
+
+            connection.has_previous_page =
+                result.min_id.map_or(false, |db_min| db_min < page_min_id);
+            connection.has_next_page = result.max_id.map_or(false, |db_max| db_max > page_max_id);
+        }
+
+        Ok(connection)
     }
 
     async fn transactions(
@@ -1386,7 +1558,7 @@ impl AccountReleaseSchedule {
         )
         .fetch_one(pool)
         .await?;
-        Ok(total_amount.unwrap_or(0))
+        Ok(total_amount.unwrap_or(0).try_into()?)
     }
 
     async fn schedule(
@@ -1681,7 +1853,7 @@ struct AccountFilterInput {
 }
 
 struct SearchResult {
-    _query: String,
+    query: String,
 }
 
 #[Object]
@@ -1699,19 +1871,19 @@ impl SearchResult {
         todo_api!()
     }
 
-    // async fn modules(
-    //     &self,
-    //     #[graphql(desc = "Returns the first _n_ elements from the list.")]
-    // _first: Option<i32>,     #[graphql(desc = "Returns the elements in the
-    // list that come after the specified cursor.")]     _after: Option<String>,
-    //     #[graphql(desc = "Returns the last _n_ elements from the list.")] _last:
-    // Option<i32>,     #[graphql(
-    //         desc = "Returns the elements in the list that come before the
-    // specified cursor."     )]
-    //     _before: Option<String>,
-    // ) -> ApiResult<connection::Connection<String, Module>> {
-    //     todo_api!()
-    // }
+    //    async fn modules(
+    //        &self,
+    //        #[graphql(desc = "Returns the first _n_ elements from the list.")]
+    // _first: Option<i32>,        #[graphql(desc = "Returns the elements in the
+    //     list that come after the specified cursor.")]
+    //        _after: Option<String>,
+    //        #[graphql(desc = "Returns the last _n_ elements from the list.")]
+    // _last: Option<i32>,        #[graphql(desc = "Returns the elements in the
+    // list that come before the     specified cursor.")]
+    //        _before: Option<String>,
+    //    ) -> ApiResult<connection::Connection<String, Module>> {
+    //        todo_api!()
+    //    }
 
     async fn blocks(
         &self,
@@ -1751,14 +1923,113 @@ impl SearchResult {
 
     async fn accounts(
         &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<i32>,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        _after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        _before: Option<String>,
+        before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Account>> {
-        todo_api!()
+        let account_address_regex: Regex = Regex::new(r"^[1-9A-HJ-NP-Za-km-z]{1,50}$")
+            .map_err(|_| ApiError::InternalError("Invalid regex".to_string()))?;
+        let pool = get_pool(ctx)?;
+        let query = ConnectionQuery::<i64>::new(first, after, last, before, 10)?;
+        let mut connection = connection::Connection::new(false, false);
+        if !account_address_regex.is_match(&self.query) {
+            return Ok(connection);
+        }
+
+        if let Ok(parsed_address) =
+            concordium_rust_sdk::common::types::AccountAddress::from_str(&self.query)
+        {
+            if let Some(account) = sqlx::query_as!(
+                Account,
+                "SELECT
+                index,
+                transaction_index,
+                address,
+                amount,
+                delegated_stake,
+                num_txs,
+                delegated_restake_earnings,
+                delegated_target_baker_id
+            FROM accounts
+            WHERE
+                address = $1",
+                parsed_address.to_string()
+            )
+            .fetch_optional(pool)
+            .await?
+            {
+                connection.edges.push(connection::Edge::new(account.index.to_string(), account));
+            }
+            return Ok(connection);
+        };
+        let accounts = sqlx::query_as!(
+            Account,
+            r#"
+                SELECT * FROM (SELECT
+                    index,
+                    transaction_index,
+                    address,
+                    amount,
+                    delegated_stake,
+                    num_txs,
+                    delegated_restake_earnings,
+                    delegated_target_baker_id
+                FROM accounts
+                WHERE
+                    address LIKE $5 || '%'
+                    AND index > $1
+                    AND index < $2
+                ORDER BY
+                    (CASE WHEN $4 THEN index END) DESC,
+                    (CASE WHEN NOT $4 THEN index END) ASC
+                LIMIT $3
+                ) ORDER BY index ASC"#,
+            query.from,
+            query.to,
+            query.limit,
+            query.desc,
+            self.query
+        )
+        .fetch_all(pool)
+        .await?;
+
+        let mut min_index = None;
+        let mut max_index = None;
+        for account in accounts {
+            min_index = Some(match min_index {
+                None => account.index,
+                Some(current_min) => min(current_min, account.index),
+            });
+
+            max_index = Some(match max_index {
+                None => account.index,
+                Some(current_max) => max(current_max, account.index),
+            });
+            connection.edges.push(connection::Edge::new(account.index.to_string(), account));
+        }
+
+        if let (Some(page_min_id), Some(page_max_id)) = (min_index, max_index) {
+            let result = sqlx::query!(
+                r#"
+                    SELECT MAX(index) as max_id, MIN(index) as min_id
+                    FROM accounts
+                    WHERE
+                        address LIKE $1 || '%'
+                "#,
+                &self.query
+            )
+            .fetch_one(pool)
+            .await?;
+
+            connection.has_previous_page =
+                result.min_id.map_or(false, |db_min| db_min < page_min_id);
+            connection.has_next_page = result.max_id.map_or(false, |db_max| db_max > page_max_id);
+        }
+        Ok(connection)
     }
 
     async fn bakers(

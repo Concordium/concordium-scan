@@ -200,7 +200,8 @@ public sealed class _10_CisEventReinitializationTests
                 contractAddress,
                 CcdAmount.Zero,
                 contractNameOutput.ContractName!,
-                new List<ContractEvent>()
+                new List<ContractEvent>(),
+                null
             ));
         var contractInitializedEvent = ContractEventBuilder.Create()
             .WithContractAddress(address)

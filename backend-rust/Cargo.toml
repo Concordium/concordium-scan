@@ -1,6 +1,6 @@
 [package]
 name = "concordium-scan"
-version = "0.1.7"
+version = "0.1.13"
 edition = "2021"
 description = "CCDScan: Indexer and API for the Concordium blockchain"
 authors = ["Concordium <developers@concordium.com>"]
@@ -18,7 +18,7 @@ ciborium = "0.2"
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4.5", features = ["derive", "env", "cargo"] }
 concordium-rust-sdk = { path = "./concordium-rust-sdk" }
-derive_more = { version = "1.0.0", features = ["display", "from", "from_str"] }
+derive_more = { version = "1.0.0", features = ["display", "from", "from_str", "into"] }
 dotenvy = "0.15"
 futures = "0.3"
 hex = "0.4"
@@ -37,6 +37,7 @@ prometheus-client = "0.22"
 tonic = { version = "0.10.2", features = ["tls-roots", "tls"]}
 tower-http = { version = "0.6", features = ["cors"] }
 bigdecimal = "0.4.7"
+regex = "1.10.4"
 
 # Recommended by SQLx to speed up incremental builds
 [profile.dev.package.sqlx-macros]
