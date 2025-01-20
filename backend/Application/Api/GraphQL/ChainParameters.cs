@@ -82,6 +82,9 @@ public abstract class ChainParameters
             case ChainParametersV2 chainParametersV2:
                 poolOwnerCooldown = chainParametersV2.PoolOwnerCooldown;
                 return true;
+            case ChainParametersV3 chainParametersV3:
+                poolOwnerCooldown = chainParametersV3.PoolOwnerCooldown;
+                return true;
             default:
                 throw new ArgumentOutOfRangeException(nameof(chainParameters));
         }
@@ -112,6 +115,11 @@ public abstract class ChainParameters
                 passiveFinalizationCommission = chainParametersV2.PassiveFinalizationCommission;
                 passiveBakingCommission = chainParametersV2.PassiveBakingCommission;
                 passiveTransactionCommission = chainParametersV2.PassiveTransactionCommission;
+                return true;
+            case ChainParametersV3 chainParametersV3:
+                passiveFinalizationCommission = chainParametersV3.PassiveFinalizationCommission;
+                passiveBakingCommission = chainParametersV3.PassiveBakingCommission;
+                passiveTransactionCommission = chainParametersV3.PassiveTransactionCommission;
                 return true;
             default:
                 throw new ArgumentOutOfRangeException(nameof(chainParameters));
@@ -144,6 +152,11 @@ public abstract class ChainParameters
                 bakingCommissionRange = chainParametersV2.BakingCommissionRange;
                 transactionCommissionRange = chainParametersV2.TransactionCommissionRange;
                 return true;
+            case ChainParametersV3 chainParametersV3:
+                finalizationCommissionRange = chainParametersV3.FinalizationCommissionRange;
+                bakingCommissionRange = chainParametersV3.BakingCommissionRange;
+                transactionCommissionRange = chainParametersV3.TransactionCommissionRange;
+                return true;
             default:
                 throw new ArgumentOutOfRangeException(nameof(chainParameters));
         }
@@ -166,6 +179,9 @@ public abstract class ChainParameters
                 return true;
             case ChainParametersV2 chainParametersV2:
                 delegatorCooldown = chainParametersV2.DelegatorCooldown;
+                return true;
+            case ChainParametersV3 chainParametersV3:
+                delegatorCooldown = chainParametersV3.DelegatorCooldown;
                 return true;
             default:
                 throw new ArgumentOutOfRangeException(nameof(chainParameters));
@@ -194,6 +210,10 @@ public abstract class ChainParameters
                 capitalBound = chainParametersV2.CapitalBound;
                 leverageFactor = chainParametersV2.LeverageBound;
                 return true;
+            case ChainParametersV3 chainParametersV3:
+                capitalBound = chainParametersV3.CapitalBound;
+                leverageFactor = chainParametersV3.LeverageBound;
+                return true;
             default:
                 throw new ArgumentOutOfRangeException(nameof(chainParameters));
         }
@@ -212,6 +232,9 @@ public abstract class ChainParameters
                 return true;
             case ChainParametersV2 cpv2:
                 rewardPeriodLength = cpv2.RewardPeriodLength;
+                return true;
+            case ChainParametersV3 cpv3:
+                rewardPeriodLength = cpv3.RewardPeriodLength;
                 return true;
             default:
                 throw new ArgumentOutOfRangeException(nameof(chainParameters));
