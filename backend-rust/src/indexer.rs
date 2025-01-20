@@ -3195,10 +3195,6 @@ async fn process_cis2_token_event(
             )
             .to_string();
 
-            // Since PostgreSQL Text data type does not support NUL we must replace these
-            // before inserting. These are replaced by the a Unicode 'REPLACEMENT CHARACTER'
-            // (U+FFFD).
-            let metadata_url = metadata_url.url().replace('\0', "\u{FFFD}");
             // If the `token_address` does not exist, insert the new token.
             // If the `token_address` exists, update the `metadata_url` value in the
             // database.
@@ -3223,7 +3219,7 @@ async fn process_cis2_token_event(
                 token_address,
                 contract_index,
                 contract_sub_index,
-                metadata_url.as_str(),
+                metadata_url.url(),
                 raw_token_id.to_string(),
                 transaction_index
             )
