@@ -707,7 +707,20 @@ type ChainParametersV2 implements ChainParameters {
 }
 
 type ChainParametersV3 implements ChainParameters {
+  poolOwnerCooldown: UnsignedLong!
+  delegatorCooldown: UnsignedLong!
   rewardPeriodLength: UnsignedLong!
+  mintPerPayday: Decimal!
+  rewardParameters: RewardParametersV2!
+  passiveFinalizationCommission: Decimal!
+  passiveBakingCommission: Decimal!
+  passiveTransactionCommission: Decimal!
+  finalizationCommissionRange: CommissionRange!
+  bakingCommissionRange: CommissionRange!
+  transactionCommissionRange: CommissionRange!
+  minimumEquityCapital: UnsignedLong!
+  capitalBound: Decimal!
+  leverageBound: LeverageFactor!
   euroPerEnergy: ExchangeRate!
   microCcdPerEuro: ExchangeRate!
   accountCreationLimit: Int!
