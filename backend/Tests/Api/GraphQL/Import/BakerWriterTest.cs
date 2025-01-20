@@ -128,7 +128,8 @@ public class BakerWriterTest
                 PendingChange: new AccountBakerRemovePending(_anyDateTimeOffset),
                 RestakeEarnings: false,
                 StakedAmount: CcdAmount.Zero, 
-                BakerPoolInfo: null
+                BakerPoolInfo: null,
+                IsSuspended: false
             )
         };
         
