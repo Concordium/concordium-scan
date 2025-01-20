@@ -113,12 +113,25 @@ impl ModuleReferenceEvent {
             items.pop();
         }
         let has_previous_page = min_index > 0;
+
+        let total_count: u64 = sqlx::query_scalar!(
+            "SELECT
+                COUNT(*)
+            FROM rejected_smart_contract_module_transactions
+                WHERE module_reference = $1",
+            self.module_reference,
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0)
+        .try_into()?;
+
         Ok(ModuleReferenceRejectEventsCollectionSegment {
             page_info: CollectionSegmentInfo {
                 has_next_page,
                 has_previous_page,
             },
-            total_count: items.len().try_into()?,
+            total_count,
             items,
         })
     }
@@ -169,12 +182,24 @@ impl ModuleReferenceEvent {
         }
         let has_previous_page = min_index > 0;
 
+        let total_count: u64 = sqlx::query_scalar!(
+            "SELECT
+                COUNT(*)
+            FROM link_smart_contract_module_transactions
+                WHERE module_reference = $1",
+            self.module_reference,
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0)
+        .try_into()?;
+
         Ok(ModuleReferenceContractLinkEventsCollectionSegment {
             page_info: CollectionSegmentInfo {
                 has_next_page,
                 has_previous_page,
             },
-            total_count: items.len().try_into()?,
+            total_count,
             items,
         })
     }
@@ -201,17 +226,17 @@ impl ModuleReferenceEvent {
         let mut items = sqlx::query_as!(
             LinkedContract,
             "SELECT
-                 contracts.index as contract_index,
-                 contracts.sub_index as contract_sub_index,
-                 blocks.slot_time as linked_date_time
-             FROM contracts
-                 JOIN transactions
-                     ON transactions.index =
-                         COALESCE(last_upgrade_transaction_index, transaction_index)
-                 JOIN blocks ON blocks.height = transactions.block_height
-             WHERE contracts.module_reference = $1
-             OFFSET $2
-             LIMIT $3",
+                contracts.index as contract_index,
+                contracts.sub_index as contract_sub_index,
+                blocks.slot_time as linked_date_time
+            FROM contracts
+                JOIN transactions
+                    ON transactions.index =
+                        COALESCE(last_upgrade_transaction_index, transaction_index)
+                JOIN blocks ON blocks.height = transactions.block_height
+            WHERE contracts.module_reference = $1
+            OFFSET $2
+            LIMIT $3",
             self.module_reference,
             offset,
             limit + 1
@@ -228,12 +253,24 @@ impl ModuleReferenceEvent {
         }
         let has_previous_page = offset > 0;
 
+        let total_count: u64 = sqlx::query_scalar!(
+            "SELECT
+                COUNT(*)
+            FROM contracts
+                WHERE module_reference = $1",
+            self.module_reference,
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0)
+        .try_into()?;
+
         Ok(LinkedContractsCollectionSegment {
             page_info: CollectionSegmentInfo {
                 has_next_page,
                 has_previous_page,
             },
-            total_count: items.len().try_into()?,
+            total_count,
             items,
         })
     }

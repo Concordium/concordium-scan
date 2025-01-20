@@ -667,10 +667,19 @@ impl From<cis2::Event> for CisEvent {
             cis2::Event::TokenMetadata {
                 token_id,
                 metadata_url,
-            } => CisEvent::TokenMetadata(CisTokenMetadataEvent {
-                raw_token_id: token_id,
-                metadata_url,
-            }),
+            } => {
+                // Since PostgreSQL Text data type does not support NUL we must replace these
+                // before inserting. These are replaced by the a Unicode 'REPLACEMENT CHARACTER'
+                // (U+FFFD).
+                let sanitized_url = metadata_url.url().replace('\0', "\u{FFFD}");
+                CisEvent::TokenMetadata(CisTokenMetadataEvent {
+                    raw_token_id: token_id,
+                    metadata_url: cis2::MetadataUrl::new_unchecked(
+                        sanitized_url,
+                        metadata_url.hash(),
+                    ),
+                })
+            }
             _ => CisEvent::Unknown(CisUnknownEvent {
                 dummy: UnsignedLong(0u64),
             }),

@@ -177,7 +177,9 @@ public sealed class ContractAggregateTests
                 new ContractAddress(contractIndex, 0),
                 CcdAmount.Zero, 
                 contractNameParse.ContractName!,
-                new List<Concordium.Sdk.Types.ContractEvent>())
+                new List<Concordium.Sdk.Types.ContractEvent>(),
+                null
+            )
         );
         var client = new Mock<IContractNodeClient>();
         var transactionDetails = new AccountTransactionDetailsBuilder(contractInitialized)

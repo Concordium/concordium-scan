@@ -219,7 +219,7 @@ impl Contract {
         );
 
         let mut contract_events = vec![];
-        let mut total_events_count = 0;
+        let mut initial_contract_event_exists_in_database = false;
 
         // Get the events from the `contract_events` table.
         let mut rows = sqlx::query!(
@@ -309,13 +309,11 @@ impl Contract {
             };
 
             contract_events.push(contract_event);
-            total_events_count += 1;
         }
 
         // Get the `init_transaction_event`.
-        if include_initial_event {
-            let row = sqlx::query!(
-                "
+        let row = sqlx::query!(
+            "
                 SELECT
                     module_reference,
                     name as contract_name,
@@ -332,12 +330,18 @@ impl Contract {
                 JOIN accounts ON transactions.sender = accounts.index
                 WHERE contracts.index = $1 AND contracts.sub_index = $2
                 ",
-                self.contract_address_index.0 as i64,
-                self.contract_address_sub_index.0 as i64
-            )
-            .fetch_optional(pool)
-            .await?
-            .ok_or(ApiError::NotFound)?;
+            self.contract_address_index.0 as i64,
+            self.contract_address_sub_index.0 as i64
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        if row.is_some() {
+            initial_contract_event_exists_in_database = true;
+        }
+
+        if include_initial_event {
+            let row = row.ok_or(ApiError::NotFound)?;
 
             let Some(events) = row.events else {
                 return Err(ApiError::InternalError("Missing events in database".to_string()));
@@ -369,8 +373,20 @@ impl Contract {
                 block_slot_time: row.block_slot_time,
             };
             contract_events.push(initial_event);
-            total_events_count += 1;
         }
+
+        let total_contract_events_count: u64 = sqlx::query_scalar!(
+            "SELECT
+                COUNT(*)
+            FROM contract_events
+                WHERE contract_index = $1 AND contract_sub_index = $2",
+            self.contract_address_index.0 as i64,
+            self.contract_address_sub_index.0 as i64
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0)
+        .try_into()?;
 
         Ok(ContractEventsCollectionSegment {
             page_info:   CollectionSegmentInfo {
@@ -378,7 +394,8 @@ impl Contract {
                 has_previous_page: skip > 0,
             },
             items:       contract_events,
-            total_count: total_events_count,
+            total_count: total_contract_events_count
+                + initial_contract_event_exists_in_database as u64,
         })
     }
 
@@ -430,7 +447,7 @@ impl Contract {
             items.pop();
         }
 
-        let total_count: i32 = sqlx::query_scalar!(
+        let total_count: u64 = sqlx::query_scalar!(
             "SELECT
                 MAX(transaction_index_per_contract) + 1
             FROM contract_reject_transactions
@@ -520,12 +537,25 @@ impl Contract {
         }
         let has_previous_page = max_token_index > max_index;
 
+        let total_count: u64 = sqlx::query_scalar!(
+            "SELECT
+                COUNT(*)
+            FROM tokens
+                WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2",
+            self.contract_address_index.0 as i64,
+            self.contract_address_sub_index.0 as i64,
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0)
+        .try_into()?;
+
         Ok(TokensCollectionSegment {
             page_info: CollectionSegmentInfo {
                 has_next_page,
                 has_previous_page,
             },
-            total_count: items.len().try_into()?,
+            total_count,
             items,
         })
     }
@@ -538,7 +568,7 @@ struct ContractRejectEventsCollectionSegment {
     page_info:   CollectionSegmentInfo,
     /// A flattened list of the items.
     items:       Vec<ContractRejectEvent>,
-    total_count: i32,
+    total_count: u64,
 }
 
 struct ContractRejectEvent {
@@ -578,7 +608,7 @@ struct ContractEventsCollectionSegment {
     page_info:   CollectionSegmentInfo,
     /// A flattened list of the items.
     items:       Vec<ContractEvent>,
-    total_count: i32,
+    total_count: u64,
 }
 
 #[derive(SimpleObject)]
