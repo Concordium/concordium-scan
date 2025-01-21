@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO current_consensus_status (\n                epoch_duration\n            ) VALUES ($1);",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "52dace527c84c57cc61c9409795cfa5ca873fe53169af508b0a69d6d7ecea7e8"
+}

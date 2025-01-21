@@ -473,6 +473,23 @@ impl BaseQuery {
         }
     }
 
+    async fn import_state<'a>(&self, ctx: &Context<'a>) -> ApiResult<ImportState> {
+        let epoch_duration =
+            sqlx::query_scalar!("SELECT epoch_duration FROM current_consensus_status")
+                .fetch_optional(get_pool(ctx)?)
+                .await?
+                .ok_or(ApiError::NotFound)?;
+
+        Ok(ImportState {
+            epoch_duration: TimeSpan(
+                Duration::try_milliseconds(epoch_duration).ok_or(ApiError::InternalError(
+                    "Epoch duration in database should be valid duration in milliseconds."
+                        .to_string(),
+                ))?,
+            ),
+        })
+    }
+
     async fn tokens(
         &self,
         ctx: &Context<'_>,
@@ -729,6 +746,11 @@ impl SubscriptionContext {
 #[derive(Clone, Debug, SimpleObject)]
 pub struct AccountsUpdatedSubscriptionItem {
     address: String,
+}
+
+#[derive(SimpleObject)]
+struct ImportState {
+    epoch_duration: TimeSpan,
 }
 
 #[derive(SimpleObject)]
