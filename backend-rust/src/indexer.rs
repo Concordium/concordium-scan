@@ -810,7 +810,7 @@ struct PreparedBlock {
     prepared_block_items:   Vec<PreparedBlockItem>,
     /// Preprocessed block special items, ready to be saved in the database.
     special_items:          Vec<PreparedSpecialTransactionOutcome>,
-    /// Unmark the baker and signers of the Quarum Certificate from being primed
+    /// Unmark the baker and signers of the Quorum Certificate from being primed
     /// for suspension.
     baker_unmark_suspended: PreparedUnmarkPrimedForSuspension,
 }
@@ -2087,8 +2087,7 @@ impl PreparedBakerEvent {
                     "UPDATE bakers
                      SET
                          self_suspended = $2,
-                         inactive_suspended = NULL,
-                         primed_for_suspension = NULL
+                         inactive_suspended = NULL
                      WHERE id=$1",
                     baker_id,
                     transaction_index
@@ -2103,8 +2102,7 @@ impl PreparedBakerEvent {
                     "UPDATE bakers
                      SET
                          self_suspended = NULL,
-                         inactive_suspended = NULL,
-                         primed_for_suspension = NULL
+                         inactive_suspended = NULL
                      WHERE id=$1",
                     baker_id
                 )
@@ -3527,10 +3525,15 @@ impl PreparedCcdTransferEvent {
     }
 }
 
+/// Represents updates in the database caused by a single special transaction
+/// outcome in a block.
 enum PreparedSpecialTransactionOutcome {
+    /// Distribution of various rewards.
     Rewards(Vec<PreparedUpdateAccountBalance>),
-    ValidatorPrimedForSuspension(PreparedMarkPrimedForSuspension),
-    ValidatorSuspended(PreparedValitatorSuspension),
+    /// Validator is primed for suspension.
+    ValidatorPrimedForSuspension(PreparedValidatorPrimedForSuspension),
+    /// Validator is suspended.
+    ValidatorSuspended(PreparedValidatorSuspension),
 }
 
 impl PreparedSpecialTransactionOutcome {
@@ -3650,14 +3653,14 @@ impl PreparedSpecialTransactionOutcome {
             SpecialTransactionOutcome::ValidatorSuspended {
                 baker_id,
                 ..
-            } => Self::ValidatorSuspended(PreparedValitatorSuspension::prepare(
+            } => Self::ValidatorSuspended(PreparedValidatorSuspension::prepare(
                 baker_id,
                 block_height,
             )?),
             SpecialTransactionOutcome::ValidatorPrimedForSuspension {
                 baker_id,
                 ..
-            } => Self::ValidatorPrimedForSuspension(PreparedMarkPrimedForSuspension::prepare(
+            } => Self::ValidatorPrimedForSuspension(PreparedValidatorPrimedForSuspension::prepare(
                 baker_id,
                 block_height,
             )?),
@@ -3683,12 +3686,15 @@ impl PreparedSpecialTransactionOutcome {
 }
 
 /// Update the flag on the baker, marking it primed for suspension.
-struct PreparedMarkPrimedForSuspension {
+struct PreparedValidatorPrimedForSuspension {
+    /// Id of the baker/validator being primed for suspension.
     baker_id:     i64,
+    /// Height of the block which contained the special transaction outcome
+    /// causing it.
     block_height: i64,
 }
 
-impl PreparedMarkPrimedForSuspension {
+impl PreparedValidatorPrimedForSuspension {
     fn prepare(baker_id: &BakerId, block_height: AbsoluteBlockHeight) -> anyhow::Result<Self> {
         Ok(Self {
             baker_id:     baker_id.id.index.try_into()?,
@@ -3716,8 +3722,8 @@ impl PreparedMarkPrimedForSuspension {
     }
 }
 
-/// Represent the potential event of baker being "unprimed" for suspension.
-/// The baker of the block, plus the signers of the quarum certificate when
+/// Represent the potential event of bakers being "unprimed" for suspension.
+/// The baker of the block, plus the signers of the quorum certificate when
 /// included in the block. This might include baker IDs which are not primed at
 /// the time.
 struct PreparedUnmarkPrimedForSuspension {
@@ -3758,12 +3764,15 @@ impl PreparedUnmarkPrimedForSuspension {
     }
 }
 
-struct PreparedValitatorSuspension {
+/// Update validator/baker to be suspended due to inactivity.
+struct PreparedValidatorSuspension {
+    /// Id of the validator/baker being suspended.
     baker_id:     i64,
+    /// Block containing the special transaction outcome event causing it.
     block_height: i64,
 }
 
-impl PreparedValitatorSuspension {
+impl PreparedValidatorSuspension {
     fn prepare(baker_id: &BakerId, block_height: AbsoluteBlockHeight) -> anyhow::Result<Self> {
         Ok(Self {
             baker_id:     baker_id.id.index.try_into()?,

@@ -313,15 +313,15 @@ CREATE TABLE bakers(
     -- Stored as a fraction of an amount with a precision of `1/100_000`.
     finalization_commission
         BIGINT,
-    -- Transaction used for self suspending.
-    -- This is not null only when a baker have send the transaction for self suspending.
-    -- This should always be null, when `inactive_suspended` or `primed_for_suspension` column is
-    -- not null.
+    -- Transaction used for self-suspending.
+    -- This is not null only when a baker is suspended due to sending the transaction for
+    -- self-suspending.
+    -- This should always be null, when `inactive_suspended` column is not null.
     self_suspended
         BIGINT
         REFERENCES transactions,
     -- Block which suspended this baker due to inactivity.
-    -- This is not null only when a baker got suspended due to inactivity.
+    -- This is not null only when a baker is suspended due to inactivity.
     -- This should always be null, when `self_suspended` or `primed_for_suspension` column is not
     -- null.
     inactive_suspended
@@ -329,11 +329,14 @@ CREATE TABLE bakers(
         REFERENCES blocks,
     -- Block which is primed for suspension this baker due to inactivity.
     -- This is not null only when a baker got primed for suspension due to inactivity.
-    -- This should always be null, when `self_suspended` or `inactive_suspended` column is not null.
+    -- This should always be null, `inactive_suspended` column is not null.
     primed_for_suspension
         BIGINT
         REFERENCES blocks
 );
+
+-- This index allows for efficiently updating bakers currently primed for suspension.
+CREATE INDEX bakers_primed_for_suspension_index ON bakers (id) WHERE primed_for_suspension IS NOT NULL;
 
 -- Every module on chain.
 CREATE TABLE smart_contract_modules(
