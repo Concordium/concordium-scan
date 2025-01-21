@@ -1,6 +1,5 @@
-use super::{get_pool, todo_api, ApiError, ApiResult};
+use super::{account::Account, get_pool, todo_api, ApiError, ApiResult};
 use crate::{
-    graphql_api::Account,
     scalar_types::{Amount, BakerId, DateTime, Decimal, MetadataUrl},
     transaction_event::baker::BakerPoolOpenStatus,
 };

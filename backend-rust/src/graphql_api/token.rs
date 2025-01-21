@@ -1,5 +1,5 @@
 use super::{
-    get_config, get_pool, transaction::Transaction, Account, ApiError, ApiResult,
+    account::Account, get_config, get_pool, transaction::Transaction, ApiError, ApiResult,
     CollectionSegmentInfo,
 };
 use crate::{
