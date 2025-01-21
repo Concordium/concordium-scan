@@ -9,6 +9,7 @@ use prometheus_client::{
 use sqlx::postgres::PgPoolOptions;
 use std::{net::SocketAddr, path::PathBuf};
 use tokio::net::TcpListener;
+use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 
@@ -85,6 +86,9 @@ async fn main() -> anyhow::Result<()> {
         tokio::spawn(async move { subscription_listener.listen(pool, stop_signal).await })
     };
 
+
+    let (block_sender, block_receiver) = tokio::sync::mpsc::channel(100);
+
     let mut queries_task = {
         let pool = pool.clone();
         let service = graphql_api::Service::new(subscription, &mut registry, pool, cli.api_config);
@@ -112,44 +116,31 @@ async fn main() -> anyhow::Result<()> {
         info!("Monitoring server is running at {:?}", cli.monitoring_listen);
         tokio::spawn(router::serve(registry, tcp_listener, pool, stop_signal))
     };
+    let mut tasks: Vec<JoinHandle<anyhow::Result<()>>> = vec![
+        monitoring_task, queries_task, pgnotify_listener
+    ];
 
     // Await for signal to shutdown or any of the tasks to stop.
     tokio::select! {
         _ = tokio::signal::ctrl_c() => {
             info!("Received signal to shutdown");
             cancel_token.cancel();
-            let _ = queries_task.await?;
-            let _ = pgnotify_listener.await?;
-            let _ = monitoring_task.await?;
         },
-        result = &mut queries_task => {
-            error!("Queries task stopped.");
-            if let Err(err) = result? {
-                error!("Queries error: {}", err);
+        result = async {
+            for task in &mut tasks {
+                match task.await {
+                    Ok(Ok(_)) => info!("Task completed successfully."),
+                    Ok(Err(err)) => error!("Task encountered an error: {}", err),
+                    Err(join_err) => error!("Task panicked or was aborted: {}", join_err),
+                }
             }
-            info!("Shutting down");
-            cancel_token.cancel();
-            let _ = pgnotify_listener.await?;
-            let _ = monitoring_task.await?;
-        },
-        result = &mut pgnotify_listener => {
-            error!("Pgnotify listener task stopped.");
-            if let Err(err) = result? {
-                error!("Pgnotify listener task error: {}", err);
-            }
-            info!("Shutting down");
-            cancel_token.cancel();
-            let _ = queries_task.await?;
-            let _ = monitoring_task.await?;
-        },
-        result = &mut monitoring_task => {
-            error!("Monitoring task stopped.");
-            if let Err(err) = result? {
-                error!("Monitoring error: {}", err);
-            }
-            cancel_token.cancel();
-            let _ = queries_task.await?;
-            let _ = pgnotify_listener.await?;
+        } => {}
+    }
+    // Ensure all tasks have stopped
+    cancel_token.cancel();
+    for task in tasks {
+        if let Err(join_err) = task.await {
+            error!("Task did not shut down cleanly: {}", join_err);
         }
     }
     Ok(())
