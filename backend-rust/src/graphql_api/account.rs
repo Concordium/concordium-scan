@@ -28,6 +28,7 @@ use std::cmp::{max, min};
 pub(crate) struct QueryAccounts;
 
 #[Object]
+#[allow(clippy::too_many_arguments)]
 impl QueryAccounts {
     async fn account<'a>(&self, ctx: &Context<'a>, id: types::ID) -> ApiResult<Account> {
         let index: i64 = id.try_into().map_err(ApiError::InvalidIdInt)?;
@@ -192,6 +193,7 @@ impl AccountReward {
 
 #[derive(Enum, Copy, Clone, PartialEq, Eq, sqlx::Type)]
 #[sqlx(type_name = "reward_type")]
+#[allow(clippy::enum_variant_names)]
 pub enum RewardType {
     FinalizationReward,
     FoundationReward,
