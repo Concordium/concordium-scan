@@ -1,10 +1,11 @@
 pub mod graphql_api;
 pub mod indexer;
-
-pub mod address;
-pub mod decoded_text;
+pub mod migrations;
 pub mod router;
-pub mod scalar_types;
-pub mod transaction_event;
-pub mod transaction_reject;
-pub mod transaction_type;
+
+mod address;
+mod decoded_text;
+mod scalar_types;
+mod transaction_event;
+mod transaction_reject;
+mod transaction_type;

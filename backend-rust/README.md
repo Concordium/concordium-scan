@@ -27,6 +27,26 @@ For instructions on how to use the indexer run:
 ccdscan-indexer --help
 ```
 
+<!-- TODO When service become stable: add documentation of arguments and environment variables. -->
+
+## Database schema setup and migrations
+
+To set up the database schema either from an empty database or migration from an older release of `ccdscan-indexer` run:
+
+```
+ccdscan-indexer --migrate
+```
+
+which will first make sure to have the database migrated before running the service.
+
+In production it is recommended to run migrations with elevated privileges and then the indexer service with more restricted privileges, use:
+
+```
+ccdscan-indexer --migrate-only
+```
+
+which will run the migrations and then exit.
+
 ## Run the Indexer Service during development
 
 Examples:
@@ -39,7 +59,7 @@ cargo run --bin ccdscan-indexer -- --node https://grpc.testnet.concordium.com:20
 Note: Since the indexer puts a lot of load on the node, use your own local node whenever possible.
 If using the public nodes, run the indexer as short as possible.
 
-<!-- TODO When service become stable: add documentation of arguments and environment variables. -->
+Both binaries read variables from a `.env` file if present in the directory, use `.env.template` in this project as the starting point.
 
 ## Run the GraphQL API Service
 
@@ -48,6 +68,9 @@ For instructions on how to use the API service run:
 ```
 ccdscan-api --help
 ```
+
+Running the service will first verify the database schema version is supported.
+See `ccdscan-indexer` for how to update the database schema version.
 
 ## Run the GraphQL API Service during development
 
@@ -62,7 +85,7 @@ cargo run --bin ccdscan-api
 ### GraphiQL IDE
 
 Starting the GraphQL API Service above will provide you an interface
-(usually at 127.0.0.1:8000) to execute GraphQL queries.
+(defaults to [127.0.0.1:8000](http://127.0.0.1:8000)) to execute GraphQL queries.
 
 An example is shown below:
 
@@ -141,41 +164,37 @@ Given that one wants follow the logs of the database:
 docker logs -f postgres_db
 ```
 
-### Database migrations
+### Running database migrations
 
-Database migrations are tracked in the `migrations` directory.
-To introduce a new one run:
+To setup the database schema when developing the service run:
 
 ```
-sqlx migrate add '<description>'
+cargo run --bin ccdscan-indexer -- --migrate-only
 ```
 
-where `<description>` is replaced by a short description of the nature of the migration.
+NOTE: Having compile-time checked queries will cause issues, since the queries are invalid until the database have been properly migrated. This is done by _not_ having the `DATABASE_URL` environment variable set until after running the migrations.
 
-This will create two files in the directory:
+### Introducing a new migration
 
-- `<database-version>_<description>.up.sql` for the SQL code to bring the database up from the previous version.
-- `<database-version>_<description>.down.sql` for the SQL code reverting back to the previous version.
+Database migrations are tracked in the `src/migrations.rs` file and every version of the database schema are represented by the `SchemaVersion` enum in this file.
 
-### `sqlx` features
+To introduce a new database schema version:
 
-- Feature 1:
+#. Extend the `SchemaVersion` enum with a variant representing changes since previous version.
+#. Extend functions found in `impl SchemaVersion`.
+#. Enable by setting `SchemaVersion::LATEST` to this new variant.
 
-The tool validates database queries at compile-time, ensuring they are both syntactically
-correct and type-safe. To take advantage of this feature, you should run the following
-command every time you update the database schema.
-Run a live database with the new schema and execute the command:
+### Compile-time checked queries feature
+
+Database queries can be checked at compile-time against the database. This ensures they are both syntactically
+correct and type-safe. To enable this the set the `DATABASE_URL` environment variable (can be done in a `.env` file) which causes the queries to be validated against the provided database schema.
+
+In order for the CI to verify the queries, developers must provide cached results of the checks.
+These must be generated every time there is a change in a query or a new one is introduced.
+This is done by running a live database with the latest database schema, having the `DATABASE_URL` environment variable set and execute the command (requires `sqlx-cli` installed):
 
 ```
 cargo sqlx prepare
 ```
 
-This will generate type metadata for the queries in the `.sqlx` folder.
-
-- Feature 2:
-
-If you want to drop the entire database and start with an empty database that uses the current schema, execute the command:
-
-```
-sqlx database reset --force
-```
+This will update the cache for the queries in the `.sqlx` folder.

@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "CREATE TABLE IF NOT EXISTS migrations (\n            version BIGINT PRIMARY KEY,\n            description TEXT NOT NULL,\n            destructive BOOL NOT NULL,\n            start_time TIMESTAMPTZ NOT NULL,\n            end_time TIMESTAMPTZ NOT NULL\n        )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "2af621c8289b8271097959db30f576c145686911cd66810462770eab563f65ca"
+}

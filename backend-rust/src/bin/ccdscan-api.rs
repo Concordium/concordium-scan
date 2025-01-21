@@ -1,7 +1,7 @@
 use anyhow::Context;
 use async_graphql::SDLExportOptions;
 use clap::Parser;
-use concordium_scan::{graphql_api, router};
+use concordium_scan::{graphql_api, migrations, router};
 use prometheus_client::{
     metrics::{family::Family, gauge::Gauge},
     registry::Registry,
@@ -12,21 +12,25 @@ use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 
+/// The known supported database schema version for the API.
+const SUPPORTED_SCHEMA_VERSION: migrations::SchemaVersion =
+    migrations::SchemaVersion::InitialFirstHalf;
+
 #[derive(Parser)]
 struct Cli {
     /// The URL used for the database, something of the form:
     /// "postgres://postgres:example@localhost/ccd-scan".
     /// Use an environment variable when the connection contains a password, as
     /// command line arguments are visible across OS processes.
-    #[arg(long, env = "DATABASE_URL")]
+    #[arg(long, env = "CCDSCAN_API_DATABASE_URL")]
     database_url:              String,
-    #[arg(long, env = "DATABASE_RETRY_DELAY_SECS", default_value_t = 5)]
+    #[arg(long, env = "CCDSCAN_API_DATABASE_RETRY_DELAY_SECS", default_value_t = 5)]
     database_retry_delay_secs: u64,
     /// Minimum number of connections in the pool.
-    #[arg(long, env = "DATABASE_MIN_CONNECTIONS", default_value_t = 5)]
+    #[arg(long, env = "CCDSCAN_API_DATABASE_MIN_CONNECTIONS", default_value_t = 5)]
     min_connections:           u32,
     /// Maximum number of connections in the pool.
-    #[arg(long, env = "DATABASE_MAX_CONNECTIONS", default_value_t = 10)]
+    #[arg(long, env = "CCDSCAN_API_DATABASE_MAX_CONNECTIONS", default_value_t = 10)]
     max_connections:           u32,
     /// Output the GraphQL Schema for the API to this path.
     #[arg(long)]
@@ -60,6 +64,9 @@ async fn main() -> anyhow::Result<()> {
         .connect(&cli.database_url)
         .await
         .context("Failed constructing database connection pool")?;
+    // Ensure the database schema is compatible with supported schema version.
+    migrations::ensure_compatible_schema_version(&pool, SUPPORTED_SCHEMA_VERSION).await?;
+
     let cancel_token = CancellationToken::new();
     let service_info_family = Family::<Vec<(&str, String)>, Gauge>::default();
     let gauge =
