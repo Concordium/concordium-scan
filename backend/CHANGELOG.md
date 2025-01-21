@@ -1,5 +1,9 @@
 ## Unreleased changes
 
+## 1.10.2
+
+- Update dotnet SDK
+
 ## 1.10.1
 
 - Added
