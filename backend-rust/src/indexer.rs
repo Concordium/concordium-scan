@@ -30,8 +30,8 @@ use concordium_rust_sdk::{
         AbsoluteBlockHeight, AccountStakingInfo, AccountTransactionDetails,
         AccountTransactionEffects, BakerId, BlockItemSummary, BlockItemSummaryDetails,
         ContractAddress, ContractInitializedEvent, ContractTraceElement, DelegationTarget,
-        PartsPerHundredThousands, RejectReason, RewardsOverview, SpecialTransactionOutcome,
-        TransactionType,
+        PartsPerHundredThousands, ProtocolVersion, RejectReason, RewardsOverview,
+        SpecialTransactionOutcome, TransactionType,
     },
     v2::{
         self, BlockIdentifier, ChainParameters, FinalizedBlockInfo, QueryError, QueryResult,
@@ -342,14 +342,52 @@ impl Indexer for BlockPreProcessor {
             let mut client4 = client.clone();
             let mut client5 = client.clone();
             let mut client6 = client.clone();
+            let get_block_info = async move {
+                let block_info = client1.get_block_info(fbi.height).await?.response;
+                // Fetching the block certificates prior to P6 results in a InvalidArgument gRPC
+                // error, so we produce the empty type of certificates instead.
+                // The information is only used when preparing blocks for P8 and up.
+                let certificates = if block_info.protocol_version < ProtocolVersion::P8 {
+                    BlockCertificates {
+                        quorum_certificate:       None,
+                        timeout_certificate:      None,
+                        epoch_finalization_entry: None,
+                    }
+                } else {
+                    let response = client1.get_block_certificates(fbi.height).await?;
+                    response.response
+                };
+                Ok((block_info, certificates))
+            };
+
             let get_events = async move {
-                let events = client3
+                let events = client2
                     .get_block_transaction_events(fbi.height)
                     .await?
                     .response
                     .try_collect::<Vec<_>>()
                     .await?;
                 Ok(events)
+            };
+
+            let get_tokenomics_info = async move {
+                let tokenomics_info = client3.get_tokenomics_info(fbi.height).await?.response;
+                let total_staked_capital = match &tokenomics_info {
+                    RewardsOverview::V0 {
+                        ..
+                    } => {
+                        compute_total_stake_capital(
+                            &mut client3,
+                            BlockIdentifier::AbsoluteHeight(fbi.height),
+                        )
+                        .await?
+                    }
+                    RewardsOverview::V1 {
+                        total_staked_capital,
+                        ..
+                    } => *total_staked_capital,
+                };
+                Ok((tokenomics_info, total_staked_capital))
             };
 
             let get_items = async move {
@@ -371,53 +409,35 @@ impl Indexer for BlockPreProcessor {
                     .await?;
                 Ok(items)
             };
-
             let start_fetching = Instant::now();
             let (
-                block_info,
+                (block_info, certificates),
                 chain_parameters,
+                (tokenomics_info, total_staked_capital),
                 events,
                 items,
-                tokenomics_info,
                 special_events,
-                certificates,
             ) = try_join!(
-                client1.get_block_info(fbi.height),
-                client2.get_block_chain_parameters(fbi.height),
+                get_block_info,
+                client6.get_block_chain_parameters(fbi.height),
+                get_tokenomics_info,
                 get_events,
                 get_items,
-                client.get_tokenomics_info(fbi.height),
-                get_special_items,
-                client6.get_block_certificates(fbi.height)
+                get_special_items
             )?;
-            let total_staked_capital = match tokenomics_info.response {
-                RewardsOverview::V0 {
-                    ..
-                } => {
-                    compute_total_stake_capital(
-                        &mut client,
-                        BlockIdentifier::AbsoluteHeight(fbi.height),
-                    )
-                    .await?
-                }
-                RewardsOverview::V1 {
-                    total_staked_capital,
-                    ..
-                } => total_staked_capital,
-            };
             let node_response_time = start_fetching.elapsed();
             self.node_response_time.get_or_create(label).observe(node_response_time.as_secs_f64());
 
             let data = BlockData {
                 finalized_block_info: fbi,
-                block_info: block_info.response,
+                block_info,
                 events,
                 items,
                 chain_parameters: chain_parameters.response,
-                tokenomics_info: tokenomics_info.response,
+                tokenomics_info,
                 total_staked_capital,
                 special_events,
-                certificates: certificates.response,
+                certificates,
             };
 
             let prepared_block =
@@ -676,6 +696,7 @@ struct BlockData {
     tokenomics_info:      RewardsOverview,
     total_staked_capital: Amount,
     special_events:       Vec<SpecialTransactionOutcome>,
+    /// Certificates included in the block.
     certificates:         BlockCertificates,
 }
 
@@ -3728,6 +3749,14 @@ struct PreparedUnmarkPrimedForSuspension {
 
 impl PreparedUnmarkPrimedForSuspension {
     fn prepare(data: &BlockData) -> anyhow::Result<Self> {
+        if data.block_info.protocol_version < ProtocolVersion::P8 {
+            // Baker suspension was introduced as part of Concordium Protocol Version 8,
+            // meaning for blocks prior to that no baker can be primed for
+            // suspension.
+            return Ok(Self {
+                baker_ids: Vec::new(),
+            });
+        }
         let mut baker_ids = Vec::new();
         if let Some(baker_id) = data.block_info.block_baker {
             baker_ids.push(baker_id.id.index.try_into()?);
@@ -3746,6 +3775,9 @@ impl PreparedUnmarkPrimedForSuspension {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
+        if self.baker_ids.is_empty() {
+            return Ok(());
+        }
         sqlx::query!(
             "UPDATE bakers
                 SET primed_for_suspension = NULL
