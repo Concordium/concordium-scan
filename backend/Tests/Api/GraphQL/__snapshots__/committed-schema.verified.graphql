@@ -2148,7 +2148,7 @@ enum AccountTransactionType {
   SIMPLE_TRANSFER
   "Transfer encrypted amount."
   ENCRYPTED_TRANSFER
-  "Same as transfer but with a memo field."
+  "Same as transfer, but with a memo field."
   SIMPLE_TRANSFER_WITH_MEMO
   "Same as encrypted transfer, but with a memo."
   ENCRYPTED_TRANSFER_WITH_MEMO
@@ -2217,9 +2217,9 @@ enum ContractVersion {
 
 "Enumeration of the types of credentials."
 enum CredentialDeploymentTransactionType {
-  "Initial credential is a credential that is submitted by the identity\nprovider on behalf of the user. There is only one initial credential\nper identity."
+  "Initial credential is a credential that is submitted by the identity\nprovider on behalf of the user. There is at most one initial credential\nper identity."
   INITIAL
-  "A normal credential is one where the identity behind it is only known to\nthe owner of the account, unless the anonymity revocation process was\nfollowed."
+  "A normal credential is one where the identity behind it is only known to\nthe owner of the account, unless the identity disclosure process\nhas been initiated."
   NORMAL
 }
 
