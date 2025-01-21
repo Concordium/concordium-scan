@@ -1,5 +1,10 @@
 ## Unreleased changes
 
+## 1.10.1
+
+- Added
+  - Expand `ChainParametersV3` params takin.
+
 ## 1.10.0
 
 - Added
