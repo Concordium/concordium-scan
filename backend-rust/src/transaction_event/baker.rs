@@ -1,7 +1,7 @@
 use crate::{
     address::AccountAddress,
     graphql_api::{todo_api, ApiResult},
-    scalar_types::{Amount, BakerId, Decimal},
+    scalar_types::{AccountIndex, Amount, BakerId, Decimal},
 };
 use async_graphql::{ComplexObject, Context, Enum, SimpleObject};
 
@@ -109,6 +109,24 @@ pub struct BakerSetOpenStatus {
     pub baker_id:        BakerId,
     pub account_address: AccountAddress,
     pub open_status:     BakerPoolOpenStatus,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct BakerDelegationRemoved {
+    pub delegator_id:    AccountIndex,
+    pub account_address: AccountAddress,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct BakerSuspended {
+    pub baker_id:        BakerId,
+    pub account_address: AccountAddress,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct BakerResumed {
+    pub baker_id:        BakerId,
+    pub account_address: AccountAddress,
 }
 
 #[derive(Enum, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, sqlx::Type)]

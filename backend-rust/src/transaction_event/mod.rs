@@ -19,6 +19,7 @@ pub mod transfers;
 
 #[derive(Union, serde::Serialize, serde::Deserialize)]
 pub enum Event {
+    // Transfer events
     /// A transfer of CCD. Can be either from an account or a smart contract
     /// instance, but the receiver in this event is always an account.
     Transferred(transfers::Transferred),
@@ -28,10 +29,12 @@ pub enum Event {
     AmountAddedByDecryption(transfers::AmountAddedByDecryption),
     EncryptedSelfAmountAdded(transfers::EncryptedSelfAmountAdded),
     NewEncryptedAmount(transfers::NewEncryptedAmount),
+    // Credential events
     AccountCreated(credentials::AccountCreated),
     CredentialDeployed(credentials::CredentialDeployed),
     CredentialKeysUpdated(credentials::CredentialKeysUpdated),
     CredentialsUpdated(credentials::CredentialsUpdated),
+    // Baker events
     BakerAdded(baker::BakerAdded),
     BakerKeysUpdated(baker::BakerKeysUpdated),
     BakerRemoved(baker::BakerRemoved),
@@ -43,8 +46,10 @@ pub enum Event {
     BakerSetTransactionFeeCommission(baker::BakerSetTransactionFeeCommission),
     BakerSetBakingRewardCommission(baker::BakerSetBakingRewardCommission),
     BakerSetFinalizationRewardCommission(baker::BakerSetFinalizationRewardCommission),
-    DataRegistered(DataRegistered),
-    ChainUpdateEnqueued(chain_update::ChainUpdateEnqueued),
+    BakerDelegationRemoved(baker::BakerDelegationRemoved),
+    BakerSuspended(baker::BakerSuspended),
+    BakerResumed(baker::BakerResumed),
+    // Contract events
     ContractInitialized(smart_contracts::ContractInitialized),
     ContractModuleDeployed(smart_contracts::ContractModuleDeployed),
     ContractUpdated(smart_contracts::ContractUpdated),
@@ -52,13 +57,16 @@ pub enum Event {
     ContractInterrupted(smart_contracts::ContractInterrupted),
     ContractResumed(smart_contracts::ContractResumed),
     ContractUpgraded(smart_contracts::ContractUpgraded),
-
+    // Delegation events
     DelegationAdded(delegation::DelegationAdded),
     DelegationRemoved(delegation::DelegationRemoved),
     DelegationStakeIncreased(delegation::DelegationStakeIncreased),
     DelegationStakeDecreased(delegation::DelegationStakeDecreased),
     DelegationSetRestakeEarnings(delegation::DelegationSetRestakeEarnings),
     DelegationSetDelegationTarget(delegation::DelegationSetDelegationTarget),
+    // Misc
+    DataRegistered(DataRegistered),
+    ChainUpdateEnqueued(chain_update::ChainUpdateEnqueued),
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -453,10 +461,23 @@ pub fn events_from_summary(
                             },
                         )),
                         BakerEvent::DelegationRemoved {
-                            ..
-                        } => {
-                            unimplemented!()
-                        }
+                            delegator_id,
+                        } => Ok(Event::BakerDelegationRemoved(baker::BakerDelegationRemoved {
+                            delegator_id:    delegator_id.id.index.try_into()?,
+                            account_address: details.sender.into(),
+                        })),
+                        BakerEvent::BakerSuspended {
+                            baker_id,
+                        } => Ok(Event::BakerSuspended(baker::BakerSuspended {
+                            baker_id:        baker_id.id.index.try_into()?,
+                            account_address: details.sender.into(),
+                        })),
+                        BakerEvent::BakerResumed {
+                            baker_id,
+                        } => Ok(Event::BakerResumed(baker::BakerResumed {
+                            baker_id:        baker_id.id.index.try_into()?,
+                            account_address: details.sender.into(),
+                        })),
                     }
                 })
                 .collect::<anyhow::Result<Vec<Event>>>()?,
