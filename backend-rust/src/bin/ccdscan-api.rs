@@ -79,6 +79,9 @@ async fn main() -> anyhow::Result<()> {
 
     let (subscription, subscription_listener) =
         graphql_api::Subscription::new(cli.database_retry_delay_secs);
+
+    let (block_sender, block_receiver) = tokio::sync::mpsc::channel(100);
+
     let mut pgnotify_listener = {
         let pool = pool.clone();
         let stop_signal = cancel_token.child_token();

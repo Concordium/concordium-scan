@@ -8,3 +8,4 @@ pub mod scalar_types;
 pub mod transaction_event;
 pub mod transaction_reject;
 pub mod transaction_type;
+mod node_status;
