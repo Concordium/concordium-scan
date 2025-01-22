@@ -24,7 +24,7 @@ macro_rules! todo_api {
 pub(crate) use todo_api;
 
 use crate::{
-    scalar_types::{BlockHeight, DateTime, TimeSpan},
+    scalar_types::{BlockHeight, DateTime, RewardPeriodLength, TimeSpan},
     transaction_event::smart_contracts::InvalidContractVersionError,
 };
 use account::Account;
@@ -363,11 +363,11 @@ mod monitor {
 pub enum ApiError {
     #[error("Could not find resource")]
     NotFound,
-    #[error("Internal error: {}", .0.message)]
+    #[error("Internal error (NoDatabasePool): {}", .0.message)]
     NoDatabasePool(async_graphql::Error),
-    #[error("Internal error: {}", .0.message)]
+    #[error("Internal error (NoServiceConfig): {}", .0.message)]
     NoServiceConfig(async_graphql::Error),
-    #[error("Internal error: {0}")]
+    #[error("Internal error (FailedDatabaseQuery): {0}")]
     FailedDatabaseQuery(Arc<sqlx::Error>),
     #[error("Invalid ID format: {0}")]
     InvalidIdInt(std::num::ParseIntError),
@@ -475,7 +475,7 @@ impl BaseQuery {
 
     async fn import_state<'a>(&self, ctx: &Context<'a>) -> ApiResult<ImportState> {
         let epoch_duration =
-            sqlx::query_scalar!("SELECT epoch_duration FROM current_consensus_status")
+            sqlx::query_scalar!("SELECT epoch_duration FROM current_chain_parameters")
                 .fetch_optional(get_pool(ctx)?)
                 .await?
                 .ok_or(ApiError::NotFound)?;
@@ -488,6 +488,21 @@ impl BaseQuery {
                         .to_string(),
                 ))?,
             ),
+        })
+    }
+
+    async fn latest_chain_parameters<'a>(
+        &self,
+        ctx: &Context<'a>,
+    ) -> ApiResult<LatestChainParameters> {
+        let reward_period_length =
+            sqlx::query_scalar!("SELECT reward_period_length FROM current_chain_parameters")
+                .fetch_optional(get_pool(ctx)?)
+                .await?
+                .ok_or(ApiError::NotFound)?;
+
+        Ok(LatestChainParameters {
+            reward_period_length,
         })
     }
 
@@ -586,8 +601,6 @@ impl BaseQuery {
     // poolRewardMetricsForBakerPool(bakerId: ID! period: MetricsPeriod!):
     // PoolRewardMetrics! passiveDelegation: PassiveDelegation
     // paydayStatus: PaydayStatus
-    // latestChainParameters: ChainParameters
-    // importState: ImportState
     // nodeStatuses(sortField: NodeSortField! sortDirection: NodeSortDirection!
     // "Returns the first _n_ elements from the list." first: Int "Returns the
     // elements in the list that come after the specified cursor." after: String
@@ -752,6 +765,11 @@ pub struct AccountsUpdatedSubscriptionItem {
 #[derive(SimpleObject)]
 struct ImportState {
     epoch_duration: TimeSpan,
+}
+
+#[derive(SimpleObject)]
+struct LatestChainParameters {
+    reward_period_length: RewardPeriodLength,
 }
 
 #[derive(SimpleObject)]

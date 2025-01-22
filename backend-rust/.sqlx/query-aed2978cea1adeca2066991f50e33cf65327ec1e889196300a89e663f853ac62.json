@@ -1,11 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT epoch_duration FROM current_consensus_status",
+  "query": "SELECT reward_period_length FROM current_chain_parameters",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "epoch_duration",
+        "name": "reward_period_length",
         "type_info": "Int8"
       }
     ],
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "0a1f1c5b6d51e587b1588f03ad3fe558c34bfad5d16cdf44f20df07d1fe2ba9f"
+  "hash": "aed2978cea1adeca2066991f50e33cf65327ec1e889196300a89e663f853ac62"
 }

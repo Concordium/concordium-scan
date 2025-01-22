@@ -707,7 +707,41 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
     let mut tx = pool.begin().await.context("Failed to create SQL transaction")?;
     let genesis_height = v2::BlockIdentifier::AbsoluteHeight(0.into());
     {
-        let epoch_duration = client.get_consensus_info().await?.epoch_duration.num_milliseconds();
+        // Get the current block.
+        let current_block = client.get_block_info(BlockIdentifier::LastFinal).await?.response;
+        // We ensure that the connected node has caught up with the protocol
+        // version 7 or above. This ensures that the parameters `current_epoch_duration`
+        // and `current_reward_period_length` are available.
+        if current_block.protocol_version < ProtocolVersion::P7 {
+            anyhow::bail!(
+                "Ensure the connected node has caught up with the current protocol version 7 or \
+                 above. This ensures that the `current_epoch_duration` and \
+                 `current_reward_period_length` are from the latest consensus algorithm."
+            );
+        }
+
+        // Get the current `epoch_duration` value.
+        let current_epoch_duration =
+            client.get_consensus_info().await?.epoch_duration.num_milliseconds();
+
+        // Get the current `reward_period_length` value.
+        let current_chain_parmeters =
+            client.get_block_chain_parameters(BlockIdentifier::LastFinal).await?.response;
+        let current_reward_period_length = match current_chain_parmeters {
+            ChainParameters::V3(chain_parameters_v3) => {
+                chain_parameters_v3.time_parameters.reward_period_length
+            }
+            ChainParameters::V2(chain_parameters_v2) => {
+                chain_parameters_v2.time_parameters.reward_period_length
+            }
+            ChainParameters::V1(chain_parameters_v1) => {
+                chain_parameters_v1.time_parameters.reward_period_length
+            }
+            _ => todo!(
+                "Expect the chain to have caught up enought for the `reward_period_length` value \
+                 being available."
+            ),
+        };
 
         let genesis_block_info = client.get_block_info(genesis_height).await?.response;
         let block_hash = genesis_block_info.block_hash.to_string();
@@ -748,10 +782,11 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
         .await?;
 
         sqlx::query!(
-            "INSERT INTO current_consensus_status (
-                epoch_duration
-            ) VALUES ($1);",
-            epoch_duration
+            "INSERT INTO current_chain_parameters (
+                epoch_duration, reward_period_length
+            ) VALUES ($1, $2);",
+            current_epoch_duration,
+            current_reward_period_length.reward_period_epochs().epoch as i64,
         )
         .execute(&mut *tx)
         .await?;
