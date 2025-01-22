@@ -100,8 +100,6 @@ async fn main() -> anyhow::Result<()> {
         _ = tokio::signal::ctrl_c() => {
             info!("Received signal to shutdown");
             cancel_token.cancel();
-            let _ = indexer_task.await?;
-            let _ = monitoring_task.await?;
         },
         result = &mut indexer_task => {
             error!("Indexer task stopped.");
@@ -109,7 +107,6 @@ async fn main() -> anyhow::Result<()> {
                 error!("Indexer error: {}", err);
             }
             cancel_token.cancel();
-            let _ = monitoring_task.await?;
         }
         result = &mut monitoring_task => {
             error!("Monitoring task stopped.");
@@ -117,8 +114,8 @@ async fn main() -> anyhow::Result<()> {
                 error!("Monitoring error: {}", err);
             }
             cancel_token.cancel();
-            let _ = indexer_task.await?;
         }
     };
+    let _ = tokio::join!(monitoring_task, indexer_task);
     Ok(())
 }
