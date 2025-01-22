@@ -483,7 +483,8 @@ impl BaseQuery {
         Ok(ImportState {
             epoch_duration: TimeSpan(
                 Duration::try_milliseconds(epoch_duration).ok_or(ApiError::InternalError(
-                    "Epoch duration in database should be valid duration in milliseconds."
+                    "Epoch duration (epoch_duration) in the database should be a valid duration \
+                     in milliseconds."
                         .to_string(),
                 ))?,
             ),
