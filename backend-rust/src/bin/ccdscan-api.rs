@@ -124,6 +124,7 @@ async fn main() -> anyhow::Result<()> {
             if let Err(err) = result? {
                 error!("Indexer error: {}", err);
             }
+            info!("Shutting down");
             cancel_token.cancel();
         }
         result = &mut pgnotify_listener => {
@@ -131,6 +132,7 @@ async fn main() -> anyhow::Result<()> {
             if let Err(err) = result? {
                 error!("Pgnotify listener task error: {}", err);
             }
+            info!("Shutting down");
             cancel_token.cancel();
         }
         result = &mut monitoring_task => {
@@ -138,6 +140,7 @@ async fn main() -> anyhow::Result<()> {
             if let Err(err) = result? {
                 error!("Monitoring error: {}", err);
             }
+            info!("Shutting down");
             cancel_token.cancel();
         }
     }
