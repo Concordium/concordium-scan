@@ -133,6 +133,7 @@ pub enum UpdateTransactionType {
     MinBlockTimeUpdate,
     BlockEnergyLimitUpdate,
     FinalizationCommitteeParametersUpdate,
+    ValidatorScoreParametersUpdate,
 }
 
 impl From<concordium_rust_sdk::types::UpdateType> for UpdateTransactionType {
@@ -168,7 +169,9 @@ impl From<concordium_rust_sdk::types::UpdateType> for UpdateTransactionType {
             UpdateType::UpdateFinalizationCommitteeParameters => {
                 UpdateTransactionType::FinalizationCommitteeParametersUpdate
             }
-            UpdateType::UpdateValidatorScoreParameters => todo!(),
+            UpdateType::UpdateValidatorScoreParameters => {
+                UpdateTransactionType::ValidatorScoreParametersUpdate
+            }
         }
     }
 }
