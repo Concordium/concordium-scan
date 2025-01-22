@@ -120,9 +120,9 @@ async fn main() -> anyhow::Result<()> {
             cancel_token.cancel();
         },
         result = &mut queries_task => {
-            error!("Indexer task stopped.");
+            error!("Queries task stopped.");
             if let Err(err) = result? {
-                error!("Indexer error: {}", err);
+                error!("Queries error: {}", err);
             }
             info!("Shutting down");
             cancel_token.cancel();
