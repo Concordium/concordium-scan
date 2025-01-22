@@ -116,6 +116,7 @@ async fn main() -> anyhow::Result<()> {
     // Await for signal to shutdown or any of the tasks to stop.
     tokio::select! {
         _ = tokio::signal::ctrl_c() => {
+            info!("Received signal to shutdown");
             cancel_token.cancel();
         },
         result = &mut queries_task => {
