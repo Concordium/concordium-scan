@@ -6,9 +6,12 @@ version: "3"
 services:
   backend:
     image: ${CCDSCAN_BACKEND_IMAGE-concordium/ccdscan:test}
-    build: ./backend
     ports:
-    - "${CCDSCAN_BACKEND_PORT-5000}:5000"
+      - "${CCDSCAN_BACKEND_PORT-5000}:5000"
+    build:
+      context: ./backend
+      args:
+        DOTNET_VERSION: '6.0'
     environment:
     - ImportValidation__Enabled=false
     - ConcordiumNodeGrpc__AuthenticationToken=rpcadmin

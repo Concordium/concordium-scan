@@ -118,39 +118,31 @@ async fn main() -> anyhow::Result<()> {
         _ = tokio::signal::ctrl_c() => {
             info!("Received signal to shutdown");
             cancel_token.cancel();
-            let _ = queries_task.await?;
-            let _ = pgnotify_listener.await?;
-            let _ = monitoring_task.await?;
         },
         result = &mut queries_task => {
             error!("Queries task stopped.");
             if let Err(err) = result? {
                 error!("Queries error: {}", err);
             }
-            info!("Shutting down");
             cancel_token.cancel();
-            let _ = pgnotify_listener.await?;
-            let _ = monitoring_task.await?;
-        },
+        }
         result = &mut pgnotify_listener => {
             error!("Pgnotify listener task stopped.");
             if let Err(err) = result? {
                 error!("Pgnotify listener task error: {}", err);
             }
-            info!("Shutting down");
             cancel_token.cancel();
-            let _ = queries_task.await?;
-            let _ = monitoring_task.await?;
-        },
+        }
         result = &mut monitoring_task => {
             error!("Monitoring task stopped.");
             if let Err(err) = result? {
                 error!("Monitoring error: {}", err);
             }
             cancel_token.cancel();
-            let _ = queries_task.await?;
-            let _ = pgnotify_listener.await?;
         }
     }
+    info!("Shutting down");
+    // Ensure all tasks have stopped
+    let _ = tokio::join!(monitoring_task, queries_task, pgnotify_listener);
     Ok(())
 }
