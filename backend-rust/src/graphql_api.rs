@@ -24,7 +24,9 @@ macro_rules! todo_api {
 pub(crate) use todo_api;
 
 use crate::{
-    scalar_types::{BlockHeight, DateTime, TimeSpan},
+    scalar_types::{
+        BlockHeight, DateTime, RewardPeriodLength as ScalarRewardPeriodLength, TimeSpan,
+    },
     transaction_event::smart_contracts::InvalidContractVersionError,
 };
 use account::Account;
@@ -36,9 +38,10 @@ use async_graphql::{
 };
 use async_graphql_axum::GraphQLSubscription;
 use block::Block;
-use chrono::Duration;
+use chrono::{Duration, TimeDelta};
 use concordium_rust_sdk::{
     base::contracts_common::schema::VersionedSchemaError, id::types as sdk_types,
+    types::RewardPeriodLength,
 };
 use derive_more::Display;
 use futures::prelude::*;
@@ -158,6 +161,26 @@ pub struct Query(
     token::QueryToken,
 );
 
+/// This state is not persisted in the database and will be re-created at
+/// start-up of this service.
+#[derive(Copy, Clone)]
+pub struct MemoryState {
+    // Duration of an epoch of the current consensus algorithm.
+    // E.g. This value is 1 hour for testnet in protocol version 8.
+    pub current_epoch_duration:       TimeDelta,
+    // Number of epochs between reward payout to happen.
+    // E.g. This value is 24 for testnet in protocol version 8.
+    // E.g. This means after 24 hours a new payday block is happening on testnet with reward
+    // payouts.
+    pub current_reward_period_length: RewardPeriodLength,
+}
+
+/// The service config with state in memory and the api configuration.
+pub struct ServiceConfig {
+    pub api_config:   ApiServiceConfig,
+    pub memory_state: MemoryState,
+}
+
 pub struct Service {
     pub schema: Schema<Query, EmptyMutation, Subscription>,
 }
@@ -166,7 +189,7 @@ impl Service {
         subscription: Subscription,
         registry: &mut Registry,
         pool: PgPool,
-        config: ApiServiceConfig,
+        config: ServiceConfig,
     ) -> Self {
         let schema = Schema::build(Query::default(), EmptyMutation, subscription)
             .extension(async_graphql::extensions::Tracing)
@@ -363,10 +386,12 @@ mod monitor {
 pub enum ApiError {
     #[error("Could not find resource")]
     NotFound,
-    #[error("Internal error: {}", .0.message)]
+    #[error("Internal error (no NoDatabasePool): {}", .0.message)]
     NoDatabasePool(async_graphql::Error),
-    #[error("Internal error: {}", .0.message)]
+    #[error("Internal error (no NoServiceConfig): {}", .0.message)]
     NoServiceConfig(async_graphql::Error),
+    #[error("Internal error (no MemoryState): {}", .0.message)]
+    MemoryState(async_graphql::Error),
     #[error("Internal error: {0}")]
     FailedDatabaseQuery(Arc<sqlx::Error>),
     #[error("Invalid ID format: {0}")]
@@ -400,7 +425,14 @@ pub fn get_pool<'a>(ctx: &Context<'a>) -> ApiResult<&'a PgPool> {
 
 /// Get service configuration from the context.
 pub fn get_config<'a>(ctx: &Context<'a>) -> ApiResult<&'a ApiServiceConfig> {
-    ctx.data::<ApiServiceConfig>().map_err(ApiError::NoServiceConfig)
+    let service_config = ctx.data::<ServiceConfig>().map_err(ApiError::NoServiceConfig)?;
+    Ok(&service_config.api_config)
+}
+
+/// Get the memory state from the context.
+pub fn get_memory_state<'a>(ctx: &Context<'a>) -> ApiResult<&'a MemoryState> {
+    let service_config = ctx.data::<ServiceConfig>().map_err(ApiError::NoServiceConfig)?;
+    Ok(&service_config.memory_state)
 }
 
 trait ConnectionCursor {
@@ -474,20 +506,31 @@ impl BaseQuery {
     }
 
     async fn import_state<'a>(&self, ctx: &Context<'a>) -> ApiResult<ImportState> {
-        let epoch_duration =
-            sqlx::query_scalar!("SELECT epoch_duration FROM current_consensus_status")
-                .fetch_optional(get_pool(ctx)?)
-                .await?
-                .ok_or(ApiError::NotFound)?;
+        let memory_state = get_memory_state(ctx)?;
 
         Ok(ImportState {
             epoch_duration: TimeSpan(
-                Duration::try_milliseconds(epoch_duration).ok_or(ApiError::InternalError(
-                    "Epoch duration (epoch_duration) in the database should be a valid duration \
-                     in milliseconds."
-                        .to_string(),
-                ))?,
+                Duration::try_milliseconds(memory_state.current_epoch_duration.num_milliseconds())
+                    .ok_or(ApiError::InternalError(
+                        "Epoch duration in the memory state should be a valid duration in \
+                         milliseconds."
+                            .to_string(),
+                    ))?,
             ),
+        })
+    }
+
+    async fn latest_chain_parameters<'a>(
+        &self,
+        ctx: &Context<'a>,
+    ) -> ApiResult<LatestChainParameters> {
+        let memory_state = get_memory_state(ctx)?;
+
+        Ok(LatestChainParameters {
+            reward_period_length: memory_state
+                .current_reward_period_length
+                .reward_period_epochs()
+                .epoch,
         })
     }
 
@@ -586,8 +629,6 @@ impl BaseQuery {
     // poolRewardMetricsForBakerPool(bakerId: ID! period: MetricsPeriod!):
     // PoolRewardMetrics! passiveDelegation: PassiveDelegation
     // paydayStatus: PaydayStatus
-    // latestChainParameters: ChainParameters
-    // importState: ImportState
     // nodeStatuses(sortField: NodeSortField! sortDirection: NodeSortDirection!
     // "Returns the first _n_ elements from the list." first: Int "Returns the
     // elements in the list that come after the specified cursor." after: String
@@ -747,6 +788,11 @@ impl SubscriptionContext {
 #[derive(Clone, Debug, SimpleObject)]
 pub struct AccountsUpdatedSubscriptionItem {
     address: String,
+}
+
+#[derive(SimpleObject)]
+struct LatestChainParameters {
+    reward_period_length: ScalarRewardPeriodLength,
 }
 
 #[derive(SimpleObject)]

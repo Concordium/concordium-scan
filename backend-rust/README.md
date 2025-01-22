@@ -53,7 +53,7 @@ ccdscan-api --help
 Example:
 
 ```
-cargo run --bin ccdscan-api
+cargo run --bin ccdscan-api -- --node https://grpc.testnet.concordium.com:20000
 ```
 
 <!-- TODO When service become stable: add documentation of arguments and environment variables. -->

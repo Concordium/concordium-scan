@@ -84,14 +84,6 @@ CREATE TYPE module_reference_contract_link_action AS ENUM (
     'Removed'
 );
 
--- Consensus status.
-CREATE TABLE current_consensus_status(
-    -- Duration of an epoch in milliseconds of the current consensus algorithm.
-    epoch_duration
-        BIGINT
-        NOT NULL
-);
-
 -- Every block on chain.
 CREATE TABLE blocks(
     -- The absolute height of the block.

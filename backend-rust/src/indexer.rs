@@ -707,8 +707,6 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
     let mut tx = pool.begin().await.context("Failed to create SQL transaction")?;
     let genesis_height = v2::BlockIdentifier::AbsoluteHeight(0.into());
     {
-        let epoch_duration = client.get_consensus_info().await?.epoch_duration.num_milliseconds();
-
         let genesis_block_info = client.get_block_info(genesis_height).await?.response;
         let block_hash = genesis_block_info.block_hash.to_string();
         let slot_time = genesis_block_info.block_slot_time;
@@ -743,15 +741,6 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
             slot_time,
             total_amount,
             total_staked,
-        )
-        .execute(&mut *tx)
-        .await?;
-
-        sqlx::query!(
-            "INSERT INTO current_consensus_status (
-                epoch_duration
-            ) VALUES ($1);",
-            epoch_duration
         )
         .execute(&mut *tx)
         .await?;

@@ -4,6 +4,7 @@ use async_graphql::{scalar, InputValueError, InputValueResult, Scalar, ScalarTyp
 pub type Amount = UnsignedLong;
 pub type TokenId = String;
 pub type Energy = i64; // TODO: should be UnsignedLong in graphQL
+pub type RewardPeriodLength = u64;
 pub type DateTime = chrono::DateTime<chrono::Utc>; // TODO check format matches.
 pub type BakerId = Long;
 pub type BlockHeight = i64;

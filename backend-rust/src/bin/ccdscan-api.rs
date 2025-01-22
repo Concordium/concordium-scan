@@ -1,13 +1,20 @@
 use anyhow::Context;
 use async_graphql::SDLExportOptions;
 use clap::Parser;
-use concordium_scan::{graphql_api, router};
+use concordium_rust_sdk::{
+    types::ProtocolVersion,
+    v2::{self, BlockIdentifier, ChainParameters},
+};
+use concordium_scan::{
+    graphql_api::{self, MemoryState, ServiceConfig},
+    router,
+};
 use prometheus_client::{
     metrics::{family::Family, gauge::Gauge},
     registry::Registry,
 };
 use sqlx::postgres::PgPoolOptions;
-use std::{net::SocketAddr, path::PathBuf};
+use std::{net::SocketAddr, path::PathBuf, time::Duration};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
@@ -19,26 +26,26 @@ struct Cli {
     /// Use an environment variable when the connection contains a password, as
     /// command line arguments are visible across OS processes.
     #[arg(long, env = "DATABASE_URL")]
-    database_url:              String,
+    database_url: String,
     #[arg(long, env = "DATABASE_RETRY_DELAY_SECS", default_value_t = 5)]
     database_retry_delay_secs: u64,
     /// Minimum number of connections in the pool.
     #[arg(long, env = "DATABASE_MIN_CONNECTIONS", default_value_t = 5)]
-    min_connections:           u32,
+    min_connections: u32,
     /// Maximum number of connections in the pool.
     #[arg(long, env = "DATABASE_MAX_CONNECTIONS", default_value_t = 10)]
-    max_connections:           u32,
+    max_connections: u32,
     /// Output the GraphQL Schema for the API to this path.
     #[arg(long)]
-    schema_out:                Option<PathBuf>,
+    schema_out: Option<PathBuf>,
     /// Address to listen to for API requests.
     #[arg(long, env = "CCDSCAN_API_ADDRESS", default_value = "127.0.0.1:8000")]
-    listen:                    SocketAddr,
+    listen: SocketAddr,
     /// Address to listen for monitoring related requests
     #[arg(long, env = "CCDSCAN_API_MONITORING_ADDRESS", default_value = "127.0.0.1:8003")]
-    monitoring_listen:         SocketAddr,
+    monitoring_listen: SocketAddr,
     #[command(flatten, next_help_heading = "Configuration")]
-    api_config:                graphql_api::ApiServiceConfig,
+    api_config: graphql_api::ApiServiceConfig,
     #[arg(
         long = "log-level",
         default_value = "info",
@@ -46,13 +53,81 @@ struct Cli {
                 `error`.",
         env = "LOG_LEVEL"
     )]
-    log_level:                 tracing_subscriber::filter::LevelFilter,
+    log_level: tracing_subscriber::filter::LevelFilter,
+    /// Concordium node URL to a caught-up node.
+    #[arg(long, env = "CCDSCAN_API_GRPC_ENDPOINT", default_value = "http://localhost:20000")]
+    node: v2::Endpoint,
+    /// Request timeout in seconds when querying a Concordium Node.
+    #[arg(long, env = "CCDSCAN_API_NODE_REQUEST_TIMEOUT", default_value = "60")]
+    node_request_timeout: u64,
+    /// Connection timeout in seconds when connecting a Concordium Node.
+    #[arg(long, env = "CCDSCAN_API_NODE_CONNECT_TIMEOUT", default_value = "10")]
+    node_connect_timeout: u64,
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let _ = dotenvy::dotenv();
     let cli = Cli::parse();
+
+    let endpoint = if cli
+        .node
+        .uri()
+        .scheme()
+        .map_or(false, |x| x == &concordium_rust_sdk::v2::Scheme::HTTPS)
+    {
+        cli.node
+            .clone()
+            .tls_config(tonic::transport::ClientTlsConfig::new())
+            .context("Unable to construct TLS configuration for the Concordium node.")?
+    } else {
+        cli.node.clone()
+    };
+    let endpoint: v2::Endpoint = endpoint
+        .timeout(Duration::from_secs(cli.node_request_timeout))
+        .connect_timeout(Duration::from_secs(cli.node_connect_timeout));
+
+    let mut client = v2::Client::new(endpoint).await?;
+    // Get the current block.
+    let current_block = client.get_block_info(BlockIdentifier::LastFinal).await?.response;
+    // We ensure that the connected node has caught up with the current protocol
+    // version 8. This ensures that the parameters `current_epoch_duration` and
+    // `current_reward_period_length` are available.
+    if current_block.protocol_version < ProtocolVersion::P8 {
+        anyhow::bail!(
+            "Ensure the connected node has caught up with the current protocol version 8. 
+            This ensures that the `current_epoch_duration` and `current_reward_period_length` are \
+             available to be queried"
+        );
+    }
+
+    // Get the current `epoch_duration` value.
+    let current_epoch_duration = client.get_consensus_info().await?.epoch_duration;
+
+    // Get the current `reward_period_length` value.
+    let current_chain_parmeters =
+        client.get_block_chain_parameters(BlockIdentifier::LastFinal).await?.response;
+    let current_reward_period_length = match current_chain_parmeters {
+        ChainParameters::V3(chain_parameters_v3) => {
+            chain_parameters_v3.time_parameters.reward_period_length
+        }
+        ChainParameters::V2(chain_parameters_v2) => {
+            chain_parameters_v2.time_parameters.reward_period_length
+        }
+        ChainParameters::V1(chain_parameters_v1) => {
+            chain_parameters_v1.time_parameters.reward_period_length
+        }
+        _ => todo!(
+            "Expect the chain to have caught up enought for the `reward_period_length` value \
+             being available."
+        ),
+    };
+
+    let memory_state = MemoryState {
+        current_epoch_duration,
+        current_reward_period_length,
+    };
+
     tracing_subscriber::fmt().with_max_level(cli.log_level).init();
     let pool = PgPoolOptions::new()
         .min_connections(cli.min_connections)
@@ -87,7 +162,10 @@ async fn main() -> anyhow::Result<()> {
 
     let mut queries_task = {
         let pool = pool.clone();
-        let service = graphql_api::Service::new(subscription, &mut registry, pool, cli.api_config);
+        let service = graphql_api::Service::new(subscription, &mut registry, pool, ServiceConfig {
+            api_config: cli.api_config,
+            memory_state,
+        });
         if let Some(schema_file) = cli.schema_out {
             info!("Writing schema to {}", schema_file.to_string_lossy());
             std::fs::write(
