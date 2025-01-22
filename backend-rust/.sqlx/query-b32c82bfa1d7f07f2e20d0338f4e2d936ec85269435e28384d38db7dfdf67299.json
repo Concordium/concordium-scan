@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE bakers\n                SET\n                    self_suspended = NULL,\n                    inactive_suspended = NULL,\n                    primed_for_suspension = $2\n                WHERE id=$1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b32c82bfa1d7f07f2e20d0338f4e2d936ec85269435e28384d38db7dfdf67299"
+}
