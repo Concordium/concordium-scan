@@ -28,6 +28,7 @@ public class ChainUpdatePayloadConverter : PolymorphicJsonConverter<ChainUpdateP
         { typeof(FinalizationCommitteeParametersUpdate), 20 },
         { typeof(TimeoutParametersUpdate), 21 },
         { typeof(MinBlockTimeUpdate), 22 },
+        { typeof(ValidatorScoreParametersUpdate), 23 },
     };
         
     public ChainUpdatePayloadConverter() : base(SerializeMap)
