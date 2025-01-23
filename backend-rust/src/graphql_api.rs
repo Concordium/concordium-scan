@@ -69,6 +69,12 @@ pub struct ApiServiceConfig {
     /// The most transactions which can be queried at once.
     #[arg(long, env = "CCDSCAN_API_CONFIG_TRANSACTION_CONNECTION_LIMIT", default_value = "100")]
     transaction_connection_limit: u64,
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_TRANSACTIONS_PER_BLOCK_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
+    transactions_per_block_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_BLOCK_CONNECTION_LIMIT", default_value = "100")]
     block_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_ACCOUNT_CONNECTION_LIMIT", default_value = "100")]
@@ -420,6 +426,10 @@ struct ConnectionQuery<A> {
     from:  A,
     to:    A,
     limit: i64,
+    // If the `last` elements are requested instead of the `first` elements
+    // (indicated by the `last` key being set when creating a new `ConnectionQuery`),
+    // the edges/nodes should be ordered in reverse (DESC) order before applying the range.
+    // This allows the range from `from` to `to` to be applied starting from the last element.
     desc:  bool,
 }
 impl<A> ConnectionQuery<A> {

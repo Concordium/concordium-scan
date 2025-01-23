@@ -214,6 +214,9 @@ CREATE TABLE transactions(
         JSONB
 );
 
+-- Important for quickly filtering transactions in a given block.
+CREATE INDEX transactions_block_idx ON transactions (block_height);
+
 -- Every account on chain.
 CREATE TABLE accounts(
     -- Index of the account.
