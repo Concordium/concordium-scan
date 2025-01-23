@@ -24,7 +24,7 @@ macro_rules! todo_api {
 pub(crate) use todo_api;
 
 use crate::{
-    scalar_types::{BlockHeight, DateTime, RewardPeriodLength, TimeSpan},
+    scalar_types::{BlockHeight, DateTime, TimeSpan, UnsignedLong},
     transaction_event::smart_contracts::InvalidContractVersionError,
 };
 use account::Account;
@@ -32,7 +32,7 @@ use anyhow::Context as _;
 use async_graphql::{
     http::GraphiQLSource,
     types::{self, connection},
-    Context, EmptyMutation, Enum, MergedObject, Object, Schema, SimpleObject, Subscription,
+    Context, EmptyMutation, Enum, MergedObject, Object, Schema, SimpleObject, Subscription, Union,
 };
 use async_graphql_axum::GraphQLSubscription;
 use block::Block;
@@ -501,9 +501,12 @@ impl BaseQuery {
                 .await?
                 .ok_or(ApiError::NotFound)?;
 
-        Ok(LatestChainParameters {
-            reward_period_length,
-        })
+        // Future improvement (breaking changes): remove `ChainParametersV1` and just
+        // use the `reward_period_length` from the current consensus algorithm
+        // directly.
+        Ok(LatestChainParameters::ChainParametersV1(ChainParametersV1 {
+            reward_period_length: reward_period_length.try_into()?,
+        }))
     }
 
     async fn tokens(
@@ -767,9 +770,16 @@ struct ImportState {
     epoch_duration: TimeSpan,
 }
 
+// Future improvement (breaking changes): remove `ChainParametersV1` and just
+// use the `reward_period_length` from the current consensus algorithm directly.
+#[derive(Union)]
+pub enum LatestChainParameters {
+    ChainParametersV1(ChainParametersV1),
+}
+
 #[derive(SimpleObject)]
-struct LatestChainParameters {
-    reward_period_length: RewardPeriodLength,
+pub struct ChainParametersV1 {
+    pub reward_period_length: UnsignedLong,
 }
 
 #[derive(SimpleObject)]

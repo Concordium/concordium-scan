@@ -18,6 +18,7 @@ To run the services, the following dependencies are required to be available on 
 ## Run the Indexer Service
 
 The indexer talks to a Concordium node in order to gather data about the chain, which it then inserts into a PostgreSQL database.
+Note that the connected Concordium node needs to be caught-up to protocol 7 or above.
 Note that only one instance of the indexer may run at any one time, as multiple instances would conflict with each other.
 
 For instructions on how to use the indexer run:

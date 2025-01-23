@@ -4,9 +4,7 @@ use crate::{
     graphql_api::Transaction,
     scalar_types::{Amount, BakerId, BlockHash, BlockHeight, DateTime},
 };
-use async_graphql::{
-    connection, types, ComplexObject, Context, Enum, Interface, Object, SimpleObject, Union,
-};
+use async_graphql::{connection, types, ComplexObject, Context, Enum, Object, SimpleObject, Union};
 
 #[derive(Default)]
 pub(crate) struct QueryBlocks;
@@ -445,80 +443,6 @@ struct BalanceStatistics {
     finalization_reward_account: Amount,
     /// The amount in the GAS account.
     gas_account: Amount,
-}
-
-#[derive(Interface)]
-#[allow(clippy::duplicated_attributes)]
-#[graphql(
-    field(name = "euro_per_energy", ty = "&ExchangeRate"),
-    field(name = "micro_ccd_per_euro", ty = "&ExchangeRate"),
-    field(name = "account_creation_limit", ty = "&i32"),
-    field(name = "foundation_account_address", ty = "&AccountAddress")
-)]
-enum ChainParameters {
-    ChainParametersV0(ChainParametersV0),
-    ChainParametersV1(ChainParametersV1),
-    ChainParametersV2(ChainParametersV2),
-}
-
-#[derive(SimpleObject)]
-struct ChainParametersV0 {
-    // TODO
-    //   electionDifficulty: Decimal!
-    // bakerCooldownEpochs: UnsignedLong!
-    // rewardParameters: RewardParametersV0!
-    // minimumThresholdForBaking: UnsignedLong!
-    euro_per_energy:            ExchangeRate,
-    micro_ccd_per_euro:         ExchangeRate,
-    account_creation_limit:     i32,
-    foundation_account_address: AccountAddress,
-}
-
-#[derive(SimpleObject)]
-struct ChainParametersV1 {
-    // TODO
-    // electionDifficulty: Decimal!
-    //     poolOwnerCooldown: UnsignedLong!
-    //     delegatorCooldown: UnsignedLong!
-    //     rewardPeriodLength: UnsignedLong!
-    //     mintPerPayday: Decimal!
-    //     rewardParameters: RewardParametersV1!
-    //     passiveFinalizationCommission: Decimal!
-    //     passiveBakingCommission: Decimal!
-    //     passiveTransactionCommission: Decimal!
-    //     finalizationCommissionRange: CommissionRange!
-    //     bakingCommissionRange: CommissionRange!
-    //     transactionCommissionRange: CommissionRange!
-    //     minimumEquityCapital: UnsignedLong!
-    //     capitalBound: Decimal!
-    //     leverageBound: LeverageFactor!
-    euro_per_energy:            ExchangeRate,
-    micro_ccd_per_euro:         ExchangeRate,
-    account_creation_limit:     i32,
-    foundation_account_address: AccountAddress,
-}
-
-#[derive(SimpleObject)]
-struct ChainParametersV2 {
-    // TODO
-    // poolOwnerCooldown: UnsignedLong!
-    // delegatorCooldown: UnsignedLong!
-    // rewardPeriodLength: UnsignedLong!
-    // mintPerPayday: Decimal!
-    // rewardParameters: RewardParametersV2!
-    // passiveFinalizationCommission: Decimal!
-    // passiveBakingCommission: Decimal!
-    // passiveTransactionCommission: Decimal!
-    // finalizationCommissionRange: CommissionRange!
-    // bakingCommissionRange: CommissionRange!
-    // transactionCommissionRange: CommissionRange!
-    // minimumEquityCapital: UnsignedLong!
-    // capitalBound: Decimal!
-    // leverageBound: LeverageFactor!
-    euro_per_energy:            ExchangeRate,
-    micro_ccd_per_euro:         ExchangeRate,
-    account_creation_limit:     i32,
-    foundation_account_address: AccountAddress,
 }
 
 #[derive(SimpleObject)]

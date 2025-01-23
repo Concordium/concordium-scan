@@ -93,7 +93,7 @@ CREATE TABLE current_chain_parameters(
     epoch_duration
         BIGINT
         NOT NULL,
-    -- Number of epochs between reward payouts to happen.
+    -- Number of epochs between reward payouts.
     -- E.g. This value is 24 for testnet in protocol version 7 or above. This means after 24 hours 
     -- a new payday block is happening on testnet with reward payouts.
     reward_period_length

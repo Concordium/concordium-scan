@@ -737,8 +737,8 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
             ChainParameters::V1(chain_parameters_v1) => {
                 chain_parameters_v1.time_parameters.reward_period_length
             }
-            _ => todo!(
-                "Expect the chain to have caught up enought for the `reward_period_length` value \
+            ChainParameters::V0(_) => unimplemented!(
+                "Expect the node to have caught up enought for the `reward_period_length` value \
                  being available."
             ),
         };

@@ -37,7 +37,9 @@ const BakerQuery = gql<BakerResponse>`
 
 		latestChainParameters {
 			__typename
-			rewardPeriodLength
+			... on ChainParametersV1 {
+				rewardPeriodLength
+			}
 		}
 
 		importState {
