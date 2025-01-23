@@ -1,45 +1,48 @@
+#![allow(non_snake_case)]
+#![recursion_limit = "512"]
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct NodeInfoStatus {
-    pub nodeId:                   String,
-    pub nodeName:                 Option<String>,
-    pub averagePing:              Option<f64>,
-    pub uptime:                   u64,
-    pub clientVersion:            String,
-    pub averageBytesPerSecondIn:  f64,
-    pub averageBytesPerSecondOut: f64,
-    pub packetsSent:              u64,
-    pub packetsReceived:          u64,
-    pub bakingCommitteeMember:    String,
-    pub bestBlock:                String,
-    pub bestBlockHeight:          u64,
-    pub bestArrivedTime:          Option<String>,
-    pub blockReceivePeriodEma:    Option<f64>,
-    pub blockReceivePeriodEmsd:   Option<f64>,
-    pub peersCount:               u64,
-    pub peersList:                Vec<String>,
-    pub finalizedBlock:           String,
-    pub finalizedBlockHeight:     u64,
-    pub finalizedTime:            Option<String>,
-    pub finalizationPeriodEma:    Option<f64>,
-    pub finalizationPeriodEmsd:   Option<f64>,
-    pub consensusBakerId:         Option<u64>,
-    pub blocksReceivedCount:      Option<u64>,
+    pub node_id: String,
+    pub node_name: Option<String>,
+    pub average_ping: Option<f64>,
+    pub uptime: u64,
+    pub client: String,
+    pub average_bytes_per_second_in: f64,
+    pub average_bytes_per_second_out: f64,
+    pub packets_sent: u64,
+    pub packets_received: u64,
+    pub baking_committee_member: String,
+    pub best_block: String,
+    pub best_block_height: u64,
+    pub best_arrived_time: Option<String>,
+    pub block_receive_period_ema: Option<f64>,
+    pub block_receive_period_emsd: Option<f64>,
+    pub peers_count: u64,
+    pub peers_list: Vec<String>,
+    pub finalized_block: String,
+    pub finalized_block_height: u64,
+    pub finalized_time: Option<String>,
+    pub finalization_period_ema: Option<f64>,
+    pub finalization_period_emsd: Option<f64>,
+    pub consensus_baker_id: Option<u64>,
+    pub blocks_received_count: Option<u64>,
 }
 
 struct NodeCollectorBackend {
-    client:  Client,
-    origin:  String,
+    client: Client,
+    origin: String,
 }
 
 impl NodeCollectorBackend {
-    pub fn new(client: Client, url: String) -> Self {
+    pub fn new(client: Client, origin: String) -> Self {
+        println!("origin: {}", origin);
         Self {
             client,
-            origin: url,
+            origin,
         }
     }
 
@@ -70,51 +73,72 @@ impl NodeCollectorBackend {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anyhow::Result;
-    use concordium_rust_sdk::{
-        base::{hashes::TransactionHash, smart_contracts::OwnedContractName},
-        cis2::{MetadataUrl, TokenId},
-        id::types::AccountAddress,
-        types::{hashes::Hash, ContractAddress},
-    };
     use reqwest::Client;
-    use serde_json::json;
-    use std::{cmp::PartialEq, str::FromStr, sync::Arc, time::Duration};
+    use serde_json::from_str;
+
     #[tokio::test]
     async fn test_get_summary_positive() {
         let mut server = mockito::Server::new_async().await;
-
+        let response = r#"
+        [
+            {
+                "nodeId": "b185fa8ba28a6dbb",
+                "nodeName": "001gpc-testnet",
+                "peerType": "Node",
+                "uptime": 64787412170,
+                "client": "5.0.6",
+                "peersCount": 0,
+                "peersList": [],
+                "bestBlock": "32d6fe8fd201639834e466f626847d7f1c58a315003202c5400216a865b15f01",
+                "bestBlockHeight": 3656111,
+                "bestBlockBakerId": 3,
+                "bestArrivedTime": "2023-08-21T12:00:24.700370651Z",
+                "blockArrivePeriodEMA": 16.6399989715912,
+                "blockArrivePeriodEMSD": 15.5779083459107,
+                "blockArriveLatencyEMA": 0.189644091592817,
+                "blockArriveLatencyEMSD": 0.0504744217410237,
+                "blockReceivePeriodEMA": 16.6397739628504,
+                "blockReceivePeriodEMSD": 15.5781216338144,
+                "blockReceiveLatencyEMA": 0.173204050259552,
+                "blockReceiveLatencyEMSD": 0.0491522930027314,
+                "finalizedBlock": "32d6fe8fd201639834e466f626847d7f1c58a315003202c5400216a865b15f01",
+                "finalizedBlockHeight": 3656111,
+                "finalizedTime": "2023-08-21T12:00:25.42453255Z",
+                "finalizationPeriodEMA": 17.8069556222305,
+                "finalizationPeriodEMSD": 15.1385586829404,
+                "packetsSent": 574077850,
+                "packetsReceived": 612037045,
+                "consensusRunning": false,
+                "bakingCommitteeMember": "NotInCommittee",
+                "finalizationCommitteeMember": false,
+                "transactionsPerBlockEMA": 0.002903832409826,
+                "transactionsPerBlockEMSD": 0.0538089227467122,
+                "bestBlockTransactionsSize": 0,
+                "bestBlockTransactionCount": 0,
+                "bestBlockTransactionEnergyCost": 0,
+                "blocksReceivedCount": 2298046,
+                "blocksVerifiedCount": 2298040,
+                "genesisBlock": "4221332d34e1694168c2a0c0b3fd0f273809612cb13d000d5c2e00e85f50f796",
+                "finalizationCount": 2076825,
+                "finalizedBlockParent": "8ec52823feabbef291befdcdb006b0b0ef0020903b800fa9a6b830ac723b24bb",
+                "averageBytesPerSecondIn": 2004,
+                "averageBytesPerSecondOut": 2986
+            }
+        ]
+        "#;
         let mock = server
             .mock("GET", "/nodesSummary")
             .with_status(200)
-            .with_body(json!([  {
-    "nodeName": "deapst",
-    "nodeId": "6610b5f5f576be14",
-    "peerType": "Node",
-    "uptime": 5280818170 as u64,
-    "client": "7.0.5",
-    "averagePing": 329.166666666667,
-    "peersCount": 6,
-    "peersList": [
-      "6636bc59a727509d",
-      "9d7837d0daa19416",
-      "3bea23bf2e9fa507",
-      "fd02d5392cf47c6a",
-      "afb7ee1c355f4005",
-      "fffd80ef2ab13164"
-    ],
-    "bestBlock": "8b222acf69fd2affe9e5b65aaf7cec2a83e3336a3e13b0263c999f880ef50ce6",
-  }]).to_string())
+            .with_body(response)
             .expect(1)
             .create_async()
             .await;
-
+        let deserialized: Vec<NodeInfoStatus> = from_str(response).expect("Failed to deserialize JSON");
         let client = Client::new();
         let mut gc = NodeCollectorBackend::new(client, server.url());
-        assert!(gc
-            .get_summary()
-            .await
-            .is_ok());
+        let summary = gc.get_summary().await;
+        assert!(summary.is_ok());
+        assert_eq!(deserialized, summary.unwrap());
         mock.assert();
     }
 }
