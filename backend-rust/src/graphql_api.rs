@@ -24,7 +24,7 @@ macro_rules! todo_api {
 pub(crate) use todo_api;
 
 use crate::{
-    scalar_types::{BlockHeight, DateTime, TimeSpan},
+    scalar_types::{BlockHeight, DateTime, TimeSpan, UnsignedLong},
     transaction_event::smart_contracts::InvalidContractVersionError,
 };
 use account::Account;
@@ -32,7 +32,7 @@ use anyhow::Context as _;
 use async_graphql::{
     http::GraphiQLSource,
     types::{self, connection},
-    Context, EmptyMutation, Enum, MergedObject, Object, Schema, SimpleObject, Subscription,
+    Context, EmptyMutation, Enum, MergedObject, Object, Schema, SimpleObject, Subscription, Union,
 };
 use async_graphql_axum::GraphQLSubscription;
 use block::Block;
@@ -363,11 +363,11 @@ mod monitor {
 pub enum ApiError {
     #[error("Could not find resource")]
     NotFound,
-    #[error("Internal error: {}", .0.message)]
+    #[error("Internal error (NoDatabasePool): {}", .0.message)]
     NoDatabasePool(async_graphql::Error),
-    #[error("Internal error: {}", .0.message)]
+    #[error("Internal error (NoServiceConfig): {}", .0.message)]
     NoServiceConfig(async_graphql::Error),
-    #[error("Internal error: {0}")]
+    #[error("Internal error (FailedDatabaseQuery): {0}")]
     FailedDatabaseQuery(Arc<sqlx::Error>),
     #[error("Invalid ID format: {0}")]
     InvalidIdInt(std::num::ParseIntError),
@@ -475,7 +475,7 @@ impl BaseQuery {
 
     async fn import_state<'a>(&self, ctx: &Context<'a>) -> ApiResult<ImportState> {
         let epoch_duration =
-            sqlx::query_scalar!("SELECT epoch_duration FROM current_consensus_status")
+            sqlx::query_scalar!("SELECT epoch_duration FROM current_chain_parameters")
                 .fetch_optional(get_pool(ctx)?)
                 .await?
                 .ok_or(ApiError::NotFound)?;
@@ -489,6 +489,24 @@ impl BaseQuery {
                 ))?,
             ),
         })
+    }
+
+    async fn latest_chain_parameters<'a>(
+        &self,
+        ctx: &Context<'a>,
+    ) -> ApiResult<LatestChainParameters> {
+        let reward_period_length =
+            sqlx::query_scalar!("SELECT reward_period_length FROM current_chain_parameters")
+                .fetch_optional(get_pool(ctx)?)
+                .await?
+                .ok_or(ApiError::NotFound)?;
+
+        // Future improvement (breaking changes): remove `ChainParametersV1` and just
+        // use the `reward_period_length` from the current consensus algorithm
+        // directly.
+        Ok(LatestChainParameters::ChainParametersV1(ChainParametersV1 {
+            reward_period_length: reward_period_length.try_into()?,
+        }))
     }
 
     async fn tokens(
@@ -586,8 +604,6 @@ impl BaseQuery {
     // poolRewardMetricsForBakerPool(bakerId: ID! period: MetricsPeriod!):
     // PoolRewardMetrics! passiveDelegation: PassiveDelegation
     // paydayStatus: PaydayStatus
-    // latestChainParameters: ChainParameters
-    // importState: ImportState
     // nodeStatuses(sortField: NodeSortField! sortDirection: NodeSortDirection!
     // "Returns the first _n_ elements from the list." first: Int "Returns the
     // elements in the list that come after the specified cursor." after: String
@@ -752,6 +768,18 @@ pub struct AccountsUpdatedSubscriptionItem {
 #[derive(SimpleObject)]
 struct ImportState {
     epoch_duration: TimeSpan,
+}
+
+// Future improvement (breaking changes): remove `ChainParametersV1` and just
+// use the `reward_period_length` from the current consensus algorithm directly.
+#[derive(Union)]
+pub enum LatestChainParameters {
+    ChainParametersV1(ChainParametersV1),
+}
+
+#[derive(SimpleObject)]
+pub struct ChainParametersV1 {
+    pub reward_period_length: UnsignedLong,
 }
 
 #[derive(SimpleObject)]

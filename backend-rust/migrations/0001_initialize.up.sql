@@ -84,10 +84,19 @@ CREATE TYPE module_reference_contract_link_action AS ENUM (
     'Removed'
 );
 
--- Consensus status.
-CREATE TABLE current_consensus_status(
+-- Chain and consensus parameters queried from a caught-up node. A check that the node is on the protocol 
+-- version 7 or above by the indexer before inserting these values is done. This ensures that the values are 
+-- queried from the most recent consensus algorithm.
+CREATE TABLE current_chain_parameters(
     -- Duration of an epoch in milliseconds of the current consensus algorithm.
+    -- E.g. This value is 1 hour for testnet in protocol version 7 or above.
     epoch_duration
+        BIGINT
+        NOT NULL,
+    -- Number of epochs between reward payouts.
+    -- E.g. This value is 24 for testnet in protocol version 7 or above. This means after 24 hours 
+    -- a new payday block is happening on testnet with reward payouts.
+    reward_period_length
         BIGINT
         NOT NULL
 );
