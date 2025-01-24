@@ -52,7 +52,8 @@ CREATE TYPE update_transaction_type AS ENUM (
     'TimeoutParametersUpdate',
     'MinBlockTimeUpdate',
     'BlockEnergyLimitUpdate',
-    'FinalizationCommitteeParametersUpdate'
+    'FinalizationCommitteeParametersUpdate',
+    'ValidatorScoreParametersUpdate'
 );
 
 CREATE TYPE transaction_type AS ENUM (
