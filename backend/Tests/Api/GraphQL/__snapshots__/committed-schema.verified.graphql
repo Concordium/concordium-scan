@@ -2070,6 +2070,10 @@ type UpdateTransaction {
   updateTransactionType: UpdateTransactionType
 }
 
+type ValidatorScoreParametersUpdate {
+  maximumMissedRounds: UnsignedLong!
+}
+
 type Versions {
   backendVersion: String!
 }
@@ -2084,7 +2088,7 @@ union BakerState = ActiveBakerState | RemovedBakerState
 
 union BlockOrTransaction = Transaction | Block
 
-union ChainUpdatePayload = MinBlockTimeUpdate | TimeoutParametersUpdate | FinalizationCommitteeParametersUpdate | BlockEnergyLimitUpdate | GasRewardsCpv2Update | ProtocolChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | FoundationAccountChainUpdatePayload | MintDistributionChainUpdatePayload | TransactionFeeDistributionChainUpdatePayload | GasRewardsChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | RootKeysChainUpdatePayload | Level1KeysChainUpdatePayload | AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | CooldownParametersChainUpdatePayload | PoolParametersChainUpdatePayload | TimeParametersChainUpdatePayload | MintDistributionV1ChainUpdatePayload
+union ChainUpdatePayload = MinBlockTimeUpdate | ValidatorScoreParametersUpdate | TimeoutParametersUpdate | FinalizationCommitteeParametersUpdate | BlockEnergyLimitUpdate | GasRewardsCpv2Update | ProtocolChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | FoundationAccountChainUpdatePayload | MintDistributionChainUpdatePayload | TransactionFeeDistributionChainUpdatePayload | GasRewardsChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | RootKeysChainUpdatePayload | Level1KeysChainUpdatePayload | AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | CooldownParametersChainUpdatePayload | PoolParametersChainUpdatePayload | TimeParametersChainUpdatePayload | MintDistributionV1ChainUpdatePayload
 
 union CisEvent = CisBurnEvent | CisMintEvent | CisTokenMetadataEvent | CisTransferEvent | CisUpdateOperatorEvent
 
