@@ -19,7 +19,7 @@ pub async fn ensure_compatible_schema_version(
 Use `ccdscan-indexer --migrate` to initialize the database schema."
         )
     }
-    let current = current_schema_version(&pool).await?;
+    let current = current_schema_version(pool).await?;
     if current < supported {
         anyhow::bail!(
             "Database is using an older schema version not supported by this version of \
@@ -31,7 +31,7 @@ Use `ccdscan-indexer --migrate` migrate the database schema."
     if supported == current {
         return Ok(());
     }
-    let destructive_migration = destructive_schema_version_since(&pool, supported).await?;
+    let destructive_migration = destructive_schema_version_since(pool, supported).await?;
     if let Some(destructive_migration) = destructive_migration {
         anyhow::bail!(
             "Database is using a newer schema version, which is not compatible with the current \
