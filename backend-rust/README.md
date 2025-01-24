@@ -172,7 +172,12 @@ To setup the database schema when developing the service run:
 cargo run --bin ccdscan-indexer -- --migrate-only
 ```
 
-NOTE: Having compile-time checked queries will cause issues, since the queries are invalid until the database have been properly migrated. This is done by _not_ having the `DATABASE_URL` environment variable set until after running the migrations.
+NOTE: Having compile-time checked queries will cause issues, since the queries are invalid until the database have been properly migrated. This is done by _not_ having the `DATABASE_URL` environment variable set until after running the migrations or using:
+
+```
+env SQLX_OFFLINE=true cargo run --bin ccdscan-indexer -- --migrate-only
+```
+
 
 ### Introducing a new migration
 
