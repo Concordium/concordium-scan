@@ -3591,7 +3591,7 @@ impl PreparedCcdTransferEvent {
 /// Represents updates in the database caused by a single special transaction
 /// outcome in a block.
 enum PreparedSpecialTransactionOutcome {
-    /// Distribution of various rewards.
+    /// Distribution of various CCD rewards. Excluding CCD mint rewards.
     Rewards(Vec<PreparedUpdateAccountBalance>),
     /// Represents a payday block with its CCD mint rewards and its block
     /// height.
@@ -3632,12 +3632,12 @@ impl PreparedSpecialTransactionOutcome {
             } => {
                 // The `SpecialTransactionOutcome::Mint` event is used to recognise a new payday
                 // block.
-                let rewards = vec![PreparedUpdateAccountBalance::prepare(
+                let rewards = PreparedUpdateAccountBalance::prepare(
                     Arc::new(foundation_account.to_string()),
                     mint_platform_development_charge.micro_ccd.try_into()?,
                     block_height,
                     AccountStatementEntryType::FoundationReward,
-                )?];
+                )?;
 
                 Self::Payday(PreparedPayDayBlock::prepare(block_height, rewards)?)
             }
@@ -3861,17 +3861,17 @@ struct PreparedValidatorSuspension {
 /// `SpecialTransactionOutcome::Mint` event.
 struct PreparedPayDayBlock {
     block_height: i64,
-    rewards:      Vec<PreparedUpdateAccountBalance>,
+    mint_reward:  PreparedUpdateAccountBalance,
 }
 
 impl PreparedPayDayBlock {
     fn prepare(
         block_height: AbsoluteBlockHeight,
-        rewards: Vec<PreparedUpdateAccountBalance>,
+        mint_reward: PreparedUpdateAccountBalance,
     ) -> anyhow::Result<Self> {
         Ok(Self {
             block_height: block_height.height.try_into()?,
-            rewards,
+            mint_reward,
         })
     }
 
@@ -3880,9 +3880,7 @@ impl PreparedPayDayBlock {
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
         // Save the `rewards` to the database.
-        for event in &self.rewards {
-            event.save(tx, None).await?
-        }
+        self.mint_reward.save(tx, None).await?;
 
         sqlx::query!(
             "UPDATE current_chain_parameters
