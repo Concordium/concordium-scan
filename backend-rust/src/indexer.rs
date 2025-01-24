@@ -3593,6 +3593,9 @@ impl PreparedCcdTransferEvent {
 enum PreparedSpecialTransactionOutcome {
     /// Distribution of various rewards.
     Rewards(Vec<PreparedUpdateAccountBalance>),
+    /// Represents a payday block with its CCD mint rewards and its block
+    /// height.
+    Payday(PreparedPayDayBlock),
     /// Validator is primed for suspension.
     ValidatorPrimedForSuspension(PreparedValidatorPrimedForSuspension),
     /// Validator is suspended.
@@ -3626,12 +3629,18 @@ impl PreparedSpecialTransactionOutcome {
                 foundation_account,
                 mint_platform_development_charge,
                 ..
-            } => Self::Rewards(vec![PreparedUpdateAccountBalance::prepare(
-                Arc::new(foundation_account.to_string()),
-                mint_platform_development_charge.micro_ccd.try_into()?,
-                block_height,
-                AccountStatementEntryType::FoundationReward,
-            )?]),
+            } => {
+                // The `SpecialTransactionOutcome::Mint` event is used to recognise a new payday
+                // block.
+                let rewards = vec![PreparedUpdateAccountBalance::prepare(
+                    Arc::new(foundation_account.to_string()),
+                    mint_platform_development_charge.micro_ccd.try_into()?,
+                    block_height,
+                    AccountStatementEntryType::FoundationReward,
+                )?];
+
+                Self::Payday(PreparedPayDayBlock::prepare(block_height, rewards)?)
+            }
             SpecialTransactionOutcome::FinalizationRewards {
                 finalization_rewards,
                 ..
@@ -3742,6 +3751,7 @@ impl PreparedSpecialTransactionOutcome {
                 }
                 Ok(())
             }
+            Self::Payday(event) => event.save(tx).await,
             Self::ValidatorPrimedForSuspension(event) => event.save(tx).await,
             Self::ValidatorSuspended(event) => event.save(tx).await,
         }
@@ -3844,6 +3854,45 @@ struct PreparedValidatorSuspension {
     baker_id:     i64,
     /// Block containing the special transaction outcome event causing it.
     block_height: i64,
+}
+
+/// Represents a payday block with its CCD mint rewards and the associated block
+/// height. The block was identified by observing the
+/// `SpecialTransactionOutcome::Mint` event.
+struct PreparedPayDayBlock {
+    block_height: i64,
+    rewards:      Vec<PreparedUpdateAccountBalance>,
+}
+
+impl PreparedPayDayBlock {
+    fn prepare(
+        block_height: AbsoluteBlockHeight,
+        rewards: Vec<PreparedUpdateAccountBalance>,
+    ) -> anyhow::Result<Self> {
+        Ok(Self {
+            block_height: block_height.height.try_into()?,
+            rewards,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        // Save the `rewards` to the database.
+        for event in &self.rewards {
+            event.save(tx, None).await?
+        }
+
+        sqlx::query!(
+            "UPDATE current_chain_parameters
+                SET last_payday_block_height = $1",
+            self.block_height
+        )
+        .execute(tx.as_mut())
+        .await?;
+        Ok(())
+    }
 }
 
 impl PreparedValidatorSuspension {

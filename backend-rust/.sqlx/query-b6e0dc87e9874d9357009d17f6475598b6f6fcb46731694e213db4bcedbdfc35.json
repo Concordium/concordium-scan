@@ -96,7 +96,8 @@
                 "TimeoutParametersUpdate",
                 "MinBlockTimeUpdate",
                 "BlockEnergyLimitUpdate",
-                "FinalizationCommitteeParametersUpdate"
+                "FinalizationCommitteeParametersUpdate",
+                "ValidatorScoreParametersUpdate"
               ]
             }
           }

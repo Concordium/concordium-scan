@@ -32,11 +32,12 @@ use anyhow::Context as _;
 use async_graphql::{
     http::GraphiQLSource,
     types::{self, connection},
-    Context, EmptyMutation, Enum, MergedObject, Object, Schema, SimpleObject, Subscription, Union,
+    ComplexObject, Context, EmptyMutation, Enum, MergedObject, Object, Schema, SimpleObject,
+    Subscription, Union,
 };
 use async_graphql_axum::GraphQLSubscription;
 use block::Block;
-use chrono::Duration;
+use chrono::{Duration, TimeDelta, Utc};
 use concordium_rust_sdk::{
     base::contracts_common::schema::VersionedSchemaError, id::types as sdk_types,
 };
@@ -519,6 +520,35 @@ impl BaseQuery {
         }))
     }
 
+    async fn payday_status<'a>(&self, ctx: &Context<'a>) -> ApiResult<PaydayStatus> {
+        let row = sqlx::query_as!(
+            CurrentChainParameters,
+            "SELECT 
+                reward_period_length, 
+                epoch_duration, 
+                last_payday_block_height as opt_last_payday_block_height,   
+                slot_time as last_payday_block_slot_time
+            FROM current_chain_parameters
+                JOIN blocks 
+                ON blocks.height = last_payday_block_height
+            "
+        )
+        .fetch_optional(get_pool(ctx)?)
+        .await?
+        .ok_or(ApiError::NotFound)?;
+
+        let payday_duration_milli_seconds = row.reward_period_length * row.epoch_duration;
+        let next_payday_time = row
+            .last_payday_block_slot_time
+            .checked_add_signed(TimeDelta::milliseconds(payday_duration_milli_seconds))
+            .ok_or(ApiError::InternalError("`Next_payday_time` should not overflow".to_string()))?;
+
+        Ok(PaydayStatus {
+            next_payday_time,
+            opt_last_payday_block_height: row.opt_last_payday_block_height,
+        })
+    }
+
     async fn tokens(
         &self,
         ctx: &Context<'_>,
@@ -613,7 +643,6 @@ impl BaseQuery {
     // MetricsPeriod!): PoolRewardMetrics!
     // poolRewardMetricsForBakerPool(bakerId: ID! period: MetricsPeriod!):
     // PoolRewardMetrics! passiveDelegation: PassiveDelegation
-    // paydayStatus: PaydayStatus
     // nodeStatuses(sortField: NodeSortField! sortDirection: NodeSortDirection!
     // "Returns the first _n_ elements from the list." first: Int "Returns the
     // elements in the list that come after the specified cursor." after: String
@@ -785,6 +814,69 @@ struct ImportState {
 #[derive(Union)]
 pub enum LatestChainParameters {
     ChainParametersV1(ChainParametersV1),
+}
+
+pub struct CurrentChainParameters {
+    reward_period_length:         i64,
+    epoch_duration:               i64,
+    opt_last_payday_block_height: Option<i64>,
+    last_payday_block_slot_time:  chrono::DateTime<Utc>,
+}
+
+#[derive(SimpleObject)]
+#[graphql(complex)]
+pub struct PaydayStatus {
+    next_payday_time:             DateTime,
+    #[graphql(skip)]
+    opt_last_payday_block_height: Option<i64>,
+}
+
+#[ComplexObject]
+impl PaydayStatus {
+    // Future improvement (breaking changes): The front end only uses the
+    // `lastPaydayBlock` which is returned here.
+    // Return the `PaydaySummary` of the `lastPaydayBlock` directly without the
+    // `payday_summaries` list.
+    async fn payday_summaries(
+        &self,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        before: Option<String>,
+    ) -> ApiResult<connection::Connection<String, PaydaySummary>> {
+        let mut connection = connection::Connection::new(false, false);
+
+        let last_payday_block_height =
+            self.opt_last_payday_block_height.ok_or(ApiError::InternalError(
+                "Indexer should have recorded a payday block in database if it was running for at \
+                 least the duration of a payday."
+                    .to_string(),
+            ))?;
+
+        let payday_summary = PaydaySummary {
+            block_height: last_payday_block_height,
+        };
+
+        connection
+            .edges
+            .push(connection::Edge::new(last_payday_block_height.to_string(), payday_summary));
+        Ok(connection)
+    }
+}
+
+#[derive(SimpleObject)]
+#[graphql(complex)]
+pub struct PaydaySummary {
+    block_height: BlockHeight,
+}
+
+#[ComplexObject]
+impl PaydaySummary {
+    async fn block(&self, ctx: &Context<'_>) -> ApiResult<Block> {
+        Ok(Block::query_by_height(get_pool(ctx)?, self.block_height).await?)
+    }
 }
 
 #[derive(SimpleObject)]
