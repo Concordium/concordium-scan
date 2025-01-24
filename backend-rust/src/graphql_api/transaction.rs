@@ -13,7 +13,10 @@ use crate::{
 use async_graphql::{connection, types, Context, Object, SimpleObject, Union};
 use futures::TryStreamExt;
 use sqlx::PgPool;
-use std::str::FromStr;
+use std::{
+    cmp::{max, min},
+    str::FromStr,
+};
 
 #[derive(Default)]
 pub struct QueryTransactions;
@@ -55,9 +58,9 @@ impl QueryTransactions {
             config.transaction_connection_limit,
         )?;
         // The CCDScan front-end currently expects an ASC order of the nodes/edges
-        // returned (outer `ORDER BY`), while the inner `ORDER BY` is a trick to
-        // get the correct nodes/edges selected based on the `after/before` key
-        // specified.
+        // returned (outer `ORDER BY`). If the `last` input parameter is set,
+        // the inner `ORDER BY` reverses the transaction order to allow the range be
+        // applied starting from the last element.
         let mut row_stream = sqlx::query_as!(
             Transaction,
             r#"SELECT * FROM (
@@ -89,11 +92,37 @@ impl QueryTransactions {
         )
         .fetch(pool);
 
-        // TODO Update page prev/next
-        let mut connection = connection::Connection::new(true, true);
+        let mut connection = connection::Connection::new(false, false);
 
-        while let Some(row) = row_stream.try_next().await? {
-            connection.edges.push(connection::Edge::new(row.index.to_string(), row));
+        let mut page_max_index = None;
+        let mut page_min_index = None;
+        while let Some(tx) = row_stream.try_next().await? {
+            page_max_index = Some(match page_max_index {
+                None => tx.index,
+                Some(current_max) => max(current_max, tx.index),
+            });
+
+            page_min_index = Some(match page_min_index {
+                None => tx.index,
+                Some(current_min) => min(current_min, tx.index),
+            });
+
+            connection.edges.push(connection::Edge::new(tx.index.to_string(), tx));
+        }
+
+        if let (Some(page_min_id), Some(page_max_id)) = (page_min_index, page_max_index) {
+            let result = sqlx::query!(
+                "
+                    SELECT MAX(index) as max_id, MIN(index) as min_id 
+                    FROM transactions
+                "
+            )
+            .fetch_one(pool)
+            .await?;
+
+            connection.has_previous_page =
+                result.min_id.map_or(false, |db_min| db_min < page_min_id);
+            connection.has_next_page = result.max_id.map_or(false, |db_max| db_max > page_max_id);
         }
 
         Ok(connection)
