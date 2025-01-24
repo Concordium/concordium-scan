@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE current_chain_parameters\n                SET last_payday_block_height = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7b709bae1e9568fd76cac25703f0f0fc29ab86989796e1c8215576343de74beb"
+}

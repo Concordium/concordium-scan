@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT \n                reward_period_length, \n                epoch_duration, \n                last_payday_block_height as opt_last_payday_block_height,   \n                slot_time as last_payday_block_slot_time\n            FROM current_chain_parameters\n                JOIN blocks \n                ON blocks.height = last_payday_block_height\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "reward_period_length",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "epoch_duration",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "opt_last_payday_block_height",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "last_payday_block_slot_time",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "6d7cdf3eb927b15e8e2a21023b14f03d9a80e7f3dbe06806e8895e45fce4f6b7"
+}
