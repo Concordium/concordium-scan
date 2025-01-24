@@ -215,7 +215,7 @@ CREATE TABLE transactions(
 );
 
 -- Important for quickly filtering transactions in a given block.
-CREATE INDEX transactions_block_idx ON transactions (block_height);
+CREATE INDEX transactions_block_idx ON transactions (block_height, index);
 
 -- Every account on chain.
 CREATE TABLE accounts(
