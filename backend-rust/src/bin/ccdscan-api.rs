@@ -8,6 +8,8 @@ use prometheus_client::{
 };
 use sqlx::postgres::PgPoolOptions;
 use std::{net::SocketAddr, path::PathBuf};
+use std::time::Duration;
+use reqwest::Client;
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
@@ -47,6 +49,25 @@ struct Cli {
         env = "LOG_LEVEL"
     )]
     log_level:                 tracing_subscriber::filter::LevelFilter,
+    #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_BACKEND_ORIGIN", default_value = "https://dashboard.stagenet.concordium.com")]
+    node_collector_backend_origin: String,
+    #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_PULL_FREQUENCY_SEC", default_value = "5")]
+    node_collector_backend_pull_frequency_sec: u64,
+    #[arg(
+        long,
+        help = "Request timeout connecting to the node collector backend in seconds.",
+        env = "CCDSCAN_API_NODE_COLLECTOR_CLIENT_TIMEOUT_SECS",
+        default_value_t = 30
+    )]
+    node_collector_timeout_secs: u64,
+    #[arg(
+        long,
+        help = "Request connection timeout to the node collector backend in seconds.",
+        env = "CCDSCAN_API_NODE_COLLECTOR_CLIENT_CONNECTION_TIMEOUT_SECS",
+        default_value_t = 5
+    )]
+    node_collector_connection_timeout_secs: u64,
+
 }
 
 #[tokio::main]
@@ -79,8 +100,8 @@ async fn main() -> anyhow::Result<()> {
 
     let (subscription, subscription_listener) =
         graphql_api::Subscription::new(cli.database_retry_delay_secs);
-
-    let (block_sender, block_receiver) = tokio::sync::mpsc::channel(100);
+    // TODO fetch init value prior to startup
+    let (block_sender, block_receiver) = tokio::sync::watch::channel(Vec::new());
 
     let mut pgnotify_listener = {
         let pool = pool.clone();
@@ -90,7 +111,7 @@ async fn main() -> anyhow::Result<()> {
 
     let mut queries_task = {
         let pool = pool.clone();
-        let service = graphql_api::Service::new(subscription, &mut registry, pool, cli.api_config);
+        let service = graphql_api::Service::new(subscription, &mut registry, pool, cli.api_config, block_receiver);
         if let Some(schema_file) = cli.schema_out {
             info!("Writing schema to {}", schema_file.to_string_lossy());
             std::fs::write(
@@ -114,6 +135,16 @@ async fn main() -> anyhow::Result<()> {
         let stop_signal = cancel_token.child_token();
         info!("Monitoring server is running at {:?}", cli.monitoring_listen);
         tokio::spawn(router::serve(registry, tcp_listener, pool, stop_signal))
+    };
+    let mut node_collector_task = {
+        let stop_signal = cancel_token.child_token();
+        let client = Client::builder().connect_timeout(Duration::from_secs(
+            cli.node_collector_connection_timeout_secs,
+        ))
+        .timeout(Duration::from_secs(cli.node_collector_timeout_secs))
+        .build()?;
+        let service = graphql_api::node_status::Service::new(block_sender, &cli.node_collector_backend_origin, Duration::from_secs(cli.node_collector_backend_pull_frequency_sec), client, stop_signal);
+        tokio::spawn(service.serve())
     };
 
     // Await for signal to shutdown or any of the tasks to stop.
@@ -142,9 +173,16 @@ async fn main() -> anyhow::Result<()> {
             }
             cancel_token.cancel();
         }
+        result = &mut node_collector_task => {
+            error!("Node collector task stopped.");
+            if let Err(err) = result? {
+                error!("Node collector error: {}", err);
+            }
+            cancel_token.cancel();
+        }
     }
     info!("Shutting down");
     // Ensure all tasks have stopped
-    let _ = tokio::join!(monitoring_task, queries_task, pgnotify_listener);
+    let _ = tokio::join!(monitoring_task, queries_task, pgnotify_listener, node_collector_task);
     Ok(())
 }

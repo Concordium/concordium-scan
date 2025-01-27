@@ -13,6 +13,7 @@ mod module_reference_event;
 mod token;
 mod transaction;
 mod transaction_metrics;
+pub mod node_status;
 
 // TODO remove this macro, when done with first iteration
 /// Short hand for returning API error with the message not implemented.
@@ -23,17 +24,10 @@ macro_rules! todo_api {
 }
 pub(crate) use todo_api;
 
-use crate::{
-    scalar_types::{BlockHeight, DateTime, TimeSpan},
-    transaction_event::smart_contracts::InvalidContractVersionError,
-};
+use crate::{scalar_types::{BlockHeight, DateTime, TimeSpan}, transaction_event::smart_contracts::InvalidContractVersionError};
 use account::Account;
 use anyhow::Context as _;
-use async_graphql::{
-    http::GraphiQLSource,
-    types::{self, connection},
-    Context, EmptyMutation, Enum, MergedObject, Object, Schema, SimpleObject, Subscription,
-};
+use async_graphql::{http::GraphiQLSource, types::{connection}, Context, EmptyMutation, Enum, MergedObject, Object, Schema, SimpleObject, Subscription};
 use async_graphql_axum::GraphQLSubscription;
 use block::Block;
 use chrono::Duration;
@@ -53,11 +47,13 @@ use std::{
 };
 use token::Token;
 use tokio::{net::TcpListener, sync::broadcast};
+use tokio::sync::watch::Receiver;
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_util::sync::CancellationToken;
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{error, info};
 use transaction::Transaction;
+use node_status::NodeStatus;
 
 const VERSION: &str = clap::crate_version!();
 
@@ -141,6 +137,8 @@ pub struct ApiServiceConfig {
     token_holder_addresses_collection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_TOKEN_EVENTS_COLLECTION_LIMIT", default_value = "100")]
     token_events_collection_limit: u64,
+    #[arg(long, env = "CCDSCAN_API_CONFIG_NODE_STATUSES_CONNECTION_LIMIT", default_value = "100")]
+    node_statuses_collection_limit: u64,
 }
 
 #[derive(MergedObject, Default)]
@@ -155,6 +153,7 @@ pub struct Query(
     block_metrics::QueryBlockMetrics,
     module_reference_event::QueryModuleReferenceEvent,
     contract::QueryContract,
+    node_status::QueryNodeStatus,
     token::QueryToken,
 );
 
@@ -167,10 +166,12 @@ impl Service {
         registry: &mut Registry,
         pool: PgPool,
         config: ApiServiceConfig,
+        receiver: Receiver<Vec<NodeStatus>>
     ) -> Self {
         let schema = Schema::build(Query::default(), EmptyMutation, subscription)
             .extension(async_graphql::extensions::Tracing)
             .extension(monitor::MonitorExtension::new(registry))
+            .data(receiver)
             .data(pool)
             .data(config)
             .finish();
@@ -367,6 +368,8 @@ pub enum ApiError {
     NoDatabasePool(async_graphql::Error),
     #[error("Internal error: {}", .0.message)]
     NoServiceConfig(async_graphql::Error),
+    #[error("Internal error: {}", .0.message)]
+    NoReceiver(async_graphql::Error),
     #[error("Internal error: {0}")]
     FailedDatabaseQuery(Arc<sqlx::Error>),
     #[error("Invalid ID format: {0}")]
@@ -747,58 +750,6 @@ struct CollectionSegmentInfo {
     has_previous_page: bool,
 }
 
-#[derive(SimpleObject)]
-struct NodeStatus {
-    // TODO: add below fields
-    // peersList: [PeerReference!]!
-    // nodeName: String
-    // nodeId: String!
-    // peerType: String!
-    // uptime: UnsignedLong!
-    // clientVersion: String!
-    // averagePing: Float
-    // peersCount: UnsignedLong!
-    // bestBlock: String!
-    // bestBlockHeight: UnsignedLong!
-    // bestBlockBakerId: UnsignedLong
-    // bestArrivedTime: DateTime
-    // blockArrivePeriodEma: Float
-    // blockArrivePeriodEmsd: Float
-    // blockArriveLatencyEma: Float
-    // blockArriveLatencyEmsd: Float
-    // blockReceivePeriodEma: Float
-    // blockReceivePeriodEmsd: Float
-    // blockReceiveLatencyEma: Float
-    // blockReceiveLatencyEmsd: Float
-    // finalizedBlock: String!
-    // finalizedBlockHeight: UnsignedLong!
-    // finalizedTime: DateTime
-    // finalizationPeriodEma: Float
-    // finalizationPeriodEmsd: Float
-    // packetsSent: UnsignedLong!
-    // packetsReceived: UnsignedLong!
-    // consensusRunning: Boolean!
-    // bakingCommitteeMember: String!
-    // consensusBakerId: UnsignedLong
-    // finalizationCommitteeMember: Boolean!
-    // transactionsPerBlockEma: Float
-    // transactionsPerBlockEmsd: Float
-    // bestBlockTransactionsSize: UnsignedLong
-    // bestBlockTotalEncryptedAmount: UnsignedLong
-    // bestBlockTotalAmount: UnsignedLong
-    // bestBlockTransactionCount: UnsignedLong
-    // bestBlockTransactionEnergyCost: UnsignedLong
-    // bestBlockExecutionCost: UnsignedLong
-    // bestBlockCentralBankAmount: UnsignedLong
-    // blocksReceivedCount: UnsignedLong
-    // blocksVerifiedCount: UnsignedLong
-    // genesisBlock: String!
-    // finalizationCount: UnsignedLong
-    // finalizedBlockParent: String!
-    // averageBytesPerSecondIn: Float!
-    // averageBytesPerSecondOut: Float!
-    id: types::ID,
-}
 
 #[derive(SimpleObject)]
 struct Ranking {
