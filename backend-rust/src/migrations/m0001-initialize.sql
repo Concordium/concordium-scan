@@ -52,7 +52,8 @@ CREATE TYPE update_transaction_type AS ENUM (
     'TimeoutParametersUpdate',
     'MinBlockTimeUpdate',
     'BlockEnergyLimitUpdate',
-    'FinalizationCommitteeParametersUpdate'
+    'FinalizationCommitteeParametersUpdate',
+    'ValidatorScoreParametersUpdate'
 );
 
 CREATE TYPE transaction_type AS ENUM (
@@ -88,6 +89,8 @@ CREATE TYPE module_reference_contract_link_action AS ENUM (
 -- version 7 or above by the indexer before inserting these values is done. This ensures that the values are
 -- queried from the most recent consensus algorithm.
 CREATE TABLE current_chain_parameters(
+    -- This field is always `true` and a primary key to constrain the table to have a single row.
+    id BOOL PRIMARY KEY DEFAULT true CHECK (id),
     -- Duration of an epoch in milliseconds of the current consensus algorithm.
     -- E.g. This value is 1 hour for testnet in protocol version 7 or above.
     epoch_duration
@@ -98,7 +101,10 @@ CREATE TABLE current_chain_parameters(
     -- a new payday block is happening on testnet with reward payouts.
     reward_period_length
         BIGINT
-        NOT NULL
+        NOT NULL,
+    -- This field is only NULL when no payday block has been observed yet which is the case at the beginning of indexing the chain.
+    last_payday_block_height
+        BIGINT
 );
 
 -- Every block on chain.
@@ -213,6 +219,9 @@ CREATE TABLE transactions(
     reject
         JSONB
 );
+
+-- Important for quickly filtering transactions in a given block.
+CREATE INDEX transactions_block_idx ON transactions (block_height, index);
 
 -- Every account on chain.
 CREATE TABLE accounts(

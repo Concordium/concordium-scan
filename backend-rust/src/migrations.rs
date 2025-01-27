@@ -51,15 +51,21 @@ Use `ccdscan-indexer --migrate` to migrate the database schema."
         // any of the migrations were destructive, since the API would most likely still depend on
         // the information we produce an error in this case.
         Ordering::Greater => {
-            let destructive_migration = destructive_schema_version_since(pool, supported).await?;
-            if let Some(destructive_migration) = destructive_migration {
+            let destructive_migrations = destructive_schema_version_since(pool, supported).await?;
+            if !destructive_migrations.is_empty() {
                 anyhow::bail!(
                     "Database is using a newer schema version, which is not compatible with the \
-                     current version:
+                     supported version of this service.
     Support {}
-    Found {}",
+
+The following breaking schema migrations have happened:
+  - {}",
                     Migration::from(supported),
-                    destructive_migration
+                    destructive_migrations
+                        .iter()
+                        .map(|m| m.to_string())
+                        .collect::<Vec<_>>()
+                        .join("\n  - ")
                 );
             }
         }
@@ -140,16 +146,26 @@ impl From<SchemaVersion> for Migration {
 
 /// Represents database schema versions.
 /// Whenever migrating the database a new variant should be introduced.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, derive_more::Display)]
+#[derive(
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Clone,
+    Copy,
+    derive_more::Display,
+    num_derive::FromPrimitive,
+)]
 #[repr(i64)]
 pub enum SchemaVersion {
     #[display("0000:Empty database with no tables yet.")]
-    Empty            = 0,
+    Empty,
     #[display(
-        "0001:Initial schema version with tables for blocks, transaction, accounts, contracts, \
+        "0001:Initial schema version with tables for blocks, transactions, accounts, contracts, \
          tokens and more."
     )]
-    InitialFirstHalf = 1,
+    InitialFirstHalf,
 }
 impl SchemaVersion {
     /// The latest known version of the schema.
@@ -158,11 +174,7 @@ impl SchemaVersion {
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
     fn from_version(version: i64) -> Option<SchemaVersion> {
-        match version {
-            0 => Some(SchemaVersion::Empty),
-            1 => Some(SchemaVersion::InitialFirstHalf),
-            _ => None,
-        }
+        num_traits::FromPrimitive::from_i64(version)
     }
 
     /// Convert to the integer representation used as version in the database.
@@ -232,8 +244,8 @@ async fn has_migration_table(pool: &PgPool) -> anyhow::Result<bool> {
     Ok(has_migration_table)
 }
 
-/// Query the migrations table for any migrations which have been destructive
-/// since the provided version.
+/// Query the migrations table for the current database schema version.
+/// Results in an error if not migrations table found.
 async fn current_schema_version(pool: &PgPool) -> anyhow::Result<SchemaVersion> {
     let version = sqlx::query_scalar!("SELECT MAX(version) FROM migrations")
         .fetch_one(pool)
@@ -268,19 +280,18 @@ async fn insert_migration(
 async fn destructive_schema_version_since(
     pool: &PgPool,
     version: SchemaVersion,
-) -> anyhow::Result<Option<Migration>> {
-    let row = sqlx::query_as!(
+) -> anyhow::Result<Vec<Migration>> {
+    let rows = sqlx::query_as!(
         Migration,
         "SELECT
             version, description, destructive
         FROM migrations
         WHERE version > $1
             AND destructive IS TRUE
-        ORDER BY version ASC
-        LIMIT 1",
+        ORDER BY version ASC",
         version.as_i64()
     )
-    .fetch_optional(pool)
+    .fetch_all(pool)
     .await?;
-    Ok(row)
+    Ok(rows)
 }
