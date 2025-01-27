@@ -1,13 +1,18 @@
 use anyhow::Context;
 use sqlx::{Executor, PgPool};
+use std::cmp::Ordering;
 use tokio_util::sync::CancellationToken;
 use tracing::info;
 
 type Transaction = sqlx::Transaction<'static, sqlx::Postgres>;
 
-/// Ensure the database schema version is equal or newer than the supported
-/// schema version, and these newer versions are compatible. This is used by the
-/// API, to validate support for the current database schema.
+/// Ensure the current database schema version is compatible with the supported
+/// schema version.
+/// When the current database schema version is older than supported, ensure no
+/// additive versions since then, as the API might depend on information
+/// introduced. When the current database schema is newer, ensure no destructive
+/// versions have been introduced since then, as the API might depend on
+/// information now removed.
 pub async fn ensure_compatible_schema_version(
     pool: &PgPool,
     supported: SchemaVersion,
@@ -20,27 +25,44 @@ Use `ccdscan-indexer --migrate` to initialize the database schema."
         )
     }
     let current = current_schema_version(pool).await?;
-    if current < supported {
-        anyhow::bail!(
-            "Database is using an older schema version not supported by this version of \
-             `ccdscan-api`.
+    match current.cmp(&supported) {
+        // If the database schema version is exactly the supported one, we are done.
+        Ordering::Equal => (),
+        // If current database schema version is older than supported version, we check
+        // if any version between the current database schema and the
+        // supported are additive (non-destructive), if so the API most likely
+        // depend on this new information and we produce an error.
+        Ordering::Less => {
+            // Iterate versions between current and supported schema version.
+            for version_between in current.as_i64()..supported.as_i64() {
+                let version_between = SchemaVersion::from_version(version_between)
+                    .context("Unexpected gap between schema versions.")?;
+                if !version_between.is_destructive() {
+                    anyhow::bail!(
+                        "Database is using an older schema version not supported by this version \
+                         of `ccdscan-api`.
 
-Use `ccdscan-indexer --migrate` migrate the database schema."
-        )
-    }
-    if supported == current {
-        return Ok(());
-    }
-    let destructive_migration = destructive_schema_version_since(pool, supported).await?;
-    if let Some(destructive_migration) = destructive_migration {
-        anyhow::bail!(
-            "Database is using a newer schema version, which is not compatible with the current \
-             version:
+Use `ccdscan-indexer --migrate` to migrate the database schema."
+                    )
+                }
+            }
+        }
+        // If the database schema version is newer than the supported schema version, we check if
+        // any of the migrations were destructive, since the API would most likely still depend on
+        // the information we produce an error in this case.
+        Ordering::Greater => {
+            let destructive_migration = destructive_schema_version_since(pool, supported).await?;
+            if let Some(destructive_migration) = destructive_migration {
+                anyhow::bail!(
+                    "Database is using a newer schema version, which is not compatible with the \
+                     current version:
     Support {}
     Found {}",
-            Migration::from(supported),
-            destructive_migration
-        );
+                    Migration::from(supported),
+                    destructive_migration
+                );
+            }
+        }
     }
     Ok(())
 }
