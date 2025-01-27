@@ -30,7 +30,7 @@ The file `.env.template` in this project repository can be used as a starting po
 
 The required configurations are:
 
-- `--database-url <url>` (env `CCDSCAN_INDEXER_DATABASE_URL=<url>`): where `<url>` is the database connection in the format of a URL ex. `postgres://user:passwork@localhost/ccdscan`.
+- `--database-url <url>` (env `CCDSCAN_INDEXER_DATABASE_URL=<url>`): where `<url>` is the database connection in the format of a URL ex. `postgres://user:password@localhost/ccdscan`.
 - `--node <url>` (env `CCDSCAN_INDEXER_GRPC_ENDPOINTS=<url>`): where `<url>` is the gRPC endpoint of a Concordium node on the relevant network.
   Multiple nodes can be provided by providing multiple `--node <url>` arguments (environment variable take a comma separated list of URLs).
 
@@ -75,7 +75,7 @@ The file `.env.template` in this project repository can be used as a starting po
 
 The required configurations are:
 
-- `--database-url <url>` (env `CCDSCAN_API_DATABASE_URL=<url>`): where `<url>` is the database connection in the format of a URL ex. `postgres://user:passwork@localhost/ccdscan`.
+- `--database-url <url>` (env `CCDSCAN_API_DATABASE_URL=<url>`): where `<url>` is the database connection in the format of a URL ex. `postgres://user:password@localhost/ccdscan`.
   Only require read privileges for the database.
 
 For full list of configuration options for the API service run:
