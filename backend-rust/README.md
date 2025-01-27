@@ -145,6 +145,12 @@ git submodule update --init --recursive
 The file `.env.template` in this project repository can be used as a starting point for the `.env`.
 Make sure to enable compile-time checked quries by uncommenting the `DATABASE_URL` see section on this feature further below.
 
+To quickly get a PostgreSQL database instance running using [docker.io](https://www.docker.com/) the following command can be used:
+
+```
+docker run -p 5432:5432 -e POSTGRES_PASSWORD=password -e POSTGRES_DB="ccdscan" --rm postgres
+```
+
 ### Running database migrations
 
 The `sqlx-cli` tool provides a handy command for setting up the empty database, make sure the `DATABASE_URL` points to the location of the database and run:
