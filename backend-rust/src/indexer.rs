@@ -1,4 +1,5 @@
 use crate::{
+    block_special_event::{SpecialEvent, SpecialEventTypeFilter},
     graphql_api::AccountStatementEntryType,
     transaction_event::{
         baker::BakerPoolOpenStatus, events_from_summary,
@@ -619,9 +620,7 @@ impl ProcessEvent for BlockProcessor {
             for item in block.prepared_block_items.iter() {
                 item.save(&mut tx).await?;
             }
-            for item in block.special_items.iter() {
-                item.save(&mut tx).await?;
-            }
+            block.special_transaction_outcomes.save(&mut tx).await?;
             block.baker_unmark_suspended.save(&mut tx).await?;
             out.push_str(format!("\n- {}:{}", block.height, block.hash).as_str());
         }
@@ -859,24 +858,24 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
 /// Preprocessed block which is ready to be saved in the database.
 struct PreparedBlock {
     /// Hash of the block.
-    hash:                   String,
+    hash: String,
     /// Absolute height of the block.
-    height:                 i64,
+    height: i64,
     /// Block slot time (UTC).
-    slot_time:              DateTime<Utc>,
+    slot_time: DateTime<Utc>,
     /// Id of the validator which constructed the block. Is only None for the
     /// genesis block.
-    baker_id:               Option<i64>,
+    baker_id: Option<i64>,
     /// Total amount of CCD in existence at the time of this block.
-    total_amount:           i64,
+    total_amount: i64,
     /// Total staked CCD at the time of this block.
-    total_staked:           i64,
+    total_staked: i64,
     /// Block hash of the last finalized block.
-    block_last_finalized:   String,
+    block_last_finalized: String,
     /// Preprocessed block items, ready to be saved in the database.
-    prepared_block_items:   Vec<PreparedBlockItem>,
+    prepared_block_items: Vec<PreparedBlockItem>,
     /// Preprocessed block special items, ready to be saved in the database.
-    special_items:          Vec<PreparedSpecialTransactionOutcome>,
+    special_transaction_outcomes: PreparedSpecialTransactionOutcomes,
     /// Unmark the baker and signers of the Quorum Certificate from being primed
     /// for suspension.
     baker_unmark_suspended: PreparedUnmarkPrimedForSuspension,
@@ -902,13 +901,10 @@ impl PreparedBlock {
                 .push(PreparedBlockItem::prepare(node_client, data, item_summary, item).await?)
         }
 
-        let special_items: Vec<_> = data
-            .special_events
-            .iter()
-            .map(|event| {
-                PreparedSpecialTransactionOutcome::prepare(event, data.block_info.block_height)
-            })
-            .collect::<Result<_, _>>()?;
+        let special_transaction_outcomes = PreparedSpecialTransactionOutcomes::prepare(
+            data.block_info.block_height,
+            &data.special_events,
+        )?;
         let baker_unmark_suspended = PreparedUnmarkPrimedForSuspension::prepare(data)?;
         Ok(Self {
             hash,
@@ -919,7 +915,7 @@ impl PreparedBlock {
             total_staked,
             block_last_finalized,
             prepared_block_items,
-            special_items,
+            special_transaction_outcomes,
             baker_unmark_suspended,
         })
     }
@@ -3588,9 +3584,118 @@ impl PreparedCcdTransferEvent {
     }
 }
 
+/// Represents changes in the database from special transaction outcomes from a
+/// block.
+struct PreparedSpecialTransactionOutcomes {
+    /// Insert the special transaction outcomes for this block.
+    insert_special_transaction_outcomes: PreparedInsertBlockSpecialTransacionOutcomes,
+    /// Updates to various tables depending on the type of special transaction
+    /// outcome.
+    updates: Vec<PreparedSpecialTransactionOutcomeUpdate>,
+}
+
+impl PreparedSpecialTransactionOutcomes {
+    fn prepare(
+        block_height: AbsoluteBlockHeight,
+        events: &[SpecialTransactionOutcome],
+    ) -> anyhow::Result<Self> {
+        Ok(Self {
+            insert_special_transaction_outcomes:
+                PreparedInsertBlockSpecialTransacionOutcomes::prepare(block_height, events)?,
+            updates: events
+                .iter()
+                .map(|event| PreparedSpecialTransactionOutcomeUpdate::prepare(event, block_height))
+                .collect::<Result<_, _>>()?,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        self.insert_special_transaction_outcomes.save(tx).await?;
+        for update in self.updates.iter() {
+            update.save(tx).await?;
+        }
+        Ok(())
+    }
+}
+
+/// Insert special transaction outcomes for a particular block.
+struct PreparedInsertBlockSpecialTransacionOutcomes {
+    /// Height of the block containing these special events.
+    block_height:        i64,
+    /// Index of the outcome within this block in the order they
+    /// occur in the block.
+    block_outcome_index: Vec<i64>,
+    /// The types of the special transaction outcomes in the order they
+    /// occur in the block.
+    outcome_type:        Vec<SpecialEventTypeFilter>,
+    /// JSON serializations of `SpecialTransactionOutcome` in the order they
+    /// occur in the block.
+    outcomes:            Vec<serde_json::Value>,
+}
+
+impl PreparedInsertBlockSpecialTransacionOutcomes {
+    fn prepare(
+        block_height: AbsoluteBlockHeight,
+        events: &[SpecialTransactionOutcome],
+    ) -> anyhow::Result<Self> {
+        let block_height = block_height.height.try_into()?;
+        let mut block_outcome_index = Vec::with_capacity(events.len());
+        let mut outcome_type = Vec::with_capacity(events.len());
+        let mut outcomes = Vec::with_capacity(events.len());
+        for (block_index, event) in events.iter().enumerate() {
+            let outcome_index = block_index.try_into()?;
+            let special_event = SpecialEvent::from_special_transaction_outcome(
+                block_height,
+                outcome_index,
+                event.clone(),
+            )?;
+            block_outcome_index.push(outcome_index);
+            outcome_type.push(event.into());
+            outcomes.push(serde_json::to_value(special_event)?);
+        }
+        Ok(Self {
+            block_height,
+            block_outcome_index,
+            outcome_type,
+            outcomes,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            "INSERT INTO block_special_transaction_outcomes
+                 (block_height, block_outcome_index, outcome_type, outcome)
+             SELECT $1, block_outcome_index, outcome_type, outcome
+             FROM
+                 UNNEST(
+                     $2::BIGINT[],
+                     $3::special_transaction_outcome_type[],
+                     $4::JSONB[]
+                 ) AS outcomes(
+                     block_outcome_index,
+                     outcome_type,
+                     outcome
+                 )",
+            self.block_height,
+            &self.block_outcome_index,
+            &self.outcome_type as &[SpecialEventTypeFilter],
+            &self.outcomes
+        )
+        .execute(tx.as_mut())
+        .await?;
+        Ok(())
+    }
+}
+
 /// Represents updates in the database caused by a single special transaction
 /// outcome in a block.
-enum PreparedSpecialTransactionOutcome {
+enum PreparedSpecialTransactionOutcomeUpdate {
     /// Distribution of various CCD rewards. Excluding CCD mint rewards.
     Rewards(Vec<PreparedUpdateAccountBalance>),
     /// Represents a payday block with its CCD mint rewards and its block
@@ -3602,7 +3707,7 @@ enum PreparedSpecialTransactionOutcome {
     ValidatorSuspended(PreparedValidatorSuspension),
 }
 
-impl PreparedSpecialTransactionOutcome {
+impl PreparedSpecialTransactionOutcomeUpdate {
     fn prepare(
         event: &SpecialTransactionOutcome,
         block_height: AbsoluteBlockHeight,

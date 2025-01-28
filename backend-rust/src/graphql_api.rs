@@ -78,6 +78,12 @@ pub struct ApiServiceConfig {
     transactions_per_block_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_BLOCK_CONNECTION_LIMIT", default_value = "100")]
     block_connection_limit: u64,
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_SPECIAL_EVENTS_PER_BLOCK_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
+    special_events_per_block_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_ACCOUNT_CONNECTION_LIMIT", default_value = "100")]
     account_connection_limit: u64,
     #[arg(

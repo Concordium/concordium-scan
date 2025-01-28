@@ -62,6 +62,10 @@ impl TryFrom<UnsignedLong> for i64 {
     fn try_from(number: UnsignedLong) -> Result<Self, Self::Error> { number.0.try_into() }
 }
 
+impl From<concordium_rust_sdk::common::types::Amount> for UnsignedLong {
+    fn from(value: concordium_rust_sdk::common::types::Amount) -> Self { Self(value.micro_ccd()) }
+}
+
 /// The `Long` scalar type represents non-fractional signed whole 64-bit numeric
 /// values. Long can represent values between -(2^63) and 2^63 - 1.
 #[derive(
@@ -97,6 +101,13 @@ impl TryFrom<u64> for Long {
     type Error = std::num::TryFromIntError;
 
     fn try_from(value: u64) -> Result<Self, Self::Error> { Ok(Self(value.try_into()?)) }
+}
+impl TryFrom<concordium_rust_sdk::types::BakerId> for Long {
+    type Error = std::num::TryFromIntError;
+
+    fn try_from(value: concordium_rust_sdk::types::BakerId) -> Result<Self, Self::Error> {
+        value.id.index.try_into()
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, derive_more::From)]

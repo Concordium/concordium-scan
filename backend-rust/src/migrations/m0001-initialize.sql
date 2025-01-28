@@ -789,3 +789,42 @@ CREATE TABLE account_statements (
 );
 
 CREATE INDEX account_statements_entry_type_idx ON account_statements (id, account_index, entry_type);
+
+-- Type of a special transaction outcome in a block.
+CREATE TYPE special_transaction_outcome_type AS ENUM (
+    'BakingRewards',
+    'Mint',
+    'FinalizationRewards',
+    'BlockRewards',
+    'PaydayFoundationReward',
+    'PaydayAccountReward',
+    'BlockAccrueReward',
+    'PaydayPoolReward',
+    'ValidatorSuspended',
+    'ValidatorPrimedForSuspension'
+);
+
+-- Table indexing special transaction outcomes in blocks.
+CREATE TABLE block_special_transaction_outcomes (
+    -- Height of the block containing the special transaction outcome.
+    block_height
+        BIGINT
+        NOT NULL
+        REFERENCES blocks,
+    -- Index of the outcome within the special transaction outcomes of a block.
+    block_outcome_index
+        BIGINT
+        NOT NULL,
+    -- The type of the special transaction outcome.
+    outcome_type
+        special_transaction_outcome_type
+        NOT NULL,
+    -- The special transaction outcome stored as JSON.
+    outcome
+        JSONB
+        NOT NULL
+);
+
+-- Index allowing for efficiently finding particular type of outcomes for a particular block.
+CREATE INDEX block_special_transaction_outcomes_idx
+    ON block_special_transaction_outcomes (block_height, outcome_type, block_outcome_index);

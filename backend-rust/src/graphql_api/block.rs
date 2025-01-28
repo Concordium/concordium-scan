@@ -1,6 +1,6 @@
-use super::{get_config, get_pool, todo_api, ApiError, ApiResult, ConnectionQuery};
+use super::{get_config, get_pool, ApiError, ApiResult, ConnectionQuery};
 use crate::{
-    address::AccountAddress,
+    block_special_event::{SpecialEvent, SpecialEventTypeFilter},
     graphql_api::Transaction,
     scalar_types::{Amount, BakerId, BlockHash, BlockHeight, DateTime},
     transaction_event::Event,
@@ -10,7 +10,7 @@ use crate::{
         UpdateTransactionType,
     },
 };
-use async_graphql::{connection, types, ComplexObject, Context, Enum, Object, SimpleObject, Union};
+use async_graphql::{connection, types, Context, Object, SimpleObject};
 use futures::TryStreamExt;
 use std::cmp::{max, min};
 
@@ -206,11 +206,14 @@ impl Block {
         Ok(result.count.unwrap_or(0))
     }
 
+    /// Query the special events (aka. special transaction outcomes) associated
+    /// with this block.
     async fn special_events(
         &self,
+        ctx: &Context<'_>,
         #[graphql(desc = "Filter special events by special event type. Set to null to return \
                           all special events (no filtering).")]
-        include_filters: Option<Vec<SpecialEventTypeFilter>>,
+        include_filter: Option<Vec<SpecialEventTypeFilter>>,
         #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
@@ -218,7 +221,73 @@ impl Block {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, SpecialEvent>> {
-        todo_api!()
+        let config = get_config(ctx)?;
+        let pool = get_pool(ctx)?;
+        let query = ConnectionQuery::<i64>::new(
+            first,
+            after,
+            last,
+            before,
+            config.special_events_per_block_connection_limit,
+        )?;
+        let disable_filtering = include_filter.is_none();
+        let filters = include_filter.unwrap_or_default();
+        let mut row_stream = sqlx::query_as!(
+            BlockSpecialTransactionOutcome,
+            r#"
+            SELECT * FROM (
+                SELECT
+                    block_outcome_index,
+                    outcome as "outcome: _"
+                FROM block_special_transaction_outcomes
+                WHERE
+                    block_height = $5
+                    AND ($6 OR outcome_type = ANY($7))
+                AND block_outcome_index > $1 AND block_outcome_index < $2
+                ORDER BY
+                    CASE WHEN $3 THEN block_outcome_index END DESC,
+                    CASE WHEN NOT $3 THEN block_outcome_index END ASC
+                LIMIT $4
+            ) ORDER BY block_outcome_index ASC"#,
+            query.from,
+            query.to,
+            query.desc,
+            query.limit,
+            self.height,
+            disable_filtering,
+            filters.as_ref() as &[SpecialEventTypeFilter]
+        )
+        .fetch(pool);
+        let mut connection = connection::Connection::new(false, false);
+        let mut page_max_index = None;
+        let mut page_min_index = None;
+        while let Some(row) = row_stream.try_next().await? {
+            page_max_index = Some(match page_max_index {
+                None => row.block_outcome_index,
+                Some(current_max) => max(current_max, row.block_outcome_index),
+            });
+            page_min_index = Some(match page_min_index {
+                None => row.block_outcome_index,
+                Some(current_min) => min(current_min, row.block_outcome_index),
+            });
+            let cursor = row.block_outcome_index.to_string();
+            connection.edges.push(connection::Edge::new(cursor, row.outcome.0));
+        }
+        if let (Some(page_min_id), Some(page_max_id)) = (page_min_index, page_max_index) {
+            let max_index = sqlx::query_scalar!(
+                "SELECT
+                     MAX(block_outcome_index)
+                 FROM block_special_transaction_outcomes
+                 WHERE block_height = $1",
+                self.height
+            )
+            .fetch_one(pool)
+            .await?
+            .unwrap_or(0);
+            connection.has_previous_page = page_min_index.map_or(false, |i| i > 0);
+            connection.has_next_page = page_max_id < max_index;
+        }
+        Ok(connection)
     }
 
     async fn transactions(
@@ -249,7 +318,7 @@ impl Block {
             Transaction,
             r#"
             SELECT * FROM (
-                SELECT 
+                SELECT
                     index,
                     block_height,
                     hash,
@@ -343,172 +412,9 @@ struct BlockStatistics {
     finalization_time: Option<f64>,
 }
 
-#[derive(Enum, Copy, Clone, PartialEq, Eq)]
-enum SpecialEventTypeFilter {
-    Mint,
-    FinalizationRewards,
-    BlockRewards,
-    BakingRewards,
-    PaydayAccountReward,
-    BlockAccrueReward,
-    PaydayFoundationReward,
-    PaydayPoolReward,
-}
-
-#[derive(Union)]
-#[allow(clippy::enum_variant_names)]
-enum SpecialEvent {
-    MintSpecialEvent(MintSpecialEvent),
-    FinalizationRewardsSpecialEvent(FinalizationRewardsSpecialEvent),
-    BlockRewardsSpecialEvent(BlockRewardsSpecialEvent),
-    BakingRewardsSpecialEvent(BakingRewardsSpecialEvent),
-    PaydayAccountRewardSpecialEvent(PaydayAccountRewardSpecialEvent),
-    BlockAccrueRewardSpecialEvent(BlockAccrueRewardSpecialEvent),
-    PaydayFoundationRewardSpecialEvent(PaydayFoundationRewardSpecialEvent),
-    PaydayPoolRewardSpecialEvent(PaydayPoolRewardSpecialEvent),
-}
-
-#[derive(SimpleObject)]
-struct MintSpecialEvent {
-    baking_reward: Amount,
-    finalization_reward: Amount,
-    platform_development_charge: Amount,
-    foundation_account_address: AccountAddress,
-    id: types::ID,
-}
-
-#[derive(SimpleObject)]
-#[graphql(complex)]
-struct FinalizationRewardsSpecialEvent {
-    remainder: Amount,
-    id:        types::ID,
-}
-
-#[ComplexObject]
-impl FinalizationRewardsSpecialEvent {
-    async fn finalization_rewards(
-        &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: i32,
-        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        after: String,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: i32,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        before: String,
-    ) -> ApiResult<connection::Connection<String, AccountAddressAmount>> {
-        todo_api!()
-    }
-}
-
-#[derive(SimpleObject)]
-struct BlockRewardsSpecialEvent {
-    transaction_fees: Amount,
-    old_gas_account: Amount,
-    new_gas_account: Amount,
-    baker_reward: Amount,
-    foundation_charge: Amount,
-    baker_account_address: AccountAddress,
-    foundation_account_address: AccountAddress,
-    id: types::ID,
-}
-
-#[derive(SimpleObject)]
-#[graphql(complex)]
-struct BakingRewardsSpecialEvent {
-    remainder: Amount,
-    id:        types::ID,
-}
-#[ComplexObject]
-impl BakingRewardsSpecialEvent {
-    async fn baking_rewards(
-        &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: i32,
-        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        after: String,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: i32,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        before: String,
-    ) -> ApiResult<connection::Connection<String, AccountAddressAmount>> {
-        todo_api!()
-    }
-}
-
-#[derive(SimpleObject)]
-struct PaydayAccountRewardSpecialEvent {
-    /// The account that got rewarded.
-    account:             AccountAddress,
-    /// The transaction fee reward at payday to the account.
-    transaction_fees:    Amount,
-    /// The baking reward at payday to the account.
-    baker_reward:        Amount,
-    /// The finalization reward at payday to the account.
-    finalization_reward: Amount,
-    id:                  types::ID,
-}
-
-#[derive(SimpleObject)]
-struct BlockAccrueRewardSpecialEvent {
-    /// The total fees paid for transactions in the block.
-    transaction_fees:  Amount,
-    /// The old balance of the GAS account.
-    old_gas_account:   Amount,
-    /// The new balance of the GAS account.
-    new_gas_account:   Amount,
-    /// The amount awarded to the baker.
-    baker_reward:      Amount,
-    /// The amount awarded to the passive delegators.
-    passive_reward:    Amount,
-    /// The amount awarded to the foundation.
-    foundation_charge: Amount,
-    /// The baker of the block, who will receive the award.
-    baker_id:          BakerId,
-    id:                types::ID,
-}
-
-#[derive(SimpleObject)]
-struct PaydayFoundationRewardSpecialEvent {
-    foundation_account: AccountAddress,
-    development_charge: Amount,
-    id:                 types::ID,
-}
-
-#[derive(SimpleObject)]
-struct PaydayPoolRewardSpecialEvent {
-    /// The pool awarded.
-    pool:                PoolRewardTarget,
-    /// Accrued transaction fees for pool.
-    transaction_fees:    Amount,
-    /// Accrued baking rewards for pool.
-    baker_reward:        Amount,
-    /// Accrued finalization rewards for pool.
-    finalization_reward: Amount,
-    id:                  types::ID,
-}
-
-#[derive(Union)]
-enum PoolRewardTarget {
-    PassiveDelegationPoolRewardTarget(PassiveDelegationPoolRewardTarget),
-    BakerPoolRewardTarget(BakerPoolRewardTarget),
-}
-
-#[derive(SimpleObject)]
-struct PassiveDelegationPoolRewardTarget {
-    #[graphql(
-        name = "_",
-        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL \
-                       type (which does not allow types without any fields)"
-    )]
-    dummy: bool,
-}
-
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct BakerPoolRewardTarget {
-    baker_id: BakerId,
-}
-
-#[derive(SimpleObject)]
-struct AccountAddressAmount {
-    account_address: AccountAddress,
-    amount:          Amount,
+struct BlockSpecialTransactionOutcome {
+    block_outcome_index: i64,
+    outcome:             sqlx::types::Json<SpecialEvent>,
 }
 
 #[derive(SimpleObject)]
