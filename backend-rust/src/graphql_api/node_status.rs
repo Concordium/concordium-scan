@@ -317,7 +317,7 @@ mod tests {
             .await;
         let deserialized: Vec<NodeStatus> = from_str(response).expect("Failed to deserialize JSON");
         let client = Client::new();
-        let mut gc = NodeCollectorBackendClient::new(client, server.url());
+        let gc = NodeCollectorBackendClient::new(client, server.url().as_str());
         let summary = gc.get_summary().await;
         assert!(summary.is_ok());
         assert_eq!(deserialized, summary.unwrap());
