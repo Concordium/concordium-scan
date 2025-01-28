@@ -45,6 +45,8 @@ struct Cli {
     monitoring_listen: SocketAddr,
     #[command(flatten, next_help_heading = "Configuration")]
     api_config: graphql_api::ApiServiceConfig,
+    /// The maximum log level. Possible values are: `trace`, `debug`, `info`,
+    /// `warn`, and `error`.
     #[arg(long, default_value = "info", env = "LOG_LEVEL")]
     log_level: tracing_subscriber::filter::LevelFilter,
     /// Check whether the database schema version is compatible with this
