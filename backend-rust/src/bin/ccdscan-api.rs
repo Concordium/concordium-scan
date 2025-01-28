@@ -54,31 +54,26 @@ struct Cli {
     /// Non-zero exit code is returned when incompatible.
     #[arg(long, env = "CCDSCAN_API_CHECK_DATABASE_COMPATIBILITY_ONLY")]
     check_database_compatibility_only: bool,
-    #[arg(
-        long,
-        env = "CCDSCAN_API_NODE_COLLECTOR_BACKEND_ORIGIN",
-        default_value = "https://dashboard.stagenet.concordium.com"
-    )]
+    /// Origin to the node collector backend
+    #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_BACKEND_ORIGIN")]
     node_collector_backend_origin: String,
+    /// Interval in between each poll from the node collector backend
     #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_PULL_FREQUENCY_SEC", default_value = "5")]
     node_collector_backend_pull_frequency_sec: u64,
-    #[arg(
-        long,
-        help = "Request timeout connecting to the node collector backend in seconds.",
-        env = "CCDSCAN_API_NODE_COLLECTOR_CLIENT_TIMEOUT_SECS",
-        default_value_t = 30
-    )]
+    /// Request timeout connecting to the node collector backend in seconds.
+    #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_CLIENT_TIMEOUT_SECS", default_value_t = 30)]
     node_collector_timeout_secs: u64,
+    /// Request connection timeout to the node collector backend in seconds.
     #[arg(
         long,
-        help = "Request connection timeout to the node collector backend in seconds.",
         env = "CCDSCAN_API_NODE_COLLECTOR_CLIENT_CONNECTION_TIMEOUT_SECS",
         default_value_t = 5
     )]
     node_collector_connection_timeout_secs: u64,
+    /// Max size to not discard while requesting nodes from the node collector
+    /// backend
     #[arg(
         long,
-        help = "Request connection timeout to the node collector backend in seconds.",
         env = "CCDSCAN_API_NODE_COLLECTOR_CONNECTION_MAX_CONTENT_LENGTH",
         default_value_t = 4000000
     )]
