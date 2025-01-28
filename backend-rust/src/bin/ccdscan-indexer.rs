@@ -9,6 +9,7 @@ use prometheus_client::{
     metrics::{family::Family, gauge::Gauge},
     registry::Registry,
 };
+use serde_json::json;
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
@@ -118,12 +119,14 @@ async fn main() -> anyhow::Result<()> {
         tokio::spawn(indexer.run(stop_signal))
     };
     let mut monitoring_task = {
+        let health_routes =
+            axum::Router::new().route("/", axum::routing::get(health)).with_state(pool);
         let tcp_listener = TcpListener::bind(cli.monitoring_listen)
             .await
             .context("Parsing TCP listener address failed")?;
         let stop_signal = cancel_token.child_token();
         info!("Monitoring server is running at {:?}", cli.monitoring_listen);
-        tokio::spawn(router::serve(registry, tcp_listener, pool, stop_signal))
+        tokio::spawn(router::serve(registry, tcp_listener, stop_signal, health_routes))
     };
     // Await for signal to shutdown or any of the tasks to stop.
     tokio::select! {
@@ -148,4 +151,21 @@ async fn main() -> anyhow::Result<()> {
     };
     let _ = tokio::join!(monitoring_task, indexer_task);
     Ok(())
+}
+
+/// GET Handler for route `/health`.
+/// Verifying the indexer service state is as expected.
+async fn health(
+    axum::extract::State(pool): axum::extract::State<sqlx::PgPool>,
+) -> axum::Json<serde_json::Value> {
+    match migrations::ensure_latest_schema_version(&pool).await {
+        Ok(_) => axum::Json(json!({
+            "status": "ok",
+            "database": "connected"
+        })),
+        Err(err) => axum::Json(json!({
+            "status": "error",
+            "database": format!("not connected: {}", err)
+        })),
+    }
 }
