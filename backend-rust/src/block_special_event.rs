@@ -1,6 +1,7 @@
 use crate::{
     address::AccountAddress,
-    graphql_api::{ApiError, ApiResult},
+    connection::connection_from_slice,
+    graphql_api::ApiResult,
     scalar_types::{Amount, BakerId},
 };
 use async_graphql::{connection, types, Object, SimpleObject, Union};
@@ -379,43 +380,4 @@ impl From<&concordium_rust_sdk::types::SpecialTransactionOutcome> for SpecialEve
             } => Self::ValidatorPrimedForSuspension,
         }
     }
-}
-
-fn connection_from_slice<A: async_graphql::OutputType>(
-    collection: &[A],
-    first: Option<usize>,
-    after: Option<String>,
-    last: Option<usize>,
-    before: Option<String>,
-) -> ApiResult<connection::Connection<String, &A>> {
-    if first.is_some() && last.is_some() {
-        return Err(ApiError::QueryConnectionFirstLast);
-    }
-    let mut start: usize = if let Some(after) = after {
-        after.parse::<usize>()? + 1
-    } else {
-        0
-    };
-    let mut end: usize = if let Some(before) = before {
-        before.parse::<usize>()?
-    } else {
-        collection.len()
-    };
-    if let Some(first) = first {
-        end = (start + first).min(end);
-    }
-    if let Some(last) = last {
-        start = if last > end - start {
-            end
-        } else {
-            end - last
-        };
-    }
-    let range = start..end;
-    let slice = &collection[range.clone()];
-    let mut connection = connection::Connection::new(start > 0, end < collection.len());
-    for (i, item) in range.zip(slice.iter()) {
-        connection.edges.push(connection::Edge::new(i.to_string(), item))
-    }
-    Ok(connection)
 }

@@ -5,6 +5,7 @@ pub mod router;
 
 mod address;
 mod block_special_event;
+mod connection;
 mod decoded_text;
 mod scalar_types;
 mod transaction_event;
