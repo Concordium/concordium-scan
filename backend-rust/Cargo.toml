@@ -38,6 +38,8 @@ tonic = { version = "0.10.2", features = ["tls-roots", "tls"]}
 tower-http = { version = "0.6", features = ["cors"] }
 bigdecimal = "0.4.7"
 regex = "1.10.4"
+num-derive = "0.4.2"
+num-traits = "0.2.19"
 
 # Recommended by SQLx to speed up incremental builds
 [profile.dev.package.sqlx-macros]

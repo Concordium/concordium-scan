@@ -85,19 +85,19 @@ CREATE TYPE module_reference_contract_link_action AS ENUM (
     'Removed'
 );
 
--- Chain and consensus parameters queried from a caught-up node. A check that the node is on the protocol 
--- version 7 or above by the indexer before inserting these values is done. This ensures that the values are 
+-- Chain and consensus parameters queried from a caught-up node. A check that the node is on the protocol
+-- version 7 or above by the indexer before inserting these values is done. This ensures that the values are
 -- queried from the most recent consensus algorithm.
 CREATE TABLE current_chain_parameters(
     -- This field is always `true` and a primary key to constrain the table to have a single row.
-    id BOOL PRIMARY KEY DEFAULT true CHECK (id), 
+    id BOOL PRIMARY KEY DEFAULT true CHECK (id),
     -- Duration of an epoch in milliseconds of the current consensus algorithm.
     -- E.g. This value is 1 hour for testnet in protocol version 7 or above.
     epoch_duration
         BIGINT
         NOT NULL,
     -- Number of epochs between reward payouts.
-    -- E.g. This value is 24 for testnet in protocol version 7 or above. This means after 24 hours 
+    -- E.g. This value is 24 for testnet in protocol version 7 or above. This means after 24 hours
     -- a new payday block is happening on testnet with reward payouts.
     reward_period_length
         BIGINT
@@ -645,14 +645,14 @@ CREATE TABLE account_tokens (
     token_index
         BIGINT
         NOT NULL,
-    -- The accumulated balance of the token by the above account calculated by considering all `MintEvents`, `BurnEvents` and 
+    -- The accumulated balance of the token by the above account calculated by considering all `MintEvents`, `BurnEvents` and
     -- `TransferEvents` associated to the token and account. If no balance is specified when inserting a new row in the table,
     -- the default balance 0 is used.
     balance
         NUMERIC
         NOT NULL
         DEFAULT 0,
-    -- Every time an `account_token` is inserted or updated in this table, a sequential index is assigned 
+    -- Every time an `account_token` is inserted or updated in this table, a sequential index is assigned
     -- to the operation and tracked in this sequence.
     -- This sequence is used to sort/filter the newest tokens transferred to an account address.
     change_seq BIGINT DEFAULT nextval('account_tokens_update_seq'),
@@ -682,7 +682,7 @@ CREATE TABLE cis2_token_events (
     token_index
         BIGINT
         NOT NULL,
-    -- The cis2 token event. Only `Mint`, `Burn`, `Transfer` and `TokenMetadata` events can occure in the field 
+    -- The cis2 token event. Only `Mint`, `Burn`, `Transfer` and `TokenMetadata` events can occure in the field
     -- (no `UpdateOperator` event because the event cannot be linked to a specific token).
     cis2_token_event
         JSONB

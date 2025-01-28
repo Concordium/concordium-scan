@@ -13,7 +13,7 @@ The service is split to allow for running several instances of the GraphQL API a
 
 To run the services, the following dependencies are required to be available on the system:
 
-- PostgreSQL server 16
+- PostgreSQL server 16 or higher
 
 ## Run the Indexer Service
 
@@ -21,48 +21,73 @@ The indexer talks to a Concordium node in order to gather data about the chain, 
 Note that the connected Concordium node needs to be caught-up to protocol 7 or above.
 Note that only one instance of the indexer may run at any one time, as multiple instances would conflict with each other.
 
-For instructions on how to use the indexer run:
+### Configuring
+
+The indexer service have several options for configuration, and these can be provided as command-line arguments or/and environment variables, where the command-line arguments take precedence.
+By default the service also reads environment variables a `.env` directory if present in the current directory of the running process.
+
+The file `.env.template` in this project repository can be used as a starting point.
+
+The required configurations are:
+
+- `--database-url <url>` (env `CCDSCAN_INDEXER_DATABASE_URL=<url>`): where `<url>` is the database connection in the format of a URL ex. `postgres://user:password@localhost/ccdscan`.
+- `--node <url>` (env `CCDSCAN_INDEXER_GRPC_ENDPOINTS=<url>`): where `<url>` is the gRPC endpoint of a Concordium node on the relevant network.
+  Multiple nodes can be provided by providing multiple `--node <url>` arguments (environment variable take a comma separated list of URLs).
+
+For full list of configuration options for the indexer service run:
 
 ```
 ccdscan-indexer --help
 ```
 
-## Run the Indexer Service during development
+## Database schema setup and migrations
 
-Examples:
+To set up the database schema either from an empty database or migration from an older release of `ccdscan-indexer` run:
 
 ```
-cargo run --bin ccdscan-indexer -- --node http://localhost:20001 --max-parallel-block-preprocessors 20 --max-processing-batch 20
-cargo run --bin ccdscan-indexer -- --node https://grpc.testnet.concordium.com:20000 --max-parallel-block-preprocessors 20 --max-processing-batch 20
+ccdscan-indexer --migrate
 ```
 
-Note: Since the indexer puts a lot of load on the node, use your own local node whenever possible.
-If using the public nodes, run the indexer as short as possible.
+which will first make sure to have the database migrated before running the service.
 
-<!-- TODO When service become stable: add documentation of arguments and environment variables. -->
+In production it is recommended to run migrations with elevated privileges and then the indexer service with more restricted privileges, use:
+
+```
+ccdscan-indexer --migrate-only
+```
+
+which will run the migrations and then exit.
 
 ## Run the GraphQL API Service
 
-For instructions on how to use the API service run:
+The GraphQL API service is designed to be run independently of the indexer service, and provides the API directly from the database.
+The service support running several instances at once, to allow for load-balancing and zero down time.
+
+During startup the GraphQL API service will verify the compatibility of the current database schema version.
+See `ccdscan-indexer` for how to update the database schema version.
+
+### Configuring
+
+The GraphQL API service have several options for configuration, and these can be provided as command-line arguments or/and environment variables, where the command-line arguments take precedence.
+By default the service also reads environment variables a `.env` directory if present in the current directory of the running process.
+
+The file `.env.template` in this project repository can be used as a starting point.
+
+The required configurations are:
+
+- `--database-url <url>` (env `CCDSCAN_API_DATABASE_URL=<url>`): where `<url>` is the database connection in the format of a URL ex. `postgres://user:password@localhost/ccdscan`.
+  Only require read privileges for the database.
+
+For full list of configuration options for the API service run:
 
 ```
 ccdscan-api --help
 ```
 
-## Run the GraphQL API Service during development
-
-Example:
-
-```
-cargo run --bin ccdscan-api
-```
-
-<!-- TODO When service become stable: add documentation of arguments and environment variables. -->
-
 ### GraphiQL IDE
 
 Starting the GraphQL API Service above will provide you an interface
-(usually at 127.0.0.1:8000) to execute GraphQL queries.
+(defaults to [127.0.0.1:8000](http://127.0.0.1:8000)) to execute GraphQL queries.
 
 An example is shown below:
 
@@ -102,7 +127,9 @@ Variables:
 
 ![ExampleQuery](./ExampleQuery.png)
 
-## Setup for development
+## Contributing
+
+### Setup
 
 To develop this service the following tools are required, besides the dependencies listed above:
 
@@ -115,67 +142,71 @@ This project has some dependencies tracked as Git submodules, so make sure to in
 git submodule update --init --recursive
 ```
 
-### Initialize External Dependencies
+The file `.env.template` in this project repository can be used as a starting point for the `.env`.
+Make sure to enable compile-time checked quries by uncommenting the `DATABASE_URL` see section on this feature further below.
 
-To set up the external dependencies required for development, including initializing the database schema, you can choose one of the following options:
-
-#### Option 1: Start from Fresh
-
-```bash
-make setup && make
-```
-
-#### Option 2: Reuse an Already Initialized Database
-
-```bash
-make setup-env-with-password && make
-```
-
-* `make setup`: Performs a one-time setup to generate the password and store it in the .env file
-* `make setup-env-with-password`: Asks for the password to the database and store it in the .env file
-* `make`: Starts the database service, and inserts the required SQL structure.
-
-Given that one wants follow the logs of the database:
+To quickly get a PostgreSQL database instance running using [docker.io](https://www.docker.com/) the following command can be used:
 
 ```
-docker logs -f postgres_db
+docker run -p 5432:5432 -e POSTGRES_PASSWORD=password -e POSTGRES_DB="ccdscan" --rm postgres
 ```
 
-### Database migrations
+### Running database migrations
 
-Database migrations are tracked in the `migrations` directory.
-To introduce a new one run:
+The `sqlx-cli` tool provides a handy command for setting up the empty database, make sure the `DATABASE_URL` points to the location of the database and run:
 
 ```
-sqlx migrate add '<description>'
+sqlx database create
 ```
 
-where `<description>` is replaced by a short description of the nature of the migration.
+To setup the database schema when developing the service run:
 
-This will create two files in the directory:
+```
+env SQLX_OFFLINE=true cargo run --bin ccdscan-indexer -- --migrate-only
+```
 
-- `<database-version>_<description>.up.sql` for the SQL code to bring the database up from the previous version.
-- `<database-version>_<description>.down.sql` for the SQL code reverting back to the previous version.
+NOTE: Having compile-time checked queries causes issues, since the queries are invalid until the database have been properly migrated, hence we disable these checks against the live database by setting `SQLX_OFFLINE=TRUE` during bootstrapping of the database.
 
-### `sqlx` features
+### Run the Indexer Service during development
 
-- Feature 1:
+Assuming the `.env` file contains the required arguments and after the database has been migrated, the API service can be build and run using:
 
-The tool validates database queries at compile-time, ensuring they are both syntactically
-correct and type-safe. To take advantage of this feature, you should run the following
-command every time you update the database schema.
-Run a live database with the new schema and execute the command:
+```
+cargo run --bin ccdscan-indexer
+```
+
+Note: Since the indexer puts a lot of load on the gRPC of the Concordium node, use your own local node whenever possible and never use a node which is also used for block validation.
+If using the public nodes, run the indexer as short as possible.
+
+### Run the GraphQL API Service during development
+
+Assuming the `.env` file contains the required arguments and after the database has been migrated, the API service can be build and run using:
+
+```
+cargo run --bin ccdscan-api
+```
+
+### Introducing a new migration
+
+Database migrations are tracked in the `src/migrations.rs` file and every version of the database schema are represented by the `SchemaVersion` enum in this file.
+
+To introduce a new database schema version:
+
+#. Extend the `SchemaVersion` enum with a variant representing changes since previous version.
+#. Extend functions found in `impl SchemaVersion`. Every required function should produce compile-time errors for the now missing variant.
+#. Enable by setting `SchemaVersion::LATEST` to this new variant.
+
+### Compile-time checked queries feature
+
+Database queries are checked at compile-time against the database. This ensures they are both syntactically
+correct and type-safe. To enable this the set the `DATABASE_URL` environment variable (can be done in a `.env` file) which causes the queries to be validated against the schema of the provided database.
+
+In order for the CI to verify the queries, developers must provide cached results of the checks.
+These must be generated every time there is a change in a query or a new one is introduced.
+This is done by running a live database with the latest database schema, having the `DATABASE_URL` environment variable set and execute the command (requires `sqlx-cli` installed):
 
 ```
 cargo sqlx prepare
 ```
 
-This will generate type metadata for the queries in the `.sqlx` folder.
-
-- Feature 2:
-
-If you want to drop the entire database and start with an empty database that uses the current schema, execute the command:
-
-```
-sqlx database reset --force
-```
+This will update the cache for the queries in the `.sqlx` folder.
