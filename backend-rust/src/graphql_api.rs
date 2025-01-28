@@ -10,10 +10,10 @@ mod block;
 mod block_metrics;
 mod contract;
 mod module_reference_event;
+pub mod node_status;
 mod token;
 mod transaction;
 mod transaction_metrics;
-pub mod node_status;
 
 // TODO remove this macro, when done with first iteration
 /// Short hand for returning API error with the message not implemented.
@@ -24,14 +24,15 @@ macro_rules! todo_api {
 }
 pub(crate) use todo_api;
 
-use crate::{scalar_types::{BlockHeight, DateTime, TimeSpan}, transaction_event::smart_contracts::InvalidContractVersionError};
+use crate::{
+    scalar_types::{BlockHeight, DateTime, TimeSpan, UnsignedLong},
+    transaction_event::smart_contracts::InvalidContractVersionError,
+};
 use account::Account;
 use anyhow::Context as _;
 use async_graphql::{
-    http::GraphiQLSource,
-    types::connection,
-    ComplexObject, Context, EmptyMutation, Enum, MergedObject, Object, Schema, SimpleObject,
-    Subscription, Union,
+    http::GraphiQLSource, types::connection, ComplexObject, Context, EmptyMutation, Enum,
+    MergedObject, Object, Schema, SimpleObject, Subscription, Union,
 };
 use async_graphql_axum::GraphQLSubscription;
 use block::Block;
@@ -41,6 +42,7 @@ use concordium_rust_sdk::{
 };
 use derive_more::Display;
 use futures::prelude::*;
+use node_status::NodeStatus;
 use prometheus_client::registry::Registry;
 use regex::Regex;
 use sqlx::PgPool;
@@ -51,15 +53,15 @@ use std::{
     sync::Arc,
 };
 use token::Token;
-use tokio::{net::TcpListener, sync::broadcast};
-use tokio::sync::watch::Receiver;
+use tokio::{
+    net::TcpListener,
+    sync::{broadcast, watch::Receiver},
+};
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_util::sync::CancellationToken;
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{error, info};
 use transaction::Transaction;
-use node_status::NodeStatus;
-use crate::scalar_types::UnsignedLong;
 
 const VERSION: &str = clap::crate_version!();
 
@@ -178,7 +180,7 @@ impl Service {
         registry: &mut Registry,
         pool: PgPool,
         config: ApiServiceConfig,
-        receiver: Receiver<Vec<NodeStatus>>
+        receiver: Receiver<Vec<NodeStatus>>,
     ) -> Self {
         let schema = Schema::build(Query::default(), EmptyMutation, subscription)
             .extension(async_graphql::extensions::Tracing)
@@ -907,7 +909,6 @@ struct CollectionSegmentInfo {
     /// arguments.
     has_previous_page: bool,
 }
-
 
 #[derive(SimpleObject)]
 struct Ranking {

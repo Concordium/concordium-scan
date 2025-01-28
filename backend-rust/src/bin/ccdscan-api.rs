@@ -6,11 +6,10 @@ use prometheus_client::{
     metrics::{family::Family, gauge::Gauge},
     registry::Registry,
 };
+use reqwest::Client;
 use serde_json::json;
 use sqlx::postgres::PgPoolOptions;
-use std::{net::SocketAddr, path::PathBuf};
-use std::time::Duration;
-use reqwest::Client;
+use std::{net::SocketAddr, path::PathBuf, time::Duration};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
@@ -45,7 +44,7 @@ struct Cli {
     #[arg(long, env = "CCDSCAN_API_MONITORING_ADDRESS", default_value = "127.0.0.1:8003")]
     monitoring_listen: SocketAddr,
     #[command(flatten, next_help_heading = "Configuration")]
-    api_config:                graphql_api::ApiServiceConfig,
+    api_config: graphql_api::ApiServiceConfig,
     #[arg(
         long = "log-level",
         default_value = "info",
@@ -53,13 +52,17 @@ struct Cli {
                 `error`.",
         env = "LOG_LEVEL"
     )]
-    log_level:                 tracing_subscriber::filter::LevelFilter,
+    log_level: tracing_subscriber::filter::LevelFilter,
     /// Check whether the database schema version is compatible with this
     /// version of the service and then exit the service immediately.
     /// Non-zero exit code is returned when incompatible.
     #[arg(long, env = "CCDSCAN_API_CHECK_DATABASE_COMPATIBILITY_ONLY")]
     check_database_compatibility_only: bool,
-    #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_BACKEND_ORIGIN", default_value = "https://dashboard.stagenet.concordium.com")]
+    #[arg(
+        long,
+        env = "CCDSCAN_API_NODE_COLLECTOR_BACKEND_ORIGIN",
+        default_value = "https://dashboard.stagenet.concordium.com"
+    )]
     node_collector_backend_origin: String,
     #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_PULL_FREQUENCY_SEC", default_value = "5")]
     node_collector_backend_pull_frequency_sec: u64,
@@ -127,7 +130,13 @@ async fn main() -> anyhow::Result<()> {
 
     let mut queries_task = {
         let pool = pool.clone();
-        let service = graphql_api::Service::new(subscription, &mut registry, pool, cli.api_config, block_receiver);
+        let service = graphql_api::Service::new(
+            subscription,
+            &mut registry,
+            pool,
+            cli.api_config,
+            block_receiver,
+        );
         if let Some(schema_file) = cli.schema_out {
             info!("Writing schema to {}", schema_file.to_string_lossy());
             std::fs::write(
@@ -156,12 +165,17 @@ async fn main() -> anyhow::Result<()> {
     };
     let mut node_collector_task = {
         let stop_signal = cancel_token.child_token();
-        let client = Client::builder().connect_timeout(Duration::from_secs(
-            cli.node_collector_connection_timeout_secs,
-        ))
-        .timeout(Duration::from_secs(cli.node_collector_timeout_secs))
-        .build()?;
-        let service = graphql_api::node_status::Service::new(block_sender, &cli.node_collector_backend_origin, Duration::from_secs(cli.node_collector_backend_pull_frequency_sec), client, stop_signal);
+        let client = Client::builder()
+            .connect_timeout(Duration::from_secs(cli.node_collector_connection_timeout_secs))
+            .timeout(Duration::from_secs(cli.node_collector_timeout_secs))
+            .build()?;
+        let service = graphql_api::node_status::Service::new(
+            block_sender,
+            &cli.node_collector_backend_origin,
+            Duration::from_secs(cli.node_collector_backend_pull_frequency_sec),
+            client,
+            stop_signal,
+        );
         tokio::spawn(service.serve())
     };
 

@@ -1,10 +1,11 @@
-use std::cmp::min;
-use std::cmp::Ordering::Equal;
 use super::{get_config, get_pool, ApiError, ApiResult};
-use std::time::Duration;
 use async_graphql::{connection, types, ComplexObject, Context, Enum, Object, SimpleObject};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use std::{
+    cmp::{min, Ordering::Equal},
+    time::Duration,
+};
 use tokio::sync::watch::{Receiver, Sender};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
@@ -25,9 +26,7 @@ impl QueryNodeStatus {
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
-
     ) -> ApiResult<connection::Connection<String, NodeStatus>> {
-
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
         let handler = ctx.data::<Receiver<Vec<NodeStatus>>>().map_err(ApiError::NoReceiver)?;
@@ -40,10 +39,16 @@ impl QueryNodeStatus {
         statuses.sort_by(|a, b| {
             let ordering = match sort_field {
                 NodeSortField::AveragePing => a.average_ping.partial_cmp(&b.average_ping),
-                NodeSortField::BlocksReceivedCount => a.blocks_received_count.partial_cmp(&b.blocks_received_count),
+                NodeSortField::BlocksReceivedCount => {
+                    a.blocks_received_count.partial_cmp(&b.blocks_received_count)
+                }
                 NodeSortField::ClientVersion => a.client.partial_cmp(&b.client),
-                NodeSortField::ConsensusBakerId => a.consensus_baker_id.partial_cmp(&b.consensus_baker_id),
-                NodeSortField::FinalizedBlockHeight => a.finalized_block_height.partial_cmp(&b.finalized_block_height),
+                NodeSortField::ConsensusBakerId => {
+                    a.consensus_baker_id.partial_cmp(&b.consensus_baker_id)
+                }
+                NodeSortField::FinalizedBlockHeight => {
+                    a.finalized_block_height.partial_cmp(&b.finalized_block_height)
+                }
                 NodeSortField::NodeName => a.node_name.partial_cmp(&b.node_name),
                 NodeSortField::PeersCount => a.peers_count.partial_cmp(&b.peers_count),
                 NodeSortField::Uptime => a.uptime.partial_cmp(&b.uptime),
@@ -65,11 +70,10 @@ impl QueryNodeStatus {
         let length = statuses.len() as u64;
 
         let before_cursor_index = if let Some(before_cursor) = before {
-             min(before_cursor.parse::<u64>()?, length)
+            min(before_cursor.parse::<u64>()?, length)
         } else {
             length
         };
-
 
         let (range, has_previous_page, has_next_page) = if let Some(first_count) = first {
             (
@@ -84,9 +88,14 @@ impl QueryNodeStatus {
                 before_cursor_index < length,
             )
         } else {
-            (after_cursor_index..before_cursor_index, after_cursor_index > 0, before_cursor_index < length)
+            (
+                after_cursor_index..before_cursor_index,
+                after_cursor_index > 0,
+                before_cursor_index < length,
+            )
         };
-        let mut connection: connection::Connection<String, NodeStatus> = connection::Connection::new(has_previous_page, has_next_page);
+        let mut connection: connection::Connection<String, NodeStatus> =
+            connection::Connection::new(has_previous_page, has_next_page);
         for i in range {
             let value = statuses[i as usize].clone();
             connection.edges.push(connection::Edge::new(format!("{}", i), value));
@@ -95,7 +104,6 @@ impl QueryNodeStatus {
         Ok(connection)
     }
 }
-
 
 #[derive(Enum, Clone, Copy, PartialEq, Eq)]
 enum NodeSortField {
@@ -106,32 +114,41 @@ enum NodeSortField {
     FinalizedBlockHeight,
     NodeName,
     PeersCount,
-    Uptime
+    Uptime,
 }
 
 #[derive(Enum, Clone, Copy, PartialEq, Eq)]
 enum NodeSortDirection {
     Asc,
-    Desc
+    Desc,
 }
 
 pub struct Service {
-    sender: Sender<Vec<NodeStatus>>,
+    sender:                 Sender<Vec<NodeStatus>>,
     node_collector_backend: NodeCollectorBackendClient,
-    pull_frequency: Duration,
-    cancellation_token: CancellationToken
+    pull_frequency:         Duration,
+    cancellation_token:     CancellationToken,
 }
 
 impl Service {
-    pub fn new(sender: Sender<Vec<NodeStatus>>, origin: &str, pull_frequency: Duration, client: Client, cancellation_token: CancellationToken) -> Self {
+    pub fn new(
+        sender: Sender<Vec<NodeStatus>>,
+        origin: &str,
+        pull_frequency: Duration,
+        client: Client,
+        cancellation_token: CancellationToken,
+    ) -> Self {
         let node_collector_backend = NodeCollectorBackendClient::new(client, origin);
-        Self { sender, node_collector_backend, pull_frequency, cancellation_token }
+        Self {
+            sender,
+            node_collector_backend,
+            pull_frequency,
+            cancellation_token,
+        }
     }
 
-    pub async fn serve(
-        self,
-    ) -> anyhow::Result<()> {
-                let mut interval = tokio::time::interval(self.pull_frequency);
+    pub async fn serve(self) -> anyhow::Result<()> {
+        let mut interval = tokio::time::interval(self.pull_frequency);
 
         loop {
             tokio::select! {
@@ -193,14 +210,14 @@ pub struct NodeStatus {
 
 #[ComplexObject]
 impl NodeStatus {
-
     async fn id(&self) -> types::ID { types::ID::from(self.node_id.clone()) }
+
     async fn client_version(&self) -> String { self.client.to_string() }
 }
 
 struct NodeCollectorBackendClient {
     client: Client,
-    url: String,
+    url:    String,
 }
 
 impl NodeCollectorBackendClient {
