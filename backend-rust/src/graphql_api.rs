@@ -25,6 +25,7 @@ macro_rules! todo_api {
 pub(crate) use todo_api;
 
 use crate::{
+    connection::ConnectionQuery,
     scalar_types::{BlockHeight, DateTime, TimeSpan, UnsignedLong},
     transaction_event::smart_contracts::InvalidContractVersionError,
 };
@@ -81,6 +82,12 @@ pub struct ApiServiceConfig {
     transactions_per_block_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_BLOCK_CONNECTION_LIMIT", default_value = "100")]
     block_connection_limit: u64,
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_SPECIAL_EVENTS_PER_BLOCK_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
+    special_events_per_block_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_ACCOUNT_CONNECTION_LIMIT", default_value = "100")]
     account_connection_limit: u64,
     #[arg(
@@ -418,68 +425,6 @@ pub fn get_pool<'a>(ctx: &Context<'a>) -> ApiResult<&'a PgPool> {
 /// Get service configuration from the context.
 pub fn get_config<'a>(ctx: &Context<'a>) -> ApiResult<&'a ApiServiceConfig> {
     ctx.data::<ApiServiceConfig>().map_err(ApiError::NoServiceConfig)
-}
-
-trait ConnectionCursor {
-    const MIN: Self;
-    const MAX: Self;
-}
-impl ConnectionCursor for i64 {
-    const MAX: i64 = i64::MAX;
-    const MIN: i64 = i64::MIN;
-}
-impl ConnectionCursor for usize {
-    const MAX: usize = usize::MAX;
-    const MIN: usize = usize::MIN;
-}
-
-struct ConnectionQuery<A> {
-    from:  A,
-    to:    A,
-    limit: i64,
-    // If the `last` elements are requested instead of the `first` elements
-    // (indicated by the `last` key being set when creating a new `ConnectionQuery`),
-    // the edges/nodes should be ordered in reverse (DESC) order before applying the range.
-    // This allows the range from `from` to `to` to be applied starting from the last element.
-    desc:  bool,
-}
-impl<A> ConnectionQuery<A> {
-    fn new<E>(
-        first: Option<u64>,
-        after: Option<String>,
-        last: Option<u64>,
-        before: Option<String>,
-        connection_limit: u64,
-    ) -> ApiResult<Self>
-    where
-        A: std::str::FromStr<Err = E> + ConnectionCursor,
-        E: Into<ApiError>, {
-        if first.is_some() && last.is_some() {
-            return Err(ApiError::QueryConnectionFirstLast);
-        }
-
-        let from = if let Some(a) = after {
-            a.parse::<A>().map_err(|e| e.into())?
-        } else {
-            A::MIN
-        };
-
-        let to = if let Some(b) = before {
-            b.parse::<A>().map_err(|e| e.into())?
-        } else {
-            A::MAX
-        };
-
-        let limit =
-            first.or(last).map_or(connection_limit, |limit| connection_limit.min(limit)) as i64;
-
-        Ok(Self {
-            from,
-            to,
-            limit,
-            desc: last.is_some(),
-        })
-    }
 }
 
 #[derive(Default)]
