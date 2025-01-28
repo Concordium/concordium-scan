@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO block_special_transaction_outcomes\n                 (block_height, block_outcome_index, outcome_type, outcome)\n             SELECT $1, block_outcome_index, outcome_type, outcome\n             FROM\n                 UNNEST(\n                     $2::BIGINT[],\n                     $3::special_transaction_outcome_type[],\n                     $4::JSONB[]\n                 ) AS outcomes(\n                     block_outcome_index,\n                     outcome_type,\n                     outcome\n                 )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8Array",
+        {
+          "Custom": {
+            "name": "special_transaction_outcome_type[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "special_transaction_outcome_type",
+                  "kind": {
+                    "Enum": [
+                      "BakingRewards",
+                      "Mint",
+                      "FinalizationRewards",
+                      "BlockRewards",
+                      "PaydayFoundationReward",
+                      "PaydayAccountReward",
+                      "BlockAccrueReward",
+                      "PaydayPoolReward",
+                      "ValidatorSuspended",
+                      "ValidatorPrimedForSuspension"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "JsonbArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2af572b3665951a20d0c4ac7f1933bc014ef8e79e476921bd15622f6547e2236"
+}

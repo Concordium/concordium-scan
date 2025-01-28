@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                     MAX(block_outcome_index)\n                 FROM block_special_transaction_outcomes\n                 WHERE block_height = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "max",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "4ac2506deb151da5ab355e92728fc0d379bafa240aa6345e595fc5c32a699cd5"
+}
