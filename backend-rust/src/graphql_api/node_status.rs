@@ -9,6 +9,7 @@ use std::{
 use tokio::sync::watch::{Receiver, Sender};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
+use tracing_subscriber::fmt;
 
 #[derive(Default)]
 pub(crate) struct QueryNodeStatus;
@@ -30,12 +31,17 @@ impl QueryNodeStatus {
     ) -> ApiResult<connection::Connection<String, NodeStatus>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
-        let handler = ctx.data::<Receiver<Vec<NodeStatus>>>().map_err(ApiError::NoReceiver)?;
+        let handler =
+            ctx.data::<Receiver<Option<Vec<NodeStatus>>>>().map_err(ApiError::NoReceiver)?;
         if first.is_some() && last.is_some() {
             return Err(ApiError::QueryConnectionFirstLast);
         }
 
-        let mut statuses = handler.borrow().clone();
+        let mut statuses = if let Some(statuses) = handler.borrow().clone() {
+            statuses
+        } else {
+            Err(ApiError::InternalError("Node collector backend has not responded".to_string()))?
+        };
 
         statuses.sort_by(|a, b| {
             let ordering = match sort_field {
@@ -125,7 +131,7 @@ enum NodeSortDirection {
 }
 
 pub struct Service {
-    sender:                 Sender<Vec<NodeStatus>>,
+    sender:                 Sender<Option<Vec<NodeStatus>>>,
     node_collector_backend: NodeCollectorBackendClient,
     pull_frequency:         Duration,
     cancellation_token:     CancellationToken,
@@ -133,7 +139,7 @@ pub struct Service {
 
 impl Service {
     pub fn new(
-        sender: Sender<Vec<NodeStatus>>,
+        sender: Sender<Option<Vec<NodeStatus>>>,
         origin: &str,
         pull_frequency: Duration,
         client: Client,
@@ -154,10 +160,11 @@ impl Service {
         loop {
             tokio::select! {
                 _ = interval.tick() => {
+                    println!("test");
                     match self.node_collector_backend.get_summary().await {
 
                         Ok(node_info) => {
-                            if let Err(err) = self.sender.send(node_info) {
+                            if let Err(err) = self.sender.send(Some(node_info)) {
                                 info!("Node status receiver has been closed");
                                 break;
                             }

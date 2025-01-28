@@ -100,6 +100,11 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
+    let client = Client::builder()
+        .connect_timeout(Duration::from_secs(cli.node_collector_connection_timeout_secs))
+        .timeout(Duration::from_secs(cli.node_collector_timeout_secs))
+        .build()?;
+
     let cancel_token = CancellationToken::new();
     let service_info_family = Family::<Vec<(&str, String)>, Gauge>::default();
     let gauge =
@@ -119,8 +124,7 @@ async fn main() -> anyhow::Result<()> {
 
     let (subscription, subscription_listener) =
         graphql_api::Subscription::new(cli.database_retry_delay_secs);
-    // TODO fetch init value prior to startup
-    let (block_sender, block_receiver) = tokio::sync::watch::channel(Vec::new());
+    let (block_sender, block_receiver) = tokio::sync::watch::channel(None);
 
     let mut pgnotify_listener = {
         let pool = pool.clone();
@@ -165,10 +169,6 @@ async fn main() -> anyhow::Result<()> {
     };
     let mut node_collector_task = {
         let stop_signal = cancel_token.child_token();
-        let client = Client::builder()
-            .connect_timeout(Duration::from_secs(cli.node_collector_connection_timeout_secs))
-            .timeout(Duration::from_secs(cli.node_collector_timeout_secs))
-            .build()?;
         let service = graphql_api::node_status::Service::new(
             block_sender,
             &cli.node_collector_backend_origin,

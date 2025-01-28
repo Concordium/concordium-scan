@@ -180,7 +180,7 @@ impl Service {
         registry: &mut Registry,
         pool: PgPool,
         config: ApiServiceConfig,
-        receiver: Receiver<Vec<NodeStatus>>,
+        receiver: Receiver<Option<Vec<NodeStatus>>>,
     ) -> Self {
         let schema = Schema::build(Query::default(), EmptyMutation, subscription)
             .extension(async_graphql::extensions::Tracing)
