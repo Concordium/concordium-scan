@@ -84,9 +84,7 @@ impl Token {
         )
     }
 
-    async fn total_supply(&self, ctx: &Context<'_>) -> ApiResult<BigInteger> {
-        Ok(BigInteger::from(self.raw_total_supply.clone()))
-    }
+    async fn total_supply(&self) -> BigInteger { BigInteger::from(self.raw_total_supply.clone()) }
 
     async fn token_address(&self) -> &String { &self.token_address }
 
@@ -98,8 +96,8 @@ impl Token {
 
     async fn contract_sub_index(&self) -> i64 { self.contract_sub_index }
 
-    async fn contract_address_formatted(&self, ctx: &Context<'_>) -> ApiResult<String> {
-        Ok(format!("<{},{}>", self.contract_index, self.contract_sub_index))
+    async fn contract_address_formatted(&self) -> String {
+        format!("<{},{}>", self.contract_index, self.contract_sub_index)
     }
 
     async fn accounts(
@@ -371,9 +369,7 @@ impl AccountToken {
         Account::query_by_index(get_pool(ctx)?, self.account_id).await?.ok_or(ApiError::NotFound)
     }
 
-    async fn balance(&self, ctx: &Context<'_>) -> ApiResult<BigInteger> {
-        Ok(BigInteger::from(self.raw_balance.clone()))
-    }
+    async fn balance(&self) -> BigInteger { BigInteger::from(self.raw_balance.clone()) }
 }
 
 // Interim struct used to fetch AccountToken data from the database.
