@@ -1,7 +1,7 @@
 use anyhow::Context;
 use async_graphql::SDLExportOptions;
 use clap::Parser;
-use concordium_scan::{graphql_api, migrations, router};
+use concordium_scan::{graphql_api, graphql_api::node_status::NodeStatus, migrations, router};
 use prometheus_client::{
     metrics::{family::Family, gauge::Gauge},
     registry::Registry,
@@ -10,7 +10,7 @@ use reqwest::Client;
 use serde_json::json;
 use sqlx::postgres::PgPoolOptions;
 use std::{net::SocketAddr, path::PathBuf, time::Duration};
-use tokio::net::TcpListener;
+use tokio::{net::TcpListener, sync::watch::Receiver};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 
@@ -125,7 +125,7 @@ async fn main() -> anyhow::Result<()> {
     let (subscription, subscription_listener) =
         graphql_api::Subscription::new(cli.database_retry_delay_secs);
     let (block_sender, block_receiver) = tokio::sync::watch::channel(None);
-
+    let test = block_receiver.clone();
     let mut pgnotify_listener = {
         let pool = pool.clone();
         let stop_signal = cancel_token.child_token();
@@ -158,8 +158,12 @@ async fn main() -> anyhow::Result<()> {
         tokio::spawn(async move { service.serve(tcp_listener, stop_signal).await })
     };
     let mut monitoring_task = {
+        let state = HealthState {
+            pool,
+            node_status_receiver: test,
+        };
         let health_routes =
-            axum::Router::new().route("/", axum::routing::get(health)).with_state(pool);
+            axum::Router::new().route("/", axum::routing::get(health)).with_state(state);
         let tcp_listener = TcpListener::bind(cli.monitoring_listen)
             .await
             .context("Parsing TCP listener address failed")?;
@@ -220,19 +224,25 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[derive(Clone)]
+struct HealthState {
+    pool:                 sqlx::PgPool,
+    node_status_receiver: Receiver<Option<Vec<NodeStatus>>>,
+}
+
 /// GET Handler for route `/health`.
 /// Verifying the API service state is as expected.
 async fn health(
-    axum::extract::State(pool): axum::extract::State<sqlx::PgPool>,
+    axum::extract::State(state): axum::extract::State<HealthState>,
 ) -> axum::Json<serde_json::Value> {
-    match migrations::ensure_compatible_schema_version(&pool, SUPPORTED_SCHEMA_VERSION).await {
-        Ok(_) => axum::extract::Json(json!({
-            "status": "ok",
-            "database": "connected"
-        })),
-        Err(err) => axum::extract::Json(json!({
-            "status": "error",
-            "database": format!("not connected: {}", err)
-        })),
-    }
+    let node_status_connected = state.node_status_receiver.borrow().is_some();
+    let database_connected =
+        migrations::ensure_compatible_schema_version(&state.pool, SUPPORTED_SCHEMA_VERSION)
+            .await
+            .is_ok();
+    axum::Json(json!({
+        "status": if node_status_connected && database_connected {"ok"} else {"error"},
+        "node_status": if node_status_connected {"connected"} else {"not connected"},
+        "database": if database_connected {"connected"} else {"not connected"},
+    }))
 }

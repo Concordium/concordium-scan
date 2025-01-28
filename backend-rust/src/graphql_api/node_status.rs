@@ -9,7 +9,6 @@ use std::{
 use tokio::sync::watch::{Receiver, Sender};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
-use tracing_subscriber::fmt;
 
 #[derive(Default)]
 pub(crate) struct QueryNodeStatus;
@@ -160,7 +159,6 @@ impl Service {
         loop {
             tokio::select! {
                 _ = interval.tick() => {
-                    println!("test");
                     match self.node_collector_backend.get_summary().await {
 
                         Ok(node_info) => {
