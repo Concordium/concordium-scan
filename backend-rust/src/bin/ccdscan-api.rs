@@ -45,13 +45,7 @@ struct Cli {
     monitoring_listen: SocketAddr,
     #[command(flatten, next_help_heading = "Configuration")]
     api_config: graphql_api::ApiServiceConfig,
-    #[arg(
-        long = "log-level",
-        default_value = "info",
-        help = "The maximum log level. Possible values are: `trace`, `debug`, `info`, `warn`, and \
-                `error`.",
-        env = "LOG_LEVEL"
-    )]
+    #[arg(long, default_value = "info", env = "LOG_LEVEL")]
     log_level: tracing_subscriber::filter::LevelFilter,
     /// Check whether the database schema version is compatible with this
     /// version of the service and then exit the service immediately.
