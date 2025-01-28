@@ -128,7 +128,7 @@ async fn main() -> anyhow::Result<()> {
     let (subscription, subscription_listener) =
         graphql_api::Subscription::new(cli.database_retry_delay_secs);
     let (block_sender, block_receiver) = tokio::sync::watch::channel(None);
-    let test = block_receiver.clone();
+    let block_receiver_health = block_receiver.clone();
     let mut pgnotify_listener = {
         let pool = pool.clone();
         let stop_signal = cancel_token.child_token();
@@ -163,7 +163,7 @@ async fn main() -> anyhow::Result<()> {
     let mut monitoring_task = {
         let state = HealthState {
             pool,
-            node_status_receiver: test,
+            node_status_receiver: block_receiver_health,
         };
         let health_routes =
             axum::Router::new().route("/", axum::routing::get(health)).with_state(state);
