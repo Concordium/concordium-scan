@@ -80,6 +80,13 @@ struct Cli {
         default_value_t = 5
     )]
     node_collector_connection_timeout_secs: u64,
+    #[arg(
+        long,
+        help = "Request connection timeout to the node collector backend in seconds.",
+        env = "CCDSCAN_API_NODE_COLLECTOR_CONNECTION_MAX_CONTENT_LENGTH",
+        default_value_t = 4000000
+    )]
+    node_collector_connection_max_content_length: u64,
 }
 
 #[tokio::main]

@@ -222,15 +222,17 @@ impl NodeStatus {
 }
 
 struct NodeCollectorBackendClient {
-    client: Client,
-    url:    String,
+    client:             Client,
+    url:                String,
+    max_content_length: u64,
 }
 
 impl NodeCollectorBackendClient {
-    pub fn new(client: Client, origin: &str) -> Self {
+    pub fn new(client: Client, origin: &str, max_content_length: u64) -> Self {
         Self {
             client,
             url: format!("{}/nodesSummary", origin),
+            max_content_length,
         }
     }
 
@@ -247,6 +249,20 @@ impl NodeCollectorBackendClient {
                 "Failed to fetch data, HTTP Status: {}",
                 response.status()
             ));
+        }
+
+        if let Some(content_length) = response.content_length() {
+            if content_length > self.max_content_length {
+                Err(anyhow::anyhow!(
+                    "Response size {} exceeds the maximum allowed size of {} bytes",
+                    content_length,
+                    &self.max_content_length
+                ))?
+            }
+        } else {
+            Err(anyhow::anyhow!(
+                "Missing Content-Length header in response from node backend collector"
+            ))?
         }
 
         let node_info_statuses = response
