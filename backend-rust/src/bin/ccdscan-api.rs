@@ -185,6 +185,7 @@ async fn main() -> anyhow::Result<()> {
             &cli.node_collector_backend_origin,
             Duration::from_secs(cli.node_collector_backend_pull_frequency_sec),
             client,
+            cli.node_collector_connection_max_content_length,
             stop_signal,
         );
         tokio::spawn(service.serve())
