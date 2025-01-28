@@ -1,6 +1,6 @@
 use super::{get_config, get_pool, ApiError, ApiResult};
 use async_graphql::{connection, types, ComplexObject, Context, Enum, Object, SimpleObject};
-use reqwest::Client;
+use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
 use std::{
     cmp::{min, Ordering::Equal},
@@ -142,9 +142,11 @@ impl Service {
         origin: &str,
         pull_frequency: Duration,
         client: Client,
+        max_content_length: u64,
         cancellation_token: CancellationToken,
     ) -> Self {
-        let node_collector_backend = NodeCollectorBackendClient::new(client, origin);
+        let node_collector_backend =
+            NodeCollectorBackendClient::new(client, origin, max_content_length);
         Self {
             sender,
             node_collector_backend,
@@ -244,11 +246,8 @@ impl NodeCollectorBackendClient {
             .await
             .map_err(|err| anyhow::anyhow!("Failed to send request: {:?}", err))?;
 
-        if !response.status().is_success() {
-            return Err(anyhow::anyhow!(
-                "Failed to fetch data, HTTP Status: {}",
-                response.status()
-            ));
+        if response.status() != StatusCode::OK {
+            return Err(anyhow::anyhow!("Invalid status code, HTTP Status: {}", response.status()));
         }
 
         if let Some(content_length) = response.content_length() {
@@ -260,9 +259,7 @@ impl NodeCollectorBackendClient {
                 ))?
             }
         } else {
-            Err(anyhow::anyhow!(
-                "Missing Content-Length header in response from node backend collector"
-            ))?
+            Err(anyhow::anyhow!("Missing Content-Length header in response"))?
         }
 
         let node_info_statuses = response
@@ -339,10 +336,162 @@ mod tests {
             .await;
         let deserialized: Vec<NodeStatus> = from_str(response).expect("Failed to deserialize JSON");
         let client = Client::new();
-        let gc = NodeCollectorBackendClient::new(client, server.url().as_str());
+        let gc = NodeCollectorBackendClient::new(client, server.url().as_str(), 10000);
         let summary = gc.get_summary().await;
         assert!(summary.is_ok());
         assert_eq!(deserialized, summary.unwrap());
+        mock.assert();
+    }
+
+    #[tokio::test]
+    async fn test_get_invalid_response() {
+        let mut server = mockito::Server::new_async().await;
+        let response = r#"
+        [
+            {
+            }
+        ]
+        "#;
+        let mock = server
+            .mock("GET", "/nodesSummary")
+            .with_status(200)
+            .with_body(response)
+            .expect(1)
+            .create_async()
+            .await;
+        let client = Client::new();
+        let gc = NodeCollectorBackendClient::new(client, server.url().as_str(), 10000);
+        let summary = gc.get_summary().await;
+        assert!(summary.is_err());
+        mock.assert();
+    }
+
+    #[tokio::test]
+    async fn test_too_large_response() {
+        let mut server = mockito::Server::new_async().await;
+        let response = r#"
+        [
+            {
+                "nodeId": "b185fa8ba28a6dbb",
+                "nodeName": "001gpc-testnet",
+                "peerType": "Node",
+                "uptime": 64787412170,
+                "client": "5.0.6",
+                "peersCount": 0,
+                "peersList": [],
+                "bestBlock": "32d6fe8fd201639834e466f626847d7f1c58a315003202c5400216a865b15f01",
+                "bestBlockHeight": 3656111,
+                "bestBlockBakerId": 3,
+                "bestArrivedTime": "2023-08-21T12:00:24.700370651Z",
+                "blockArrivePeriodEMA": 16.6399989715912,
+                "blockArrivePeriodEMSD": 15.5779083459107,
+                "blockArriveLatencyEMA": 0.189644091592817,
+                "blockArriveLatencyEMSD": 0.0504744217410237,
+                "blockReceivePeriodEMA": 16.6397739628504,
+                "blockReceivePeriodEMSD": 15.5781216338144,
+                "blockReceiveLatencyEMA": 0.173204050259552,
+                "blockReceiveLatencyEMSD": 0.0491522930027314,
+                "finalizedBlock": "32d6fe8fd201639834e466f626847d7f1c58a315003202c5400216a865b15f01",
+                "finalizedBlockHeight": 3656111,
+                "finalizedTime": "2023-08-21T12:00:25.42453255Z",
+                "finalizationPeriodEMA": 17.8069556222305,
+                "finalizationPeriodEMSD": 15.1385586829404,
+                "packetsSent": 574077850,
+                "packetsReceived": 612037045,
+                "consensusRunning": false,
+                "bakingCommitteeMember": "NotInCommittee",
+                "finalizationCommitteeMember": false,
+                "transactionsPerBlockEMA": 0.002903832409826,
+                "transactionsPerBlockEMSD": 0.0538089227467122,
+                "bestBlockTransactionsSize": 0,
+                "bestBlockTransactionCount": 0,
+                "bestBlockTransactionEnergyCost": 0,
+                "blocksReceivedCount": 2298046,
+                "blocksVerifiedCount": 2298040,
+                "genesisBlock": "4221332d34e1694168c2a0c0b3fd0f273809612cb13d000d5c2e00e85f50f796",
+                "finalizationCount": 2076825,
+                "finalizedBlockParent": "8ec52823feabbef291befdcdb006b0b0ef0020903b800fa9a6b830ac723b24bb",
+                "averageBytesPerSecondIn": 2004,
+                "averageBytesPerSecondOut": 2986
+            }
+        ]
+        "#;
+        let mock = server
+            .mock("GET", "/nodesSummary")
+            .with_status(200)
+            .with_body(response)
+            .expect(1)
+            .create_async()
+            .await;
+        let deserialized: Vec<NodeStatus> = from_str(response).expect("Failed to deserialize JSON");
+        let client = Client::new();
+        let gc = NodeCollectorBackendClient::new(client, server.url().as_str(), 1);
+        let summary = gc.get_summary().await;
+        assert!(summary.is_err());
+        mock.assert();
+    }
+
+    #[tokio::test]
+    async fn test_invalid_response_code() {
+        let mut server = mockito::Server::new_async().await;
+        let response = r#"
+        [
+            {
+                "nodeId": "b185fa8ba28a6dbb",
+                "nodeName": "001gpc-testnet",
+                "peerType": "Node",
+                "uptime": 64787412170,
+                "client": "5.0.6",
+                "peersCount": 0,
+                "peersList": [],
+                "bestBlock": "32d6fe8fd201639834e466f626847d7f1c58a315003202c5400216a865b15f01",
+                "bestBlockHeight": 3656111,
+                "bestBlockBakerId": 3,
+                "bestArrivedTime": "2023-08-21T12:00:24.700370651Z",
+                "blockArrivePeriodEMA": 16.6399989715912,
+                "blockArrivePeriodEMSD": 15.5779083459107,
+                "blockArriveLatencyEMA": 0.189644091592817,
+                "blockArriveLatencyEMSD": 0.0504744217410237,
+                "blockReceivePeriodEMA": 16.6397739628504,
+                "blockReceivePeriodEMSD": 15.5781216338144,
+                "blockReceiveLatencyEMA": 0.173204050259552,
+                "blockReceiveLatencyEMSD": 0.0491522930027314,
+                "finalizedBlock": "32d6fe8fd201639834e466f626847d7f1c58a315003202c5400216a865b15f01",
+                "finalizedBlockHeight": 3656111,
+                "finalizedTime": "2023-08-21T12:00:25.42453255Z",
+                "finalizationPeriodEMA": 17.8069556222305,
+                "finalizationPeriodEMSD": 15.1385586829404,
+                "packetsSent": 574077850,
+                "packetsReceived": 612037045,
+                "consensusRunning": false,
+                "bakingCommitteeMember": "NotInCommittee",
+                "finalizationCommitteeMember": false,
+                "transactionsPerBlockEMA": 0.002903832409826,
+                "transactionsPerBlockEMSD": 0.0538089227467122,
+                "bestBlockTransactionsSize": 0,
+                "bestBlockTransactionCount": 0,
+                "bestBlockTransactionEnergyCost": 0,
+                "blocksReceivedCount": 2298046,
+                "blocksVerifiedCount": 2298040,
+                "genesisBlock": "4221332d34e1694168c2a0c0b3fd0f273809612cb13d000d5c2e00e85f50f796",
+                "finalizationCount": 2076825,
+                "finalizedBlockParent": "8ec52823feabbef291befdcdb006b0b0ef0020903b800fa9a6b830ac723b24bb",
+                "averageBytesPerSecondIn": 2004,
+                "averageBytesPerSecondOut": 2986
+            }
+        ]
+        "#;
+        let mock = server
+            .mock("GET", "/nodesSummary")
+            .with_status(404)
+            .with_body(response)
+            .expect(1)
+            .create_async()
+            .await;
+        let client = Client::new();
+        let gc = NodeCollectorBackendClient::new(client, server.url().as_str(), 10000);
+        let summary = gc.get_summary().await;
+        assert!(summary.is_err());
         mock.assert();
     }
 }
