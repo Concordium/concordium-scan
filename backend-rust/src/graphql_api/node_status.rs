@@ -87,7 +87,6 @@ impl QueryNodeStatus {
             (after_cursor_index..before_cursor_index, after_cursor_index > 0, before_cursor_index < length)
         };
         let mut connection: connection::Connection<String, NodeStatus> = connection::Connection::new(has_previous_page, has_next_page);
-        info!("{:?}", range);
         for i in range {
             let value = statuses[i as usize].clone();
             connection.edges.push(connection::Edge::new(format!("{}", i), value));
