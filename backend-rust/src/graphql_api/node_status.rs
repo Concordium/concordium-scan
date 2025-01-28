@@ -13,6 +13,7 @@ use tracing::{error, info};
 #[derive(Default)]
 pub(crate) struct QueryNodeStatus;
 
+#[allow(clippy::too_many_arguments)]
 #[Object]
 impl QueryNodeStatus {
     async fn node_statuses(
@@ -83,7 +84,7 @@ impl QueryNodeStatus {
             )
         } else if let Some(last_count) = last {
             (
-                before_cursor_index.checked_sub(last_count).unwrap_or(0)..before_cursor_index,
+                before_cursor_index.saturating_sub(last_count)..before_cursor_index,
                 before_cursor_index > last_count,
                 before_cursor_index < length,
             )
