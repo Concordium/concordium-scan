@@ -28,9 +28,18 @@ use crate::{scalar_types::{BlockHeight, DateTime, TimeSpan}, transaction_event::
 use account::Account;
 use anyhow::Context as _;
 use async_graphql::{http::GraphiQLSource, types::{connection}, Context, EmptyMutation, Enum, MergedObject, Object, Schema, SimpleObject, Subscription};
+use account::Account;
+use anyhow::Context as _;
+use async_graphql::{
+    http::GraphiQLSource,
+    types::{self, connection},
+    ComplexObject, Context, EmptyMutation, Enum, MergedObject, Object, Schema, SimpleObject,
+    Subscription, Union,
+};
+>>>>>>> f4089b3154e8926c620e7c5496a394000693183a
 use async_graphql_axum::GraphQLSubscription;
 use block::Block;
-use chrono::Duration;
+use chrono::{Duration, TimeDelta, Utc};
 use concordium_rust_sdk::{
     base::contracts_common::schema::VersionedSchemaError, id::types as sdk_types,
 };
@@ -65,6 +74,12 @@ pub struct ApiServiceConfig {
     /// The most transactions which can be queried at once.
     #[arg(long, env = "CCDSCAN_API_CONFIG_TRANSACTION_CONNECTION_LIMIT", default_value = "100")]
     transaction_connection_limit: u64,
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_TRANSACTIONS_PER_BLOCK_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
+    transactions_per_block_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_BLOCK_CONNECTION_LIMIT", default_value = "100")]
     block_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_ACCOUNT_CONNECTION_LIMIT", default_value = "100")]
@@ -364,13 +379,13 @@ mod monitor {
 pub enum ApiError {
     #[error("Could not find resource")]
     NotFound,
-    #[error("Internal error: {}", .0.message)]
+    #[error("Internal error (NoDatabasePool): {}", .0.message)]
     NoDatabasePool(async_graphql::Error),
-    #[error("Internal error: {}", .0.message)]
+    #[error("Internal error (NoServiceConfig): {}", .0.message)]
     NoServiceConfig(async_graphql::Error),
     #[error("Internal error: {}", .0.message)]
     NoReceiver(async_graphql::Error),
-    #[error("Internal error: {0}")]
+    #[error("Internal error (FailedDatabaseQuery): {0}")]
     FailedDatabaseQuery(Arc<sqlx::Error>),
     #[error("Invalid ID format: {0}")]
     InvalidIdInt(std::num::ParseIntError),
@@ -423,6 +438,10 @@ struct ConnectionQuery<A> {
     from:  A,
     to:    A,
     limit: i64,
+    // If the `last` elements are requested instead of the `first` elements
+    // (indicated by the `last` key being set when creating a new `ConnectionQuery`),
+    // the edges/nodes should be ordered in reverse (DESC) order before applying the range.
+    // This allows the range from `from` to `to` to be applied starting from the last element.
     desc:  bool,
 }
 impl<A> ConnectionQuery<A> {
@@ -474,6 +493,71 @@ impl BaseQuery {
         Versions {
             backend_versions: VERSION.to_string(),
         }
+    }
+
+    async fn import_state<'a>(&self, ctx: &Context<'a>) -> ApiResult<ImportState> {
+        let epoch_duration =
+            sqlx::query_scalar!("SELECT epoch_duration FROM current_chain_parameters")
+                .fetch_optional(get_pool(ctx)?)
+                .await?
+                .ok_or(ApiError::NotFound)?;
+
+        Ok(ImportState {
+            epoch_duration: TimeSpan(
+                Duration::try_milliseconds(epoch_duration).ok_or(ApiError::InternalError(
+                    "Epoch duration (epoch_duration) in the database should be a valid duration \
+                     in milliseconds."
+                        .to_string(),
+                ))?,
+            ),
+        })
+    }
+
+    async fn latest_chain_parameters<'a>(
+        &self,
+        ctx: &Context<'a>,
+    ) -> ApiResult<LatestChainParameters> {
+        let reward_period_length =
+            sqlx::query_scalar!("SELECT reward_period_length FROM current_chain_parameters")
+                .fetch_optional(get_pool(ctx)?)
+                .await?
+                .ok_or(ApiError::NotFound)?;
+
+        // Future improvement (breaking changes): remove `ChainParametersV1` and just
+        // use the `reward_period_length` from the current consensus algorithm
+        // directly.
+        Ok(LatestChainParameters::ChainParametersV1(ChainParametersV1 {
+            reward_period_length: reward_period_length.try_into()?,
+        }))
+    }
+
+    async fn payday_status<'a>(&self, ctx: &Context<'a>) -> ApiResult<PaydayStatus> {
+        let row = sqlx::query_as!(
+            CurrentChainParameters,
+            "SELECT 
+                reward_period_length, 
+                epoch_duration, 
+                last_payday_block_height as opt_last_payday_block_height,   
+                slot_time as last_payday_block_slot_time
+            FROM current_chain_parameters
+                JOIN blocks 
+                ON blocks.height = last_payday_block_height
+            "
+        )
+        .fetch_optional(get_pool(ctx)?)
+        .await?
+        .ok_or(ApiError::NotFound)?;
+
+        let payday_duration_milli_seconds = row.reward_period_length * row.epoch_duration;
+        let next_payday_time = row
+            .last_payday_block_slot_time
+            .checked_add_signed(TimeDelta::milliseconds(payday_duration_milli_seconds))
+            .ok_or(ApiError::InternalError("`Next_payday_time` should not overflow".to_string()))?;
+
+        Ok(PaydayStatus {
+            next_payday_time,
+            opt_last_payday_block_height: row.opt_last_payday_block_height,
+        })
     }
 
     async fn tokens(
@@ -570,9 +654,6 @@ impl BaseQuery {
     // MetricsPeriod!): PoolRewardMetrics!
     // poolRewardMetricsForBakerPool(bakerId: ID! period: MetricsPeriod!):
     // PoolRewardMetrics! passiveDelegation: PassiveDelegation
-    // paydayStatus: PaydayStatus
-    // latestChainParameters: ChainParameters
-    // importState: ImportState
     // nodeStatuses(sortField: NodeSortField! sortDirection: NodeSortDirection!
     // "Returns the first _n_ elements from the list." first: Int "Returns the
     // elements in the list that come after the specified cursor." after: String
@@ -732,6 +813,86 @@ impl SubscriptionContext {
 #[derive(Clone, Debug, SimpleObject)]
 pub struct AccountsUpdatedSubscriptionItem {
     address: String,
+}
+
+#[derive(SimpleObject)]
+struct ImportState {
+    epoch_duration: TimeSpan,
+}
+
+// Future improvement (breaking changes): remove `ChainParametersV1` and just
+// use the `reward_period_length` from the current consensus algorithm directly.
+#[derive(Union)]
+pub enum LatestChainParameters {
+    ChainParametersV1(ChainParametersV1),
+}
+
+pub struct CurrentChainParameters {
+    reward_period_length:         i64,
+    epoch_duration:               i64,
+    opt_last_payday_block_height: Option<i64>,
+    last_payday_block_slot_time:  chrono::DateTime<Utc>,
+}
+
+#[derive(SimpleObject)]
+#[graphql(complex)]
+pub struct PaydayStatus {
+    next_payday_time:             DateTime,
+    #[graphql(skip)]
+    opt_last_payday_block_height: Option<i64>,
+}
+
+#[ComplexObject]
+impl PaydayStatus {
+    // Future improvement (breaking changes): The front end only uses the
+    // `lastPaydayBlock` which is returned here.
+    // Return the `PaydaySummary` of the `lastPaydayBlock` directly without the
+    // `payday_summaries` list.
+    async fn payday_summaries(
+        &self,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        before: Option<String>,
+    ) -> ApiResult<connection::Connection<String, PaydaySummary>> {
+        let mut connection = connection::Connection::new(false, false);
+
+        let last_payday_block_height =
+            self.opt_last_payday_block_height.ok_or(ApiError::InternalError(
+                "Indexer should have recorded a payday block in database if it was running for at \
+                 least the duration of a payday."
+                    .to_string(),
+            ))?;
+
+        let payday_summary = PaydaySummary {
+            block_height: last_payday_block_height,
+        };
+
+        connection
+            .edges
+            .push(connection::Edge::new(last_payday_block_height.to_string(), payday_summary));
+        Ok(connection)
+    }
+}
+
+#[derive(SimpleObject)]
+#[graphql(complex)]
+pub struct PaydaySummary {
+    block_height: BlockHeight,
+}
+
+#[ComplexObject]
+impl PaydaySummary {
+    async fn block(&self, ctx: &Context<'_>) -> ApiResult<Block> {
+        Ok(Block::query_by_height(get_pool(ctx)?, self.block_height).await?)
+    }
+}
+
+#[derive(SimpleObject)]
+pub struct ChainParametersV1 {
+    pub reward_period_length: UnsignedLong,
 }
 
 #[derive(SimpleObject)]

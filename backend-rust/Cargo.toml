@@ -1,6 +1,6 @@
 [package]
 name = "concordium-scan"
-version = "0.1.15"
+version = "0.1.17"
 edition = "2021"
 description = "CCDScan: Indexer and API for the Concordium blockchain"
 authors = ["Concordium <developers@concordium.com>"]
@@ -39,6 +39,8 @@ tonic = { version = "0.10.2", features = ["tls-roots", "tls"]}
 tower-http = { version = "0.6", features = ["cors"] }
 bigdecimal = "0.4.7"
 regex = "1.10.4"
+num-derive = "0.4.2"
+num-traits = "0.2.19"
 
 [dev-dependencies]
 mockito = "1.4"

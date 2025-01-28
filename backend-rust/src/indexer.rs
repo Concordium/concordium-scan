@@ -707,6 +707,42 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
     let mut tx = pool.begin().await.context("Failed to create SQL transaction")?;
     let genesis_height = v2::BlockIdentifier::AbsoluteHeight(0.into());
     {
+        // Get the current block.
+        let current_block = client.get_block_info(BlockIdentifier::LastFinal).await?.response;
+        // We ensure that the connected node has caught up with the protocol
+        // version 7 or above. This ensures that the parameters `current_epoch_duration`
+        // and `current_reward_period_length` are available.
+        if current_block.protocol_version < ProtocolVersion::P7 {
+            anyhow::bail!(
+                "Ensure the connected node has caught up with the current protocol version 7 or \
+                 above. This ensures that the `current_epoch_duration` and \
+                 `current_reward_period_length` are from the latest consensus algorithm."
+            );
+        }
+
+        // Get the current `epoch_duration` value.
+        let current_epoch_duration =
+            client.get_consensus_info().await?.epoch_duration.num_milliseconds();
+
+        // Get the current `reward_period_length` value.
+        let current_chain_parmeters =
+            client.get_block_chain_parameters(BlockIdentifier::LastFinal).await?.response;
+        let current_reward_period_length = match current_chain_parmeters {
+            ChainParameters::V3(chain_parameters_v3) => {
+                chain_parameters_v3.time_parameters.reward_period_length
+            }
+            ChainParameters::V2(chain_parameters_v2) => {
+                chain_parameters_v2.time_parameters.reward_period_length
+            }
+            ChainParameters::V1(chain_parameters_v1) => {
+                chain_parameters_v1.time_parameters.reward_period_length
+            }
+            ChainParameters::V0(_) => unimplemented!(
+                "Expect the node to have caught up enought for the `reward_period_length` value \
+                 being available."
+            ),
+        };
+
         let genesis_block_info = client.get_block_info(genesis_height).await?.response;
         let block_hash = genesis_block_info.block_hash.to_string();
         let slot_time = genesis_block_info.block_slot_time;
@@ -741,6 +777,16 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
             slot_time,
             total_amount,
             total_staked,
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        sqlx::query!(
+            "INSERT INTO current_chain_parameters (
+                epoch_duration, reward_period_length
+            ) VALUES ($1, $2);",
+            current_epoch_duration,
+            current_reward_period_length.reward_period_epochs().epoch as i64,
         )
         .execute(&mut *tx)
         .await?;
@@ -3545,8 +3591,11 @@ impl PreparedCcdTransferEvent {
 /// Represents updates in the database caused by a single special transaction
 /// outcome in a block.
 enum PreparedSpecialTransactionOutcome {
-    /// Distribution of various rewards.
+    /// Distribution of various CCD rewards. Excluding CCD mint rewards.
     Rewards(Vec<PreparedUpdateAccountBalance>),
+    /// Represents a payday block with its CCD mint rewards and its block
+    /// height.
+    Payday(PreparedPayDayBlock),
     /// Validator is primed for suspension.
     ValidatorPrimedForSuspension(PreparedValidatorPrimedForSuspension),
     /// Validator is suspended.
@@ -3580,12 +3629,18 @@ impl PreparedSpecialTransactionOutcome {
                 foundation_account,
                 mint_platform_development_charge,
                 ..
-            } => Self::Rewards(vec![PreparedUpdateAccountBalance::prepare(
-                Arc::new(foundation_account.to_string()),
-                mint_platform_development_charge.micro_ccd.try_into()?,
-                block_height,
-                AccountStatementEntryType::FoundationReward,
-            )?]),
+            } => {
+                // The `SpecialTransactionOutcome::Mint` event is used to recognise a new payday
+                // block.
+                let rewards = PreparedUpdateAccountBalance::prepare(
+                    Arc::new(foundation_account.to_string()),
+                    mint_platform_development_charge.micro_ccd.try_into()?,
+                    block_height,
+                    AccountStatementEntryType::FoundationReward,
+                )?;
+
+                Self::Payday(PreparedPayDayBlock::prepare(block_height, rewards)?)
+            }
             SpecialTransactionOutcome::FinalizationRewards {
                 finalization_rewards,
                 ..
@@ -3696,6 +3751,7 @@ impl PreparedSpecialTransactionOutcome {
                 }
                 Ok(())
             }
+            Self::Payday(event) => event.save(tx).await,
             Self::ValidatorPrimedForSuspension(event) => event.save(tx).await,
             Self::ValidatorSuspended(event) => event.save(tx).await,
         }
@@ -3798,6 +3854,43 @@ struct PreparedValidatorSuspension {
     baker_id:     i64,
     /// Block containing the special transaction outcome event causing it.
     block_height: i64,
+}
+
+/// Represents a payday block with its CCD mint rewards and the associated block
+/// height. The block was identified by observing the
+/// `SpecialTransactionOutcome::Mint` event.
+struct PreparedPayDayBlock {
+    block_height: i64,
+    mint_reward:  PreparedUpdateAccountBalance,
+}
+
+impl PreparedPayDayBlock {
+    fn prepare(
+        block_height: AbsoluteBlockHeight,
+        mint_reward: PreparedUpdateAccountBalance,
+    ) -> anyhow::Result<Self> {
+        Ok(Self {
+            block_height: block_height.height.try_into()?,
+            mint_reward,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        // Save the `rewards` to the database.
+        self.mint_reward.save(tx, None).await?;
+
+        sqlx::query!(
+            "UPDATE current_chain_parameters
+                SET last_payday_block_height = $1",
+            self.block_height
+        )
+        .execute(tx.as_mut())
+        .await?;
+        Ok(())
+    }
 }
 
 impl PreparedValidatorSuspension {

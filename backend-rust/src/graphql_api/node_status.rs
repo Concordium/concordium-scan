@@ -1,4 +1,4 @@
-use std::cmp::{max, min};
+use std::cmp::min;
 use std::cmp::Ordering::Equal;
 use super::{get_config, get_pool, ApiError, ApiResult};
 use std::time::Duration;
@@ -17,8 +17,8 @@ impl QueryNodeStatus {
     async fn node_statuses(
         &self,
         ctx: &Context<'_>,
-        #[graphql(default)] sort_direction: NodeSortDirection,
-        #[graphql(default)] sort_field: NodeSortField,
+        sort_direction: NodeSortDirection,
+        sort_field: NodeSortField,
         #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
@@ -97,22 +97,20 @@ impl QueryNodeStatus {
 }
 
 
-#[derive(Enum, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Enum, Clone, Copy, PartialEq, Eq)]
 enum NodeSortField {
     AveragePing,
     BlocksReceivedCount,
     ClientVersion,
     ConsensusBakerId,
     FinalizedBlockHeight,
-    #[default]
     NodeName,
     PeersCount,
     Uptime
 }
 
-#[derive(Enum, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Enum, Clone, Copy, PartialEq, Eq)]
 enum NodeSortDirection {
-    #[default]
     Asc,
     Desc
 }

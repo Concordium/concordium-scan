@@ -34,6 +34,7 @@ public abstract record ChainUpdatePayload
             Concordium.Sdk.Types.FinalizationCommitteeParametersUpdate update => FinalizationCommitteeParametersUpdate.From(update),
             Concordium.Sdk.Types.TimeoutParametersUpdate update => TimeoutParametersUpdate.From(update),
             Concordium.Sdk.Types.MinBlockTimeUpdate update => MinBlockTimeUpdate.From(update),
+            Concordium.Sdk.Types.ValidatorScoreParametersUpdate update => ValidatorScoreParametersUpdate.From(update),
             _ => throw new ArgumentOutOfRangeException(nameof(payload))
         };
 }
@@ -42,6 +43,13 @@ public sealed record MinBlockTimeUpdate(ulong DurationSeconds) : ChainUpdatePayl
 {
     internal static MinBlockTimeUpdate From(Concordium.Sdk.Types.MinBlockTimeUpdate update) =>
         new((ulong)update.Duration.TotalSeconds);
+
+}
+
+public sealed record ValidatorScoreParametersUpdate(ulong MaximumMissedRounds) : ChainUpdatePayload
+{
+    internal static ValidatorScoreParametersUpdate From(Concordium.Sdk.Types.ValidatorScoreParametersUpdate update) =>
+        new(update.ValidatorScoreParameters.MaximumMissedRounds);
 
 }
 

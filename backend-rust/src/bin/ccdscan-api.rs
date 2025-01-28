@@ -1,11 +1,12 @@
 use anyhow::Context;
 use async_graphql::SDLExportOptions;
 use clap::Parser;
-use concordium_scan::{graphql_api, router};
+use concordium_scan::{graphql_api, migrations, router};
 use prometheus_client::{
     metrics::{family::Family, gauge::Gauge},
     registry::Registry,
 };
+use serde_json::json;
 use sqlx::postgres::PgPoolOptions;
 use std::{net::SocketAddr, path::PathBuf};
 use std::time::Duration;
@@ -14,31 +15,35 @@ use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 
+/// The known supported database schema version for the API.
+const SUPPORTED_SCHEMA_VERSION: migrations::SchemaVersion =
+    migrations::SchemaVersion::InitialFirstHalf;
+
 #[derive(Parser)]
 struct Cli {
     /// The URL used for the database, something of the form:
     /// "postgres://postgres:example@localhost/ccd-scan".
     /// Use an environment variable when the connection contains a password, as
     /// command line arguments are visible across OS processes.
-    #[arg(long, env = "DATABASE_URL")]
-    database_url:              String,
-    #[arg(long, env = "DATABASE_RETRY_DELAY_SECS", default_value_t = 5)]
+    #[arg(long, env = "CCDSCAN_API_DATABASE_URL")]
+    database_url: String,
+    #[arg(long, env = "CCDSCAN_API_DATABASE_RETRY_DELAY_SECS", default_value_t = 5)]
     database_retry_delay_secs: u64,
     /// Minimum number of connections in the pool.
-    #[arg(long, env = "DATABASE_MIN_CONNECTIONS", default_value_t = 5)]
-    min_connections:           u32,
+    #[arg(long, env = "CCDSCAN_API_DATABASE_MIN_CONNECTIONS", default_value_t = 5)]
+    min_connections: u32,
     /// Maximum number of connections in the pool.
-    #[arg(long, env = "DATABASE_MAX_CONNECTIONS", default_value_t = 10)]
-    max_connections:           u32,
+    #[arg(long, env = "CCDSCAN_API_DATABASE_MAX_CONNECTIONS", default_value_t = 10)]
+    max_connections: u32,
     /// Output the GraphQL Schema for the API to this path.
     #[arg(long)]
-    schema_out:                Option<PathBuf>,
+    schema_out: Option<PathBuf>,
     /// Address to listen to for API requests.
     #[arg(long, env = "CCDSCAN_API_ADDRESS", default_value = "127.0.0.1:8000")]
-    listen:                    SocketAddr,
+    listen: SocketAddr,
     /// Address to listen for monitoring related requests
     #[arg(long, env = "CCDSCAN_API_MONITORING_ADDRESS", default_value = "127.0.0.1:8003")]
-    monitoring_listen:         SocketAddr,
+    monitoring_listen: SocketAddr,
     #[command(flatten, next_help_heading = "Configuration")]
     api_config:                graphql_api::ApiServiceConfig,
     #[arg(
@@ -49,6 +54,11 @@ struct Cli {
         env = "LOG_LEVEL"
     )]
     log_level:                 tracing_subscriber::filter::LevelFilter,
+    /// Check whether the database schema version is compatible with this
+    /// version of the service and then exit the service immediately.
+    /// Non-zero exit code is returned when incompatible.
+    #[arg(long, env = "CCDSCAN_API_CHECK_DATABASE_COMPATIBILITY_ONLY")]
+    check_database_compatibility_only: bool,
     #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_BACKEND_ORIGIN", default_value = "https://dashboard.stagenet.concordium.com")]
     node_collector_backend_origin: String,
     #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_PULL_FREQUENCY_SEC", default_value = "5")]
@@ -67,7 +77,6 @@ struct Cli {
         default_value_t = 5
     )]
     node_collector_connection_timeout_secs: u64,
-
 }
 
 #[tokio::main]
@@ -81,6 +90,13 @@ async fn main() -> anyhow::Result<()> {
         .connect(&cli.database_url)
         .await
         .context("Failed constructing database connection pool")?;
+    // Ensure the database schema is compatible with supported schema version.
+    migrations::ensure_compatible_schema_version(&pool, SUPPORTED_SCHEMA_VERSION).await?;
+    if cli.check_database_compatibility_only {
+        // Exit if we only care about the compatibility.
+        return Ok(());
+    }
+
     let cancel_token = CancellationToken::new();
     let service_info_family = Family::<Vec<(&str, String)>, Gauge>::default();
     let gauge =
@@ -129,12 +145,14 @@ async fn main() -> anyhow::Result<()> {
         tokio::spawn(async move { service.serve(tcp_listener, stop_signal).await })
     };
     let mut monitoring_task = {
+        let health_routes =
+            axum::Router::new().route("/", axum::routing::get(health)).with_state(pool);
         let tcp_listener = TcpListener::bind(cli.monitoring_listen)
             .await
             .context("Parsing TCP listener address failed")?;
         let stop_signal = cancel_token.child_token();
         info!("Monitoring server is running at {:?}", cli.monitoring_listen);
-        tokio::spawn(router::serve(registry, tcp_listener, pool, stop_signal))
+        tokio::spawn(router::serve(registry, tcp_listener, stop_signal, health_routes))
     };
     let mut node_collector_task = {
         let stop_signal = cancel_token.child_token();
@@ -150,6 +168,7 @@ async fn main() -> anyhow::Result<()> {
     // Await for signal to shutdown or any of the tasks to stop.
     tokio::select! {
         _ = tokio::signal::ctrl_c() => {
+            info!("Received signal to shutdown");
             cancel_token.cancel();
         },
         result = &mut queries_task => {
@@ -185,4 +204,21 @@ async fn main() -> anyhow::Result<()> {
     // Ensure all tasks have stopped
     let _ = tokio::join!(monitoring_task, queries_task, pgnotify_listener, node_collector_task);
     Ok(())
+}
+
+/// GET Handler for route `/health`.
+/// Verifying the API service state is as expected.
+async fn health(
+    axum::extract::State(pool): axum::extract::State<sqlx::PgPool>,
+) -> axum::Json<serde_json::Value> {
+    match migrations::ensure_compatible_schema_version(&pool, SUPPORTED_SCHEMA_VERSION).await {
+        Ok(_) => axum::extract::Json(json!({
+            "status": "ok",
+            "database": "connected"
+        })),
+        Err(err) => axum::extract::Json(json!({
+            "status": "error",
+            "database": format!("not connected: {}", err)
+        })),
+    }
 }

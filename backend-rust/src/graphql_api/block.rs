@@ -3,10 +3,16 @@ use crate::{
     address::AccountAddress,
     graphql_api::Transaction,
     scalar_types::{Amount, BakerId, BlockHash, BlockHeight, DateTime},
+    transaction_event::Event,
+    transaction_reject::TransactionRejectReason,
+    transaction_type::{
+        AccountTransactionType, CredentialDeploymentTransactionType, DbTransactionType,
+        UpdateTransactionType,
+    },
 };
-use async_graphql::{
-    connection, types, ComplexObject, Context, Enum, Interface, Object, SimpleObject, Union,
-};
+use async_graphql::{connection, types, ComplexObject, Context, Enum, Object, SimpleObject, Union};
+use futures::TryStreamExt;
+use std::cmp::{max, min};
 
 #[derive(Default)]
 pub(crate) struct QueryBlocks;
@@ -47,9 +53,9 @@ impl QueryBlocks {
             config.block_connection_limit,
         )?;
         // The CCDScan front-end currently expects an DESC order of the nodes/edges
-        // returned (outer `ORDER BY`), while the inner `ORDER BY` is a trick to
-        // get the correct nodes/edges selected based on the `after/before` key
-        // specified.
+        // returned (outer `ORDER BY`). If the `last` input parameter is set,
+        // the inner `ORDER BY` reverses the block order to allow the range be applied
+        // starting from the last element.
         let rows = sqlx::query_as!(
             Block,
             "SELECT * FROM (
@@ -205,10 +211,10 @@ impl Block {
         #[graphql(desc = "Filter special events by special event type. Set to null to return \
                           all special events (no filtering).")]
         include_filters: Option<Vec<SpecialEventTypeFilter>>,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<i32>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<i32>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, SpecialEvent>> {
@@ -217,14 +223,98 @@ impl Block {
 
     async fn transactions(
         &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<i32>,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<i32>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Transaction>> {
-        todo_api!()
+        let config = get_config(ctx)?;
+        let pool = get_pool(ctx)?;
+        let query = ConnectionQuery::<i64>::new(
+            first,
+            after,
+            last,
+            before,
+            config.transactions_per_block_connection_limit,
+        )?;
+
+        // Retrieves the transactions within the specified block. The transactions are
+        // ordered in ascending order (outer `ORDER BY`). If the `last` input
+        // parameter is set, the inner `ORDER BY` reverses the transaction order
+        // to allow the range be applied starting from the last element.
+        let mut row_stream = sqlx::query_as!(
+            Transaction,
+            r#"
+            SELECT * FROM (
+                SELECT 
+                    index,
+                    block_height,
+                    hash,
+                    ccd_cost,
+                    energy_cost,
+                    sender,
+                    type as "tx_type: DbTransactionType",
+                    type_account as "type_account: AccountTransactionType",
+                    type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
+                    type_update as "type_update: UpdateTransactionType",
+                    success,
+                    events as "events: sqlx::types::Json<Vec<Event>>",
+                    reject as "reject: sqlx::types::Json<TransactionRejectReason>"
+                FROM transactions
+                WHERE transactions.block_height = $5
+                AND index > $1 AND index < $2
+                ORDER BY
+                    CASE WHEN $3 THEN index END DESC,
+                    CASE WHEN NOT $3 THEN index END ASC
+                LIMIT $4
+            ) ORDER BY index ASC"#,
+            query.from,
+            query.to,
+            query.desc,
+            query.limit,
+            self.height
+        )
+        .fetch(pool);
+
+        let mut connection = connection::Connection::new(false, false);
+
+        let mut page_max_index = None;
+        let mut page_min_index = None;
+        while let Some(tx) = row_stream.try_next().await? {
+            page_max_index = Some(match page_max_index {
+                None => tx.index,
+                Some(current_max) => max(current_max, tx.index),
+            });
+
+            page_min_index = Some(match page_min_index {
+                None => tx.index,
+                Some(current_min) => min(current_min, tx.index),
+            });
+
+            connection.edges.push(connection::Edge::new(tx.index.to_string(), tx));
+        }
+
+        if let (Some(page_min_id), Some(page_max_id)) = (page_min_index, page_max_index) {
+            let result = sqlx::query!(
+                "
+                    SELECT MAX(index) as max_id, MIN(index) as min_id 
+                    FROM transactions
+                    WHERE transactions.block_height = $1
+                ",
+                &self.height
+            )
+            .fetch_one(pool)
+            .await?;
+
+            connection.has_previous_page =
+                result.min_id.map_or(false, |db_min| db_min < page_min_id);
+            connection.has_next_page = result.max_id.map_or(false, |db_max| db_max > page_max_id);
+        }
+
+        Ok(connection)
     }
 }
 
@@ -445,80 +535,6 @@ struct BalanceStatistics {
     finalization_reward_account: Amount,
     /// The amount in the GAS account.
     gas_account: Amount,
-}
-
-#[derive(Interface)]
-#[allow(clippy::duplicated_attributes)]
-#[graphql(
-    field(name = "euro_per_energy", ty = "&ExchangeRate"),
-    field(name = "micro_ccd_per_euro", ty = "&ExchangeRate"),
-    field(name = "account_creation_limit", ty = "&i32"),
-    field(name = "foundation_account_address", ty = "&AccountAddress")
-)]
-enum ChainParameters {
-    ChainParametersV0(ChainParametersV0),
-    ChainParametersV1(ChainParametersV1),
-    ChainParametersV2(ChainParametersV2),
-}
-
-#[derive(SimpleObject)]
-struct ChainParametersV0 {
-    // TODO
-    //   electionDifficulty: Decimal!
-    // bakerCooldownEpochs: UnsignedLong!
-    // rewardParameters: RewardParametersV0!
-    // minimumThresholdForBaking: UnsignedLong!
-    euro_per_energy:            ExchangeRate,
-    micro_ccd_per_euro:         ExchangeRate,
-    account_creation_limit:     i32,
-    foundation_account_address: AccountAddress,
-}
-
-#[derive(SimpleObject)]
-struct ChainParametersV1 {
-    // TODO
-    // electionDifficulty: Decimal!
-    //     poolOwnerCooldown: UnsignedLong!
-    //     delegatorCooldown: UnsignedLong!
-    //     rewardPeriodLength: UnsignedLong!
-    //     mintPerPayday: Decimal!
-    //     rewardParameters: RewardParametersV1!
-    //     passiveFinalizationCommission: Decimal!
-    //     passiveBakingCommission: Decimal!
-    //     passiveTransactionCommission: Decimal!
-    //     finalizationCommissionRange: CommissionRange!
-    //     bakingCommissionRange: CommissionRange!
-    //     transactionCommissionRange: CommissionRange!
-    //     minimumEquityCapital: UnsignedLong!
-    //     capitalBound: Decimal!
-    //     leverageBound: LeverageFactor!
-    euro_per_energy:            ExchangeRate,
-    micro_ccd_per_euro:         ExchangeRate,
-    account_creation_limit:     i32,
-    foundation_account_address: AccountAddress,
-}
-
-#[derive(SimpleObject)]
-struct ChainParametersV2 {
-    // TODO
-    // poolOwnerCooldown: UnsignedLong!
-    // delegatorCooldown: UnsignedLong!
-    // rewardPeriodLength: UnsignedLong!
-    // mintPerPayday: Decimal!
-    // rewardParameters: RewardParametersV2!
-    // passiveFinalizationCommission: Decimal!
-    // passiveBakingCommission: Decimal!
-    // passiveTransactionCommission: Decimal!
-    // finalizationCommissionRange: CommissionRange!
-    // bakingCommissionRange: CommissionRange!
-    // transactionCommissionRange: CommissionRange!
-    // minimumEquityCapital: UnsignedLong!
-    // capitalBound: Decimal!
-    // leverageBound: LeverageFactor!
-    euro_per_energy:            ExchangeRate,
-    micro_ccd_per_euro:         ExchangeRate,
-    account_creation_limit:     i32,
-    foundation_account_address: AccountAddress,
 }
 
 #[derive(SimpleObject)]
