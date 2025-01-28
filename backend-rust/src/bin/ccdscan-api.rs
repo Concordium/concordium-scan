@@ -54,10 +54,12 @@ struct Cli {
     /// Non-zero exit code is returned when incompatible.
     #[arg(long, env = "CCDSCAN_API_CHECK_DATABASE_COMPATIBILITY_ONLY")]
     check_database_compatibility_only: bool,
-    /// Origin to the node collector backend
+    /// Origin to the node collector backend. This URL is used to fetch node
+    /// status data.
     #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_BACKEND_ORIGIN")]
     node_collector_backend_origin: String,
-    /// Interval in between each poll from the node collector backend
+    /// Frequency in seconds in between each poll from the node collector
+    /// backend
     #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_PULL_FREQUENCY_SEC", default_value = "5")]
     node_collector_backend_pull_frequency_sec: u64,
     /// Request timeout when awaiting response from the node collector backend
@@ -71,8 +73,8 @@ struct Cli {
         default_value_t = 5
     )]
     node_collector_connection_timeout_secs: u64,
-    /// Max size to not discard while requesting nodes from the node collector
-    /// backend
+    /// Defines the maximum allowed content length (in bytes) for responses from
+    /// the node collector backend
     #[arg(
         long,
         env = "CCDSCAN_API_NODE_COLLECTOR_CONNECTION_MAX_CONTENT_LENGTH",
