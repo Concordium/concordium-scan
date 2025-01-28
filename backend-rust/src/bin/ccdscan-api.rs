@@ -60,7 +60,8 @@ struct Cli {
     /// Interval in between each poll from the node collector backend
     #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_PULL_FREQUENCY_SEC", default_value = "5")]
     node_collector_backend_pull_frequency_sec: u64,
-    /// Request timeout connecting to the node collector backend in seconds.
+    /// Request timeout when awaiting response from the node collector backend
+    /// in seconds.
     #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_CLIENT_TIMEOUT_SECS", default_value_t = 30)]
     node_collector_timeout_secs: u64,
     /// Request connection timeout to the node collector backend in seconds.
