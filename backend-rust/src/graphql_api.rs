@@ -31,8 +31,8 @@ use anyhow::Context as _;
 use async_graphql::{
     http::GraphiQLSource,
     types::{self, connection},
-    ComplexObject, Context, EmptyMutation, Enum, MergedObject, Object, Schema, SimpleObject,
-    Subscription, Union,
+    ComplexObject, Context, EmptyMutation, Enum, MergedObject, Object, SDLExportOptions, Schema,
+    SimpleObject, Subscription, Union,
 };
 use async_graphql_axum::GraphQLSubscription;
 use block::Block;
@@ -171,7 +171,7 @@ pub struct Query(
 );
 
 pub struct Service {
-    pub schema: Schema<Query, EmptyMutation, Subscription>,
+    schema: Schema<Query, EmptyMutation, Subscription>,
 }
 impl Service {
     pub fn new(
@@ -189,6 +189,13 @@ impl Service {
         Self {
             schema,
         }
+    }
+
+    /// Construct the GraphQL Schema Definition Language used by the service.
+    pub fn sdl() -> String {
+        let (subscription, _) = Subscription::new(0);
+        let schema = Schema::build(Query::default(), EmptyMutation, subscription).finish();
+        schema.sdl_with_options(SDLExportOptions::new().prefer_single_line_descriptions())
     }
 
     pub async fn serve(

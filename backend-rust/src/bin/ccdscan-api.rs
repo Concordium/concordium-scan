@@ -1,5 +1,4 @@
 use anyhow::Context;
-use async_graphql::SDLExportOptions;
 use clap::Parser;
 use concordium_scan::{graphql_api, migrations, router};
 use prometheus_client::{
@@ -33,7 +32,9 @@ struct Cli {
     /// Maximum number of connections in the pool.
     #[arg(long, env = "CCDSCAN_API_DATABASE_MAX_CONNECTIONS", default_value_t = 10)]
     max_connections: u32,
-    /// Output the GraphQL Schema for the API to this path.
+    /// Output the GraphQL Schema for the API and then exits. Output is stored
+    /// as a file at the provided path or to stdout when '-' is provided and
+    /// exit.
     #[arg(long)]
     schema_out: Option<PathBuf>,
     /// Address to listen to for API requests.
@@ -80,6 +81,18 @@ async fn main() -> anyhow::Result<()> {
     }
     let cli = Cli::parse();
     tracing_subscriber::fmt().with_max_level(cli.log_level).init();
+    if let Some(schema_file) = cli.schema_out {
+        let sdl = graphql_api::Service::sdl();
+        if schema_file.as_path() == std::path::Path::new("-") {
+            eprintln!("Writing schema to stdout");
+            print!("{}", sdl);
+        } else {
+            eprintln!("Writing schema to {}", schema_file.to_string_lossy());
+            std::fs::write(schema_file, sdl).context("Failed to write schema")?;
+        }
+        return Ok(());
+    }
+
     let pool = PgPoolOptions::new()
         .min_connections(cli.min_connections)
         .max_connections(cli.max_connections)
@@ -121,16 +134,6 @@ async fn main() -> anyhow::Result<()> {
     let mut queries_task = {
         let pool = pool.clone();
         let service = graphql_api::Service::new(subscription, &mut registry, pool, cli.api_config);
-        if let Some(schema_file) = cli.schema_out {
-            info!("Writing schema to {}", schema_file.to_string_lossy());
-            std::fs::write(
-                schema_file,
-                service
-                    .schema
-                    .sdl_with_options(SDLExportOptions::new().prefer_single_line_descriptions()),
-            )
-            .context("Failed to write schema")?;
-        }
         let tcp_listener =
             TcpListener::bind(cli.listen).await.context("Parsing TCP listener address failed")?;
         let stop_signal = cancel_token.child_token();
