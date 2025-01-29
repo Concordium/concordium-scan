@@ -1239,6 +1239,34 @@ impl PreparedBlockItem {
         .fetch_one(tx.as_mut())
         .await?;
 
+        if let Some(account_transaction) = self.account_type {
+            // Mark baker-related transactions by incrementing the `index_per_baker_id`
+            // value.
+            if matches!(
+                account_transaction,
+                AccountTransactionType::AddBaker
+                    | AccountTransactionType::RemoveBaker
+                    | AccountTransactionType::UpdateBakerStake
+                    | AccountTransactionType::UpdateBakerRestakeEarnings
+                    | AccountTransactionType::UpdateBakerKeys
+                    | AccountTransactionType::ConfigureBaker
+            ) {
+                sqlx::query!(
+                    "UPDATE transactions
+                        SET index_per_baker_id = (
+                            SELECT COALESCE(MAX(index_per_baker_id) + 1, 0)
+                            FROM transactions
+                            WHERE sender_index = (SELECT index FROM accounts WHERE address = $2)
+                        )
+                    WHERE transactions.index = $1",
+                    tx_idx,
+                    self.sender
+                )
+                .execute(tx.as_mut())
+                .await?;
+            }
+        }
+
         // Note that this does not include account creation. We handle that when saving
         // the account creation event.
         sqlx::query!(

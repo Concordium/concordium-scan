@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE transactions\n                        SET index_per_baker_id = (\n                            SELECT COALESCE(MAX(index_per_baker_id) + 1, 0)\n                            FROM transactions\n                            WHERE sender_index = (SELECT index FROM accounts WHERE address = $2)\n                        )\n                    WHERE transactions.index = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "35eab7aabf2d623a445b1db1b8b99e421badccf423a6875f792dac1c85fa031e"
+}
