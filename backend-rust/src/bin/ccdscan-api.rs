@@ -53,11 +53,31 @@ struct Cli {
     /// Non-zero exit code is returned when incompatible.
     #[arg(long, env = "CCDSCAN_API_CHECK_DATABASE_COMPATIBILITY_ONLY")]
     check_database_compatibility_only: bool,
+    /// Provide file to load environment variables from, instead of the default
+    /// `.env`.
+    // This is only part of this struct in order to generate help information.
+    // This argument is actually handled before hand using `DotenvCli`.
+    #[arg(long)]
+    dotenv: Option<PathBuf>,
+}
+
+/// CLI argument parser first used for parsing only the --dotenv option.
+/// Allowing loading the provided file before parsing the remaining arguments
+/// and producing errors
+#[derive(Parser)]
+#[command(ignore_errors = true, disable_help_flag = true, disable_version_flag = true)]
+struct DotenvCli {
+    #[arg(long)]
+    dotenv: Option<PathBuf>,
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let _ = dotenvy::dotenv();
+    if let Some(dotenv) = DotenvCli::parse().dotenv {
+        dotenvy::from_filename(dotenv)?;
+    } else {
+        let _ = dotenvy::dotenv();
+    }
     let cli = Cli::parse();
     tracing_subscriber::fmt().with_max_level(cli.log_level).init();
     let pool = PgPoolOptions::new()
