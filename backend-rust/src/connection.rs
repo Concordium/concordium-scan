@@ -28,31 +28,20 @@ pub fn connection_from_slice<T: AsRef<[A]>, A: async_graphql::OutputType + Clone
             length
         };
 
-        let (range, has_previous_page, has_next_page) = if let Some(first_count) = first {
-            (
-                after_cursor_index..min(after_cursor_index + first_count, length),
-                after_cursor_index > 0,
-                after_cursor_index + first_count < length,
-            )
+        let (start, end) = if let Some(first_count) = first {
+            (after_cursor_index, min(after_cursor_index + first_count, length))
         } else if let Some(last_count) = last {
-            (
-                before_cursor_index.saturating_sub(last_count)..before_cursor_index,
-                before_cursor_index > last_count,
-                before_cursor_index < length,
-            )
+            (before_cursor_index.saturating_sub(last_count), before_cursor_index)
         } else {
-            (
-                after_cursor_index..before_cursor_index,
-                after_cursor_index > 0,
-                before_cursor_index < length,
-            )
+            (after_cursor_index, before_cursor_index)
         };
-        let mut connection = connection::Connection::new(has_previous_page, has_next_page);
-        for i in range {
-            let value = collection[i as usize].clone();
-            connection.edges.push(connection::Edge::new(format!("{}", i), value));
-        }
-        Ok(connection)
+        let range = start..end;
+        let slice = &collection[range.clone()];
+        let mut connection = connection::Connection::new(start > 0, end < collection.len());
+        for (i, item) in range.zip(slice.iter().cloned()) {
+            connection.edges.push(connection::Edge::new(i.to_string(), item))
+    }
+    Ok(connection)
 }
 
 /// Upper and lower limits for the Cursor in a GraphQL Cursor Connection.
