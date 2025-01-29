@@ -1,3 +1,4 @@
+use std::cmp::min;
 use async_graphql::connection;
 
 use crate::graphql_api::{ApiError, ApiResult};
@@ -11,38 +12,47 @@ pub fn connection_from_slice<T: AsRef<[A]>, A: async_graphql::OutputType + Clone
     last: Option<usize>,
     before: Option<String>,
 ) -> ApiResult<connection::Connection<String, A>> {
-    let collection = collection.as_ref();
-
-    if first.is_some() && last.is_some() {
-        return Err(ApiError::QueryConnectionFirstLast);
-    }
-    let mut start: usize = if let Some(after) = after {
-        after.parse::<usize>()? + 1
-    } else {
-        0
-    };
-    let mut end: usize = if let Some(before) = before {
-        before.parse::<usize>()?
-    } else {
-        collection.len()
-    };
-    if let Some(first) = first {
-        end = (start + first).min(end);
-    }
-    if let Some(last) = last {
-        start = if last > end - start {
-            end
+        let collection = collection.as_ref();
+        let after_cursor_index = if let Some(after_cursor) = after {
+            let index = after_cursor.parse::<usize>()?;
+            index + 1
         } else {
-            end - last
+            0
         };
-    }
-    let range = start..end;
-    let slice = &collection[range.clone()];
-    let mut connection = connection::Connection::new(start > 0, end < collection.len());
-    for (i, item) in range.zip(slice.iter().cloned()) {
-        connection.edges.push(connection::Edge::new(i.to_string(), item))
-    }
-    Ok(connection)
+
+        let length = collection.len();
+
+        let before_cursor_index = if let Some(before_cursor) = before {
+            min(before_cursor.parse::<usize>()?, length)
+        } else {
+            length
+        };
+
+        let (range, has_previous_page, has_next_page) = if let Some(first_count) = first {
+            (
+                after_cursor_index..min(after_cursor_index + first_count, length),
+                after_cursor_index > 0,
+                after_cursor_index + first_count < length,
+            )
+        } else if let Some(last_count) = last {
+            (
+                before_cursor_index.saturating_sub(last_count)..before_cursor_index,
+                before_cursor_index > last_count,
+                before_cursor_index < length,
+            )
+        } else {
+            (
+                after_cursor_index..before_cursor_index,
+                after_cursor_index > 0,
+                before_cursor_index < length,
+            )
+        };
+        let mut connection = connection::Connection::new(has_previous_page, has_next_page);
+        for i in range {
+            let value = collection[i as usize].clone();
+            connection.edges.push(connection::Edge::new(format!("{}", i), value));
+        }
+        Ok(connection)
 }
 
 /// Upper and lower limits for the Cursor in a GraphQL Cursor Connection.
