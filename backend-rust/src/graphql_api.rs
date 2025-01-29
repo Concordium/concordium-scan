@@ -30,10 +30,8 @@ use crate::{
 use account::Account;
 use anyhow::Context as _;
 use async_graphql::{
-    http::GraphiQLSource,
-    types::connection,
-    ComplexObject, Context, EmptyMutation, Enum, MergedObject, Object, SDLExportOptions, Schema,
-    SimpleObject, Subscription, Union,
+    http::GraphiQLSource, types::connection, ComplexObject, Context, EmptyMutation, Enum,
+    MergedObject, Object, SDLExportOptions, Schema, SimpleObject, Subscription, Union,
 };
 use async_graphql_axum::GraphQLSubscription;
 use block::Block;

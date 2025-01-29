@@ -1,9 +1,7 @@
 use anyhow::Context;
 use clap::Parser;
 use concordium_scan::{
-    graphql_api,
-    graphql_api::node_status::NodeInfoReceiver,
-    migrations, router,
+    graphql_api, graphql_api::node_status::NodeInfoReceiver, migrations, router,
 };
 use prometheus_client::{
     metrics::{family::Family, gauge::Gauge},
@@ -172,7 +170,13 @@ async fn main() -> anyhow::Result<()> {
 
     let mut queries_task = {
         let pool = pool.clone();
-        let service = graphql_api::Service::new(subscription, &mut registry, pool, cli.api_config, nodes_status_receiver);
+        let service = graphql_api::Service::new(
+            subscription,
+            &mut registry,
+            pool,
+            cli.api_config,
+            nodes_status_receiver,
+        );
         let tcp_listener =
             TcpListener::bind(cli.listen).await.context("Parsing TCP listener address failed")?;
         let stop_signal = cancel_token.child_token();

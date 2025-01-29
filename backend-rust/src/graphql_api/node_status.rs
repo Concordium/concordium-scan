@@ -119,8 +119,8 @@ impl Service {
                     match self.node_collector_backend.get_summary().await {
 
                         Ok(node_info) => {
-                            if self.sender.send(Some(node_info)).is_err() {
-                                info!("Node status receiver has been closed");
+                            if let Err(err) = self.sender.send(Some(node_info)) {
+                                info!("Node status receiver has been closed: {:?}", err);
                                 break;
                             }
                         }
