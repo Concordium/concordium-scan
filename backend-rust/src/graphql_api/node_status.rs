@@ -8,6 +8,8 @@ use tokio::sync::watch::{Receiver, Sender};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 
+pub type NodeInfoReceiver = Receiver<Option<Vec<NodeStatus>>>;
+
 #[derive(Default)]
 pub(crate) struct QueryNodeStatus;
 
@@ -28,8 +30,7 @@ impl QueryNodeStatus {
     ) -> ApiResult<connection::Connection<String, NodeStatus>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
-        let handler =
-            ctx.data::<Receiver<Option<Vec<NodeStatus>>>>().map_err(ApiError::NoReceiver)?;
+        let handler = ctx.data::<NodeInfoReceiver>().map_err(ApiError::NoReceiver)?;
         if first.is_some() && last.is_some() {
             return Err(ApiError::QueryConnectionFirstLast);
         }
@@ -174,9 +175,9 @@ pub struct NodeStatus {
 
 #[ComplexObject]
 impl NodeStatus {
-    async fn id(&self) -> types::ID { types::ID::from(self.node_id.clone()) }
+    async fn id(&self) -> types::ID { types::ID::from(&self.node_id) }
 
-    async fn client_version(&self) -> String { self.client.to_string() }
+    async fn client_version(&self) -> &str { &self.client }
 }
 
 struct NodeCollectorBackendClient {

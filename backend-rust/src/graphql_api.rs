@@ -158,8 +158,6 @@ pub struct ApiServiceConfig {
     token_holder_addresses_collection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_TOKEN_EVENTS_COLLECTION_LIMIT", default_value = "100")]
     token_events_collection_limit: u64,
-    #[arg(long, env = "CCDSCAN_API_CONFIG_NODE_STATUSES_CONNECTION_LIMIT", default_value = "100")]
-    node_statuses_collection_limit: u64,
 }
 
 #[derive(MergedObject, Default)]

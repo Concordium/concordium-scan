@@ -1,7 +1,11 @@
 use anyhow::Context;
 use async_graphql::SDLExportOptions;
 use clap::Parser;
-use concordium_scan::{graphql_api, graphql_api::node_status::NodeStatus, migrations, router};
+use concordium_scan::{
+    graphql_api,
+    graphql_api::node_status::NodeInfoReceiver,
+    migrations, router,
+};
 use prometheus_client::{
     metrics::{family::Family, gauge::Gauge},
     registry::Registry,
@@ -10,7 +14,7 @@ use reqwest::Client;
 use serde_json::json;
 use sqlx::postgres::PgPoolOptions;
 use std::{net::SocketAddr, path::PathBuf, time::Duration};
-use tokio::{net::TcpListener, sync::watch::Receiver};
+use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 
@@ -125,8 +129,8 @@ async fn main() -> anyhow::Result<()> {
 
     let (subscription, subscription_listener) =
         graphql_api::Subscription::new(cli.database_retry_delay_secs);
-    let (block_sender, block_receiver) = tokio::sync::watch::channel(None);
-    let block_receiver_health = block_receiver.clone();
+    let (nodes_info_sender, nodes_info_receiver) = tokio::sync::watch::channel(None);
+    let block_receiver_health = nodes_info_receiver.clone();
     let mut pgnotify_listener = {
         let pool = pool.clone();
         let stop_signal = cancel_token.child_token();
@@ -140,7 +144,7 @@ async fn main() -> anyhow::Result<()> {
             &mut registry,
             pool,
             cli.api_config,
-            block_receiver,
+            nodes_info_receiver,
         );
         if let Some(schema_file) = cli.schema_out {
             info!("Writing schema to {}", schema_file.to_string_lossy());
@@ -175,7 +179,7 @@ async fn main() -> anyhow::Result<()> {
     let mut node_collector_task = {
         let stop_signal = cancel_token.child_token();
         let service = graphql_api::node_status::Service::new(
-            block_sender,
+            nodes_info_sender,
             &cli.node_collector_backend_origin,
             Duration::from_secs(cli.node_collector_backend_pull_frequency_sec),
             client,
@@ -229,7 +233,7 @@ async fn main() -> anyhow::Result<()> {
 #[derive(Clone)]
 struct HealthState {
     pool:                 sqlx::PgPool,
-    node_status_receiver: Receiver<Option<Vec<NodeStatus>>>,
+    node_status_receiver: NodeInfoReceiver,
 }
 
 /// GET Handler for route `/health`.
