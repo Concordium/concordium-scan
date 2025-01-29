@@ -220,6 +220,9 @@ CREATE TABLE transactions(
         JSONB
 );
 
+-- Important for quickly filtering transactions related to a baker_id.
+CREATE INDEX baker_related_tx_idx ON transactions (index, sender_index, type_account);
+
 -- Important for quickly filtering transactions in a given block.
 CREATE INDEX transactions_block_idx ON transactions (block_height, index);
 
