@@ -11,7 +11,7 @@ use prometheus_client::{
 };
 use serde_json::json;
 use sqlx::postgres::PgPoolOptions;
-use std::net::SocketAddr;
+use std::{net::SocketAddr, path::PathBuf};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
@@ -42,7 +42,7 @@ struct Cli {
     /// Address to listen for monitoring related requests
     #[arg(long, env = "CCDSCAN_INDEXER_MONITORING_ADDRESS", default_value = "127.0.0.1:8001")]
     monitoring_listen: SocketAddr,
-    #[command(flatten, next_help_heading = "Performance tuning")]
+    #[command(flatten)]
     indexer_config:    IndexerServiceConfig,
     /// The maximum log level. Possible values are: `trace`, `debug`, `info`,
     /// `warn`, and `error`.
@@ -56,11 +56,31 @@ struct Cli {
     /// migrations with elevated privileges.
     #[arg(long, env = "CCDSCAN_INDEXER_MIGRATE_ONLY")]
     migrate_only:      bool,
+    /// Provide file to load environment variables from, instead of the default
+    /// `.env`.
+    // This is only part of this struct in order to generate help information.
+    // This argument is actually handled before hand using `DotenvCli`.
+    #[arg(long)]
+    dotenv:            Option<PathBuf>,
+}
+
+/// CLI argument parser first used for parsing only the --dotenv option.
+/// Allowing loading the provided file before parsing the remaining arguments
+/// and producing errors
+#[derive(Parser)]
+#[command(ignore_errors = true, disable_help_flag = true, disable_version_flag = true)]
+struct DotenvCli {
+    #[arg(long)]
+    dotenv: Option<PathBuf>,
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let _ = dotenvy::dotenv();
+    if let Some(dotenv) = DotenvCli::parse().dotenv {
+        dotenvy::from_filename(dotenv)?;
+    } else {
+        let _ = dotenvy::dotenv();
+    }
     let cli = Cli::parse();
     tracing_subscriber::fmt().with_max_level(cli.log_level).init();
     let pool = PgPoolOptions::new()

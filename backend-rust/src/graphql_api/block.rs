@@ -284,7 +284,7 @@ impl Block {
             .fetch_one(pool)
             .await?
             .unwrap_or(0);
-            connection.has_previous_page = page_min_index.map_or(false, |i| i > 0);
+            connection.has_previous_page = page_min_id > 0;
             connection.has_next_page = page_max_id < max_index;
         }
         Ok(connection)

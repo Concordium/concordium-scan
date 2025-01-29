@@ -1,5 +1,4 @@
 use anyhow::Context;
-use async_graphql::SDLExportOptions;
 use clap::Parser;
 use concordium_scan::{
     graphql_api,
@@ -38,7 +37,9 @@ struct Cli {
     /// Maximum number of connections in the pool.
     #[arg(long, env = "CCDSCAN_API_DATABASE_MAX_CONNECTIONS", default_value_t = 10)]
     max_connections: u32,
-    /// Output the GraphQL Schema for the API to this path.
+    /// Outputs the GraphQL Schema for the API and then exits. The output is
+    /// stored as a file at the provided path or to stdout when '-' is
+    /// provided.
     #[arg(long)]
     schema_out: Option<PathBuf>,
     /// Address to listen to for API requests.
@@ -85,13 +86,45 @@ struct Cli {
         default_value_t = 4000000
     )]
     node_collector_connection_max_content_length: u64,
+    /// Provide file to load environment variables from, instead of the default
+    /// `.env`.
+    // This is only part of this struct in order to generate help information.
+    // This argument is actually handled before hand using `DotenvCli`.
+    #[arg(long)]
+    dotenv: Option<PathBuf>,
+}
+
+/// CLI argument parser first used for parsing only the --dotenv option.
+/// Allowing loading the provided file before parsing the remaining arguments
+/// and producing errors
+#[derive(Parser)]
+#[command(ignore_errors = true, disable_help_flag = true, disable_version_flag = true)]
+struct DotenvCli {
+    #[arg(long)]
+    dotenv: Option<PathBuf>,
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let _ = dotenvy::dotenv();
+    if let Some(dotenv) = DotenvCli::parse().dotenv {
+        dotenvy::from_filename(dotenv)?;
+    } else {
+        let _ = dotenvy::dotenv();
+    }
     let cli = Cli::parse();
     tracing_subscriber::fmt().with_max_level(cli.log_level).init();
+    if let Some(schema_file) = cli.schema_out {
+        let sdl = graphql_api::Service::sdl();
+        if schema_file.as_path() == std::path::Path::new("-") {
+            eprintln!("Writing schema to stdout");
+            print!("{}", sdl);
+        } else {
+            eprintln!("Writing schema to {}", schema_file.to_string_lossy());
+            std::fs::write(schema_file, sdl).context("Failed to write schema")?;
+        }
+        return Ok(());
+    }
+
     let pool = PgPoolOptions::new()
         .min_connections(cli.min_connections)
         .max_connections(cli.max_connections)
@@ -129,8 +162,8 @@ async fn main() -> anyhow::Result<()> {
 
     let (subscription, subscription_listener) =
         graphql_api::Subscription::new(cli.database_retry_delay_secs);
-    let (nodes_info_sender, nodes_info_receiver) = tokio::sync::watch::channel(None);
-    let block_receiver_health = nodes_info_receiver.clone();
+    let (nodes_status_sender, nodes_status_receiver) = tokio::sync::watch::channel(None);
+    let block_receiver_health = nodes_status_receiver.clone();
     let mut pgnotify_listener = {
         let pool = pool.clone();
         let stop_signal = cancel_token.child_token();
@@ -139,23 +172,7 @@ async fn main() -> anyhow::Result<()> {
 
     let mut queries_task = {
         let pool = pool.clone();
-        let service = graphql_api::Service::new(
-            subscription,
-            &mut registry,
-            pool,
-            cli.api_config,
-            nodes_info_receiver,
-        );
-        if let Some(schema_file) = cli.schema_out {
-            info!("Writing schema to {}", schema_file.to_string_lossy());
-            std::fs::write(
-                schema_file,
-                service
-                    .schema
-                    .sdl_with_options(SDLExportOptions::new().prefer_single_line_descriptions()),
-            )
-            .context("Failed to write schema")?;
-        }
+        let service = graphql_api::Service::new(subscription, &mut registry, pool, cli.api_config, nodes_status_receiver);
         let tcp_listener =
             TcpListener::bind(cli.listen).await.context("Parsing TCP listener address failed")?;
         let stop_signal = cancel_token.child_token();
@@ -179,7 +196,7 @@ async fn main() -> anyhow::Result<()> {
     let mut node_collector_task = {
         let stop_signal = cancel_token.child_token();
         let service = graphql_api::node_status::Service::new(
-            nodes_info_sender,
+            nodes_status_sender,
             &cli.node_collector_backend_origin,
             Duration::from_secs(cli.node_collector_backend_pull_frequency_sec),
             client,

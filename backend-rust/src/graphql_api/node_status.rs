@@ -1,4 +1,4 @@
-use super::{get_config, get_pool, ApiError, ApiResult};
+use super::{ApiError, ApiResult};
 use crate::connection::connection_from_slice;
 use async_graphql::{connection, types, ComplexObject, Context, Enum, Object, SimpleObject};
 use reqwest::{Client, StatusCode};
@@ -28,8 +28,6 @@ impl QueryNodeStatus {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, NodeStatus>> {
-        let config = get_config(ctx)?;
-        let pool = get_pool(ctx)?;
         let handler = ctx.data::<NodeInfoReceiver>().map_err(ApiError::NoReceiver)?;
         if first.is_some() && last.is_some() {
             return Err(ApiError::QueryConnectionFirstLast);
