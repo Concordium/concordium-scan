@@ -22,6 +22,7 @@ derive_more = { version = "1.0.0", features = ["display", "from", "from_str", "i
 dotenvy = "0.15"
 futures = "0.3"
 hex = "0.4"
+reqwest = { version = "0.12", features = ["json"] }
 serde = "1.0"
 serde_json = "1.0"
 sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "chrono", "bigdecimal"] }
@@ -40,6 +41,9 @@ bigdecimal = "0.4.7"
 regex = "1.10.4"
 num-derive = "0.4.2"
 num-traits = "0.2.19"
+
+[dev-dependencies]
+mockito = "1.4"
 
 # Recommended by SQLx to speed up incremental builds
 [profile.dev.package.sqlx-macros]

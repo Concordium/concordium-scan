@@ -8,6 +8,7 @@ mod block;
 mod block_metrics;
 mod contract;
 mod module_reference_event;
+pub mod node_status;
 mod token;
 mod transaction;
 mod transaction_metrics;
@@ -29,10 +30,8 @@ use crate::{
 use account::Account;
 use anyhow::Context as _;
 use async_graphql::{
-    http::GraphiQLSource,
-    types::{self, connection},
-    ComplexObject, Context, EmptyMutation, Enum, MergedObject, Object, SDLExportOptions, Schema,
-    SimpleObject, Subscription, Union,
+    http::GraphiQLSource, types::connection, ComplexObject, Context, EmptyMutation, Enum,
+    MergedObject, Object, SDLExportOptions, Schema, SimpleObject, Subscription, Union,
 };
 use async_graphql_axum::GraphQLSubscription;
 use block::Block;
@@ -42,6 +41,7 @@ use concordium_rust_sdk::{
 };
 use derive_more::Display;
 use futures::prelude::*;
+use node_status::NodeStatus;
 use prometheus_client::registry::Registry;
 use regex::Regex;
 use sqlx::PgPool;
@@ -52,7 +52,10 @@ use std::{
     sync::Arc,
 };
 use token::Token;
-use tokio::{net::TcpListener, sync::broadcast};
+use tokio::{
+    net::TcpListener,
+    sync::{broadcast, watch::Receiver},
+};
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_util::sync::CancellationToken;
 use tower_http::cors::{Any, CorsLayer};
@@ -167,6 +170,7 @@ pub struct Query(
     block_metrics::QueryBlockMetrics,
     module_reference_event::QueryModuleReferenceEvent,
     contract::QueryContract,
+    node_status::QueryNodeStatus,
     token::QueryToken,
 );
 
@@ -179,10 +183,12 @@ impl Service {
         registry: &mut Registry,
         pool: PgPool,
         config: ApiServiceConfig,
+        receiver: Receiver<Option<Vec<NodeStatus>>>,
     ) -> Self {
         let schema = Schema::build(Query::default(), EmptyMutation, subscription)
             .extension(async_graphql::extensions::Tracing)
             .extension(monitor::MonitorExtension::new(registry))
+            .data(receiver)
             .data(pool)
             .data(config)
             .finish();
@@ -386,6 +392,8 @@ pub enum ApiError {
     NoDatabasePool(async_graphql::Error),
     #[error("Internal error (NoServiceConfig): {}", .0.message)]
     NoServiceConfig(async_graphql::Error),
+    #[error("Internal error: {}", .0.message)]
+    NoReceiver(async_graphql::Error),
     #[error("Internal error (FailedDatabaseQuery): {0}")]
     FailedDatabaseQuery(Arc<sqlx::Error>),
     #[error("Invalid ID format: {0}")]
@@ -845,59 +853,6 @@ struct CollectionSegmentInfo {
     /// Indicates whether more items exist prior the set defined by the clients
     /// arguments.
     has_previous_page: bool,
-}
-
-#[derive(SimpleObject)]
-struct NodeStatus {
-    // TODO: add below fields
-    // peersList: [PeerReference!]!
-    // nodeName: String
-    // nodeId: String!
-    // peerType: String!
-    // uptime: UnsignedLong!
-    // clientVersion: String!
-    // averagePing: Float
-    // peersCount: UnsignedLong!
-    // bestBlock: String!
-    // bestBlockHeight: UnsignedLong!
-    // bestBlockBakerId: UnsignedLong
-    // bestArrivedTime: DateTime
-    // blockArrivePeriodEma: Float
-    // blockArrivePeriodEmsd: Float
-    // blockArriveLatencyEma: Float
-    // blockArriveLatencyEmsd: Float
-    // blockReceivePeriodEma: Float
-    // blockReceivePeriodEmsd: Float
-    // blockReceiveLatencyEma: Float
-    // blockReceiveLatencyEmsd: Float
-    // finalizedBlock: String!
-    // finalizedBlockHeight: UnsignedLong!
-    // finalizedTime: DateTime
-    // finalizationPeriodEma: Float
-    // finalizationPeriodEmsd: Float
-    // packetsSent: UnsignedLong!
-    // packetsReceived: UnsignedLong!
-    // consensusRunning: Boolean!
-    // bakingCommitteeMember: String!
-    // consensusBakerId: UnsignedLong
-    // finalizationCommitteeMember: Boolean!
-    // transactionsPerBlockEma: Float
-    // transactionsPerBlockEmsd: Float
-    // bestBlockTransactionsSize: UnsignedLong
-    // bestBlockTotalEncryptedAmount: UnsignedLong
-    // bestBlockTotalAmount: UnsignedLong
-    // bestBlockTransactionCount: UnsignedLong
-    // bestBlockTransactionEnergyCost: UnsignedLong
-    // bestBlockExecutionCost: UnsignedLong
-    // bestBlockCentralBankAmount: UnsignedLong
-    // blocksReceivedCount: UnsignedLong
-    // blocksVerifiedCount: UnsignedLong
-    // genesisBlock: String!
-    // finalizationCount: UnsignedLong
-    // finalizedBlockParent: String!
-    // averageBytesPerSecondIn: Float!
-    // averageBytesPerSecondOut: Float!
-    id: types::ID,
 }
 
 #[derive(SimpleObject)]

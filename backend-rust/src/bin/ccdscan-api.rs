@@ -1,13 +1,16 @@
 use anyhow::Context;
 use clap::Parser;
-use concordium_scan::{graphql_api, migrations, router};
+use concordium_scan::{
+    graphql_api, graphql_api::node_status::NodeInfoReceiver, migrations, router,
+};
 use prometheus_client::{
     metrics::{family::Family, gauge::Gauge},
     registry::Registry,
 };
+use reqwest::Client;
 use serde_json::json;
 use sqlx::postgres::PgPoolOptions;
-use std::{net::SocketAddr, path::PathBuf};
+use std::{net::SocketAddr, path::PathBuf, time::Duration};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
@@ -54,6 +57,33 @@ struct Cli {
     /// Non-zero exit code is returned when incompatible.
     #[arg(long, env = "CCDSCAN_API_CHECK_DATABASE_COMPATIBILITY_ONLY")]
     check_database_compatibility_only: bool,
+    /// Origin to the node collector backend. This URL is used to fetch node
+    /// status data.
+    #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_BACKEND_ORIGIN")]
+    node_collector_backend_origin: String,
+    /// Frequency in seconds in between each poll from the node collector
+    /// backend
+    #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_PULL_FREQUENCY_SEC", default_value = "5")]
+    node_collector_backend_pull_frequency_sec: u64,
+    /// Request timeout when awaiting response from the node collector backend
+    /// in seconds.
+    #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_CLIENT_TIMEOUT_SECS", default_value_t = 30)]
+    node_collector_timeout_secs: u64,
+    /// Request connection timeout to the node collector backend in seconds.
+    #[arg(
+        long,
+        env = "CCDSCAN_API_NODE_COLLECTOR_CLIENT_CONNECTION_TIMEOUT_SECS",
+        default_value_t = 5
+    )]
+    node_collector_connection_timeout_secs: u64,
+    /// Defines the maximum allowed content length (in bytes) for responses from
+    /// the node collector backend
+    #[arg(
+        long,
+        env = "CCDSCAN_API_NODE_COLLECTOR_CONNECTION_MAX_CONTENT_LENGTH",
+        default_value_t = 4000000
+    )]
+    node_collector_connection_max_content_length: u64,
     /// Provide file to load environment variables from, instead of the default
     /// `.env`.
     // This is only part of this struct in order to generate help information.
@@ -106,6 +136,11 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
+    let client = Client::builder()
+        .connect_timeout(Duration::from_secs(cli.node_collector_connection_timeout_secs))
+        .timeout(Duration::from_secs(cli.node_collector_timeout_secs))
+        .build()?;
+
     let cancel_token = CancellationToken::new();
     let service_info_family = Family::<Vec<(&str, String)>, Gauge>::default();
     let gauge =
@@ -125,6 +160,8 @@ async fn main() -> anyhow::Result<()> {
 
     let (subscription, subscription_listener) =
         graphql_api::Subscription::new(cli.database_retry_delay_secs);
+    let (nodes_status_sender, nodes_status_receiver) = tokio::sync::watch::channel(None);
+    let block_receiver_health = nodes_status_receiver.clone();
     let mut pgnotify_listener = {
         let pool = pool.clone();
         let stop_signal = cancel_token.child_token();
@@ -133,7 +170,13 @@ async fn main() -> anyhow::Result<()> {
 
     let mut queries_task = {
         let pool = pool.clone();
-        let service = graphql_api::Service::new(subscription, &mut registry, pool, cli.api_config);
+        let service = graphql_api::Service::new(
+            subscription,
+            &mut registry,
+            pool,
+            cli.api_config,
+            nodes_status_receiver,
+        );
         let tcp_listener =
             TcpListener::bind(cli.listen).await.context("Parsing TCP listener address failed")?;
         let stop_signal = cancel_token.child_token();
@@ -141,14 +184,30 @@ async fn main() -> anyhow::Result<()> {
         tokio::spawn(async move { service.serve(tcp_listener, stop_signal).await })
     };
     let mut monitoring_task = {
+        let state = HealthState {
+            pool,
+            node_status_receiver: block_receiver_health,
+        };
         let health_routes =
-            axum::Router::new().route("/", axum::routing::get(health)).with_state(pool);
+            axum::Router::new().route("/", axum::routing::get(health)).with_state(state);
         let tcp_listener = TcpListener::bind(cli.monitoring_listen)
             .await
             .context("Parsing TCP listener address failed")?;
         let stop_signal = cancel_token.child_token();
         info!("Monitoring server is running at {:?}", cli.monitoring_listen);
         tokio::spawn(router::serve(registry, tcp_listener, stop_signal, health_routes))
+    };
+    let mut node_collector_task = {
+        let stop_signal = cancel_token.child_token();
+        let service = graphql_api::node_status::Service::new(
+            nodes_status_sender,
+            &cli.node_collector_backend_origin,
+            Duration::from_secs(cli.node_collector_backend_pull_frequency_sec),
+            client,
+            cli.node_collector_connection_max_content_length,
+            stop_signal,
+        );
+        tokio::spawn(service.serve())
     };
 
     // Await for signal to shutdown or any of the tasks to stop.
@@ -178,26 +237,43 @@ async fn main() -> anyhow::Result<()> {
             }
             cancel_token.cancel();
         }
+        result = &mut node_collector_task => {
+            error!("Node collector task stopped.");
+            if let Err(err) = result? {
+                error!("Node collector error: {}", err);
+            }
+            cancel_token.cancel();
+        }
     }
     info!("Shutting down");
     // Ensure all tasks have stopped
-    let _ = tokio::join!(monitoring_task, queries_task, pgnotify_listener);
+    let _ = tokio::join!(monitoring_task, queries_task, pgnotify_listener, node_collector_task);
     Ok(())
+}
+
+/// Represents the state required by the health endpoint router.
+///
+/// This struct provides access to essential resources needed to determine
+/// system health and readiness.
+#[derive(Clone)]
+struct HealthState {
+    pool:                 sqlx::PgPool,
+    node_status_receiver: NodeInfoReceiver,
 }
 
 /// GET Handler for route `/health`.
 /// Verifying the API service state is as expected.
 async fn health(
-    axum::extract::State(pool): axum::extract::State<sqlx::PgPool>,
+    axum::extract::State(state): axum::extract::State<HealthState>,
 ) -> axum::Json<serde_json::Value> {
-    match migrations::ensure_compatible_schema_version(&pool, SUPPORTED_SCHEMA_VERSION).await {
-        Ok(_) => axum::extract::Json(json!({
-            "status": "ok",
-            "database": "connected"
-        })),
-        Err(err) => axum::extract::Json(json!({
-            "status": "error",
-            "database": format!("not connected: {}", err)
-        })),
-    }
+    let node_status_connected = state.node_status_receiver.borrow().is_some();
+    let database_connected =
+        migrations::ensure_compatible_schema_version(&state.pool, SUPPORTED_SCHEMA_VERSION)
+            .await
+            .is_ok();
+    axum::Json(json!({
+        "status": if node_status_connected && database_connected {"ok"} else {"error"},
+        "node_status": if node_status_connected {"connected"} else {"not connected"},
+        "database": if database_connected {"connected"} else {"not connected"},
+    }))
 }
