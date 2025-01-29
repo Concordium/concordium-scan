@@ -161,8 +161,8 @@ mod tests {
     fn test_full_collection() {
         let data = setup_data();
         let result = connection_from_slice(&data, None, None, None, None).unwrap();
-        assert_eq!(result.has_next_page, false);
-        assert_eq!(result.has_previous_page, false);
+        assert!(!result.has_next_page);
+        assert!(!result.has_previous_page);
         assert_eq!(result.edges.len(), 5);
     }
 
@@ -171,8 +171,8 @@ mod tests {
         let data = setup_data();
         let result = connection_from_slice(&data, Some(3), None, None, None).unwrap();
         assert_eq!(result.edges.len(), 3);
-        assert_eq!(result.has_next_page, true);
-        assert_eq!(result.has_previous_page, false);
+        assert!(result.has_next_page);
+        assert!(!result.has_previous_page);
         for i in 0..3 {
             assert_eq!(result.edges[i].node, data[i]);
         }
@@ -183,8 +183,8 @@ mod tests {
         let data = setup_data();
         let result = connection_from_slice(&data, None, None, Some(2), None).unwrap();
         assert_eq!(result.edges.len(), 2);
-        assert_eq!(result.has_next_page, false);
-        assert_eq!(result.has_previous_page, true);
+        assert!(!result.has_next_page);
+        assert!(result.has_previous_page);
         assert_eq!(result.edges[0].node, data[3]);
         assert_eq!(result.edges[1].node, data[4]);
     }
@@ -195,8 +195,8 @@ mod tests {
         let result =
             connection_from_slice(&data, Some(2), Some("2".to_string()), None, None).unwrap();
         assert_eq!(result.edges.len(), 2);
-        assert_eq!(result.has_next_page, false);
-        assert_eq!(result.has_previous_page, true);
+        assert!(!result.has_next_page);
+        assert!(result.has_previous_page);
         assert_eq!(result.edges[0].node, data[3]);
         assert_eq!(result.edges[1].node, data[4]);
     }
@@ -207,8 +207,8 @@ mod tests {
         let result =
             connection_from_slice(&data, None, None, Some(2), Some("4".to_string())).unwrap();
         assert_eq!(result.edges.len(), 2);
-        assert_eq!(result.has_next_page, true);
-        assert_eq!(result.has_previous_page, true);
+        assert!(result.has_next_page);
+        assert!(result.has_previous_page);
         assert_eq!(result.edges[0].node, data[2]);
         assert_eq!(result.edges[1].node, data[3]);
     }
@@ -225,8 +225,8 @@ mod tests {
         )
         .unwrap();
         assert_eq!(result.edges.len(), 2);
-        assert_eq!(result.has_next_page, true);
-        assert_eq!(result.has_previous_page, true);
+        assert!(result.has_next_page);
+        assert!(result.has_previous_page);
         assert_eq!(result.edges[0].node, data[2]);
         assert_eq!(result.edges[1].node, data[3]);
     }
@@ -237,8 +237,8 @@ mod tests {
         let result =
             connection_from_slice(&data, Some(2), Some("10".to_string()), None, None).unwrap();
         assert!(result.edges.is_empty());
-        assert_eq!(result.has_next_page, false);
-        assert_eq!(result.has_previous_page, true);
+        assert!(!result.has_next_page);
+        assert!(result.has_previous_page);
     }
 
     #[test]
@@ -247,8 +247,8 @@ mod tests {
         let result =
             connection_from_slice(&data, Some(3), None, None, Some("10".to_string())).unwrap();
         assert_eq!(result.edges.len(), 3);
-        assert_eq!(result.has_next_page, true);
-        assert_eq!(result.has_previous_page, false);
+        assert!(result.has_next_page);
+        assert!(!result.has_previous_page);
         assert_eq!(result.edges[0].node, data[0]);
         assert_eq!(result.edges[1].node, data[1]);
         assert_eq!(result.edges[2].node, data[2]);
@@ -267,8 +267,8 @@ mod tests {
         let result =
             connection_from_slice(collection, Some(1), Some("0".to_string()), None, None).unwrap();
         assert!(result.edges.is_empty());
-        assert_eq!(result.has_next_page, false);
-        assert_eq!(result.has_previous_page, false);
+        assert!(!result.has_next_page);
+        assert!(!result.has_previous_page);
     }
 
     #[test]
@@ -277,7 +277,7 @@ mod tests {
         let result =
             connection_from_slice(data, None, Some("4".to_string()), Some(0), None).unwrap();
         assert!(result.edges.is_empty());
-        assert_eq!(result.has_next_page, false);
-        assert_eq!(result.has_previous_page, false);
+        assert!(!result.has_next_page);
+        assert!(!result.has_previous_page);
     }
 }
