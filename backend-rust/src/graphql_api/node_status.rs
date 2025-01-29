@@ -1,11 +1,9 @@
 use super::{get_config, get_pool, ApiError, ApiResult};
+use crate::connection::connection_from_slice;
 use async_graphql::{connection, types, ComplexObject, Context, Enum, Object, SimpleObject};
 use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
-use std::{
-    cmp::{min, Ordering::Equal},
-    time::Duration,
-};
+use std::{cmp::Ordering::Equal, time::Duration};
 use tokio::sync::watch::{Receiver, Sender};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
@@ -21,10 +19,10 @@ impl QueryNodeStatus {
         ctx: &Context<'_>,
         sort_direction: NodeSortDirection,
         sort_field: NodeSortField,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<usize>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<usize>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, NodeStatus>> {
@@ -65,49 +63,7 @@ impl QueryNodeStatus {
                 NodeSortDirection::Desc => ordering.unwrap_or(Equal).reverse(),
             }
         });
-
-        let after_cursor_index = if let Some(after_cursor) = after {
-            let index = after_cursor.parse::<u64>()?;
-            index + 1
-        } else {
-            0
-        };
-
-        let length = statuses.len() as u64;
-
-        let before_cursor_index = if let Some(before_cursor) = before {
-            min(before_cursor.parse::<u64>()?, length)
-        } else {
-            length
-        };
-
-        let (range, has_previous_page, has_next_page) = if let Some(first_count) = first {
-            (
-                after_cursor_index..min(after_cursor_index + first_count, length),
-                after_cursor_index > 0,
-                after_cursor_index + first_count < length,
-            )
-        } else if let Some(last_count) = last {
-            (
-                before_cursor_index.saturating_sub(last_count)..before_cursor_index,
-                before_cursor_index > last_count,
-                before_cursor_index < length,
-            )
-        } else {
-            (
-                after_cursor_index..before_cursor_index,
-                after_cursor_index > 0,
-                before_cursor_index < length,
-            )
-        };
-        let mut connection: connection::Connection<String, NodeStatus> =
-            connection::Connection::new(has_previous_page, has_next_page);
-        for i in range {
-            let value = statuses[i as usize].clone();
-            connection.edges.push(connection::Edge::new(format!("{}", i), value));
-        }
-
-        Ok(connection)
+        connection_from_slice(statuses, first, after, last, before)
     }
 }
 

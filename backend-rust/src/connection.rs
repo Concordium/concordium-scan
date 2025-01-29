@@ -4,13 +4,15 @@ use crate::graphql_api::{ApiError, ApiResult};
 
 /// Construct a GraphQL Cursor Connection response from slice.
 /// The cursor is the index in the slice.
-pub fn connection_from_slice<A: async_graphql::OutputType>(
-    collection: &[A],
+pub fn connection_from_slice<T: AsRef<[A]>, A: async_graphql::OutputType + Clone>(
+    collection: T,
     first: Option<usize>,
     after: Option<String>,
     last: Option<usize>,
     before: Option<String>,
-) -> ApiResult<connection::Connection<String, &A>> {
+) -> ApiResult<connection::Connection<String, A>> {
+    let collection = collection.as_ref();
+
     if first.is_some() && last.is_some() {
         return Err(ApiError::QueryConnectionFirstLast);
     }
@@ -37,7 +39,7 @@ pub fn connection_from_slice<A: async_graphql::OutputType>(
     let range = start..end;
     let slice = &collection[range.clone()];
     let mut connection = connection::Connection::new(start > 0, end < collection.len());
-    for (i, item) in range.zip(slice.iter()) {
+    for (i, item) in range.zip(slice.iter().cloned()) {
         connection.edges.push(connection::Edge::new(i.to_string(), item))
     }
     Ok(connection)

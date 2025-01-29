@@ -188,7 +188,7 @@ impl FinalizationRewardsSpecialEvent {
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<usize>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, &AccountAddressAmount>> {
+    ) -> ApiResult<connection::Connection<String, AccountAddressAmount>> {
         connection_from_slice(self.rewards.as_slice(), first, after, last, before)
     }
 }
@@ -224,7 +224,7 @@ impl BakingRewardsSpecialEvent {
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<usize>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, &AccountAddressAmount>> {
+    ) -> ApiResult<connection::Connection<String, AccountAddressAmount>> {
         connection_from_slice(self.rewards.as_slice(), first, after, last, before)
     }
 }
@@ -302,7 +302,7 @@ struct BakerPoolRewardTarget {
     baker_id: BakerId,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 struct AccountAddressAmount {
     account_address: AccountAddress,
     amount:          Amount,
