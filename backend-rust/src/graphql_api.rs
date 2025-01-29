@@ -1,8 +1,6 @@
 //! TODO
 //! - Enable GraphiQL through flag instead of always.
 
-#![allow(unused_variables)]
-
 mod account;
 mod account_metrics;
 mod baker;
@@ -562,10 +560,7 @@ impl BaseQuery {
             )
             .fetch_one(pool)
             .await?;
-
-            if let Some(edge) = connection.edges.last() {
-                connection.has_next_page = max_index.map_or(false, |db_max| db_max > page_max_index)
-            }
+            connection.has_next_page = max_index.map_or(false, |db_max| db_max > page_max_index)
         }
 
         if let Some(edge) = connection.edges.first() {
@@ -784,12 +779,12 @@ impl PaydayStatus {
     // `payday_summaries` list.
     async fn payday_summaries(
         &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
+        _after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        before: Option<String>,
+        _before: Option<String>,
     ) -> ApiResult<connection::Connection<String, PaydaySummary>> {
         let mut connection = connection::Connection::new(false, false);
 
