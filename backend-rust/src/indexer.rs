@@ -122,6 +122,28 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
         .await?
         .map(|r| r.height);
 
+        // Handle TLS configuration and set timeouts according to the configuration for
+        // every endpoint.
+        let endpoints: Vec<v2::Endpoint> = endpoints
+            .into_iter()
+            .map(|endpoint| {
+                let endpoint = if endpoint
+                    .uri()
+                    .scheme()
+                    .map_or(false, |x| x == &concordium_rust_sdk::v2::Scheme::HTTPS)
+                {
+                    endpoint
+                        .tls_config(tonic::transport::ClientTlsConfig::new())
+                        .context("Unable to construct TLS configuration for the Concordium node.")?
+                } else {
+                    endpoint
+                };
+                Ok(endpoint
+                    .timeout(Duration::from_secs(config.node_request_timeout))
+                    .connect_timeout(Duration::from_secs(config.node_connect_timeout)))
+            })
+            .collect::<anyhow::Result<_>>()?;
+
         let start_height = if let Some(height) = last_height_stored {
             u64::try_from(height)? + 1
         } else {
@@ -159,28 +181,7 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
     /// Run the service. This future will only stop when signaled by the
     /// `cancel_token`.
     pub async fn run(self, cancel_token: CancellationToken) -> anyhow::Result<()> {
-        // Set up endpoints to the node.
-        let mut endpoints_with_schema = Vec::new();
-        for endpoint in self.endpoints {
-            let endpoint = if endpoint
-                .uri()
-                .scheme()
-                .map_or(false, |x| x == &concordium_rust_sdk::v2::Scheme::HTTPS)
-            {
-                endpoint
-                    .tls_config(tonic::transport::ClientTlsConfig::new())
-                    .context("Unable to construct TLS configuration for the Concordium node.")?
-            } else {
-                endpoint
-            };
-            endpoints_with_schema.push(
-                endpoint
-                    .timeout(Duration::from_secs(self.config.node_request_timeout))
-                    .connect_timeout(Duration::from_secs(self.config.node_connect_timeout)),
-            );
-        }
-
-        let traverse_config = TraverseConfig::new(endpoints_with_schema, self.start_height.into())
+        let traverse_config = TraverseConfig::new(self.endpoints, self.start_height.into())
             .context("Failed setting up TraverseConfig")?
             .set_max_parallel(self.config.max_parallel_block_preprocessors)
             .set_max_behind(std::time::Duration::from_secs(self.config.node_max_behind));
