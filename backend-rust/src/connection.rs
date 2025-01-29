@@ -173,9 +173,9 @@ mod tests {
         assert_eq!(result.edges.len(), 3);
         assert!(result.has_next_page);
         assert!(!result.has_previous_page);
-        for i in 0..3 {
-            assert_eq!(result.edges[i].node, data[i]);
-        }
+        assert_eq!(result.edges[0].node, data[0]);
+        assert_eq!(result.edges[1].node, data[1]);
+        assert_eq!(result.edges[2].node, data[2]);
     }
 
     #[test]
