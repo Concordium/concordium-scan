@@ -395,10 +395,12 @@ impl Account {
 
     /// Number of transactions where this account is used as sender.
     async fn transaction_count<'a>(&self, ctx: &Context<'a>) -> ApiResult<i64> {
-        let count =
-            sqlx::query_scalar!("SELECT COUNT(*) FROM transactions WHERE sender=$1", self.index)
-                .fetch_one(get_pool(ctx)?)
-                .await?;
+        let count = sqlx::query_scalar!(
+            "SELECT COUNT(*) FROM transactions WHERE sender_index = $1",
+            self.index
+        )
+        .fetch_one(get_pool(ctx)?)
+        .await?;
         Ok(count.unwrap_or(0))
     }
 
@@ -529,7 +531,7 @@ impl Account {
                     hash,
                     ccd_cost,
                     energy_cost,
-                    sender,
+                    sender_index,
                     type as "tx_type: DbTransactionType",
                     type_account as "type_account: AccountTransactionType",
                     type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",

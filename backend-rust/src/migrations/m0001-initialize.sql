@@ -189,10 +189,10 @@ CREATE TABLE transactions(
     energy_cost
         BIGINT
         NOT NULL,
-    -- The account used for sending of the transaction.
+    -- The account index used for sending of the transaction.
     -- NULL for chain update and account creation transactions.
     -- Foreign key constraint added later, since account table is not defined yet.
-    sender
+    sender_index
         BIGINT,
     -- The type of transaction.
     type
@@ -217,7 +217,12 @@ CREATE TABLE transactions(
         JSONB,
     -- Transaction details. Reject reason if success is false.
     reject
-        JSONB
+        JSONB,
+    -- Every time this is a `baker-related` transaction, this index is incremented for that `baker_id (= account_index)`.
+    -- This value is `NULL` when the transaction is not a `baker-related` transaction.
+    -- This value is used to quickly filter/sort transactions associated to a baker.
+    index_per_baker_id
+        BIGINT
 );
 
 -- Important for quickly filtering transactions in a given block.
@@ -277,7 +282,7 @@ CREATE INDEX accounts_address_trgm_idx ON accounts USING gin (address gin_trgm_o
 -- Add foreign key constraint now that the account table is created.
 ALTER TABLE transactions
     ADD CONSTRAINT fk_transaction_sender
-    FOREIGN KEY (sender)
+    FOREIGN KEY (sender_index)
     REFERENCES accounts;
 
 -- Add foreign key constraint now that the account table is created.

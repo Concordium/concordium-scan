@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                index,\n                block_height,\n                hash,\n                ccd_cost,\n                energy_cost,\n                sender,\n                type as \"tx_type: DbTransactionType\",\n                type_account as \"type_account: AccountTransactionType\",\n                type_credential_deployment as \"type_credential_deployment: CredentialDeploymentTransactionType\",\n                type_update as \"type_update: UpdateTransactionType\",\n                success,\n                events as \"events: sqlx::types::Json<Vec<Event>>\",\n                reject as \"reject: sqlx::types::Json<TransactionRejectReason>\"\n            FROM transactions\n            WHERE index = $1",
+  "query": "SELECT\n                index,\n                block_height,\n                hash,\n                ccd_cost,\n                energy_cost,\n                sender_index,\n                type as \"tx_type: DbTransactionType\",\n                type_account as \"type_account: AccountTransactionType\",\n                type_credential_deployment as \"type_credential_deployment: CredentialDeploymentTransactionType\",\n                type_update as \"type_update: UpdateTransactionType\",\n                success,\n                events as \"events: sqlx::types::Json<Vec<Event>>\",\n                reject as \"reject: sqlx::types::Json<TransactionRejectReason>\"\n            FROM transactions\n            WHERE hash = $1",
   "describe": {
     "columns": [
       {
@@ -30,7 +30,7 @@
       },
       {
         "ordinal": 5,
-        "name": "sender",
+        "name": "sender_index",
         "type_info": "Int8"
       },
       {
@@ -153,7 +153,7 @@
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Bpchar"
       ]
     },
     "nullable": [
@@ -172,5 +172,5 @@
       true
     ]
   },
-  "hash": "9a6b9e071e1f6e2685f4cb1769d0f8337fee1d6d010b2cdcaa8eeab9b7546d05"
+  "hash": "5ce92748173d987a60a1a5d84c1e07cb414b0924871ae1caf6b8db9c0c7b3f2e"
 }

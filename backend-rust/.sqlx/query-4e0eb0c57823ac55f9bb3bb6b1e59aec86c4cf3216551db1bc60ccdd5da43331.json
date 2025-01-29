@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                blocks.height as block_height,\n                smart_contract_modules.transaction_index,\n                schema as display_schema,\n                blocks.slot_time as block_slot_time,\n                transactions.hash as transaction_hash,\n                accounts.address as sender\n            FROM smart_contract_modules\n            JOIN transactions ON smart_contract_modules.transaction_index = transactions.index\n            JOIN blocks ON transactions.block_height = blocks.height\n            JOIN accounts ON transactions.sender = accounts.index\n            WHERE module_reference = $1",
+  "query": "SELECT\n                blocks.height as block_height,\n                smart_contract_modules.transaction_index,\n                schema as display_schema,\n                blocks.slot_time as block_slot_time,\n                transactions.hash as transaction_hash,\n                accounts.address as sender\n            FROM smart_contract_modules\n            JOIN transactions ON smart_contract_modules.transaction_index = transactions.index\n            JOIN blocks ON transactions.block_height = blocks.height\n            JOIN accounts ON transactions.sender_index = accounts.index\n            WHERE module_reference = $1",
   "describe": {
     "columns": [
       {
@@ -48,5 +48,5 @@
       false
     ]
   },
-  "hash": "45a77465b3e1b4895476fb81f5c29d3e36d499449e9422eb726e02a384df7d2d"
+  "hash": "4e0eb0c57823ac55f9bb3bb6b1e59aec86c4cf3216551db1bc60ccdd5da43331"
 }

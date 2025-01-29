@@ -31,7 +31,7 @@ impl QueryModuleReferenceEvent {
             FROM smart_contract_modules
             JOIN transactions ON smart_contract_modules.transaction_index = transactions.index
             JOIN blocks ON transactions.block_height = blocks.height
-            JOIN accounts ON transactions.sender = accounts.index
+            JOIN accounts ON transactions.sender_index = accounts.index
             WHERE module_reference = $1"#,
             module_reference
         )

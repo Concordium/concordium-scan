@@ -181,7 +181,7 @@ impl Baker {
                     hash,
                     ccd_cost,
                     energy_cost,
-                    sender,
+                    sender_index,
                     type as "tx_type: DbTransactionType",
                     type_account as "type_account: AccountTransactionType",
                     type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
@@ -190,7 +190,7 @@ impl Baker {
                     events as "events: sqlx::types::Json<Vec<Event>>",
                     reject as "reject: sqlx::types::Json<TransactionRejectReason>"
                 FROM transactions
-                WHERE transactions.sender = $5
+                WHERE transactions.sender_index = $5
                 AND index > $1 AND index < $2
                 ORDER BY
                     CASE WHEN $3 THEN index END DESC,
@@ -228,7 +228,7 @@ impl Baker {
                 "
                     SELECT MAX(index) as max_id, MIN(index) as min_id 
                     FROM transactions
-                    WHERE transactions.sender = $1
+                    WHERE transactions.sender_index = $1
                 ",
                 &self.id.0
             )
