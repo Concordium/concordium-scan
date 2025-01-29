@@ -12,15 +12,17 @@ pub fn connection_from_slice<T: AsRef<[A]>, A: async_graphql::OutputType + Clone
     last: Option<usize>,
     before: Option<String>,
 ) -> ApiResult<connection::Connection<String, A>> {
+    if first.is_some() && last.is_some() {
+        return Err(ApiError::QueryConnectionFirstLast);
+    }
     let collection = collection.as_ref();
+    let length = collection.len();
     let after_cursor_index = if let Some(after_cursor) = after {
         let index = after_cursor.parse::<usize>()?;
-        index + 1
+        min(index + 1, length)
     } else {
         0
     };
-
-    let length = collection.len();
 
     let before_cursor_index = if let Some(before_cursor) = before {
         min(before_cursor.parse::<usize>()?, length)
@@ -108,5 +110,129 @@ impl<A> ConnectionQuery<A> {
             limit,
             desc: last.is_some(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Clone, Debug, PartialEq, async_graphql::SimpleObject)]
+    struct TestNode {
+        id:   i32,
+        name: String,
+    }
+
+    fn setup_data() -> Vec<TestNode> {
+        vec![
+            TestNode {
+                id:   1,
+                name: "A".to_string(),
+            },
+            TestNode {
+                id:   2,
+                name: "B".to_string(),
+            },
+            TestNode {
+                id:   3,
+                name: "C".to_string(),
+            },
+            TestNode {
+                id:   4,
+                name: "D".to_string(),
+            },
+            TestNode {
+                id:   5,
+                name: "E".to_string(),
+            },
+        ]
+    }
+
+    #[test]
+    fn test_full_collection() {
+        let data = setup_data();
+        let result = connection_from_slice(&data, None, None, None, None).unwrap();
+        assert_eq!(result.edges.len(), 5);
+    }
+
+    #[test]
+    fn test_first_n_elements() {
+        let data = setup_data();
+        let result = connection_from_slice(&data, Some(3), None, None, None).unwrap();
+        assert_eq!(result.edges.len(), 3);
+        for i in 0..3 {
+            assert_eq!(result.edges[i].node, data[i]);
+        }
+    }
+
+    #[test]
+    fn test_last_n_elements() {
+        let data = setup_data();
+        let result = connection_from_slice(&data, None, None, Some(2), None).unwrap();
+        assert_eq!(result.edges.len(), 2);
+        assert_eq!(result.edges[0].node, data[3]);
+        assert_eq!(result.edges[1].node, data[4]);
+    }
+
+    #[test]
+    fn test_after_cursor() {
+        let data = setup_data();
+        let result =
+            connection_from_slice(&data, Some(2), Some("2".to_string()), None, None).unwrap();
+        assert_eq!(result.edges.len(), 2);
+        assert_eq!(result.edges[0].node, data[3]);
+        assert_eq!(result.edges[1].node, data[4]);
+    }
+
+    #[test]
+    fn test_before_cursor() {
+        let data = setup_data();
+        let result =
+            connection_from_slice(&data, None, None, Some(2), Some("4".to_string())).unwrap();
+        assert_eq!(result.edges.len(), 2);
+        assert_eq!(result.edges[0].node, data[2]);
+        assert_eq!(result.edges[1].node, data[3]);
+    }
+
+    #[test]
+    fn test_after_and_before_cursor() {
+        let data = setup_data();
+        let result = connection_from_slice(
+            &data,
+            Some(2),
+            Some("1".to_string()),
+            None,
+            Some("4".to_string()),
+        )
+        .unwrap();
+        assert_eq!(result.edges.len(), 2);
+        assert_eq!(result.edges[0].node, data[2]);
+        assert_eq!(result.edges[1].node, data[3]);
+    }
+
+    #[test]
+    fn test_big_after_cursor() {
+        let data = setup_data();
+        let result =
+            connection_from_slice(&data, Some(2), Some("10".to_string()), None, None).unwrap();
+        assert!(result.edges.is_empty())
+    }
+
+    #[test]
+    fn test_big_after_before_cursor() {
+        let data = setup_data();
+        let result =
+            connection_from_slice(&data, Some(3), None, None, Some("10".to_string())).unwrap();
+        assert_eq!(result.edges.len(), 3);
+        assert_eq!(result.edges[0].node, data[0]);
+        assert_eq!(result.edges[1].node, data[1]);
+        assert_eq!(result.edges[2].node, data[2]);
+    }
+
+    #[test]
+    fn test_first_and_last() {
+        let data = setup_data();
+        let result = connection_from_slice(&data, Some(3), None, Some(1), Some("10".to_string()));
+        assert!(result.is_err());
     }
 }

@@ -29,10 +29,6 @@ impl QueryNodeStatus {
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, NodeStatus>> {
         let handler = ctx.data::<NodeInfoReceiver>().map_err(ApiError::NoReceiver)?;
-        if first.is_some() && last.is_some() {
-            return Err(ApiError::QueryConnectionFirstLast);
-        }
-
         let mut statuses = if let Some(statuses) = handler.borrow().clone() {
             statuses
         } else {
