@@ -113,15 +113,6 @@ impl IndexerService {
         registry: &mut Registry,
         config: IndexerServiceConfig,
     ) -> anyhow::Result<Self> {
-        let last_height_stored = sqlx::query!(
-            "
-SELECT height FROM blocks ORDER BY height DESC LIMIT 1
-"
-        )
-        .fetch_optional(&pool)
-        .await?
-        .map(|r| r.height);
-
         // Handle TLS configuration and set timeouts according to the configuration for
         // every endpoint.
         let endpoints: Vec<v2::Endpoint> = endpoints
@@ -144,10 +135,21 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
             })
             .collect::<anyhow::Result<_>>()?;
 
+        let last_height_stored = sqlx::query!(
+            "
+SELECT height FROM blocks ORDER BY height DESC LIMIT 1
+"
+        )
+        .fetch_optional(&pool)
+        .await?
+        .map(|r| r.height);
+
         let start_height = if let Some(height) = last_height_stored {
             u64::try_from(height)? + 1
         } else {
-            save_genesis_data(endpoints[0].clone(), &pool).await?;
+            save_genesis_data(endpoints[0].clone(), &pool)
+                .await
+                .context("Failed initializing the database with the genesis block")?;
             1
         };
         let genesis_block_hash: sdk_types::hashes::BlockHash =
@@ -703,7 +705,9 @@ struct BlockData {
 /// Function for initializing the database with the genesis block.
 /// This should only be called if the database is empty.
 async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Result<()> {
-    let mut client = v2::Client::new(endpoint).await?;
+    let mut client = v2::Client::new(endpoint)
+        .await
+        .context("Failed to establish connection to Concordium Node")?;
     let mut tx = pool.begin().await.context("Failed to create SQL transaction")?;
     let genesis_height = v2::BlockIdentifier::AbsoluteHeight(0.into());
     {
