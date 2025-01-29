@@ -264,7 +264,8 @@ mod tests {
     #[test]
     fn test_empty_collection() {
         let collection: Vec<TestNode> = Vec::new();
-        let result = connection_from_slice(collection, Some(1), Some("0".to_string()), None, None).unwrap();
+        let result =
+            connection_from_slice(collection, Some(1), Some("0".to_string()), None, None).unwrap();
         assert!(result.edges.is_empty());
         assert_eq!(result.has_next_page, false);
         assert_eq!(result.has_previous_page, false);
@@ -273,7 +274,8 @@ mod tests {
     #[test]
     fn test_before_is_zero() {
         let data = setup_data();
-        let result = connection_from_slice(data, None, Some("4".to_string()), Some(0), None).unwrap();
+        let result =
+            connection_from_slice(data, None, Some("4".to_string()), Some(0), None).unwrap();
         assert!(result.edges.is_empty());
         assert_eq!(result.has_next_page, false);
         assert_eq!(result.has_previous_page, false);
