@@ -247,6 +247,10 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Represents the state required by the health endpoint router.
+///
+/// This struct provides access to essential resources needed to determine
+/// system health and readiness.
 #[derive(Clone)]
 struct HealthState {
     pool:                 sqlx::PgPool,
