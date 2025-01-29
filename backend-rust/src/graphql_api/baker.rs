@@ -156,7 +156,7 @@ impl Baker {
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, Transaction>> {
+    ) -> ApiResult<connection::Connection<String, InterimTransaction>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
         let query = ConnectionQuery::<i64>::new(
@@ -167,10 +167,12 @@ impl Baker {
             config.transactions_per_block_connection_limit,
         )?;
 
-        // Retrieves the transactions initated by a baker account. The transactions are
-        // ordered in ascending order (outer `ORDER BY`). If the `last` input
-        // parameter is set, the inner `ORDER BY` reverses the transaction order
-        // to allow the range be applied starting from the last element.
+        // Retrieves the transactions related to a baker account ('AddBaker',
+        // 'RemoveBaker', 'UpdateBakerStake', 'UpdateBakerRestakeEarnings',
+        // 'UpdateBakerKeys', 'ConfigureBaker'). The transactions are ordered in
+        // descending order (outer `ORDER BY`). If the `last` input parameter is
+        // set, the inner `ORDER BY` reverses the transaction order to allow the
+        // range be applied starting from the last element.
         let mut row_stream = sqlx::query_as!(
             Transaction,
             r#"
@@ -192,11 +194,13 @@ impl Baker {
                 FROM transactions
                 WHERE transactions.sender_index = $5
                 AND index > $1 AND index < $2
+                AND type_account IN ('AddBaker', 'RemoveBaker', 'UpdateBakerStake', 
+                    'UpdateBakerRestakeEarnings', 'UpdateBakerKeys', 'ConfigureBaker')
                 ORDER BY
-                    CASE WHEN $3 THEN index END DESC,
-                    CASE WHEN NOT $3 THEN index END ASC
+                    CASE WHEN NOT $3 THEN index END DESC,
+                    CASE WHEN $3 THEN index END ASC
                 LIMIT $4
-            ) ORDER BY index ASC"#,
+            ) ORDER BY index DESC"#,
             query.from,
             query.to,
             query.desc,
@@ -220,7 +224,12 @@ impl Baker {
                 Some(current_min) => min(current_min, tx.index),
             });
 
-            connection.edges.push(connection::Edge::new(tx.index.to_string(), tx));
+            connection.edges.push(connection::Edge::new(
+                tx.index.to_string(),
+                InterimTransaction {
+                    transaction: tx,
+                },
+            ));
         }
 
         if let (Some(page_min_id), Some(page_max_id)) = (page_min_index, page_max_index) {
@@ -242,6 +251,14 @@ impl Baker {
 
         Ok(connection)
     }
+}
+
+// Future improvement (API breaking changes): The function `Baker::transactions`
+// can directly return a `Transaction` instead of the `IterimTransaction` type
+// here.
+#[derive(SimpleObject)]
+struct InterimTransaction {
+    transaction: Transaction,
 }
 
 #[derive(Union)]

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT * FROM (\n                SELECT \n                    index,\n                    block_height,\n                    hash,\n                    ccd_cost,\n                    energy_cost,\n                    sender_index,\n                    type as \"tx_type: DbTransactionType\",\n                    type_account as \"type_account: AccountTransactionType\",\n                    type_credential_deployment as \"type_credential_deployment: CredentialDeploymentTransactionType\",\n                    type_update as \"type_update: UpdateTransactionType\",\n                    success,\n                    events as \"events: sqlx::types::Json<Vec<Event>>\",\n                    reject as \"reject: sqlx::types::Json<TransactionRejectReason>\"\n                FROM transactions\n                WHERE transactions.sender_index = $5\n                AND index > $1 AND index < $2\n                ORDER BY\n                    CASE WHEN $3 THEN index END DESC,\n                    CASE WHEN NOT $3 THEN index END ASC\n                LIMIT $4\n            ) ORDER BY index ASC",
+  "query": "\n            SELECT * FROM (\n                SELECT \n                    index,\n                    block_height,\n                    hash,\n                    ccd_cost,\n                    energy_cost,\n                    sender_index,\n                    type as \"tx_type: DbTransactionType\",\n                    type_account as \"type_account: AccountTransactionType\",\n                    type_credential_deployment as \"type_credential_deployment: CredentialDeploymentTransactionType\",\n                    type_update as \"type_update: UpdateTransactionType\",\n                    success,\n                    events as \"events: sqlx::types::Json<Vec<Event>>\",\n                    reject as \"reject: sqlx::types::Json<TransactionRejectReason>\"\n                FROM transactions\n                WHERE transactions.sender_index = $5\n                AND index > $1 AND index < $2\n                AND type_account IN ('AddBaker', 'RemoveBaker', 'UpdateBakerStake', \n                    'UpdateBakerRestakeEarnings', 'UpdateBakerKeys', 'ConfigureBaker')\n                ORDER BY\n                    CASE WHEN NOT $3 THEN index END DESC,\n                    CASE WHEN $3 THEN index END ASC\n                LIMIT $4\n            ) ORDER BY index DESC",
   "describe": {
     "columns": [
       {
@@ -176,5 +176,5 @@
       true
     ]
   },
-  "hash": "c4cb5372581f01de120826f4d155e8a370f07f05040034a2900f381044adf3b6"
+  "hash": "f0f7f2fa035602d7d94db1248eb028efe2eb14d35b91bd73dfbd585880edb7e7"
 }

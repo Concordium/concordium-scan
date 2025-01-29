@@ -217,12 +217,7 @@ CREATE TABLE transactions(
         JSONB,
     -- Transaction details. Reject reason if success is false.
     reject
-        JSONB,
-    -- Every time this is a `baker-related` transaction, this index is incremented for that `baker_id (= account_index)`.
-    -- This value is `NULL` when the transaction is not a `baker-related` transaction.
-    -- This value is used to quickly filter/sort transactions associated to a baker.
-    index_per_baker_id
-        BIGINT
+        JSONB
 );
 
 -- Important for quickly filtering transactions in a given block.
