@@ -1,5 +1,5 @@
-use std::cmp::min;
 use async_graphql::connection;
+use std::cmp::min;
 
 use crate::graphql_api::{ApiError, ApiResult};
 
@@ -12,34 +12,34 @@ pub fn connection_from_slice<T: AsRef<[A]>, A: async_graphql::OutputType + Clone
     last: Option<usize>,
     before: Option<String>,
 ) -> ApiResult<connection::Connection<String, A>> {
-        let collection = collection.as_ref();
-        let after_cursor_index = if let Some(after_cursor) = after {
-            let index = after_cursor.parse::<usize>()?;
-            index + 1
-        } else {
-            0
-        };
+    let collection = collection.as_ref();
+    let after_cursor_index = if let Some(after_cursor) = after {
+        let index = after_cursor.parse::<usize>()?;
+        index + 1
+    } else {
+        0
+    };
 
-        let length = collection.len();
+    let length = collection.len();
 
-        let before_cursor_index = if let Some(before_cursor) = before {
-            min(before_cursor.parse::<usize>()?, length)
-        } else {
-            length
-        };
+    let before_cursor_index = if let Some(before_cursor) = before {
+        min(before_cursor.parse::<usize>()?, length)
+    } else {
+        length
+    };
 
-        let (start, end) = if let Some(first_count) = first {
-            (after_cursor_index, min(after_cursor_index + first_count, length))
-        } else if let Some(last_count) = last {
-            (before_cursor_index.saturating_sub(last_count), before_cursor_index)
-        } else {
-            (after_cursor_index, before_cursor_index)
-        };
-        let range = start..end;
-        let slice = &collection[range.clone()];
-        let mut connection = connection::Connection::new(start > 0, end < collection.len());
-        for (i, item) in range.zip(slice.iter().cloned()) {
-            connection.edges.push(connection::Edge::new(i.to_string(), item))
+    let (start, end) = if let Some(first_count) = first {
+        (after_cursor_index, min(after_cursor_index + first_count, length))
+    } else if let Some(last_count) = last {
+        (before_cursor_index.saturating_sub(last_count), before_cursor_index)
+    } else {
+        (after_cursor_index, before_cursor_index)
+    };
+    let range = start..end;
+    let slice = &collection[range.clone()];
+    let mut connection = connection::Connection::new(start > 0, end < collection.len());
+    for (i, item) in range.zip(slice.iter().cloned()) {
+        connection.edges.push(connection::Edge::new(i.to_string(), item))
     }
     Ok(connection)
 }
