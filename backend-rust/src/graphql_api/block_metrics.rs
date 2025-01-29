@@ -84,21 +84,21 @@ impl QueryBlockMetrics {
             config.non_circulating_account.iter().map(|a| a.to_string()).collect::<Vec<_>>();
 
         let latest_block = sqlx::query!(
-            r#"
-WITH non_circulating_accounts AS (
-    SELECT
-        COALESCE(SUM(amount), 0)::BIGINT AS total_amount
-    FROM accounts
-    WHERE address=ANY($1)
-)
-SELECT
-    height,
-    blocks.total_amount,
-    total_staked,
-    (blocks.total_amount - non_circulating_accounts.total_amount)::BIGINT AS total_amount_released
-FROM blocks, non_circulating_accounts
-ORDER BY height DESC
-LIMIT 1"#,
+            "WITH non_circulating_accounts AS (
+                 SELECT
+                     COALESCE(SUM(amount), 0)::BIGINT AS total_amount
+                 FROM accounts
+                 WHERE address = ANY($1)
+             )
+             SELECT
+                 height,
+                 blocks.total_amount,
+                 total_staked,
+                 (blocks.total_amount - non_circulating_accounts.total_amount)::BIGINT
+                     AS total_amount_released
+             FROM blocks, non_circulating_accounts
+             ORDER BY height DESC
+             LIMIT 1",
             non_circulating_accounts.as_slice()
         )
         .fetch_one(pool)
@@ -108,14 +108,37 @@ LIMIT 1"#,
             .as_duration()
             .try_into()
             .map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))?;
+
         let period_query = sqlx::query!(
-            r#"
-SELECT
-    COUNT(*) as blocks_added,
-    AVG(block_time)::integer as avg_block_time,
-    AVG(finalization_time)::integer as avg_finalization_time
-FROM blocks
-WHERE slot_time > (LOCALTIMESTAMP - $1::interval)"#,
+            "WITH
+                 p_start AS (
+                     SELECT
+                         height,
+                         slot_time,
+                         cumulative_finalization_time
+                     FROM blocks
+                     WHERE (LOCALTIMESTAMP - $1::interval) <= slot_time
+                     LIMIT 1
+                 ),
+                 p_end AS (
+                     SELECT
+                         height,
+                         slot_time,
+                         cumulative_finalization_time
+                     FROM blocks
+                     ORDER BY slot_time DESC
+                     LIMIT 1
+                 )
+             SELECT
+                 p_end.height - p_start.height AS blocks_added,
+                 ((p_end.slot_time - p_start.slot_time) /
+                     NULLIF(p_end.height - p_start.height, 0)
+                 ) AS avg_block_time,
+                 ((p_end.cumulative_finalization_time - \
+             p_start.cumulative_finalization_time)::float /
+                     NULLIF(p_end.height - p_start.height, 0) * 1000
+                 ) AS avg_finalization_time
+             FROM p_start, p_end",
             interval
         )
         .fetch_one(pool)
@@ -124,29 +147,52 @@ WHERE slot_time > (LOCALTIMESTAMP - $1::interval)"#,
         let bucket_width = period.bucket_width();
         let bucket_interval: PgInterval =
             bucket_width.try_into().map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))?;
+
         let bucket_query = sqlx::query!(
             "
-WITH data AS (
-  SELECT
-    date_bin($1::interval, slot_time, TIMESTAMP '2001-01-01') as time,
-    block_time,
-    finalization_time,
-    LAST_VALUE(total_staked) OVER (
-      PARTITION BY date_bin($1::interval, slot_time, TIMESTAMP '2001-01-01')
-      ORDER BY height ASC
-    ) as total_staked
-  FROM blocks
-  ORDER BY height
-)
 SELECT
-  time,
-  COUNT(*) as y_blocks_added,
-  AVG(block_time)::integer as y_block_time_avg,
-  AVG(finalization_time)::integer as y_finalization_time_avg,
-  MAX(total_staked) as y_last_total_micro_ccd_staked
-FROM data
-GROUP BY time
-LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
+    bucket.bucket_start as time,
+    COALESCE(bucket_last_block.height - bucket_first_block.height, 0) AS y_blocks_added,
+    (
+        EXTRACT(epoch FROM (bucket_last_block.slot_time - bucket_first_block.slot_time))
+            / NULLIF(bucket_last_block.height - (1 + bucket_first_block.height), 0)
+    )::float AS y_block_time_avg,
+    (
+        (bucket_last_block.cumulative_finalization_time -
+            bucket_first_block.cumulative_finalization_time)::float / (
+                NULLIF(
+                    bucket_last_block.height - bucket_first_block.height,
+                    0
+                ) * 1000
+            )
+    ) AS y_finalization_time_avg,
+    bucket_last_block.total_staked AS y_last_total_micro_ccd_staked
+FROM
+    date_bin_series($2::INTERVAL, NOW() - $1::INTERVAL, now()) AS bucket
+LEFT JOIN LATERAL (
+    SELECT
+        height,
+        slot_time,
+        cumulative_finalization_time
+    FROM blocks
+    WHERE slot_time <= bucket.bucket_start
+    ORDER BY slot_time DESC
+    LIMIT 1
+) bucket_first_block ON true
+LEFT JOIN LATERAL (
+    SELECT
+        height,
+        slot_time,
+        cumulative_finalization_time,
+        total_staked
+    FROM blocks
+    WHERE slot_time < bucket.bucket_end
+    ORDER BY slot_time DESC
+    LIMIT 1
+) bucket_last_block ON true
+
+ ",
+            interval,
             bucket_interval
         )
         .fetch_all(pool)
@@ -165,10 +211,8 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
                 "Unexpected missing time for bucket".to_string(),
             ))?);
             buckets.y_blocks_added.push(row.y_blocks_added.unwrap_or(0));
-            let y_block_time_avg = row.y_block_time_avg.unwrap_or(0) as f64 / 1000.0;
-            buckets.y_block_time_avg.push(y_block_time_avg);
-            let y_finalization_time_avg = row.y_finalization_time_avg.unwrap_or(0) as f64 / 1000.0;
-            buckets.y_finalization_time_avg.push(y_finalization_time_avg);
+            buckets.y_block_time_avg.push(row.y_block_time_avg.unwrap_or(0.0));
+            buckets.y_finalization_time_avg.push(row.y_finalization_time_avg.unwrap_or(0.0));
             buckets
                 .y_last_total_micro_ccd_staked
                 .push(row.y_last_total_micro_ccd_staked.unwrap_or(0).try_into()?);
@@ -176,7 +220,7 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
 
         Ok(BlockMetrics {
             blocks_added: period_query.blocks_added.unwrap_or(0),
-            avg_block_time: period_query.avg_block_time.map(|i| i as f64 / 1000.0),
+            avg_block_time: period_query.avg_block_time.map(|i| i.microseconds as f64 / 10000000.0),
             avg_finalization_time: period_query.avg_finalization_time.map(|i| i as f64 / 1000.0),
             last_block_height: latest_block.height,
             last_total_micro_ccd: latest_block.total_amount.try_into()?,

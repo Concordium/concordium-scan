@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nWITH cumulated AS (\n    SELECT\n        height,\n        SUM(finalization_time)\n            OVER (\n                ORDER BY height\n                RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW\n            ) AS time\n    FROM blocks\n    WHERE blocks.cumulative_finalization_time IS NULL\n        AND blocks.finalization_time IS NOT NULL\n    ORDER BY height\n), updated AS (\n    UPDATE blocks\n        SET cumulative_finalization_time = $1 + cumulated.time\n    FROM cumulated\n    WHERE blocks.height = cumulated.height\n    RETURNING cumulated.height, cumulative_finalization_time\n)\nSELECT updated.cumulative_finalization_time\nFROM updated\nORDER BY updated.height DESC\nLIMIT 1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "cumulative_finalization_time",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "f7381531f9fdf722b525d68a16ded1cce723dbb03b76bd392fb1c6588ac3f1f0"
+}

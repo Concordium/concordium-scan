@@ -537,7 +537,8 @@ impl BlockProcessor {
         let last_finalized_block = sqlx::query!(
             "
 SELECT
-  hash
+  hash,
+  cumulative_finalization_time
 FROM blocks
 WHERE finalization_time IS NOT NULL
 ORDER BY height DESC
@@ -563,9 +564,12 @@ LIMIT 1
         .context("Failed to query data for save context")?;
 
         let starting_context = BlockProcessingContext {
-            last_finalized_hash:     last_finalized_block.hash,
-            last_block_slot_time:    last_block.slot_time,
-            last_cumulative_num_txs: last_block.cumulative_num_txs,
+            last_finalized_hash:               last_finalized_block.hash,
+            last_block_slot_time:              last_block.slot_time,
+            last_cumulative_num_txs:           last_block.cumulative_num_txs,
+            last_cumulative_finalization_time: last_finalized_block
+                .cumulative_finalization_time
+                .unwrap_or(0),
         };
 
         let processing_failures = Counter::default();
@@ -662,14 +666,15 @@ impl ProcessEvent for BlockProcessor {
 struct BlockProcessingContext {
     /// The last finalized block hash according to the latest indexed block.
     /// This is used when computing the finalization time.
-    last_finalized_hash:     String,
+    last_finalized_hash:               String,
     /// The slot time of the last processed block.
     /// This is used when computing the block time.
-    last_block_slot_time:    DateTime<Utc>,
+    last_block_slot_time:              DateTime<Utc>,
     /// The value of cumulative_num_txs from the last block.
     /// This, along with the number of transactions in the current block,
     /// is used to calculate the next cumulative_num_txs.
-    last_cumulative_num_txs: i64,
+    last_cumulative_num_txs:           i64,
+    last_cumulative_finalization_time: i64,
 }
 
 /// Process schedule releases based on the slot time of the last processed
@@ -1018,6 +1023,42 @@ WHERE blocks.finalization_time IS NULL AND blocks.height <= last.height
         )
         .execute(tx.as_mut())
         .await?;
+
+        let result = sqlx::query!(
+            "
+WITH cumulated AS (
+    SELECT
+        height,
+        SUM(finalization_time)
+            OVER (
+                ORDER BY height
+                RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+            ) AS time
+    FROM blocks
+    WHERE blocks.cumulative_finalization_time IS NULL
+        AND blocks.finalization_time IS NOT NULL
+    ORDER BY height
+), updated AS (
+    UPDATE blocks
+        SET cumulative_finalization_time = $1 + cumulated.time
+    FROM cumulated
+    WHERE blocks.height = cumulated.height
+    RETURNING cumulated.height, cumulative_finalization_time
+)
+SELECT updated.cumulative_finalization_time
+FROM updated
+ORDER BY updated.height DESC
+LIMIT 1
+",
+            context.last_cumulative_finalization_time
+        )
+        .fetch_optional(tx.as_mut())
+        .await?;
+        if let Some(row) = result {
+            context.last_cumulative_finalization_time =
+                row.cumulative_finalization_time.context("Unexpected row")?;
+        }
+
         Ok(())
     }
 }
