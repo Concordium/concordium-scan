@@ -32,9 +32,9 @@ struct Cli {
     /// Maximum number of connections in the pool.
     #[arg(long, env = "CCDSCAN_API_DATABASE_MAX_CONNECTIONS", default_value_t = 10)]
     max_connections: u32,
-    /// Output the GraphQL Schema for the API and then exits. Output is stored
-    /// as a file at the provided path or to stdout when '-' is provided and
-    /// exit.
+    /// Outputs the GraphQL Schema for the API and then exits. The output is
+    /// stored as a file at the provided path or to stdout when '-' is
+    /// provided.
     #[arg(long)]
     schema_out: Option<PathBuf>,
     /// Address to listen to for API requests.
