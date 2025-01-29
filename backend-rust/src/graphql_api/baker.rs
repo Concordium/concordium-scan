@@ -166,7 +166,6 @@ impl Baker {
             before,
             config.transactions_per_block_connection_limit,
         )?;
-
         // Retrieves the transactions related to a baker account ('AddBaker',
         // 'RemoveBaker', 'UpdateBakerStake', 'UpdateBakerRestakeEarnings',
         // 'UpdateBakerKeys', 'ConfigureBaker'). The transactions are ordered in
@@ -194,8 +193,7 @@ impl Baker {
                 FROM transactions
                 WHERE transactions.sender_index = $5
                 AND index > $1 AND index < $2
-                AND type_account IN ('AddBaker', 'RemoveBaker', 'UpdateBakerStake', 
-                    'UpdateBakerRestakeEarnings', 'UpdateBakerKeys', 'ConfigureBaker')
+                AND type_account = ANY($6)
                 ORDER BY
                     CASE WHEN NOT $3 THEN index END DESC,
                     CASE WHEN $3 THEN index END ASC
@@ -205,7 +203,15 @@ impl Baker {
             query.to,
             query.desc,
             query.limit,
-            self.id.0
+            self.id.0,
+            &[
+                AccountTransactionType::AddBaker,
+                AccountTransactionType::RemoveBaker,
+                AccountTransactionType::UpdateBakerStake,
+                AccountTransactionType::UpdateBakerRestakeEarnings,
+                AccountTransactionType::UpdateBakerKeys,
+                AccountTransactionType::ConfigureBaker
+            ] as &[AccountTransactionType]
         )
         .fetch(pool);
 
