@@ -727,6 +727,14 @@ impl Account {
             before,
             config.reward_connection_limit,
         )?;
+
+        let account_statement_entry_type_filter = &[
+            AccountStatementEntryType::FinalizationReward,
+            AccountStatementEntryType::FoundationReward,
+            AccountStatementEntryType::BakerReward,
+            AccountStatementEntryType::TransactionFeeReward,
+        ];
+
         let mut rewards = sqlx::query_as!(
             AccountReward,
             r#"
@@ -749,12 +757,7 @@ impl Account {
                 ON
                     blocks.height = account_statements.block_height
                 WHERE
-                    entry_type IN (
-                        'FinalizationReward',
-                        'FoundationReward',
-                        'BakerReward',
-                        'TransactionFeeReward'
-                    )
+                    entry_type = ANY($6)
                     AND account_index = $5
                     AND id > $1
                     AND id < $2
@@ -770,7 +773,8 @@ impl Account {
             query.to,
             query.limit,
             query.desc,
-            &self.index
+            &self.index,
+            account_statement_entry_type_filter as &[AccountStatementEntryType]
         )
         .fetch(pool);
 
@@ -796,14 +800,10 @@ impl Account {
                     SELECT MAX(id) as max_id, MIN(id) as min_id
                     FROM account_statements
                     WHERE account_index = $1
-                    AND entry_type IN (
-                        'FinalizationReward',
-                        'FoundationReward',
-                        'BakerReward',
-                        'TransactionFeeReward'
-                    )
+                    AND entry_type = ANY($2)
                 "#,
-                &self.index
+                &self.index,
+                account_statement_entry_type_filter as &[AccountStatementEntryType]
             )
             .fetch_one(pool)
             .await?;

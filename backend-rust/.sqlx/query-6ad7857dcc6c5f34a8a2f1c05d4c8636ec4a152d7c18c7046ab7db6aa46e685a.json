@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT MAX(id) as max_id, MIN(id) as min_id\n                    FROM account_statements\n                    WHERE account_index = $1\n                    AND entry_type = ANY($2)\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "max_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "min_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        {
+          "Custom": {
+            "name": "account_statement_entry_type[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "account_statement_entry_type",
+                  "kind": {
+                    "Enum": [
+                      "TransferIn",
+                      "TransferOut",
+                      "AmountDecrypted",
+                      "AmountEncrypted",
+                      "TransactionFee",
+                      "FinalizationReward",
+                      "FoundationReward",
+                      "BakerReward",
+                      "TransactionFeeReward"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "6ad7857dcc6c5f34a8a2f1c05d4c8636ec4a152d7c18c7046ab7db6aa46e685a"
+}
