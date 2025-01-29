@@ -378,7 +378,6 @@ mod tests {
             .expect(1)
             .create_async()
             .await;
-        let deserialized: Vec<NodeStatus> = from_str(response).expect("Failed to deserialize JSON");
         let client = Client::new();
         let gc = NodeCollectorBackendClient::new(client, server.url().as_str(), 1);
         let summary = gc.get_summary().await;
