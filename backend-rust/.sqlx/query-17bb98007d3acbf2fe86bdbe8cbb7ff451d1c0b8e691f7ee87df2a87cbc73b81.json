@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH cumulated AS (\n                -- Compute the sum of finalization_time for the finalized missing the cumulative.\n                SELECT\n                    height,\n                    -- Note this sum is only of those without a cumulative_finalization_time and\n                    -- not the entire table.\n                    SUM(finalization_time) OVER (\n                        ORDER BY height\n                        RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW\n                    ) AS time\n                FROM blocks\n                WHERE blocks.cumulative_finalization_time IS NULL\n                    AND blocks.finalization_time IS NOT NULL\n                ORDER BY height\n            ), updated AS (\n                -- Update the cumulative time from the previous known plus the newly computed.\n                UPDATE blocks\n                    SET cumulative_finalization_time = $1 + cumulated.time\n                FROM cumulated\n                WHERE blocks.height = cumulated.height\n                RETURNING cumulated.height, cumulative_finalization_time\n            )\n            -- Return only the latest cumulative_finalization_time.\n            SELECT updated.cumulative_finalization_time\n            FROM updated\n            ORDER BY updated.height DESC\n            LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "cumulative_finalization_time",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "17bb98007d3acbf2fe86bdbe8cbb7ff451d1c0b8e691f7ee87df2a87cbc73b81"
+}

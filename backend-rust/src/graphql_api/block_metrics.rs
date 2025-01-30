@@ -221,7 +221,7 @@ LEFT JOIN LATERAL (
         Ok(BlockMetrics {
             blocks_added: period_query.blocks_added.unwrap_or(0),
             avg_block_time: period_query.avg_block_time.map(|i| i.microseconds as f64 / 10000000.0),
-            avg_finalization_time: period_query.avg_finalization_time.map(|i| i as f64 / 1000.0),
+            avg_finalization_time: period_query.avg_finalization_time.map(|i| i / 1000.0),
             last_block_height: latest_block.height,
             last_total_micro_ccd: latest_block.total_amount.try_into()?,
             last_total_micro_ccd_staked: latest_block.total_staked.try_into()?,
