@@ -23,8 +23,8 @@ pub struct QueryBaker;
 #[Object]
 impl QueryBaker {
     async fn baker<'a>(&self, ctx: &Context<'a>, id: types::ID) -> ApiResult<Baker> {
-        let id = IdBaker::try_from(id)?.baker_id;
-        Baker::query_by_id(get_pool(ctx)?, id).await
+        let id = IdBaker::try_from(id)?.baker_id.into();
+        Baker::query_by_id(get_pool(ctx)?, id).await?.ok_or(ApiError::NotFound)
     }
 
     async fn baker_by_baker_id<'a>(
@@ -32,7 +32,7 @@ impl QueryBaker {
         ctx: &Context<'a>,
         baker_id: BakerId,
     ) -> ApiResult<Baker> {
-        Baker::query_by_id(get_pool(ctx)?, baker_id).await
+        Baker::query_by_id(get_pool(ctx)?, baker_id.into()).await?.ok_or(ApiError::NotFound)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -82,8 +82,8 @@ pub struct Baker {
     finalization_commission: Option<i64>,
 }
 impl Baker {
-    async fn query_by_id(pool: &PgPool, baker_id: BakerId) -> ApiResult<Self> {
-        sqlx::query_as!(
+    pub async fn query_by_id(pool: &PgPool, baker_id: i64) -> ApiResult<Option<Self>> {
+        Ok(sqlx::query_as!(
             Baker,
             r#"
             SELECT
@@ -98,11 +98,10 @@ impl Baker {
             FROM bakers 
             WHERE id = $1
             "#,
-            i64::from(baker_id)
+            baker_id
         )
         .fetch_optional(pool)
-        .await?
-        .ok_or(ApiError::NotFound)
+        .await?)
     }
 }
 #[Object]
