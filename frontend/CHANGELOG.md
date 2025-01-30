@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 - Move query `useBlockSpecialEventsQuery` to new API.
+- Rename `ContractUpgraded.from` and `ContractUpgraded.to` in query `useTransactionQuery` to avoid error of fields which cannot be merged, as these were clashing with `Transferred.from` and `Transferred.to`.
 
 ## [1.6.2] - 2025-01-19
 

@@ -6,8 +6,10 @@
 			:contract-address-index="event.contractAddress.index"
 			:contract-address-sub-index="event.contractAddress.subIndex"
 		/>
-		upgraded module from <ModuleLink :module-reference="event.from" /> to module
-		<ModuleLink :module-reference="event.to" />.
+		<!-- @vue-expect-error Typescript is not aware that event.from got renamed to fromModule in the query -->
+		upgraded module from <ModuleLink :module-reference="event.fromModule" /> to
+		<!-- @vue-expect-error Typescript is not aware that event.to got renamed to toModule in the query -->
+		module <ModuleLink :module-reference="event.toModule" />.
 	</span>
 </template>
 
