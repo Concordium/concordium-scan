@@ -1,6 +1,6 @@
 use super::{
-    get_config, get_pool, token::AccountToken, AccountStatementEntryType, ApiError, ApiResult,
-    ConnectionQuery,
+    baker::Baker, get_config, get_pool, token::AccountToken, AccountStatementEntryType, ApiError,
+    ApiResult, ConnectionQuery,
 };
 use crate::{
     address::AccountAddress,
@@ -291,7 +291,7 @@ impl AccountReleaseScheduleItem {
 }
 
 pub struct Account {
-    // release_schedule: AccountReleaseSchedule,
+    /// Index of the account.
     pub index:             i64,
     /// Index of the transaction creating this account.
     /// Only `None` for genesis accounts.
@@ -307,9 +307,7 @@ pub struct Account {
     pub num_txs:           i64,
 
     pub delegated_restake_earnings: Option<bool>,
-    pub delegated_target_baker_id:  Option<i64>, /* Get baker information if this account is
-                                                  * baking.
-                                                  * baker: Option<Baker>, */
+    pub delegated_target_baker_id:  Option<i64>,
 }
 impl Account {
     pub async fn query_by_index(pool: &PgPool, index: AccountIndex) -> ApiResult<Option<Self>> {
@@ -350,6 +348,10 @@ impl Account {
 
     /// The total amount of CCD hold by the account.
     pub async fn amount(&self) -> ApiResult<Amount> { Ok(self.amount.try_into()?) }
+
+    pub async fn baker(&self, ctx: &Context<'_>) -> ApiResult<Option<Baker>> {
+        Ok(Baker::query_by_id(get_pool(ctx)?, self.index).await?)
+    }
 
     async fn delegation(&self) -> ApiResult<Option<Delegation>> {
         let staked_amount = self.delegated_stake.try_into()?;
