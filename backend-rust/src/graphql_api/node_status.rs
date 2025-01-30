@@ -1,6 +1,7 @@
 use super::{ApiError, ApiResult};
 use crate::connection::connection_from_slice;
 use async_graphql::{connection, types, ComplexObject, Context, Enum, Object, SimpleObject};
+use prometheus_client::{metrics::counter::Counter, registry::Registry};
 use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
 use std::{cmp::Ordering::Equal, time::Duration};
@@ -81,10 +82,11 @@ enum NodeSortDirection {
 }
 
 pub struct Service {
-    sender:                 Sender<Option<Vec<NodeStatus>>>,
+    sender: Sender<Option<Vec<NodeStatus>>>,
     node_collector_backend: NodeCollectorBackendClient,
-    pull_frequency:         Duration,
-    cancellation_token:     CancellationToken,
+    pull_frequency: Duration,
+    cancellation_token: CancellationToken,
+    failed_node_status_fetch_counter: Counter,
 }
 
 impl Service {
@@ -95,7 +97,15 @@ impl Service {
         client: Client,
         max_content_length: u64,
         cancellation_token: CancellationToken,
+        registry: &mut Registry,
     ) -> Self {
+        let failed_node_status_fetch_counter = Counter::default();
+        registry.register(
+            "failed_node_status_fetch_counter",
+            "Number of failed attempts to retrieve data from the node status collector",
+            failed_node_status_fetch_counter.clone(),
+        );
+
         let node_collector_backend =
             NodeCollectorBackendClient::new(client, origin, max_content_length);
         Self {
@@ -103,6 +113,7 @@ impl Service {
             node_collector_backend,
             pull_frequency,
             cancellation_token,
+            failed_node_status_fetch_counter,
         }
     }
 
@@ -121,6 +132,7 @@ impl Service {
                             }
                         }
                         Err(err) => {
+                            self.failed_node_status_fetch_counter.inc();
                             error!("Error querying node summary: {}", err);
                         }
                     }

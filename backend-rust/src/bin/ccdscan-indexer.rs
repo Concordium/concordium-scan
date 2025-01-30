@@ -1,4 +1,5 @@
 use anyhow::Context;
+use axum::{http::StatusCode, Json};
 use clap::Parser;
 use concordium_rust_sdk::v2;
 use concordium_scan::{
@@ -177,15 +178,18 @@ async fn main() -> anyhow::Result<()> {
 /// Verifying the indexer service state is as expected.
 async fn health(
     axum::extract::State(pool): axum::extract::State<sqlx::PgPool>,
-) -> axum::Json<serde_json::Value> {
-    match migrations::ensure_latest_schema_version(&pool).await {
-        Ok(_) => axum::Json(json!({
-            "status": "ok",
-            "database": "connected"
+) -> (StatusCode, Json<serde_json::Value>) {
+    let database_connected = migrations::ensure_latest_schema_version(&pool).await.is_ok();
+    let is_healthy = database_connected;
+    let status_code = if is_healthy {
+        StatusCode::OK
+    } else {
+        StatusCode::INTERNAL_SERVER_ERROR
+    };
+    (
+        status_code,
+        Json(json!({
+            "database": if database_connected {"connected"} else {"not connected"},
         })),
-        Err(err) => axum::Json(json!({
-            "status": "error",
-            "database": format!("not connected: {}", err)
-        })),
-    }
+    )
 }
