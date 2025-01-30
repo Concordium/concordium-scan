@@ -38,6 +38,16 @@
 			<span v-if="size !== 'sm'" class="hidden md:inline">Next</span>
 			<ChevronRightIcon :class="buttonClasses" />
 		</Button>
+		<Button
+			v-if="props.pageInfo.hasNextPage"
+			class="ml-4 rounded-lg"
+			aria-label="Go to the last page"
+			:size="size"
+			:on-click="goToLast"
+		>
+			<ChevronDoubleRightIcon :class="buttonClasses" />
+			<span v-if="size !== 'sm'" class="hidden md:inline">Last</span>
+		</Button>
 	</nav>
 </template>
 
@@ -45,6 +55,7 @@
 import {
 	ChevronRightIcon,
 	ChevronDoubleLeftIcon,
+	ChevronDoubleRightIcon,
 } from '@heroicons/vue/solid/index.js'
 import Button from './atoms/Button.vue'
 import type { PageInfo } from '~/types/generated'
@@ -69,6 +80,7 @@ const paginate = (target: PaginationTarget) =>
 const goToFirst = () => paginate('first')
 const goToPrevious = () => paginate('previous')
 const goToNext = () => paginate('next')
+const goToLast = () => paginate('last')
 </script>
 
 <style scoped>
