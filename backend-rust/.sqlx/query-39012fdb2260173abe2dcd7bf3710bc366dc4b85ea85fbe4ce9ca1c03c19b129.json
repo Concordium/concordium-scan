@@ -1,0 +1,55 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                     MAX(block_outcome_index), MIN(block_outcome_index)\n                 FROM block_special_transaction_outcomes\n                 WHERE block_height = $1 AND ($2 OR outcome_type = ANY($3))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "max",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "min",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Bool",
+        {
+          "Custom": {
+            "name": "special_transaction_outcome_type[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "special_transaction_outcome_type",
+                  "kind": {
+                    "Enum": [
+                      "BakingRewards",
+                      "Mint",
+                      "FinalizationRewards",
+                      "BlockRewards",
+                      "PaydayFoundationReward",
+                      "PaydayAccountReward",
+                      "BlockAccrueReward",
+                      "PaydayPoolReward",
+                      "ValidatorSuspended",
+                      "ValidatorPrimedForSuspension"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "39012fdb2260173abe2dcd7bf3710bc366dc4b85ea85fbe4ce9ca1c03c19b129"
+}
