@@ -101,8 +101,8 @@ __typename
 		index
 		subIndex
 	}
-	from
-	to
+	fromModule: from # Renamed to avoid errors due to clashing with 'Transferred.from'.
+	toModule: to     # Renamed to avoid errors due to clashing with 'Transferred.to'.
 }
 ... on CredentialKeysUpdated {
 	credId
