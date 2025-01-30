@@ -117,7 +117,7 @@ impl QueryBlockMetrics {
                          slot_time,
                          cumulative_finalization_time
                      FROM blocks
-                     WHERE (LOCALTIMESTAMP - $1::interval) <= slot_time
+                     WHERE (NOW() - $1::interval) <= slot_time
                      LIMIT 1
                  ),
                  p_end AS (
@@ -134,10 +134,11 @@ impl QueryBlockMetrics {
                  ((p_end.slot_time - p_start.slot_time) /
                      NULLIF(p_end.height - p_start.height, 0)
                  ) AS avg_block_time,
-                 ((p_end.cumulative_finalization_time - \
-             p_start.cumulative_finalization_time)::float /
+                 (
+                     (p_end.cumulative_finalization_time
+                         - p_start.cumulative_finalization_time)::float /
                      NULLIF(p_end.height - p_start.height, 0) * 1000
-                 ) AS avg_finalization_time
+                 ) AS avg_finalization_time_s
              FROM p_start, p_end",
             interval
         )
@@ -151,12 +152,12 @@ impl QueryBlockMetrics {
         let bucket_query = sqlx::query!(
             "
 SELECT
-    bucket.bucket_start as time,
+    bucket.bucket_start,
     COALESCE(bucket_last_block.height - bucket_first_block.height, 0) AS y_blocks_added,
     (
         EXTRACT(epoch FROM (bucket_last_block.slot_time - bucket_first_block.slot_time))
-            / NULLIF(bucket_last_block.height - (1 + bucket_first_block.height), 0)
-    )::float AS y_block_time_avg,
+            / NULLIF(bucket_last_block.height - bucket_first_block.height, 0)
+    )::float AS y_block_time_avg_s,
     (
         (bucket_last_block.cumulative_finalization_time -
             bucket_first_block.cumulative_finalization_time)::float / (
@@ -165,10 +166,10 @@ SELECT
                     0
                 ) * 1000
             )
-    ) AS y_finalization_time_avg,
+    ) AS y_finalization_time_avg_s,
     bucket_last_block.total_staked AS y_last_total_micro_ccd_staked
 FROM
-    date_bin_series($2::INTERVAL, NOW() - $1::INTERVAL, now()) AS bucket
+    date_bin_series($2::INTERVAL, NOW() - $1::INTERVAL, NOW()) AS bucket
 LEFT JOIN LATERAL (
     SELECT
         height,
@@ -207,12 +208,12 @@ LEFT JOIN LATERAL (
             y_last_total_micro_ccd_staked: Vec::new(),
         };
         for row in bucket_query {
-            buckets.x_time.push(row.time.ok_or(ApiError::InternalError(
+            buckets.x_time.push(row.bucket_start.ok_or(ApiError::InternalError(
                 "Unexpected missing time for bucket".to_string(),
             ))?);
             buckets.y_blocks_added.push(row.y_blocks_added.unwrap_or(0));
-            buckets.y_block_time_avg.push(row.y_block_time_avg.unwrap_or(0.0));
-            buckets.y_finalization_time_avg.push(row.y_finalization_time_avg.unwrap_or(0.0));
+            buckets.y_block_time_avg.push(row.y_block_time_avg_s.unwrap_or(0.0));
+            buckets.y_finalization_time_avg.push(row.y_finalization_time_avg_s.unwrap_or(0.0));
             buckets
                 .y_last_total_micro_ccd_staked
                 .push(row.y_last_total_micro_ccd_staked.unwrap_or(0).try_into()?);
@@ -220,8 +221,8 @@ LEFT JOIN LATERAL (
 
         Ok(BlockMetrics {
             blocks_added: period_query.blocks_added.unwrap_or(0),
-            avg_block_time: period_query.avg_block_time.map(|i| i.microseconds as f64 / 10000000.0),
-            avg_finalization_time: period_query.avg_finalization_time.map(|i| i / 1000.0),
+            avg_block_time: period_query.avg_block_time.map(|i| i.microseconds as f64 / 1000000.0),
+            avg_finalization_time: period_query.avg_finalization_time_s,
             last_block_height: latest_block.height,
             last_total_micro_ccd: latest_block.total_amount.try_into()?,
             last_total_micro_ccd_staked: latest_block.total_staked.try_into()?,
