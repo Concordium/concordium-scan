@@ -274,18 +274,19 @@ impl Block {
             connection.edges.push(connection::Edge::new(cursor, row.outcome.0));
         }
         if let (Some(page_min_id), Some(page_max_id)) = (page_min_index, page_max_index) {
-            let max_index = sqlx::query_scalar!(
+            let row = sqlx::query!(
                 "SELECT
-                     MAX(block_outcome_index)
+                     MAX(block_outcome_index), MIN(block_outcome_index)
                  FROM block_special_transaction_outcomes
-                 WHERE block_height = $1",
-                self.height
+                 WHERE block_height = $1 AND ($2 OR outcome_type = ANY($3))",
+                self.height,
+                disable_filtering,
+                filters.as_ref() as &[SpecialEventTypeFilter]
             )
             .fetch_one(pool)
-            .await?
-            .unwrap_or(0);
-            connection.has_previous_page = page_min_id > 0;
-            connection.has_next_page = page_max_id < max_index;
+            .await?;
+            connection.has_previous_page = row.min.unwrap_or(0) < page_min_id;
+            connection.has_next_page = row.max.unwrap_or(0) > page_max_id;
         }
         Ok(connection)
     }
