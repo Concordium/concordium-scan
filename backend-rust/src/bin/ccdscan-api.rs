@@ -1,4 +1,5 @@
 use anyhow::Context;
+use axum::{http::StatusCode, Json};
 use clap::Parser;
 use concordium_scan::{
     graphql_api, graphql_api::node_status::NodeInfoReceiver, migrations, router,
@@ -161,7 +162,7 @@ async fn main() -> anyhow::Result<()> {
     let (subscription, subscription_listener) =
         graphql_api::Subscription::new(cli.database_retry_delay_secs);
     let (nodes_status_sender, nodes_status_receiver) = tokio::sync::watch::channel(None);
-    let block_receiver_health = nodes_status_receiver.clone();
+    let node_status_receiver = nodes_status_receiver.clone();
     let mut pgnotify_listener = {
         let pool = pool.clone();
         let stop_signal = cancel_token.child_token();
@@ -183,20 +184,6 @@ async fn main() -> anyhow::Result<()> {
         info!("Server is running at {:?}", cli.listen);
         tokio::spawn(async move { service.serve(tcp_listener, stop_signal).await })
     };
-    let mut monitoring_task = {
-        let state = HealthState {
-            pool,
-            node_status_receiver: block_receiver_health,
-        };
-        let health_routes =
-            axum::Router::new().route("/", axum::routing::get(health)).with_state(state);
-        let tcp_listener = TcpListener::bind(cli.monitoring_listen)
-            .await
-            .context("Parsing TCP listener address failed")?;
-        let stop_signal = cancel_token.child_token();
-        info!("Monitoring server is running at {:?}", cli.monitoring_listen);
-        tokio::spawn(router::serve(registry, tcp_listener, stop_signal, health_routes))
-    };
     let mut node_collector_task = {
         let stop_signal = cancel_token.child_token();
         let service = graphql_api::node_status::Service::new(
@@ -206,8 +193,23 @@ async fn main() -> anyhow::Result<()> {
             client,
             cli.node_collector_connection_max_content_length,
             stop_signal,
+            &mut registry,
         );
         tokio::spawn(service.serve())
+    };
+    let mut monitoring_task = {
+        let state = HealthState {
+            pool,
+            node_status_receiver,
+        };
+        let health_routes =
+            axum::Router::new().route("/", axum::routing::get(health)).with_state(state);
+        let tcp_listener = TcpListener::bind(cli.monitoring_listen)
+            .await
+            .context("Parsing TCP listener address failed")?;
+        let stop_signal = cancel_token.child_token();
+        info!("Monitoring server is running at {:?}", cli.monitoring_listen);
+        tokio::spawn(router::serve(registry, tcp_listener, stop_signal, health_routes))
     };
 
     // Await for signal to shutdown or any of the tasks to stop.
@@ -265,15 +267,25 @@ struct HealthState {
 /// Verifying the API service state is as expected.
 async fn health(
     axum::extract::State(state): axum::extract::State<HealthState>,
-) -> axum::Json<serde_json::Value> {
+) -> (StatusCode, Json<serde_json::Value>) {
     let node_status_connected = state.node_status_receiver.borrow().is_some();
     let database_connected =
         migrations::ensure_compatible_schema_version(&state.pool, SUPPORTED_SCHEMA_VERSION)
             .await
             .is_ok();
-    axum::Json(json!({
-        "status": if node_status_connected && database_connected {"ok"} else {"error"},
-        "node_status": if node_status_connected {"connected"} else {"not connected"},
-        "database": if database_connected {"connected"} else {"not connected"},
-    }))
+
+    let is_healthy = node_status_connected && database_connected;
+
+    let status_code = if is_healthy {
+        StatusCode::OK
+    } else {
+        StatusCode::INTERNAL_SERVER_ERROR
+    };
+    (
+        status_code,
+        Json(json!({
+            "node_status": if node_status_connected {"connected"} else {"not connected"},
+            "database_status": if database_connected {"connected"} else {"not connected"},
+        })),
+    )
 }
