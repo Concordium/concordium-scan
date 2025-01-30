@@ -537,7 +537,8 @@ impl BlockProcessor {
         let last_finalized_block = sqlx::query!(
             "
 SELECT
-  hash
+  hash,
+  cumulative_finalization_time
 FROM blocks
 WHERE finalization_time IS NOT NULL
 ORDER BY height DESC
@@ -563,9 +564,12 @@ LIMIT 1
         .context("Failed to query data for save context")?;
 
         let starting_context = BlockProcessingContext {
-            last_finalized_hash:     last_finalized_block.hash,
-            last_block_slot_time:    last_block.slot_time,
-            last_cumulative_num_txs: last_block.cumulative_num_txs,
+            last_finalized_hash:               last_finalized_block.hash,
+            last_block_slot_time:              last_block.slot_time,
+            last_cumulative_num_txs:           last_block.cumulative_num_txs,
+            last_cumulative_finalization_time: last_finalized_block
+                .cumulative_finalization_time
+                .unwrap_or(0),
         };
 
         let processing_failures = Counter::default();
@@ -662,14 +666,18 @@ impl ProcessEvent for BlockProcessor {
 struct BlockProcessingContext {
     /// The last finalized block hash according to the latest indexed block.
     /// This is used when computing the finalization time.
-    last_finalized_hash:     String,
+    last_finalized_hash:               String,
     /// The slot time of the last processed block.
     /// This is used when computing the block time.
-    last_block_slot_time:    DateTime<Utc>,
+    last_block_slot_time:              DateTime<Utc>,
     /// The value of cumulative_num_txs from the last block.
     /// This, along with the number of transactions in the current block,
     /// is used to calculate the next cumulative_num_txs.
-    last_cumulative_num_txs: i64,
+    last_cumulative_num_txs:           i64,
+    /// The cumulative_finalization_time of the last finalized block.
+    /// This is used to efficiently update the cumulative_finalization_time of
+    /// newly finalized blocks.
+    last_cumulative_finalization_time: i64,
 }
 
 /// Process schedule releases based on the slot time of the last processed
@@ -1004,20 +1012,65 @@ SELECT * FROM UNNEST(
         // compute it to be the difference between the slot_time of the block and the
         // finalizer block.
         sqlx::query!(
-            r#"
-UPDATE blocks
-   SET finalization_time = EXTRACT("MILLISECONDS" FROM finalizer.slot_time - blocks.slot_time),
-       finalized_by = finalizer.height
-FROM UNNEST($1::BIGINT[], $2::TEXT[], $3::TIMESTAMPTZ[]) AS finalizer(height, finalized, slot_time)
-JOIN blocks last ON finalizer.finalized = last.hash
-WHERE blocks.finalization_time IS NULL AND blocks.height <= last.height
-"#,
+            "UPDATE blocks SET
+                finalization_time = (
+                    EXTRACT(EPOCH FROM finalizer.slot_time - blocks.slot_time)::double precision
+                        * 1000
+                )::bigint,
+                finalized_by = finalizer.height
+            FROM UNNEST(
+                $1::BIGINT[],
+                $2::TEXT[],
+                $3::TIMESTAMPTZ[]
+            ) AS finalizer(height, finalized, slot_time)
+            JOIN blocks last ON finalizer.finalized = last.hash
+            WHERE blocks.finalization_time IS NULL AND blocks.height <= last.height",
             &finalizers,
             &last_finalizeds,
             &finalizers_slot_time
         )
         .execute(tx.as_mut())
         .await?;
+
+        // With the finalization_time update for each finalized block, we also have to
+        // update the cumulative_finalization_time for these blocks.
+        // Returns the cumulative_finalization_time of the latest finalized block.
+        let new_last_cumulative_finalization_time = sqlx::query_scalar!(
+            "WITH cumulated AS (
+                -- Compute the sum of finalization_time for the finalized missing the cumulative.
+                SELECT
+                    height,
+                    -- Note this sum is only of those without a cumulative_finalization_time and
+                    -- not the entire table.
+                    SUM(finalization_time) OVER (
+                        ORDER BY height
+                        RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                    ) AS time
+                FROM blocks
+                WHERE blocks.cumulative_finalization_time IS NULL
+                    AND blocks.finalization_time IS NOT NULL
+                ORDER BY height
+            ), updated AS (
+                -- Update the cumulative time from the previous known plus the newly computed.
+                UPDATE blocks
+                    SET cumulative_finalization_time = $1 + cumulated.time
+                FROM cumulated
+                WHERE blocks.height = cumulated.height
+                RETURNING cumulated.height, cumulative_finalization_time
+            )
+            -- Return only the latest cumulative_finalization_time.
+            SELECT updated.cumulative_finalization_time
+            FROM updated
+            ORDER BY updated.height DESC
+            LIMIT 1",
+            context.last_cumulative_finalization_time
+        )
+        .fetch_optional(tx.as_mut())
+        .await?
+        .flatten();
+        if let Some(cumulative_finalization_time) = new_last_cumulative_finalization_time {
+            context.last_cumulative_finalization_time = cumulative_finalization_time;
+        }
         Ok(())
     }
 }

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE blocks SET\n                finalization_time = (\n                    EXTRACT(EPOCH FROM finalizer.slot_time - blocks.slot_time)::double precision\n                        * 1000\n                )::bigint,\n                finalized_by = finalizer.height\n            FROM UNNEST(\n                $1::BIGINT[],\n                $2::TEXT[],\n                $3::TIMESTAMPTZ[]\n            ) AS finalizer(height, finalized, slot_time)\n            JOIN blocks last ON finalizer.finalized = last.hash\n            WHERE blocks.finalization_time IS NULL AND blocks.height <= last.height",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8Array",
+        "TextArray",
+        "TimestamptzArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fc6af9068bbd1c93d7cf700ab699144c5c717b0e52d24e54b3793f97f39e5551"
+}

@@ -129,14 +129,19 @@ CREATE TABLE blocks(
         NOT NULL,
     -- Milliseconds between the slot_time of this block and the first block above where this was
     -- recorded as finalized.
-    -- This is NULL until the indexer have processed the block marking this a finalized.
+    -- This is NULL until the indexer have processed the block marking this block as finalized.
     finalization_time
         INTEGER,
     -- Block where this block was first recorded as finalized.
-    -- This is NULL until the indexer have processed the block marking this a finalized.
+    -- This is NULL until the indexer have processed the block marking this block as finalized.
     finalized_by
         BIGINT
         REFERENCES blocks(height),
+    -- Total finalization time for every block prior to this block including its own finalization
+    -- time.
+    -- This is NULL until the indexer have processed the block marking this block as finalized.
+    cumulative_finalization_time
+        BIGINT,
     -- Index of the account which baked the block.
     -- For non-genesis blocks this should always be defined.
     -- Foreign key constraint added later, since account table is not defined yet.
@@ -831,3 +836,18 @@ CREATE TABLE block_special_transaction_outcomes (
 -- Index allowing for efficiently finding particular type of outcomes for a particular block.
 CREATE INDEX block_special_transaction_outcomes_idx
     ON block_special_transaction_outcomes (block_height, outcome_type, block_outcome_index);
+
+-- Function for generating a table where each row is a bucket.
+-- Used by metrics queries.
+CREATE OR REPLACE FUNCTION date_bin_series(bucket_size interval, starting TIMESTAMPTZ, ending TIMESTAMPTZ)
+RETURNS TABLE(bucket_start TIMESTAMPTZ, bucket_end TIMESTAMPTZ) AS $$
+    SELECT
+        bucket_start,
+        bucket_start + bucket_size
+    FROM generate_series(
+        date_bin(bucket_size, starting, TIMESTAMPTZ '2001-01-01'),
+        date_bin(bucket_size, ending + bucket_size, TIMESTAMPTZ '2001-01-01'),
+        bucket_size
+    ) as bucket_start;
+$$ LANGUAGE sql;
+
