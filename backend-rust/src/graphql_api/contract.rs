@@ -37,7 +37,7 @@ impl QueryContract {
             FROM contracts
             JOIN transactions ON transaction_index = transactions.index
             JOIN blocks ON transactions.block_height = blocks.height
-            JOIN accounts ON transactions.sender = accounts.index
+            JOIN accounts ON transactions.sender_index = accounts.index
             WHERE contracts.index = $1 AND contracts.sub_index = $2"#,
             contract_address_index.0 as i64,
             contract_address_sub_index.0 as i64,
@@ -109,7 +109,7 @@ impl QueryContract {
                 FROM contracts
                 JOIN transactions ON transaction_index = transactions.index
                 JOIN blocks ON transactions.block_height = blocks.height
-                JOIN accounts ON transactions.sender = accounts.index
+                JOIN accounts ON transactions.sender_index = accounts.index
                 WHERE contracts.index > $1 AND contracts.index < $2
                 ORDER BY
                     (CASE WHEN $4 THEN contracts.index END) ASC,
@@ -240,7 +240,7 @@ impl Contract {
                     ON contract_events.block_height = transactions.block_height
                     AND contract_events.transaction_index = transactions.index
                 JOIN accounts
-                    ON transactions.sender = accounts.index
+                    ON transactions.sender_index = accounts.index
                 JOIN blocks
                     ON contract_events.block_height = blocks.height
                 WHERE contract_events.contract_index = $1 AND contract_events.contract_sub_index = \
@@ -327,7 +327,7 @@ impl Contract {
                 FROM contracts
                 JOIN transactions ON transaction_index=transactions.index
                 JOIN blocks ON block_height = blocks.height
-                JOIN accounts ON transactions.sender = accounts.index
+                JOIN accounts ON transactions.sender_index = accounts.index
                 WHERE contracts.index = $1 AND contracts.sub_index = $2
                 ",
             self.contract_address_index.0 as i64,

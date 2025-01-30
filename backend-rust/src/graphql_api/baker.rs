@@ -1,11 +1,21 @@
-use super::{account::Account, get_pool, todo_api, ApiError, ApiResult};
+use super::{
+    account::Account, get_config, get_pool, todo_api, transaction::Transaction, ApiError,
+    ApiResult, ConnectionQuery,
+};
 use crate::{
     scalar_types::{Amount, BakerId, DateTime, Decimal, MetadataUrl},
-    transaction_event::baker::BakerPoolOpenStatus,
+    transaction_event::{baker::BakerPoolOpenStatus, Event},
+    transaction_reject::TransactionRejectReason,
+    transaction_type::{
+        AccountTransactionType, CredentialDeploymentTransactionType, DbTransactionType,
+        UpdateTransactionType,
+    },
 };
 use async_graphql::{connection, types, Context, Enum, InputObject, Object, SimpleObject, Union};
 use concordium_rust_sdk::types::AmountFraction;
+use futures::TryStreamExt;
 use sqlx::PgPool;
+use std::cmp::{max, min};
 
 #[derive(Default)]
 pub struct QueryBaker;
@@ -75,17 +85,19 @@ impl Baker {
     async fn query_by_id(pool: &PgPool, baker_id: BakerId) -> ApiResult<Self> {
         sqlx::query_as!(
             Baker,
-            r#"SELECT
-    id,
-    staked,
-    restake_earnings,
-    open_status as "open_status: BakerPoolOpenStatus",
-    metadata_url,
-    transaction_commission,
-    baking_commission,
-    finalization_commission
- FROM bakers WHERE id=$1
-"#,
+            r#"
+            SELECT
+                id,
+                staked,
+                restake_earnings,
+                open_status as "open_status: BakerPoolOpenStatus",
+                metadata_url,
+                transaction_commission,
+                baking_commission,
+                finalization_commission
+            FROM bakers 
+            WHERE id = $1
+            "#,
             i64::from(baker_id)
         )
         .fetch_optional(pool)
@@ -137,11 +149,129 @@ impl Baker {
         Account::query_by_index(get_pool(ctx)?, i64::from(self.id)).await?.ok_or(ApiError::NotFound)
     }
 
-    // transactions("Returns the first _n_ elements from the list." first: Int
-    // "Returns the elements in the list that come after the specified cursor."
-    // after: String "Returns the last _n_ elements from the list." last: Int
-    // "Returns the elements in the list that come before the specified cursor."
-    // before: String): BakerTransactionRelationConnection
+    async fn transactions(
+        &self,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        before: Option<String>,
+    ) -> ApiResult<connection::Connection<String, InterimTransaction>> {
+        let config = get_config(ctx)?;
+        let pool = get_pool(ctx)?;
+        let query = ConnectionQuery::<i64>::new(
+            first,
+            after,
+            last,
+            before,
+            config.transactions_per_block_connection_limit,
+        )?;
+
+        let account_transaction_type_filter = &[
+            AccountTransactionType::AddBaker,
+            AccountTransactionType::RemoveBaker,
+            AccountTransactionType::UpdateBakerStake,
+            AccountTransactionType::UpdateBakerRestakeEarnings,
+            AccountTransactionType::UpdateBakerKeys,
+            AccountTransactionType::ConfigureBaker,
+        ];
+
+        // Retrieves the transactions related to a baker account ('AddBaker',
+        // 'RemoveBaker', 'UpdateBakerStake', 'UpdateBakerRestakeEarnings',
+        // 'UpdateBakerKeys', 'ConfigureBaker'). The transactions are ordered in
+        // descending order (outer `ORDER BY`). If the `last` input parameter is
+        // set, the inner `ORDER BY` reverses the transaction order to allow the
+        // range be applied starting from the last element.
+        let mut row_stream = sqlx::query_as!(
+            Transaction,
+            r#"
+            SELECT * FROM (
+                SELECT 
+                    index,
+                    block_height,
+                    hash,
+                    ccd_cost,
+                    energy_cost,
+                    sender_index,
+                    type as "tx_type: DbTransactionType",
+                    type_account as "type_account: AccountTransactionType",
+                    type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
+                    type_update as "type_update: UpdateTransactionType",
+                    success,
+                    events as "events: sqlx::types::Json<Vec<Event>>",
+                    reject as "reject: sqlx::types::Json<TransactionRejectReason>"
+                FROM transactions
+                WHERE transactions.sender_index = $5
+                AND type_account = ANY($6)
+                AND index > $1 AND index < $2
+                ORDER BY
+                    CASE WHEN NOT $3 THEN index END DESC,
+                    CASE WHEN $3 THEN index END ASC
+                LIMIT $4
+            ) ORDER BY index DESC"#,
+            query.from,
+            query.to,
+            query.desc,
+            query.limit,
+            self.id.0,
+            account_transaction_type_filter as &[AccountTransactionType]
+        )
+        .fetch(pool);
+
+        let mut connection = connection::Connection::new(false, false);
+
+        let mut page_max_index = None;
+        let mut page_min_index = None;
+        while let Some(tx) = row_stream.try_next().await? {
+            page_max_index = Some(match page_max_index {
+                None => tx.index,
+                Some(current_max) => max(current_max, tx.index),
+            });
+
+            page_min_index = Some(match page_min_index {
+                None => tx.index,
+                Some(current_min) => min(current_min, tx.index),
+            });
+
+            connection.edges.push(connection::Edge::new(
+                tx.index.to_string(),
+                InterimTransaction {
+                    transaction: tx,
+                },
+            ));
+        }
+
+        if let (Some(page_min_id), Some(page_max_id)) = (page_min_index, page_max_index) {
+            let result = sqlx::query!(
+                "
+                    SELECT MAX(index) as max_id, MIN(index) as min_id 
+                    FROM transactions
+                    WHERE transactions.sender_index = $1
+                    AND type_account = ANY($2)
+                ",
+                &self.id.0,
+                account_transaction_type_filter as &[AccountTransactionType]
+            )
+            .fetch_one(pool)
+            .await?;
+
+            connection.has_previous_page =
+                result.min_id.map_or(false, |db_min| db_min < page_min_id);
+            connection.has_next_page = result.max_id.map_or(false, |db_max| db_max > page_max_id);
+        }
+
+        Ok(connection)
+    }
+}
+
+// Future improvement (API breaking changes): The function `Baker::transactions`
+// can directly return a `Transaction` instead of the `IterimTransaction` type
+// here.
+#[derive(SimpleObject)]
+struct InterimTransaction {
+    transaction: Transaction,
 }
 
 #[derive(Union)]

@@ -1200,7 +1200,7 @@ impl PreparedBlockItem {
                 ccd_cost,
                 energy_cost,
                 block_height,
-                sender,
+                sender_index,
                 type,
                 type_account,
                 type_credential_deployment,

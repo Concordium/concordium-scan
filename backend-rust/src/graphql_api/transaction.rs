@@ -70,7 +70,7 @@ impl QueryTransactions {
                     hash,
                     ccd_cost,
                     energy_cost,
-                    sender,
+                    sender_index,
                     type as "tx_type: DbTransactionType",
                     type_account as "type_account: AccountTransactionType",
                     type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
@@ -135,7 +135,7 @@ pub struct Transaction {
     pub hash: TransactionHash,
     pub ccd_cost: i64,
     pub energy_cost: Energy,
-    pub sender: Option<AccountIndex>,
+    pub sender_index: Option<AccountIndex>,
     pub tx_type: DbTransactionType,
     pub type_account: Option<AccountTransactionType>,
     pub type_credential_deployment: Option<CredentialDeploymentTransactionType>,
@@ -155,7 +155,7 @@ impl Transaction {
                 hash,
                 ccd_cost,
                 energy_cost,
-                sender,
+                sender_index,
                 type as "tx_type: DbTransactionType",
                 type_account as "type_account: AccountTransactionType",
                 type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
@@ -185,7 +185,7 @@ impl Transaction {
                 hash,
                 ccd_cost,
                 energy_cost,
-                sender,
+                sender_index,
                 type as "tx_type: DbTransactionType",
                 type_account as "type_account: AccountTransactionType",
                 type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
@@ -224,7 +224,7 @@ impl Transaction {
         &self,
         ctx: &Context<'a>,
     ) -> ApiResult<Option<AccountAddress>> {
-        let Some(account_index) = self.sender else {
+        let Some(account_index) = self.sender_index else {
             return Ok(None);
         };
         let result = sqlx::query!("SELECT address FROM accounts WHERE index=$1", account_index)

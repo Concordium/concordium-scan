@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT COUNT(*) FROM transactions WHERE sender=$1",
+  "query": "SELECT COUNT(*) FROM transactions WHERE sender_index = $1",
   "describe": {
     "columns": [
       {
@@ -18,5 +18,5 @@
       null
     ]
   },
-  "hash": "3a8582ae728281ba74f29a240a5b4c3e4bfcd18563efa4597fe6870c337eaee6"
+  "hash": "0133b6ed8c985ca7c1356da373360f623e67326b6e8768c64b0ac07769c5f3b7"
 }
