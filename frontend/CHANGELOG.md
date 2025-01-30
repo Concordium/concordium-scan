@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Move query `useBlockSpecialEventsQuery` to new API.
+
 ## [1.6.2] - 2025-01-19
 
 ### Changed
