@@ -110,7 +110,9 @@ impl Baker {
 
     async fn baker_id(&self) -> BakerId { self.id }
 
-    async fn state<'a>(&'a self) -> ApiResult<BakerState<'a>> {
+    async fn state<'a>(&'a self, ctx: &Context<'a>) -> ApiResult<BakerState<'a>> {
+        let pool = get_pool(ctx)?;
+
         let transaction_commission = self
             .transaction_commission
             .map(u32::try_from)
@@ -127,17 +129,30 @@ impl Baker {
             .transpose()?
             .map(|c| AmountFraction::new_unchecked(c).into());
 
+        let total_stake: i64 =
+            sqlx::query_scalar!("SELECT total_staked FROM blocks ORDER BY height DESC LIMIT 1")
+                .fetch_optional(pool)
+                .await?
+                .ok_or(ApiError::NotFound)?;
+
+        // Division by 0 is not possible because `total_staked` is always a positive
+        // number.
+        let total_stake_percentage = ((self.staked as f64 * 100.0) / total_stake as f64)
+            .try_into()
+            .map_err(|e: anyhow::Error| ApiError::InternalError(e.to_string()))?;
+
         let out = BakerState::ActiveBakerState(ActiveBakerState {
             staked_amount:    Amount::try_from(self.staked)?,
             restake_earnings: self.restake_earnings,
             pool:             BakerPool {
-                open_status:      self.open_status,
+                open_status: self.open_status,
                 commission_rates: CommissionRates {
                     transaction_commission,
                     baking_commission,
                     finalization_commission,
                 },
-                metadata_url:     self.metadata_url.as_deref(),
+                metadata_url: self.metadata_url.as_deref(),
+                total_stake_percentage,
             },
             pending_change:   None, // This is not used starting from P7.
         });
@@ -338,29 +353,27 @@ enum BakerSort {
 
 #[derive(SimpleObject)]
 struct BakerPool<'a> {
-    // /// Total stake of the baker pool as a percentage of all CCDs in existence.
-    // /// Value may be null for brand new bakers where statistics have not
-    // /// been calculated yet. This should be rare and only a temporary
-    // /// condition.
-    // total_stake_percentage:  Decimal,
-    // lottery_power:           Decimal,
-    // payday_commission_rates: CommissionRates,
-    open_status:      Option<BakerPoolOpenStatus>,
-    commission_rates: CommissionRates,
-    metadata_url:     Option<&'a str>,
-    // /// The total amount staked by delegation to this baker pool.
-    // delegated_stake:         Amount,
-    // /// The maximum amount that may be delegated to the pool, accounting for
-    // /// leverage and stake limits.
-    // delegated_stake_cap:     Amount,
+    /// Total stake of the baker pool as a percentage of all CCDs in existence.
+    total_stake_percentage: Decimal,
     // /// The total amount staked in this baker pool. Includes both baker stake
     // /// and delegated stake.
     // total_stake:             Amount,
+    // /// The total amount staked by delegation to this baker pool.
+    // delegated_stake:         Amount,
     // delegator_count:         i32,
+    // lottery_power:           Decimal,
+    // payday_commission_rates: CommissionRates,
     // /// Ranking of the baker pool by total staked amount. Value may be null for
     // /// brand new bakers where statistics have not been calculated yet. This
     // /// should be rare and only a temporary condition.
     // ranking_by_total_stake:  Ranking,
+    open_status:            Option<BakerPoolOpenStatus>,
+    commission_rates:       CommissionRates,
+    metadata_url:           Option<&'a str>,
+    // /// The maximum amount that may be delegated to the pool, accounting for
+    // /// leverage and stake limits.
+    // delegated_stake_cap:     Amount,
+
     // TODO: apy(period: ApyPeriod!): PoolApy!
     // TODO: delegators("Returns the first _n_ elements from the list." first: Int "Returns the
     // elements in the list that come after the specified cursor." after: String "Returns the last
