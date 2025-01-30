@@ -4,7 +4,7 @@
 -- give the total number of transactions within the bucket.
 SELECT
     -- The bucket time is the starting time of the bucket.
-    bucket_time,
+    bucket_time.bucket_start as bucket_time,
     -- Number of transactions at or before the bucket.
     COALESCE(before_bucket.cumulative_num_txs, 0) as start_cumulative_num_txs,
     -- Number of transactions at the end of the bucket.
@@ -13,19 +13,19 @@ FROM
     -- We generate a time series of all the buckets where transactions will be counted.
     -- $1 is the full period, $2 is the bucket interval.
     -- For the rest of the comments, let's go with the example of a full period of 7 days with 6 hour buckets.
-    generate_series(
-        -- The first bucket starts 7 days ago.
+    date_bin_series(
+        -- Size of the buckets.
+        $2::interval,
+        -- The first bucket should cover 7 days ago.
         now() - $1::interval,
-        -- The final bucket starts 6 hours ago, since the bucket time is the start of the bucket.
-        now() - $2::interval,
-        -- Each bucket is seperated by 6 hours.
-        $2::interval
+        -- The final bucket should cover now.
+        now()
     ) AS bucket_time
 LEFT JOIN LATERAL (
     -- Selects the cumulative number of transactions at or before the start of the bucket.
     SELECT cumulative_num_txs
     FROM blocks
-    WHERE slot_time <= bucket_time
+    WHERE slot_time <= bucket_time.bucket_start
     ORDER BY slot_time DESC
     LIMIT 1
 ) before_bucket ON true
@@ -33,7 +33,7 @@ LEFT JOIN LATERAL (
     -- Selects the cumulative number of transactions at the end of the bucket.
     SELECT cumulative_num_txs
     FROM blocks
-    WHERE slot_time < bucket_time + $2::interval
+    WHERE slot_time < bucket_time.bucket_end
     ORDER BY slot_time DESC
     LIMIT 1
 ) after_bucket ON true
