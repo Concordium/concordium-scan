@@ -105,8 +105,7 @@ async fn main() -> anyhow::Result<()> {
             },
             result = &mut migration_task => {
                 if let Err(err) = result? {
-                    error!("Migration error: {}", err);
-                    return Ok(())
+                    return Err(anyhow::format_err!("Migration error: {}", err))
                 }
             }
         };
