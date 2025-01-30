@@ -180,8 +180,7 @@ async fn health(
     axum::extract::State(pool): axum::extract::State<sqlx::PgPool>,
 ) -> (StatusCode, Json<serde_json::Value>) {
     let database_connected = migrations::ensure_latest_schema_version(&pool).await.is_ok();
-    let is_healthy = database_connected;
-    let status_code = if is_healthy {
+    let status_code = if database_connected {
         StatusCode::OK
     } else {
         StatusCode::INTERNAL_SERVER_ERROR
@@ -189,7 +188,7 @@ async fn health(
     (
         status_code,
         Json(json!({
-            "database": if database_connected {"connected"} else {"not connected"},
+            "database_status": if database_connected {"connected"} else {"not connected"},
         })),
     )
 }

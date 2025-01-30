@@ -285,7 +285,7 @@ async fn health(
         status_code,
         Json(json!({
             "node_status": if node_status_connected {"connected"} else {"not connected"},
-            "database": if database_connected {"connected"} else {"not connected"},
+            "database_status": if database_connected {"connected"} else {"not connected"},
         })),
     )
 }
