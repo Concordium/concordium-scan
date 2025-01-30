@@ -85,17 +85,19 @@ impl Baker {
     async fn query_by_id(pool: &PgPool, baker_id: BakerId) -> ApiResult<Self> {
         sqlx::query_as!(
             Baker,
-            r#"SELECT
-    id,
-    staked,
-    restake_earnings,
-    open_status as "open_status: BakerPoolOpenStatus",
-    metadata_url,
-    transaction_commission,
-    baking_commission,
-    finalization_commission
- FROM bakers WHERE id=$1
-"#,
+            r#"
+            SELECT
+                id,
+                staked,
+                restake_earnings,
+                open_status as "open_status: BakerPoolOpenStatus",
+                metadata_url,
+                transaction_commission,
+                baking_commission,
+                finalization_commission
+            FROM bakers 
+            WHERE id = $1
+            "#,
             i64::from(baker_id)
         )
         .fetch_optional(pool)
@@ -166,6 +168,16 @@ impl Baker {
             before,
             config.transactions_per_block_connection_limit,
         )?;
+
+        let account_transaction_type_filter = &[
+            AccountTransactionType::AddBaker,
+            AccountTransactionType::RemoveBaker,
+            AccountTransactionType::UpdateBakerStake,
+            AccountTransactionType::UpdateBakerRestakeEarnings,
+            AccountTransactionType::UpdateBakerKeys,
+            AccountTransactionType::ConfigureBaker,
+        ];
+
         // Retrieves the transactions related to a baker account ('AddBaker',
         // 'RemoveBaker', 'UpdateBakerStake', 'UpdateBakerRestakeEarnings',
         // 'UpdateBakerKeys', 'ConfigureBaker'). The transactions are ordered in
@@ -192,8 +204,8 @@ impl Baker {
                     reject as "reject: sqlx::types::Json<TransactionRejectReason>"
                 FROM transactions
                 WHERE transactions.sender_index = $5
-                AND index > $1 AND index < $2
                 AND type_account = ANY($6)
+                AND index > $1 AND index < $2
                 ORDER BY
                     CASE WHEN NOT $3 THEN index END DESC,
                     CASE WHEN $3 THEN index END ASC
@@ -204,14 +216,7 @@ impl Baker {
             query.desc,
             query.limit,
             self.id.0,
-            &[
-                AccountTransactionType::AddBaker,
-                AccountTransactionType::RemoveBaker,
-                AccountTransactionType::UpdateBakerStake,
-                AccountTransactionType::UpdateBakerRestakeEarnings,
-                AccountTransactionType::UpdateBakerKeys,
-                AccountTransactionType::ConfigureBaker
-            ] as &[AccountTransactionType]
+            account_transaction_type_filter as &[AccountTransactionType]
         )
         .fetch(pool);
 
@@ -244,8 +249,10 @@ impl Baker {
                     SELECT MAX(index) as max_id, MIN(index) as min_id 
                     FROM transactions
                     WHERE transactions.sender_index = $1
+                    AND type_account = ANY($2)
                 ",
-                &self.id.0
+                &self.id.0,
+                account_transaction_type_filter as &[AccountTransactionType]
             )
             .fetch_one(pool)
             .await?;

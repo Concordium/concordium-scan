@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n    id,\n    staked,\n    restake_earnings,\n    open_status as \"open_status: BakerPoolOpenStatus\",\n    metadata_url,\n    transaction_commission,\n    baking_commission,\n    finalization_commission\n FROM bakers WHERE id=$1\n",
+  "query": "\n            SELECT\n                id,\n                staked,\n                restake_earnings,\n                open_status as \"open_status: BakerPoolOpenStatus\",\n                metadata_url,\n                transaction_commission,\n                baking_commission,\n                finalization_commission\n            FROM bakers \n            WHERE id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -71,5 +71,5 @@
       true
     ]
   },
-  "hash": "38822385789ad387659bec8d2430126c8d095ee920d1582912060d7a8040e691"
+  "hash": "0834e5a77fa1c65cf2a3753db3b6a674b930cf588628680f871f42a01db8bec4"
 }
