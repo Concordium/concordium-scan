@@ -262,6 +262,7 @@ CREATE TABLE accounts(
         -- Starting at 1 to count the transaction that made the account.
         DEFAULT 1,
     -- The total delegated stake of this account in micro CCD.
+    -- An account can delegate stake to at most one baker pool.
     delegated_stake
         BIGINT
         NOT NULL
@@ -271,6 +272,7 @@ CREATE TABLE accounts(
         BOOLEAN
         NULL,
     -- Target id of the baker When this is null it means that we are using passive delegation.
+    -- An account can delegate stake to at most one baker pool.
     delegated_target_baker_id
         BIGINT
         NULL
@@ -281,6 +283,9 @@ CREATE INDEX accounts_amount_idx ON accounts (amount);
 CREATE INDEX accounts_delegated_stake_idx ON accounts (delegated_stake);
 CREATE INDEX accounts_num_txs_idx ON accounts (num_txs);
 CREATE INDEX accounts_address_trgm_idx ON accounts USING gin (address gin_trgm_ops);
+
+-- Important for quickly calculating the delegated stake to a baker pool.
+CREATE INDEX delegated_target_baker_id_index ON accounts(delegated_target_baker_id);
 
 -- Add foreign key constraint now that the account table is created.
 ALTER TABLE transactions
@@ -319,7 +324,7 @@ CREATE TABLE bakers(
         BIGINT
         PRIMARY KEY
         REFERENCES accounts,
-    -- Amount staked at present.
+    -- Amount staked at present in this baker pool by the baker.
     staked
         BIGINT
         NOT NULL,

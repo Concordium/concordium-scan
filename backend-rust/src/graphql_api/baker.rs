@@ -3,7 +3,7 @@ use super::{
     ApiResult, ConnectionQuery,
 };
 use crate::{
-    scalar_types::{Amount, BakerId, DateTime, Decimal, MetadataUrl},
+    scalar_types::{Amount, BakerId, DateTime, Decimal, MetadataUrl, UnsignedLong},
     transaction_event::{baker::BakerPoolOpenStatus, Event},
     transaction_reject::TransactionRejectReason,
     transaction_type::{
@@ -135,9 +135,28 @@ impl Baker {
                 .await?
                 .ok_or(ApiError::NotFound)?;
 
+        let row = sqlx::query!(
+            "
+                SELECT
+                    COUNT(*) AS delegator_count,
+                    SUM(delegated_stake)::BIGINT AS delegated_stake
+                FROM accounts 
+                WHERE delegated_target_baker_id = $1
+            ",
+            self.id.0
+        )
+        .fetch_one(pool)
+        .await?;
+
+        let delegated_stake = row.delegated_stake.unwrap_or(0);
+
+        // The total amount staked in this baker pool includes the baker stake
+        // and the delegated stake.
+        let total_pool_stake = self.staked + delegated_stake;
+
         // Division by 0 is not possible because `total_staked` is always a positive
         // number.
-        let total_stake_percentage = ((self.staked as f64 * 100.0) / total_stake as f64)
+        let total_stake_percentage = (total_pool_stake as f64 * 100.0 / total_stake as f64)
             .try_into()
             .map_err(|e: anyhow::Error| ApiError::InternalError(e.to_string()))?;
 
@@ -153,6 +172,9 @@ impl Baker {
                 },
                 metadata_url: self.metadata_url.as_deref(),
                 total_stake_percentage,
+                total_stake: UnsignedLong(total_pool_stake.try_into()?),
+                delegated_stake: UnsignedLong(delegated_stake.try_into()?),
+                delegator_count: row.delegator_count.unwrap_or(0),
             },
             pending_change:   None, // This is not used starting from P7.
         });
@@ -354,13 +376,15 @@ enum BakerSort {
 #[derive(SimpleObject)]
 struct BakerPool<'a> {
     /// Total stake of the baker pool as a percentage of all CCDs in existence.
+    /// Includes both baker stake and delegated stake.
     total_stake_percentage: Decimal,
-    // /// The total amount staked in this baker pool. Includes both baker stake
-    // /// and delegated stake.
-    // total_stake:             Amount,
-    // /// The total amount staked by delegation to this baker pool.
-    // delegated_stake:         Amount,
-    // delegator_count:         i32,
+    /// The total amount staked in this baker pool. Includes both baker stake
+    /// and delegated stake.
+    total_stake:            Amount,
+    /// The total amount staked by delegators to this baker pool.
+    delegated_stake:        Amount,
+    /// The number of delegators that delegate to this baker pool.
+    delegator_count:        i64,
     // lottery_power:           Decimal,
     // payday_commission_rates: CommissionRates,
     // /// Ranking of the baker pool by total staked amount. Value may be null for
