@@ -1,6 +1,8 @@
 use super::{
-    account::Account, get_config, get_pool, todo_api, transaction::Transaction, ApiError,
-    ApiResult, ConnectionQuery,
+    account::{Account, OrderDir},
+    get_config, get_pool,
+    transaction::Transaction,
+    ApiError, ApiResult, ConnectionQuery,
 };
 use crate::{
     scalar_types::{Amount, BakerId, DateTime, Decimal, MetadataUrl},
@@ -38,16 +40,148 @@ impl QueryBaker {
     #[allow(clippy::too_many_arguments)]
     async fn bakers(
         &self,
-        #[graphql(default)] _sort: BakerSort,
-        _filter: BakerFilterInput,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<u64>,
+        ctx: &Context<'_>,
+        #[graphql(default)] sort: BakerSort,
+        filter: Option<BakerFilterInput>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        _after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<u64>,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        _before: Option<String>,
+        before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Baker>> {
-        todo_api!()
+        let config = get_config(ctx)?;
+        let pool = get_pool(ctx)?;
+        let query =
+            ConnectionQuery::<i64>::new(first, after, last, before, config.baker_connection_limit)?;
+
+        let sort_direction = OrderDir::from(sort);
+        let order_field = BakerOrderField::from(sort);
+
+        let open_status_filter = filter.and_then(|input| input.open_status_filter);
+        let _include_removed_filter =
+            filter.and_then(|input| input.include_removed).unwrap_or(false);
+
+        let mut row_stream = sqlx::query_as!(
+            Baker,
+            r#"SELECT * FROM (
+                SELECT
+                    bakers.id AS id,
+                    staked,
+                    restake_earnings,
+                    open_status as "open_status: _",
+                    metadata_url,
+                    transaction_commission,
+                    baking_commission,
+                    finalization_commission,
+                    payday_transaction_commission,
+                    payday_baking_commission,
+                    payday_finalization_commission
+                FROM bakers
+                    LEFT JOIN bakers_payday_commission_rates
+                        ON bakers_payday_commission_rates.id = bakers.id
+                WHERE
+                    (NOT $6 OR bakers.id       > $1 AND bakers.id       < $2) AND
+                    (NOT $7 OR staked          > $1 AND staked          < $2) AND
+                    -- filters
+                    ($8::pool_open_status IS NULL OR open_status = $8::pool_open_status)
+                ORDER BY
+                    (CASE WHEN $6 AND     $3 THEN bakers.id       END) DESC,
+                    (CASE WHEN $6 AND NOT $3 THEN bakers.id       END) ASC,
+                    (CASE WHEN $7 AND     $3 THEN staked          END) DESC,
+                    (CASE WHEN $7 AND NOT $3 THEN staked          END) ASC
+                LIMIT $4
+            ) ORDER BY
+                (CASE WHEN $6 AND     $5 THEN id       END) DESC,
+                (CASE WHEN $6 AND NOT $5 THEN id       END) ASC,
+                (CASE WHEN $7 AND     $5 THEN staked          END) DESC,
+                (CASE WHEN $7 AND NOT $5 THEN staked          END) ASC"#,
+            query.from,                                                // $1
+            query.to,                                                  // $2
+            query.is_last != matches!(sort_direction, OrderDir::Desc), // $3
+            query.limit,                                               // $4
+            matches!(sort_direction, OrderDir::Desc),                  // $5
+            matches!(order_field, BakerOrderField::BakerId),           // $6
+            matches!(order_field, BakerOrderField::BakerStakedAmount), // $7
+            open_status_filter as Option<BakerPoolOpenStatus>          // $8
+        )
+        .fetch(pool);
+        // matches!(sort_field, BakerOrderField::TotalStakedAmount), // $8
+        // matches!(sort_field, BakerOrderField::DelegatorCount), // $9
+        // matches!(sort_field, BakerOrderField::BakerApy30Days), // $10
+        // matches!(sort_field, BakerOrderField::DelegatorApy30Days), // $11
+        // matches!(sort_field, BakerOrderField::BlockCommissions), // $12
+
+        let mut connection = connection::Connection::new(false, false);
+        connection.edges.reserve_exact(query.limit.try_into()?);
+        while let Some(row) = row_stream.try_next().await? {
+            let cursor = row.sort_field(order_field).to_string();
+            connection.edges.push(connection::Edge::new(cursor, row));
+        }
+        connection.has_previous_page = if let Some(first_item) = connection.edges.first() {
+            let first_item_sort_value = first_item.node.sort_field(order_field);
+            sqlx::query_scalar!(
+                "SELECT true
+                FROM bakers
+                WHERE
+                    (NOT $3 OR NOT $2 AND id              < $1
+                            OR     $2 AND id              > $1) AND
+                    (NOT $4 OR NOT $2 AND staked          < $1
+                            OR     $2 AND id              > $1) AND
+                    -- filters
+                    ($5::pool_open_status IS NULL OR open_status = $5::pool_open_status)
+                ORDER BY
+                    (CASE WHEN $3 AND NOT $2 THEN id              END) ASC,
+                    (CASE WHEN $3 AND     $2 THEN id              END) DESC,
+                    (CASE WHEN $4 AND NOT $2 THEN staked          END) ASC,
+                    (CASE WHEN $4 AND     $2 THEN staked          END) DESC
+                LIMIT 1",
+                first_item_sort_value,                                     // $1
+                matches!(sort_direction, OrderDir::Desc),                  // $2
+                matches!(order_field, BakerOrderField::BakerId),           // $3
+                matches!(order_field, BakerOrderField::BakerStakedAmount), // $4
+                open_status_filter as Option<BakerPoolOpenStatus>          // $5
+            )
+            .fetch_optional(pool)
+            .await?
+            .flatten()
+            .unwrap_or_default()
+        } else {
+            false
+        };
+        connection.has_next_page = if let Some(last_item) = connection.edges.last() {
+            let last_item_sort_value = last_item.node.sort_field(order_field);
+            sqlx::query_scalar!(
+                "SELECT true
+                FROM bakers
+                WHERE
+                    (NOT $3 OR NOT $2 AND id              > $1
+                            OR     $2 AND id              < $1) AND
+                    (NOT $4 OR NOT $2 AND staked          > $1
+                            OR     $2 AND id              < $1) AND
+                    -- filters
+                    ($5::pool_open_status IS NULL OR open_status = $5::pool_open_status)
+                ORDER BY
+                    (CASE WHEN $3 AND NOT $2 THEN id              END) ASC,
+                    (CASE WHEN $3 AND     $2 THEN id              END) DESC,
+                    (CASE WHEN $4 AND NOT $2 THEN staked          END) ASC,
+                    (CASE WHEN $4 AND     $2 THEN staked          END) DESC
+                LIMIT 1",
+                last_item_sort_value,                                      // $1
+                matches!(sort_direction, OrderDir::Desc),                  // $2
+                matches!(order_field, BakerOrderField::BakerId),           // $3
+                matches!(order_field, BakerOrderField::BakerStakedAmount), // $4
+                open_status_filter as Option<BakerPoolOpenStatus>          // $5
+            )
+            .fetch_optional(pool)
+            .await?
+            .flatten()
+            .unwrap_or_default()
+        } else {
+            false
+        };
+
+        Ok(connection)
     }
 }
 
@@ -101,7 +235,7 @@ impl Baker {
                 payday_transaction_commission,
                 payday_baking_commission,
                 payday_finalization_commission
-            FROM bakers 
+            FROM bakers
                 LEFT JOIN bakers_payday_commission_rates ON bakers_payday_commission_rates.id = bakers.id
             WHERE bakers.id = $1
             "#,
@@ -109,6 +243,18 @@ impl Baker {
         )
         .fetch_optional(pool)
         .await?)
+    }
+
+    fn sort_field(&self, order_field: BakerOrderField) -> i64 {
+        match order_field {
+            BakerOrderField::BakerId => self.id.into(),
+            BakerOrderField::BakerStakedAmount => self.staked,
+            BakerOrderField::TotalStakedAmount => todo!(),
+            BakerOrderField::DelegatorCount => todo!(),
+            BakerOrderField::BakerApy30Days => todo!(),
+            BakerOrderField::DelegatorApy30days => todo!(),
+            BakerOrderField::BlockCommissions => todo!(),
+        }
     }
 }
 #[Object]
@@ -388,10 +534,10 @@ struct RemovedBakerState {
     removed_at: DateTime,
 }
 
-#[derive(InputObject)]
+#[derive(InputObject, Clone, Copy)]
 struct BakerFilterInput {
-    open_status_filter: BakerPoolOpenStatus,
-    include_removed:    bool,
+    open_status_filter: Option<BakerPoolOpenStatus>,
+    include_removed:    Option<bool>,
 }
 
 #[derive(Enum, Clone, Copy, PartialEq, Eq, Default)]
@@ -409,6 +555,55 @@ enum BakerSort {
     DelegatorApy30DaysDesc,
     BlockCommissionsAsc,
     BlockCommissionsDesc,
+}
+
+impl From<BakerSort> for OrderDir {
+    fn from(value: BakerSort) -> Self {
+        match value {
+            BakerSort::BakerIdAsc => OrderDir::Asc,
+            BakerSort::BakerIdDesc => OrderDir::Desc,
+            BakerSort::BakerStakedAmountAsc => OrderDir::Asc,
+            BakerSort::BakerStakedAmountDesc => OrderDir::Desc,
+            BakerSort::TotalStakedAmountAsc => OrderDir::Asc,
+            BakerSort::TotalStakedAmountDesc => OrderDir::Desc,
+            BakerSort::DelegatorCountAsc => OrderDir::Asc,
+            BakerSort::DelegatorCountDesc => OrderDir::Desc,
+            BakerSort::BakerApy30DaysDesc => OrderDir::Desc,
+            BakerSort::DelegatorApy30DaysDesc => OrderDir::Desc,
+            BakerSort::BlockCommissionsAsc => OrderDir::Asc,
+            BakerSort::BlockCommissionsDesc => OrderDir::Desc,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum BakerOrderField {
+    BakerId,
+    BakerStakedAmount,
+    TotalStakedAmount,
+    DelegatorCount,
+    BakerApy30Days,
+    DelegatorApy30days,
+    BlockCommissions,
+}
+
+impl From<BakerSort> for BakerOrderField {
+    fn from(value: BakerSort) -> Self {
+        match value {
+            BakerSort::BakerIdAsc => Self::BakerId,
+            BakerSort::BakerIdDesc => Self::BakerId,
+            BakerSort::BakerStakedAmountAsc => Self::BakerStakedAmount,
+            BakerSort::BakerStakedAmountDesc => Self::BakerStakedAmount,
+            BakerSort::TotalStakedAmountAsc => Self::TotalStakedAmount,
+            BakerSort::TotalStakedAmountDesc => Self::TotalStakedAmount,
+            BakerSort::DelegatorCountAsc => Self::DelegatorCount,
+            BakerSort::DelegatorCountDesc => Self::DelegatorCount,
+            BakerSort::BakerApy30DaysDesc => Self::BakerApy30Days,
+            BakerSort::DelegatorApy30DaysDesc => Self::DelegatorApy30days,
+            BakerSort::BlockCommissionsAsc => Self::BlockCommissions,
+            BakerSort::BlockCommissionsDesc => Self::BlockCommissions,
+        }
+    }
 }
 
 #[derive(SimpleObject)]

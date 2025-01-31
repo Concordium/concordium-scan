@@ -1051,7 +1051,7 @@ enum AccountOrderField {
 
 /// A sort direction, either ascending or descending.
 #[derive(Debug, Clone, Copy)]
-enum OrderDir {
+pub enum OrderDir {
     Asc,
     Desc,
 }
