@@ -61,8 +61,8 @@ impl QueryTransactionMetrics {
         let cumulative_transaction_count_before_period = sqlx::query_scalar!(
             "SELECT cumulative_num_txs
             FROM blocks
-            WHERE slot_time < (now() - $1::interval)
-            ORDER BY height DESC
+            WHERE slot_time >= (now() - $1::interval)
+            ORDER BY height ASC
             LIMIT 1",
             period_interval,
         )
