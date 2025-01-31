@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fix
 
+- Fix unit conversion for `avg_finalization_time` in `Query::block_metrics`.
 - Issue for `Query::transaction_metrics` producing an internal error when query period is beyond the genesis block.
 
 ## [0.1.19] - 2025-01-30

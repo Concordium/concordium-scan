@@ -137,7 +137,7 @@ impl QueryBlockMetrics {
                  (
                      (p_end.cumulative_finalization_time
                          - p_start.cumulative_finalization_time)::float /
-                     NULLIF(p_end.height - p_start.height, 0) * 1000
+                     (NULLIF(p_end.height - p_start.height, 0) * 1000)
                  ) AS avg_finalization_time_s
              FROM p_start, p_end",
             interval

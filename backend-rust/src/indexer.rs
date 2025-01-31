@@ -674,9 +674,9 @@ struct BlockProcessingContext {
     /// This, along with the number of transactions in the current block,
     /// is used to calculate the next cumulative_num_txs.
     last_cumulative_num_txs:           i64,
-    /// The cumulative_finalization_time of the last finalized block.
-    /// This is used to efficiently update the cumulative_finalization_time of
-    /// newly finalized blocks.
+    /// The cumulative_finalization_time in milliseconds of the last finalized
+    /// block. This is used to efficiently update the
+    /// cumulative_finalization_time of newly finalized blocks.
     last_cumulative_finalization_time: i64,
 }
 

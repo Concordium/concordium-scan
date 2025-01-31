@@ -129,17 +129,17 @@ CREATE TABLE blocks(
         NOT NULL,
     -- Milliseconds between the slot_time of this block and the first block above where this was
     -- recorded as finalized.
-    -- This is NULL until the indexer have processed the block marking this block as finalized.
+    -- This is NULL until the indexer has processed the block marking this block as finalized.
     finalization_time
         INTEGER,
     -- Block where this block was first recorded as finalized.
-    -- This is NULL until the indexer have processed the block marking this block as finalized.
+    -- This is NULL until the indexer has processed the block marking this block as finalized.
     finalized_by
         BIGINT
         REFERENCES blocks(height),
-    -- Total finalization time for every block prior to this block including its own finalization
+    -- Total finalization time in milliseconds for every block prior to this block including its own finalization
     -- time.
-    -- This is NULL until the indexer have processed the block marking this block as finalized.
+    -- This is NULL until the indexer has processed the block marking this block as finalized.
     cumulative_finalization_time
         BIGINT,
     -- Index of the account which baked the block.
