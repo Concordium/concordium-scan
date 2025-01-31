@@ -133,7 +133,7 @@ impl QueryBlockMetrics {
                  p_end.height - p_start.height AS blocks_added,
                  ((p_end.slot_time - p_start.slot_time) /
                      NULLIF(p_end.height - p_start.height, 0)
-                 ) AS avg_block_time_s,
+                 ) AS avg_block_time,
                  (
                      (p_end.cumulative_finalization_time
                          - p_start.cumulative_finalization_time)::float /
@@ -221,9 +221,7 @@ LEFT JOIN LATERAL (
 
         Ok(BlockMetrics {
             blocks_added: period_query.blocks_added.unwrap_or(0),
-            avg_block_time: period_query
-                .avg_block_time_s
-                .map(|i| i.microseconds as f64 / 1000000.0),
+            avg_block_time: period_query.avg_block_time.map(|i| i.microseconds as f64 / 1000000.0),
             avg_finalization_time: period_query.avg_finalization_time_s,
             last_block_height: latest_block.height,
             last_total_micro_ccd: latest_block.total_amount.try_into()?,
