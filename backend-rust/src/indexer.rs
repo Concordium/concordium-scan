@@ -83,6 +83,11 @@ pub struct IndexerServiceConfig {
     /// Connection timeout in seconds when connecting a Concordium Node.
     #[arg(long, env = "CCDSCAN_INDEXER_CONFIG_NODE_CONNECT_TIMEOUT", default_value = "10")]
     pub node_connect_timeout:             u64,
+    /// Set to enable TCP keepalive messages on accepted connections.
+    /// Takes the duration in seconds to remain idle before sending TCP
+    /// keepalive probes.
+    #[arg(long, env = "CCDSCAN_INDEXER_CONFIG_NODE_TCP_KEEPALIVE")]
+    pub node_tcp_keepalive:               Option<u64>,
     /// Maximum number of blocks being preprocessed in parallel.
     #[arg(
         long,
@@ -131,6 +136,7 @@ impl IndexerService {
                 };
                 Ok(endpoint
                     .timeout(Duration::from_secs(config.node_request_timeout))
+                    .tcp_keepalive(config.node_tcp_keepalive.map(Duration::from_secs))
                     .connect_timeout(Duration::from_secs(config.node_connect_timeout)))
             })
             .collect::<anyhow::Result<_>>()?;
