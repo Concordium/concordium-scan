@@ -63,3 +63,17 @@ jobs:
         run: |
           rustup default ${{ env.RUST_VERSION }}
           cargo test
+
+  sqlx:
+    name: sqlx
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: sqlx
+        working-directory: backend-rust
+        run: |
+          rustup default ${{ env.RUST_VERSION }}
+          cargo test
