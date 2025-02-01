@@ -4,9 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+Database schema version: 2
+
+### Added
+
+- Add database schema version 2 with index over blocks with no `cumulative_finalization_time`, to improve indexing performance.
+
 ### Changed
 
 - Make the `Query::transaction_metrics` use fixed buckets making it consistent with behavior of the old .NET backend.
+- Change the log level of when starting the preprocessing of a block into DEBUG instead of INFO.
 
 ### Fix
 
