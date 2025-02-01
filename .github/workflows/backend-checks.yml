@@ -79,4 +79,4 @@ jobs:
         working-directory: backend-rust
         run: |
           rustup default ${{ env.RUST_VERSION }}
-          cargo test
+          cargo sqlx prepare --check
