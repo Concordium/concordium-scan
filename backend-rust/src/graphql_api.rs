@@ -896,14 +896,93 @@ impl SearchResult {
 
     async fn blocks(
         &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<i32>,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        _after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        _before: Option<String>,
+        before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Block>> {
-        todo_api!()
+        let account_address_regex: Regex = Regex::new(r"^[a-fA-F0-9]{1,64}$")
+            .map_err(|_| ApiError::InternalError("Invalid regex".to_string()))?;
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+        let query =
+            ConnectionQuery::<i64>::new(first, after, last, before, config.block_connection_limit)?;
+        let mut connection = connection::Connection::new(false, false);
+        if !account_address_regex.is_match(&self.query) {
+            return Ok(connection);
+        }
+        let param = self.query.to_lowercase();
+        let rows = sqlx::query_as!(
+            block::Block,
+            "SELECT * FROM (
+                SELECT
+                    hash,
+                    height,
+                    slot_time,
+                    block_time,
+                    finalization_time,
+                    baker_id,
+                    total_amount
+                FROM blocks
+                WHERE
+                    height = $5
+                    OR hash LIKE $6 || '%'
+                    AND height > $1
+                    AND height < $2
+                ORDER BY
+                    (CASE WHEN $4 THEN height END) ASC,
+                    (CASE WHEN NOT $4 THEN height END) DESC
+                LIMIT $3
+            ) ORDER BY height DESC",
+            query.from,
+            query.to,
+            query.limit,
+            query.desc,
+            param.parse::<i64>().ok(),
+            param
+        )
+        .fetch_all(pool)
+        .await?;
+
+        let mut min_index = None;
+        let mut max_index = None;
+        for block in rows {
+            min_index = Some(match min_index {
+                None => block.height,
+                Some(current_min) => min(current_min, block.height),
+            });
+
+            max_index = Some(match max_index {
+                None => block.height,
+                Some(current_max) => max(current_max, block.height),
+            });
+            connection.edges.push(connection::Edge::new(block.height.to_string(), block));
+        }
+
+        if let (Some(page_min_id), Some(page_max_id)) = (min_index, max_index) {
+            let result = sqlx::query!(
+                r#"
+                    SELECT MAX(height) as max_height, MIN(height) as min_height
+                    FROM blocks
+                    WHERE
+                        height = $1
+                        OR hash LIKE $2 || '%'
+                "#,
+                param.parse::<i64>().ok(),
+                param,
+            )
+            .fetch_one(pool)
+            .await?;
+
+            connection.has_previous_page =
+                result.min_height.map_or(false, |db_min| db_min < page_min_id);
+            connection.has_next_page =
+                result.max_height.map_or(false, |db_max| db_max > page_max_id);
+        }
+        Ok(connection)
     }
 
     async fn transactions(
