@@ -904,19 +904,19 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Block>> {
-        let account_address_regex: Regex = Regex::new(r"^[a-fA-F0-9]{1,64}$")
+        let block_hash_regex: Regex = Regex::new(r"^[a-fA-F0-9]{1,64}$")
             .map_err(|_| ApiError::InternalError("Invalid regex".to_string()))?;
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
         let query =
             ConnectionQuery::<i64>::new(first, after, last, before, config.block_connection_limit)?;
         let mut connection = connection::Connection::new(false, false);
-        if !account_address_regex.is_match(&self.query) {
+        if !block_hash_regex.is_match(&self.query) {
             return Ok(connection);
         }
         let param = self.query.to_lowercase();
         let rows = sqlx::query_as!(
-            block::Block,
+            Block,
             "SELECT * FROM (
                 SELECT
                     hash,
