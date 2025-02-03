@@ -170,7 +170,7 @@ pub enum SchemaVersion {
         "0002:Adds index over blocks without cumulative finalization time, improving indexer \
          performance."
     )]
-    IndexBlocksWithNoCumulativeFinTime
+    IndexBlocksWithNoCumulativeFinTime,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
