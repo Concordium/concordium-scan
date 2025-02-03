@@ -106,20 +106,20 @@ impl QueryBlocks {
 
 #[derive(Debug, Clone)]
 pub struct Block {
-    hash:              BlockHash,
-    height:            BlockHeight,
+    pub(crate) hash:              BlockHash,
+    pub(crate) height:            BlockHeight,
     /// Time of the block being baked.
-    slot_time:         DateTime,
+    pub(crate) slot_time:         DateTime,
     /// Number of milliseconds between the `slot_time` of this block and its
     /// parent.
-    block_time:        i32,
+    pub(crate) block_time:        i32,
     /// If this block is finalized, the number of milliseconds between the
     /// `slot_time` of this block and the first block that contains a
     /// finalization proof or quorum certificate that justifies this block
     /// being finalized.
-    finalization_time: Option<i32>,
-    baker_id:          Option<i64>,
-    total_amount:      i64,
+    pub(crate) finalization_time: Option<i32>,
+    pub(crate) baker_id:          Option<i64>,
+    pub(crate) total_amount:      i64,
 }
 
 impl Block {

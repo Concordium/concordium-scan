@@ -1,0 +1,63 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM (\n                SELECT\n                    hash,\n                    height,\n                    slot_time,\n                    block_time,\n                    finalization_time,\n                    baker_id,\n                    total_amount\n                FROM blocks\n                WHERE\n                    height = $5\n                    OR starts_with(hash, $6)\n                    AND height > $1\n                    AND height < $2\n                ORDER BY\n                    (CASE WHEN $4 THEN height END) ASC,\n                    (CASE WHEN NOT $4 THEN height END) DESC\n                LIMIT $3\n            ) ORDER BY height DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "hash",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "height",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "slot_time",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "block_time",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "finalization_time",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "baker_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "total_amount",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Bool",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "9900288397e3ef769e3e264889932596f67aa12452ce59c03a5b7960515c4036"
+}
