@@ -166,10 +166,15 @@ pub enum SchemaVersion {
          tokens and more."
     )]
     InitialFirstHalf,
+    #[display(
+        "0002:Adds index over blocks without cumulative finalization time, improving indexer \
+         performance."
+    )]
+    IndexBlocksWithNoCumulativeFinTime,
 }
 impl SchemaVersion {
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::InitialFirstHalf;
+    const LATEST: SchemaVersion = SchemaVersion::IndexBlocksWithNoCumulativeFinTime;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -186,6 +191,7 @@ impl SchemaVersion {
         match self {
             SchemaVersion::Empty => false,
             SchemaVersion::InitialFirstHalf => false,
+            SchemaVersion::IndexBlocksWithNoCumulativeFinTime => false,
         }
     }
 
@@ -201,7 +207,15 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::InitialFirstHalf
             }
-            SchemaVersion::InitialFirstHalf => unimplemented!(
+            SchemaVersion::InitialFirstHalf => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0002-block-cumulative-fin-time-index.sql"
+                    )))
+                    .await?;
+                SchemaVersion::IndexBlocksWithNoCumulativeFinTime
+            }
+            SchemaVersion::IndexBlocksWithNoCumulativeFinTime => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),

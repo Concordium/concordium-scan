@@ -16,7 +16,9 @@ use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 
-/// The known supported database schema version for the API.
+/// The minimum supported database schema version for the API.
+/// Fails at startup if any breaking database schema versions have been
+/// introduced since this version.
 const SUPPORTED_SCHEMA_VERSION: migrations::SchemaVersion =
     migrations::SchemaVersion::InitialFirstHalf;
 
