@@ -12,7 +12,7 @@ Database schema version: 2
 - Add index over accounts that delegate stake to a given baker pool.
 - Add `database_schema_version` and `api_supported_database_schema_version` to `versions` endpoint.
 - Add database schema version 2 with index over blocks with no `cumulative_finalization_time`, to improve indexing performance.
-- Implement `SearchResult::bakers` and add relevant index to database
+- Implement `SearchResult::blocks` and add relevant index to database
 
 ### Changed
 
