@@ -52,15 +52,15 @@
 					<div>
 						<div>From Module</div>
 						<div>
-							<!-- Uses alias from query -->
-							<ModuleLink :module-reference="contractEvent.event.from" />
+							<!-- @vue-expect-error Typescript is not aware that event.from got renamed to fromModule in the query -->
+							<ModuleLink :module-reference="contractEvent.event.fromModule" />
 						</div>
 					</div>
 					<div>
 						<div>To Module</div>
 						<div>
-							<!-- Uses alias from query -->
-							<ModuleLink :module-reference="contractEvent.event.to" />
+							<!-- @vue-expect-error Typescript is not aware that event.to got renamed to toModule in the query -->
+							<ModuleLink :module-reference="contractEvent.event.toModule" />
 						</div>
 					</div>
 				</DetailsView>
