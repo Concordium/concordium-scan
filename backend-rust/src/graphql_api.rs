@@ -24,7 +24,7 @@ pub(crate) use todo_api;
 
 use crate::{
     connection::ConnectionQuery,
-    migrations::{self, current_schema_version},
+    migrations::{current_schema_version, SchemaVersion},
     scalar_types::{BlockHeight, DateTime, TimeSpan, UnsignedLong},
     transaction_event::smart_contracts::InvalidContractVersionError,
 };
@@ -64,11 +64,6 @@ use tracing::{error, info};
 use transaction::Transaction;
 
 const VERSION: &str = clap::crate_version!();
-/// The minimum supported database schema version for the API.
-/// Fails at startup if any breaking database schema versions have been
-/// introduced since this version.
-pub const SUPPORTED_SCHEMA_VERSION: migrations::SchemaVersion =
-    migrations::SchemaVersion::InitialFirstHalf;
 
 #[derive(clap::Args)]
 pub struct ApiServiceConfig {
@@ -449,7 +444,8 @@ impl BaseQuery {
                 .await
                 .map_err(|e| ApiError::InternalError(e.to_string()))?
                 .to_string(),
-            api_supported_database_schema_version: SUPPORTED_SCHEMA_VERSION.to_string(),
+            api_supported_database_schema_version: SchemaVersion::API_SUPPORTED_SCHEMA_VERSION
+                .to_string(),
         })
     }
 
