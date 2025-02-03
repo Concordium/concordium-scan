@@ -914,7 +914,7 @@ impl SearchResult {
         if !block_hash_regex.is_match(&self.query) {
             return Ok(connection);
         }
-        let param = self.query.to_lowercase();
+        let lower_case_query = self.query.to_lowercase();
         let rows = sqlx::query_as!(
             Block,
             "SELECT * FROM (
@@ -941,8 +941,8 @@ impl SearchResult {
             query.to,
             query.limit,
             query.desc,
-            param.parse::<i64>().ok(),
-            param
+            lower_case_query.parse::<i64>().ok(),
+            lower_case_query
         )
         .fetch_all(pool)
         .await?;
@@ -971,8 +971,8 @@ impl SearchResult {
                         height = $1
                         OR hash LIKE $2 || '%'
                 "#,
-                param.parse::<i64>().ok(),
-                param,
+                lower_case_query.parse::<i64>().ok(),
+                lower_case_query,
             )
             .fetch_one(pool)
             .await?;

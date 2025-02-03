@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - Make the `Query::transaction_metrics` use fixed buckets making it consistent with behavior of the old .NET backend.
+- Implement SearchResult::bakers and add relevant index to database
 
 ### Fix
 
