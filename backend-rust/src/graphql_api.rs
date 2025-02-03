@@ -24,6 +24,7 @@ pub(crate) use todo_api;
 
 use crate::{
     connection::ConnectionQuery,
+    migrations::{current_schema_version, SchemaVersion},
     scalar_types::{BlockHeight, DateTime, TimeSpan, UnsignedLong},
     transaction_event::smart_contracts::InvalidContractVersionError,
 };
@@ -436,10 +437,16 @@ struct BaseQuery;
 #[Object]
 #[allow(clippy::too_many_arguments)]
 impl BaseQuery {
-    async fn versions(&self) -> Versions {
-        Versions {
-            backend_versions: VERSION.to_string(),
-        }
+    async fn versions(&self, ctx: &Context<'_>) -> ApiResult<Versions> {
+        Ok(Versions {
+            backend_version: VERSION.to_string(),
+            database_schema_version: current_schema_version(get_pool(ctx)?)
+                .await
+                .map_err(|e| ApiError::InternalError(e.to_string()))?
+                .to_string(),
+            api_supported_database_schema_version: SchemaVersion::API_SUPPORTED_SCHEMA_VERSION
+                .to_string(),
+        })
     }
 
     async fn import_state<'a>(&self, ctx: &Context<'a>) -> ApiResult<ImportState> {
@@ -841,7 +848,9 @@ pub struct ChainParametersV1 {
 
 #[derive(SimpleObject)]
 struct Versions {
-    backend_versions: String,
+    backend_version: String,
+    database_schema_version: String,
+    api_supported_database_schema_version: String,
 }
 
 /// Information about the offset pagination.

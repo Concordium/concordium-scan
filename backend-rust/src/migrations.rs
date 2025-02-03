@@ -166,10 +166,19 @@ pub enum SchemaVersion {
          tokens and more."
     )]
     InitialFirstHalf,
+    #[display(
+        "0002:Adds index over blocks without cumulative finalization time, improving indexer \
+         performance."
+    )]
+    IndexBlocksWithNoCumulativeFinTime,
 }
 impl SchemaVersion {
+    /// The minimum supported database schema version for the API.
+    /// Fails at startup if any breaking database schema versions have been
+    /// introduced since this version.
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::InitialFirstHalf;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::InitialFirstHalf;
+    const LATEST: SchemaVersion = SchemaVersion::IndexBlocksWithNoCumulativeFinTime;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -186,6 +195,7 @@ impl SchemaVersion {
         match self {
             SchemaVersion::Empty => false,
             SchemaVersion::InitialFirstHalf => false,
+            SchemaVersion::IndexBlocksWithNoCumulativeFinTime => false,
         }
     }
 
@@ -201,7 +211,15 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::InitialFirstHalf
             }
-            SchemaVersion::InitialFirstHalf => unimplemented!(
+            SchemaVersion::InitialFirstHalf => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0002-block-cumulative-fin-time-index.sql"
+                    )))
+                    .await?;
+                SchemaVersion::IndexBlocksWithNoCumulativeFinTime
+            }
+            SchemaVersion::IndexBlocksWithNoCumulativeFinTime => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
@@ -246,7 +264,7 @@ async fn has_migration_table(pool: &PgPool) -> anyhow::Result<bool> {
 
 /// Query the migrations table for the current database schema version.
 /// Results in an error if not migrations table found.
-async fn current_schema_version(pool: &PgPool) -> anyhow::Result<SchemaVersion> {
+pub async fn current_schema_version(pool: &PgPool) -> anyhow::Result<SchemaVersion> {
     let version = sqlx::query_scalar!("SELECT MAX(version) FROM migrations")
         .fetch_one(pool)
         .await?
