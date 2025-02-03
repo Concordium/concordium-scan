@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                    SELECT MAX(height) as max_height, MIN(height) as min_height\n                    FROM blocks\n                    WHERE\n                        height = $1\n                        OR hash LIKE $2 || '%'\n                ",
+  "query": "\n                    SELECT MAX(height) as max_height, MIN(height) as min_height\n                    FROM blocks\n                    WHERE\n                        height = $1\n                        OR starts_with(hash, $2)\n                ",
   "describe": {
     "columns": [
       {
@@ -25,5 +25,5 @@
       null
     ]
   },
-  "hash": "bf111290843959044dfa4ffacc6819185969999e2ee97254e3a0a966f91ab708"
+  "hash": "5487447e97832171ff305531e30004ad48ef1d39db68f80419080d5c3ea9afcf"
 }
