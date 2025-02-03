@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-Database schema version: 2
+Database schema version: 3
 
 ### Added
 
