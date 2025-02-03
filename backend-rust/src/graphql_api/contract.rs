@@ -187,9 +187,10 @@ impl QueryContract {
             .await?;
 
             connection.has_previous_page =
-                result.db_min_index.map_or(false, |db_min| db_min < page_min_id);
-            connection.has_next_page =
                 result.db_max_index.map_or(false, |db_max| db_max > page_max_id);
+            connection.has_next_page =
+                result.db_min_index.map_or(false, |db_min| db_min < page_min_id);
+
         }
 
         Ok(connection)
