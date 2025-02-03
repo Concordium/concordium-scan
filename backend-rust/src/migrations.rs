@@ -170,11 +170,7 @@ pub enum SchemaVersion {
         "0002:Adds index over blocks without cumulative finalization time, improving indexer \
          performance."
     )]
-    IndexBlocksWithNoCumulativeFinTime,
-    #[display(
-        "0003:Efficiently perform partial string matching on the `hash` column"
-    )]
-    IndexBlocksWithSearchQueries,
+    IndexBlocksWithNoCumulativeFinTime
 }
 impl SchemaVersion {
     /// The latest known version of the schema.
@@ -220,10 +216,6 @@ impl SchemaVersion {
                 SchemaVersion::IndexBlocksWithNoCumulativeFinTime
             }
             SchemaVersion::IndexBlocksWithNoCumulativeFinTime => unimplemented!(
-                "No migration implemented for database schema version {}",
-                self.as_i64()
-            ),
-            SchemaVersion::IndexBlocksWithSearchQueries => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
