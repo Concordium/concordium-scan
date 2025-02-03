@@ -16,7 +16,9 @@ use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 
-/// The known supported database schema version for the API.
+/// The minimum supported database schema version for the API.
+/// Fails at startup if any breaking database schema versions have been
+/// introduced since this version.
 const SUPPORTED_SCHEMA_VERSION: migrations::SchemaVersion =
     migrations::SchemaVersion::InitialFirstHalf;
 
@@ -64,8 +66,8 @@ struct Cli {
     node_collector_backend_origin: String,
     /// Frequency in seconds in between each poll from the node collector
     /// backend
-    #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_PULL_FREQUENCY_SEC", default_value = "5")]
-    node_collector_backend_pull_frequency_sec: u64,
+    #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_PULL_FREQUENCY_SECS", default_value_t = 5)]
+    node_collector_backend_pull_frequency_secs: u64,
     /// Request timeout when awaiting response from the node collector backend
     /// in seconds.
     #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_CLIENT_TIMEOUT_SECS", default_value_t = 30)]
@@ -189,7 +191,7 @@ async fn main() -> anyhow::Result<()> {
         let service = graphql_api::node_status::Service::new(
             nodes_status_sender,
             &cli.node_collector_backend_origin,
-            Duration::from_secs(cli.node_collector_backend_pull_frequency_sec),
+            Duration::from_secs(cli.node_collector_backend_pull_frequency_secs),
             client,
             cli.node_collector_connection_max_content_length,
             stop_signal,

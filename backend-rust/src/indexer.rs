@@ -336,7 +336,7 @@ impl Indexer for BlockPreProcessor {
         fbi: FinalizedBlockInfo,
     ) -> QueryResult<Self::Data> {
         self.blocks_being_preprocessed.get_or_create(label).inc();
-        info!("Preprocessing block {}:{}", fbi.height, fbi.block_hash);
+        debug!("Preprocessing block {}:{}", fbi.height, fbi.block_hash);
         // We block together the computation, so we can update the metric in the error
         // case, before returning early.
         let result = async move {
