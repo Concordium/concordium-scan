@@ -262,6 +262,7 @@ CREATE TABLE accounts(
         -- Starting at 1 to count the transaction that made the account.
         DEFAULT 1,
     -- The total delegated stake of this account in micro CCD.
+    -- An account can delegate stake to at most one baker pool.
     delegated_stake
         BIGINT
         NOT NULL
@@ -271,6 +272,7 @@ CREATE TABLE accounts(
         BOOLEAN
         NULL,
     -- Target id of the baker When this is null it means that we are using passive delegation.
+    -- An account can delegate stake to at most one baker pool.
     delegated_target_baker_id
         BIGINT
         NULL
@@ -319,7 +321,7 @@ CREATE TABLE bakers(
         BIGINT
         PRIMARY KEY
         REFERENCES accounts,
-    -- Amount staked at present.
+    -- Amount staked at present in this baker pool by the baker (no delegated stake included).
     staked
         BIGINT
         NOT NULL,

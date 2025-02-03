@@ -110,7 +110,9 @@ impl Baker {
 
     async fn baker_id(&self) -> BakerId { self.id }
 
-    async fn state<'a>(&'a self) -> ApiResult<BakerState<'a>> {
+    async fn state<'a>(&'a self, ctx: &Context<'a>) -> ApiResult<BakerState<'a>> {
+        let pool = get_pool(ctx)?;
+
         let transaction_commission = self
             .transaction_commission
             .map(u32::try_from)
@@ -127,17 +129,53 @@ impl Baker {
             .transpose()?
             .map(|c| AmountFraction::new_unchecked(c).into());
 
+        let total_stake: i64 =
+            sqlx::query_scalar!("SELECT total_staked FROM blocks ORDER BY height DESC LIMIT 1")
+                .fetch_one(pool)
+                .await?;
+
+        let row = sqlx::query!(
+            "
+                SELECT
+                    COUNT(*) AS delegator_count,
+                    SUM(delegated_stake)::BIGINT AS delegated_stake
+                FROM accounts 
+                WHERE delegated_target_baker_id = $1
+            ",
+            self.id.0
+        )
+        .fetch_one(pool)
+        .await?;
+
+        let delegated_stake = row.delegated_stake.unwrap_or(0);
+
+        // The total amount staked in this baker pool includes the baker stake
+        // and the delegated stake.
+        let total_pool_stake = self.staked + delegated_stake;
+
+        // Division by 0 is not possible because `total_staked` is always a positive
+        // number.
+        let total_stake_percentage = (rust_decimal::Decimal::from(total_pool_stake)
+            * rust_decimal::Decimal::from(100))
+        .checked_div(rust_decimal::Decimal::from(total_stake))
+        .ok_or_else(|| ApiError::InternalError("Division by zero".to_string()))?
+        .into();
+
         let out = BakerState::ActiveBakerState(ActiveBakerState {
             staked_amount:    Amount::try_from(self.staked)?,
             restake_earnings: self.restake_earnings,
             pool:             BakerPool {
-                open_status:      self.open_status,
+                open_status: self.open_status,
                 commission_rates: CommissionRates {
                     transaction_commission,
                     baking_commission,
                     finalization_commission,
                 },
-                metadata_url:     self.metadata_url.as_deref(),
+                metadata_url: self.metadata_url.as_deref(),
+                total_stake_percentage,
+                total_stake: total_pool_stake.try_into()?,
+                delegated_stake: delegated_stake.try_into()?,
+                delegator_count: row.delegator_count.unwrap_or(0),
             },
             pending_change:   None, // This is not used starting from P7.
         });
@@ -338,29 +376,28 @@ enum BakerSort {
 
 #[derive(SimpleObject)]
 struct BakerPool<'a> {
-    // /// Total stake of the baker pool as a percentage of all CCDs in existence.
-    // /// Value may be null for brand new bakers where statistics have not
-    // /// been calculated yet. This should be rare and only a temporary
-    // /// condition.
-    // total_stake_percentage:  Decimal,
+    /// Total stake of the baker pool as a percentage of all CCDs in existence.
+    /// Includes both baker stake and delegated stake.
+    total_stake_percentage: Decimal,
+    /// The total amount staked in this baker pool. Includes both baker stake
+    /// and delegated stake.
+    total_stake:            Amount,
+    /// The total amount staked by delegators to this baker pool.
+    delegated_stake:        Amount,
+    /// The number of delegators that delegate to this baker pool.
+    delegator_count:        i64,
     // lottery_power:           Decimal,
     // payday_commission_rates: CommissionRates,
-    open_status:      Option<BakerPoolOpenStatus>,
-    commission_rates: CommissionRates,
-    metadata_url:     Option<&'a str>,
-    // /// The total amount staked by delegation to this baker pool.
-    // delegated_stake:         Amount,
-    // /// The maximum amount that may be delegated to the pool, accounting for
-    // /// leverage and stake limits.
-    // delegated_stake_cap:     Amount,
-    // /// The total amount staked in this baker pool. Includes both baker stake
-    // /// and delegated stake.
-    // total_stake:             Amount,
-    // delegator_count:         i32,
     // /// Ranking of the baker pool by total staked amount. Value may be null for
     // /// brand new bakers where statistics have not been calculated yet. This
     // /// should be rare and only a temporary condition.
     // ranking_by_total_stake:  Ranking,
+    // /// The maximum amount that may be delegated to the pool, accounting for
+    // /// leverage and stake limits.
+    // delegated_stake_cap:     Amount,
+    open_status:            Option<BakerPoolOpenStatus>,
+    commission_rates:       CommissionRates,
+    metadata_url:           Option<&'a str>,
     // TODO: apy(period: ApyPeriod!): PoolApy!
     // TODO: delegators("Returns the first _n_ elements from the list." first: Int "Returns the
     // elements in the list that come after the specified cursor." after: String "Returns the last
