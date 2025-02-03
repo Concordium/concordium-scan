@@ -938,7 +938,7 @@ impl SearchResult {
                 FROM blocks
                 WHERE
                     height = $5
-                    OR hash LIKE $6 || '%'
+                    OR starts_with(hash, $6)
                     AND height > $1
                     AND height < $2
                 ORDER BY
@@ -978,7 +978,7 @@ impl SearchResult {
                     FROM blocks
                     WHERE
                         height = $1
-                        OR hash LIKE $2 || '%'
+                        OR starts_with(hash, $2)
                 "#,
                 lower_case_query.parse::<i64>().ok(),
                 lower_case_query,
