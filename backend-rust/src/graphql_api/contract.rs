@@ -11,6 +11,7 @@ use crate::{
 };
 use async_graphql::{connection, ComplexObject, Context, Object, SimpleObject};
 use futures::TryStreamExt;
+use std::cmp::{max, min};
 
 #[derive(Default)]
 pub struct QueryContract;
@@ -125,6 +126,8 @@ impl QueryContract {
         .fetch(pool);
 
         let mut connection = connection::Connection::new(true, true);
+        let mut page_max_index = None;
+        let mut page_min_index = None;
 
         while let Some(row) = row_stream.try_next().await? {
             let contract_address_index =
@@ -158,17 +161,35 @@ impl QueryContract {
                 block_slot_time: row.block_slot_time,
                 snapshot,
             };
+            page_max_index = Some(match page_max_index {
+                None => row.index,
+                Some(current_max) => max(current_max, row.index),
+            });
+
+            page_min_index = Some(match page_min_index {
+                None => row.index,
+                Some(current_min) => min(current_min, row.index),
+            });
+
             connection
                 .edges
                 .push(connection::Edge::new(contract.contract_address_index.to_string(), contract));
         }
 
-        if last.is_some() {
-            if let Some(edge) = connection.edges.last() {
-                connection.has_previous_page = edge.node.contract_address_index.0 != 0;
-            }
-        } else if let Some(edge) = connection.edges.first() {
-            connection.has_previous_page = edge.node.contract_address_index.0 != 0;
+        if let (Some(page_min_id), Some(page_max_id)) = (page_min_index, page_max_index) {
+            let result = sqlx::query!(
+                "
+                    SELECT MAX(index) as db_max_index, MIN(index) as db_min_index
+                    FROM contracts
+                "
+            )
+            .fetch_one(pool)
+            .await?;
+
+            connection.has_previous_page =
+                result.db_min_index.map_or(false, |db_min| db_min < page_min_id);
+            connection.has_next_page =
+                result.db_max_index.map_or(false, |db_max| db_max > page_max_id);
         }
 
         Ok(connection)
