@@ -1,5 +1,6 @@
 use anyhow::Context;
 use async_graphql::{scalar, InputValueError, InputValueResult, Scalar, ScalarType, Value};
+use rust_decimal::prelude::FromPrimitive;
 
 pub type Amount = UnsignedLong;
 pub type TokenId = String;
@@ -129,6 +130,17 @@ impl ScalarType for Decimal {
 impl From<concordium_rust_sdk::types::AmountFraction> for Decimal {
     fn from(fraction: concordium_rust_sdk::types::AmountFraction) -> Self {
         Self(concordium_rust_sdk::types::PartsPerHundredThousands::from(fraction).into())
+    }
+}
+
+impl TryFrom<f64> for Decimal {
+    type Error = anyhow::Error;
+
+    fn try_from(fraction: f64) -> Result<Self, Self::Error> {
+        Ok(Self(
+            rust_decimal::Decimal::from_f64(fraction)
+                .ok_or(anyhow::anyhow!("Failed to convert f64 fraction to Decimal"))?,
+        ))
     }
 }
 
