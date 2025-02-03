@@ -171,8 +171,6 @@ pub enum SchemaVersion {
          performance."
     )]
     IndexBlocksWithNoCumulativeFinTime,
-    #[display("0003:Adds index over accounts that delegate stake to a given baker pool.")]
-    IndexAccountsWithDelegatedStakeToBakerId,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -198,7 +196,6 @@ impl SchemaVersion {
             SchemaVersion::Empty => false,
             SchemaVersion::InitialFirstHalf => false,
             SchemaVersion::IndexBlocksWithNoCumulativeFinTime => false,
-            SchemaVersion::IndexAccountsWithDelegatedStakeToBakerId => false,
         }
     }
 
@@ -222,15 +219,7 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::IndexBlocksWithNoCumulativeFinTime
             }
-            SchemaVersion::IndexBlocksWithNoCumulativeFinTime => {
-                tx.as_mut()
-                    .execute(sqlx::raw_sql(include_str!(
-                        "./migrations/m0003-index-accounts-with-delegated-stake-to-baker-id.sql"
-                    )))
-                    .await?;
-                SchemaVersion::IndexAccountsWithDelegatedStakeToBakerId
-            }
-            SchemaVersion::IndexAccountsWithDelegatedStakeToBakerId => unimplemented!(
+            SchemaVersion::IndexBlocksWithNoCumulativeFinTime => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),

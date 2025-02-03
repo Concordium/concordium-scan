@@ -3,7 +3,7 @@ use super::{
     ApiResult, ConnectionQuery,
 };
 use crate::{
-    scalar_types::{Amount, BakerId, DateTime, Decimal, MetadataUrl, UnsignedLong},
+    scalar_types::{Amount, BakerId, DateTime, Decimal, MetadataUrl},
     transaction_event::{baker::BakerPoolOpenStatus, Event},
     transaction_reject::TransactionRejectReason,
     transaction_type::{
@@ -131,9 +131,8 @@ impl Baker {
 
         let total_stake: i64 =
             sqlx::query_scalar!("SELECT total_staked FROM blocks ORDER BY height DESC LIMIT 1")
-                .fetch_optional(pool)
-                .await?
-                .ok_or(ApiError::NotFound)?;
+                .fetch_one(pool)
+                .await?;
 
         let row = sqlx::query!(
             "
@@ -156,9 +155,11 @@ impl Baker {
 
         // Division by 0 is not possible because `total_staked` is always a positive
         // number.
-        let total_stake_percentage = (total_pool_stake as f64 * 100.0 / total_stake as f64)
-            .try_into()
-            .map_err(|e: anyhow::Error| ApiError::InternalError(e.to_string()))?;
+        let total_stake_percentage = (rust_decimal::Decimal::from(total_pool_stake)
+            * rust_decimal::Decimal::from(100))
+        .checked_div(rust_decimal::Decimal::from(total_stake))
+        .ok_or_else(|| ApiError::InternalError("Division by zero".to_string()))?
+        .into();
 
         let out = BakerState::ActiveBakerState(ActiveBakerState {
             staked_amount:    Amount::try_from(self.staked)?,
@@ -172,8 +173,8 @@ impl Baker {
                 },
                 metadata_url: self.metadata_url.as_deref(),
                 total_stake_percentage,
-                total_stake: UnsignedLong(total_pool_stake.try_into()?),
-                delegated_stake: UnsignedLong(delegated_stake.try_into()?),
+                total_stake: total_pool_stake.try_into()?,
+                delegated_stake: delegated_stake.try_into()?,
                 delegator_count: row.delegator_count.unwrap_or(0),
             },
             pending_change:   None, // This is not used starting from P7.
