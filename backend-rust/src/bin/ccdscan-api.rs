@@ -2,7 +2,8 @@ use anyhow::Context;
 use axum::{http::StatusCode, Json};
 use clap::Parser;
 use concordium_scan::{
-    graphql_api, graphql_api::node_status::NodeInfoReceiver, migrations, router,
+    graphql_api::{self, node_status::NodeInfoReceiver, SUPPORTED_SCHEMA_VERSION},
+    migrations, router,
 };
 use prometheus_client::{
     metrics::{family::Family, gauge::Gauge},
@@ -15,12 +16,6 @@ use std::{net::SocketAddr, path::PathBuf, time::Duration};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
-
-/// The minimum supported database schema version for the API.
-/// Fails at startup if any breaking database schema versions have been
-/// introduced since this version.
-const SUPPORTED_SCHEMA_VERSION: migrations::SchemaVersion =
-    migrations::SchemaVersion::InitialFirstHalf;
 
 #[derive(Parser)]
 struct Cli {

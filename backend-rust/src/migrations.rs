@@ -260,7 +260,7 @@ async fn has_migration_table(pool: &PgPool) -> anyhow::Result<bool> {
 
 /// Query the migrations table for the current database schema version.
 /// Results in an error if not migrations table found.
-async fn current_schema_version(pool: &PgPool) -> anyhow::Result<SchemaVersion> {
+pub async fn current_schema_version(pool: &PgPool) -> anyhow::Result<SchemaVersion> {
     let version = sqlx::query_scalar!("SELECT MAX(version) FROM migrations")
         .fetch_one(pool)
         .await?
