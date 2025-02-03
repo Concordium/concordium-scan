@@ -924,7 +924,7 @@ impl SearchResult {
             return Ok(connection);
         }
         let lower_case_query = self.query.to_lowercase();
-        let rows = sqlx::query_as!(
+        let mut rows = sqlx::query_as!(
             Block,
             "SELECT * FROM (
                 SELECT
@@ -953,12 +953,11 @@ impl SearchResult {
             lower_case_query.parse::<i64>().ok(),
             lower_case_query
         )
-        .fetch_all(pool)
-        .await?;
+        .fetch(pool);
 
         let mut min_height = None;
         let mut max_height = None;
-        for block in rows {
+        while let Some(block) = rows.try_next().await? {
             min_height = Some(match min_height {
                 None => block.height,
                 Some(current_min) => min(current_min, block.height),
