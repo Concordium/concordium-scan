@@ -210,7 +210,7 @@ impl SchemaVersion {
             SchemaVersion::InitialFirstHalf => {
                 tx.as_mut()
                     .execute(sqlx::raw_sql(include_str!(
-                        "./migrations/m0002-block-cumulative-time-index.sql"
+                        "./migrations/m0002-block-cumulative-fin-time-index.sql"
                     )))
                     .await?;
                 SchemaVersion::IndexBlocksWithNoCumulativeFinTime
