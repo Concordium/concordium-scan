@@ -125,8 +125,8 @@ event {
 			index
 			subIndex
 		}
-		from
-		to
+		moduleFrom: from
+		moduleTo: to
 	}
 	... on Transferred {
 		amount

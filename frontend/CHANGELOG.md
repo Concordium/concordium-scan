@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.7.0] - 2025-02-03
+
 ### Added
 
 - Add "Last" button for pagination based on cursors.
@@ -14,7 +16,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-- Rename `ContractUpgraded.from` and `ContractUpgraded.to` in query `useTransactionQuery` to avoid error of fields which cannot be merged, as these were clashing with `Transferred.from` and `Transferred.to`.
+- Rename `ContractUpgraded.from` and `ContractUpgraded.to` in query `useTransactionQuery` and `useContractQuery` to avoid error of fields which cannot be merged, as these were clashing with `Transferred.from` and `Transferred.to`.
 
 ## [1.6.2] - 2025-01-19
 
