@@ -2,7 +2,10 @@ use anyhow::Context;
 use axum::{http::StatusCode, Json};
 use clap::Parser;
 use concordium_scan::{
-    graphql_api, graphql_api::node_status::NodeInfoReceiver, migrations, router,
+    graphql_api::{self, node_status::NodeInfoReceiver},
+    migrations,
+    migrations::SchemaVersion,
+    router,
 };
 use prometheus_client::{
     metrics::{family::Family, gauge::Gauge},
@@ -15,12 +18,6 @@ use std::{net::SocketAddr, path::PathBuf, time::Duration};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
-
-/// The minimum supported database schema version for the API.
-/// Fails at startup if any breaking database schema versions have been
-/// introduced since this version.
-const SUPPORTED_SCHEMA_VERSION: migrations::SchemaVersion =
-    migrations::SchemaVersion::InitialFirstHalf;
 
 #[derive(Parser)]
 struct Cli {
@@ -133,7 +130,11 @@ async fn main() -> anyhow::Result<()> {
         .await
         .context("Failed constructing database connection pool")?;
     // Ensure the database schema is compatible with supported schema version.
-    migrations::ensure_compatible_schema_version(&pool, SUPPORTED_SCHEMA_VERSION).await?;
+    migrations::ensure_compatible_schema_version(
+        &pool,
+        SchemaVersion::API_SUPPORTED_SCHEMA_VERSION,
+    )
+    .await?;
     if cli.check_database_compatibility_only {
         // Exit if we only care about the compatibility.
         return Ok(());
@@ -271,10 +272,12 @@ async fn health(
     axum::extract::State(state): axum::extract::State<HealthState>,
 ) -> (StatusCode, Json<serde_json::Value>) {
     let node_status_connected = state.node_status_receiver.borrow().is_some();
-    let database_connected =
-        migrations::ensure_compatible_schema_version(&state.pool, SUPPORTED_SCHEMA_VERSION)
-            .await
-            .is_ok();
+    let database_connected = migrations::ensure_compatible_schema_version(
+        &state.pool,
+        SchemaVersion::API_SUPPORTED_SCHEMA_VERSION,
+    )
+    .await
+    .is_ok();
 
     let is_healthy = node_status_connected && database_connected;
 
