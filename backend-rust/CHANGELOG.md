@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+Database schema version: 3
+
+### Added
+
+- Add database schema version 3 with index over accounts that delegate stake to a given baker pool.
+- Add `delegator_count`, `delegated_stake`, `total_stake`, and `total_stake_percentage` to baker pool query.
+
 Database schema version: 2
 
 ### Added

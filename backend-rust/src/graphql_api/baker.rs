@@ -391,13 +391,12 @@ struct BakerPool<'a> {
     // /// brand new bakers where statistics have not been calculated yet. This
     // /// should be rare and only a temporary condition.
     // ranking_by_total_stake:  Ranking,
-    open_status:            Option<BakerPoolOpenStatus>,
-    commission_rates:       CommissionRates,
-    metadata_url:           Option<&'a str>,
     // /// The maximum amount that may be delegated to the pool, accounting for
     // /// leverage and stake limits.
     // delegated_stake_cap:     Amount,
-
+    open_status:            Option<BakerPoolOpenStatus>,
+    commission_rates:       CommissionRates,
+    metadata_url:           Option<&'a str>,
     // TODO: apy(period: ApyPeriod!): PoolApy!
     // TODO: delegators("Returns the first _n_ elements from the list." first: Int "Returns the
     // elements in the list that come after the specified cursor." after: String "Returns the last

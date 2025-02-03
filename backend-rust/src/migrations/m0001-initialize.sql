@@ -284,9 +284,6 @@ CREATE INDEX accounts_delegated_stake_idx ON accounts (delegated_stake);
 CREATE INDEX accounts_num_txs_idx ON accounts (num_txs);
 CREATE INDEX accounts_address_trgm_idx ON accounts USING gin (address gin_trgm_ops);
 
--- Important for quickly calculating the delegated stake to a baker pool.
-CREATE INDEX delegated_target_baker_id_index ON accounts(delegated_target_baker_id);
-
 -- Add foreign key constraint now that the account table is created.
 ALTER TABLE transactions
     ADD CONSTRAINT fk_transaction_sender
@@ -324,7 +321,7 @@ CREATE TABLE bakers(
         BIGINT
         PRIMARY KEY
         REFERENCES accounts,
-    -- Amount staked at present in this baker pool by the baker.
+    -- Amount staked at present in this baker pool by the baker (no delegated stake included).
     staked
         BIGINT
         NOT NULL,
