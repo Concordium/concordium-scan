@@ -989,7 +989,6 @@ impl SearchResult {
                 result.max_height.map_or(false, |db_max| db_max > page_max_height);
             connection.has_next_page =
                 result.min_height.map_or(false, |db_min| db_min < page_min_height);
-
         }
         Ok(connection)
     }
