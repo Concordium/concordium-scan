@@ -956,22 +956,22 @@ impl SearchResult {
         .fetch_all(pool)
         .await?;
 
-        let mut min_index = None;
-        let mut max_index = None;
+        let mut min_height = None;
+        let mut max_height = None;
         for block in rows {
-            min_index = Some(match min_index {
+            min_height = Some(match min_height {
                 None => block.height,
                 Some(current_min) => min(current_min, block.height),
             });
 
-            max_index = Some(match max_index {
+            max_height = Some(match max_height {
                 None => block.height,
                 Some(current_max) => max(current_max, block.height),
             });
             connection.edges.push(connection::Edge::new(block.height.to_string(), block));
         }
 
-        if let (Some(page_min_id), Some(page_max_id)) = (min_index, max_index) {
+        if let (Some(page_min_height), Some(page_max_height)) = (min_height, max_height) {
             let result = sqlx::query!(
                 r#"
                     SELECT MAX(height) as max_height, MIN(height) as min_height
@@ -985,11 +985,11 @@ impl SearchResult {
             )
             .fetch_one(pool)
             .await?;
-
             connection.has_previous_page =
-                result.min_height.map_or(false, |db_min| db_min < page_min_id);
+                result.max_height.map_or(false, |db_max| db_max > page_max_height);
             connection.has_next_page =
-                result.max_height.map_or(false, |db_max| db_max > page_max_id);
+                result.min_height.map_or(false, |db_min| db_min < page_min_height);
+
         }
         Ok(connection)
     }
