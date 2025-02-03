@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT MAX(index) as db_max_index, MIN(index) as db_min_index\n                    FROM contracts\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "db_max_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "db_min_index",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "b0028dd083e1c375585b4de47d31e41bce58086b36951adbd9cccf3210b23fb8"
+}
