@@ -94,30 +94,48 @@ impl<A> ConnectionQuery<A> {
     where
         A: std::str::FromStr<Err = E> + ConnectionCursor,
         E: Into<ApiError>, {
+        Self::new_reverse(first, after, last, before, true, connection_limit)
+    }
+
+    pub fn new_reverse<E>(
+        first: Option<u64>,
+        after: Option<String>,
+        last: Option<u64>,
+        before: Option<String>,
+        ascending_default_order: bool,
+        connection_limit: u64,
+    ) -> ApiResult<Self>
+    where
+        A: std::str::FromStr<Err = E> + ConnectionCursor,
+        E: Into<ApiError>, {
         if first.is_some() && last.is_some() {
             return Err(ApiError::QueryConnectionFirstLast);
         }
 
         let from = if let Some(a) = after {
             a.parse::<A>().map_err(|e| e.into())?
-        } else {
+        } else if ascending_default_order {
             A::MIN
+        }
+        else {
+            A::MAX
         };
 
         let to = if let Some(b) = before {
             b.parse::<A>().map_err(|e| e.into())?
-        } else {
+        } else if ascending_default_order {
             A::MAX
+        } else {
+            A::MIN
         };
 
         let limit =
             first.or(last).map_or(connection_limit, |limit| connection_limit.min(limit)) as i64;
-
         Ok(Self {
             from,
             to,
             limit,
-            desc: last.is_some(),
+            desc: !(last.is_some() ^ ascending_default_order),
         })
     }
 }

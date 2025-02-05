@@ -83,14 +83,14 @@ impl QueryContract {
     ) -> ApiResult<connection::Connection<String, Contract>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
-        let query = ConnectionQuery::<i64>::new(
+        let query = ConnectionQuery::<i64>::new_reverse(
             first,
             after,
             last,
             before,
+            false,
             config.contract_connection_limit,
         )?;
-
         // The CCDScan front-end currently expects an DESC order of the nodes/edges
         // returned (outer `ORDER BY`), while the inner `ORDER BY` is a trick to
         // get the correct nodes/edges selected based on whether the `first` or `last`
@@ -111,10 +111,10 @@ impl QueryContract {
                 JOIN transactions ON transaction_index = transactions.index
                 JOIN blocks ON transactions.block_height = blocks.height
                 JOIN accounts ON transactions.sender_index = accounts.index
-                WHERE contracts.index > $1 AND contracts.index < $2
+                WHERE contracts.index > $2 AND contracts.index < $1
                 ORDER BY
-                    (CASE WHEN $4 THEN contracts.index END) ASC,
-                    (CASE WHEN NOT $4 THEN contracts.index END) DESC
+                    (CASE WHEN $4 THEN contracts.index END) DESC,
+                    (CASE WHEN NOT $4 THEN contracts.index END) ASC
                 LIMIT $3
             ) AS contract_data
             ORDER BY contract_data.index DESC",
@@ -125,7 +125,7 @@ impl QueryContract {
         )
         .fetch(pool);
 
-        let mut connection = connection::Connection::new(true, true);
+        let mut connection = connection::Connection::new(false, false);
         let mut page_max_index = None;
         let mut page_min_index = None;
 
