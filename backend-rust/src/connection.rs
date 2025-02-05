@@ -116,8 +116,7 @@ impl<A> ConnectionQuery<A> {
             a.parse::<A>().map_err(|e| e.into())?
         } else if ascending_default_order {
             A::MIN
-        }
-        else {
+        } else {
             A::MAX
         };
 
