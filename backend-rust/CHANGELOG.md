@@ -25,6 +25,7 @@ Database schema version: 2
 - Fix unit conversion for `avg_finalization_time` in `Query::block_metrics`.
 - Issue for `Query::transaction_metrics` producing an internal error when query period is beyond the genesis block.
 - Next and previous page on contracts
+- Contract rejected event skips in the correct way
 
 ## [0.1.19] - 2025-01-30
 
