@@ -79,7 +79,10 @@ pub struct ConnectionQuery<A> {
     /// `ConnectionQuery`), the edges/nodes should be ordered in reverse
     /// (DESC) order before applying the range. This allows the range from
     /// `from` to `to` to be applied starting from the last element.
+    /// TODO: Migrate away from this and use descending instead
     pub desc:  bool,
+    /// Reflects whether the query should be descending or ascending
+    pub descending: bool
 }
 impl<A> ConnectionQuery<A> {
     /// Validate and prepare GraphQL Cursor Connection arguments to be used for
@@ -97,6 +100,7 @@ impl<A> ConnectionQuery<A> {
         Self::new_reverse(first, after, last, before, true, connection_limit)
     }
 
+    // TODO: Migrate towards this function instead of new, such that this method becomes the new new.
     pub fn new_reverse<E>(
         first: Option<u64>,
         after: Option<String>,
@@ -134,7 +138,8 @@ impl<A> ConnectionQuery<A> {
             from,
             to,
             limit,
-            desc: !(last.is_some() ^ ascending_default_order),
+            desc: last.is_some(),
+            descending: !(last.is_some() ^ ascending_default_order),
         })
     }
 }

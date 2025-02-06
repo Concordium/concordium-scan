@@ -121,7 +121,7 @@ impl QueryContract {
             query.from,
             query.to,
             query.limit,
-            query.desc
+            query.descending
         )
         .fetch(pool);
 
