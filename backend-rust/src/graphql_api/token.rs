@@ -72,8 +72,8 @@ impl QueryToken {
                 LIMIT $3
             ) AS token_data
             ORDER BY token_data.index DESC",
-            query.from.value,
-            query.to.value,
+            i64::from(query.from),
+            i64::from(query.to),
             query.limit,
             query.desc
         )

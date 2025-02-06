@@ -69,17 +69,11 @@ impl ConnectionCursor for i64 {
 /// descending order using i64 as the cursor.
 #[derive(Debug, derive_more::From, derive_more::Into, derive_more::FromStr)]
 #[repr(transparent)]
-pub struct DescendingI64 {
-    pub value: i64,
-}
+pub struct DescendingI64(i64);
 
 impl ConnectionCursor for DescendingI64 {
-    const MAX: Self = Self {
-        value: i64::MIN,
-    };
-    const MIN: Self = Self {
-        value: i64::MAX,
-    };
+    const MAX: Self = Self(i64::MIN);
+    const MIN: Self = Self(i64::MAX);
 }
 
 /// Prepared query arguments for SQL query, based on arguments from a GraphQL
