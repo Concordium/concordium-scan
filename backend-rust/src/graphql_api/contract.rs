@@ -239,7 +239,8 @@ impl Contract {
         .try_into()?;
         // If `skip` is 0 and at least one event is taken, include the
         // `init_transaction_event`.
-        let include_initial_event = skip <= total_contract_events_count && skip + take >= total_contract_events_count;
+        let include_initial_event =
+            skip <= total_contract_events_count && skip + take >= total_contract_events_count;
         // Adjust the `take` and `skip` values considering if the
         // `init_transaction_event` is requested to be included or not.
 
