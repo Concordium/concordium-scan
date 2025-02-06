@@ -13,6 +13,7 @@ Database schema version: 2
 - Add `database_schema_version` and `api_supported_database_schema_version` to `versions` endpoint.
 - Add database schema version 2 with index over blocks with no `cumulative_finalization_time`, to improve indexing performance.
 - Implement `SearchResult::blocks` and add relevant index to database
+- New connection query `descending` variable
 
 ### Changed
 
