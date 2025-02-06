@@ -217,46 +217,6 @@ impl Token {
     ) -> ApiResult<TokenEventsCollectionSegment> {
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
-        let min_index = i64::try_from(skip.unwrap_or(0))?;
-        let limit = i64::try_from(take.map_or(config.token_events_collection_limit, |t| {
-            config.token_events_collection_limit.min(t)
-        }))?;
-
-        let mut items = sqlx::query_as!(
-            Cis2Event,
-            r#"SELECT
-                token_id,
-                contract_index,
-                contract_sub_index,
-                transaction_index,
-                index_per_token,
-                cis2_token_event as "event: sqlx::types::Json<CisEvent>"
-            FROM cis2_token_events
-            JOIN tokens
-                ON tokens.contract_index = $1
-                AND tokens.contract_sub_index = $2
-                AND tokens.token_id = $3
-                AND tokens.index = cis2_token_events.token_index
-                AND index_per_token >= $4
-            LIMIT $5
-        "#,
-            self.contract_index,
-            self.contract_sub_index,
-            self.token_id,
-            min_index,
-            limit + 1
-        )
-        .fetch_all(pool)
-        .await?;
-
-        // Determine if there is a next page by checking if we got more than `limit`
-        // rows.
-        let has_next_page = items.len() > limit as usize;
-        // If there is a next page, remove the extra row used for pagination detection.
-        if has_next_page {
-            items.pop();
-        }
-        let has_previous_page = min_index > 0;
 
         let total_count: u64 = sqlx::query_scalar!(
             "SELECT
@@ -275,6 +235,49 @@ impl Token {
         .await?
         .unwrap_or(0)
         .try_into()?;
+
+        let max_index: i64 = if let Some(value) = skip {
+            total_count.saturating_sub(value).try_into()?
+        } else {
+            i64::MAX
+        };
+        let limit = i64::try_from(take.map_or(config.token_events_collection_limit, |t| {
+            config.token_events_collection_limit.min(t)
+        }))?;
+        let mut items = sqlx::query_as!(
+            Cis2Event,
+            r#"SELECT
+                token_id,
+                contract_index,
+                contract_sub_index,
+                transaction_index,
+                index_per_token,
+                cis2_token_event as "event: _"
+            FROM cis2_token_events
+            JOIN tokens
+                ON tokens.contract_index = $1
+                AND tokens.contract_sub_index = $2
+                AND tokens.token_id = $3
+                AND tokens.index = cis2_token_events.token_index
+                AND index_per_token < $4
+            ORDER BY index_per_token DESC
+            LIMIT $5"#,
+            self.contract_index,
+            self.contract_sub_index,
+            self.token_id,
+            max_index,
+            limit + 1
+        )
+        .fetch_all(pool)
+        .await?;
+        // Determine if there is a next page by checking if we got more than `limit`
+        // rows.
+        let has_next_page = items.len() > limit as usize;
+        // If there is a next page, remove the extra row used for pagination detection.
+        if has_next_page {
+            items.pop();
+        }
+        let has_previous_page = skip.is_some_and(|value| value > 0);
 
         Ok(TokenEventsCollectionSegment {
             page_info: CollectionSegmentInfo {

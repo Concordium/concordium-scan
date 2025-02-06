@@ -18,6 +18,7 @@ Database schema version: 2
 
 - Make the `Query::transaction_metrics` use fixed buckets making it consistent with behavior of the old .NET backend.
 - Change the log level of when starting the preprocessing of a block into DEBUG instead of INFO.
+- Query `Token::tokenEvents` now outputs the events in the order of newest->oldest, instead of oldest->newest.
 
 ### Fixed
 
