@@ -65,8 +65,26 @@ impl ConnectionCursor for i64 {
     const MIN: i64 = i64::MIN;
 }
 
+/// GraphQL Connection Cursor representing a collection where the pages are
+/// descending order using i64 as the cursor.
+#[derive(Debug, derive_more::From, derive_more::Into, derive_more::FromStr)]
+#[repr(transparent)]
+pub struct DescendingI64 {
+    pub value: i64,
+}
+
+impl ConnectionCursor for DescendingI64 {
+    const MAX: Self = Self {
+        value: i64::MIN,
+    };
+    const MIN: Self = Self {
+        value: i64::MAX,
+    };
+}
+
 /// Prepared query arguments for SQL query, based on arguments from a GraphQL
 /// Cursor Connection resolver.
+#[derive(Debug)]
 pub struct ConnectionQuery<A> {
     /// The lower to use for the SQL query.
     pub from:  A,
