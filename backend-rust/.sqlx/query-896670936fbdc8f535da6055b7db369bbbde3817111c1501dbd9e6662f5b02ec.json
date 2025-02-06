@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM (\n                SELECT\n                    index,\n                    init_transaction_index,\n                    total_supply as raw_total_supply,\n                    token_id,\n                    contract_index,\n                    contract_sub_index,\n                    token_address,\n                    metadata_url\n                FROM tokens\n                WHERE tokens.index > $1 AND tokens.index < $2\n                ORDER BY\n                    (CASE WHEN $4 THEN tokens.index END) DESC,\n                    (CASE WHEN NOT $4 THEN tokens.index END) ASC\n                LIMIT $3\n            ) AS token_data\n            ORDER BY token_data.index ASC",
+  "query": "SELECT * FROM (\n                SELECT\n                    index,\n                    init_transaction_index,\n                    total_supply as raw_total_supply,\n                    token_id,\n                    contract_index,\n                    contract_sub_index,\n                    token_address,\n                    metadata_url\n                FROM tokens\n                WHERE tokens.index > $2 AND tokens.index < $1\n                ORDER BY\n                    (CASE WHEN $4 THEN tokens.index END) ASC,\n                    (CASE WHEN NOT $4 THEN tokens.index END) DESC\n                LIMIT $3\n            ) AS token_data\n            ORDER BY token_data.index DESC",
   "describe": {
     "columns": [
       {
@@ -63,5 +63,5 @@
       true
     ]
   },
-  "hash": "b79727933b7a9f9cbcfd69d46781fc063d1e1e80ecd9094c369c1ad15779df68"
+  "hash": "896670936fbdc8f535da6055b7db369bbbde3817111c1501dbd9e6662f5b02ec"
 }
