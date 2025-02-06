@@ -26,6 +26,8 @@ Database schema version: 2
 - Issue for `Query::transaction_metrics` producing an internal error when query period is beyond the genesis block.
 - Next and previous page on contracts
 - Contract rejected event skips in the correct way
+- Fix issue where `ContractUpdated::message` attempted to parse empty messages, resulting in parsing error messages instead of `null`.
+
 
 ## [0.1.19] - 2025-01-30
 
