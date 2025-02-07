@@ -3770,15 +3770,34 @@ impl PreparedInsertBlockSpecialTransacionOutcomes {
 /// Represents updates in the database caused by a single special transaction
 /// outcome in a block.
 enum PreparedSpecialTransactionOutcomeUpdate {
-    /// Distribution of various CCD rewards. Excluding CCD mint rewards.
+    /// Distribution of various CCD rewards. Excluding CCD mint rewards from a
+    /// payday block.
     Rewards(Vec<PreparedUpdateAccountBalance>),
-    /// Represents a payday block with its CCD mint rewards and its block
-    /// height.
-    Payday(PreparedPayDayBlock),
+    /// Represents a payday block and its associated updates.
+    Payday(Payday),
     /// Validator is primed for suspension.
     ValidatorPrimedForSuspension(PreparedValidatorPrimedForSuspension),
     /// Validator is suspended.
     ValidatorSuspended(PreparedValidatorSuspension),
+}
+
+enum Payday {
+    /// Represents a payday block with its CCD mint rewards.
+    PreparedPayDayBlock(PreparedPayDayBlock),
+    /// Represents the payday pool rewards to a given baker pool.
+    PreparedPaydayPoolReward(PreparedPaydayPoolReward),
+}
+
+impl Payday {
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        match self {
+            Self::PreparedPaydayPoolReward(event) => event.save(tx).await,
+            Self::PreparedPayDayBlock(event) => event.save(tx).await,
+        }
+    }
 }
 
 impl PreparedSpecialTransactionOutcomeUpdate {
@@ -3818,7 +3837,10 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                     AccountStatementEntryType::FoundationReward,
                 )?;
 
-                Self::Payday(PreparedPayDayBlock::prepare(block_height, rewards)?)
+                Self::Payday(Payday::PreparedPayDayBlock(PreparedPayDayBlock::prepare(
+                    block_height,
+                    rewards,
+                )?))
             }
             SpecialTransactionOutcome::FinalizationRewards {
                 finalization_rewards,
@@ -3897,10 +3919,18 @@ impl PreparedSpecialTransactionOutcomeUpdate {
             // TODO: Support these two types. (Deviates from Old CCDScan)
             SpecialTransactionOutcome::BlockAccrueReward {
                 ..
-            }
-            | SpecialTransactionOutcome::PaydayPoolReward {
-                ..
             } => Self::Rewards(Vec::new()),
+            SpecialTransactionOutcome::PaydayPoolReward {
+                pool_owner,
+                transaction_fees,
+                baker_reward,
+                finalization_reward,
+            } => Self::Payday(Payday::PreparedPaydayPoolReward(PreparedPaydayPoolReward::prepare(
+                pool_owner.map(|i| i.id.index as i64),
+                *transaction_fees,
+                *baker_reward,
+                *finalization_reward,
+            )?)),
             SpecialTransactionOutcome::ValidatorSuspended {
                 baker_id,
                 ..
@@ -4068,6 +4098,54 @@ impl PreparedPayDayBlock {
         )
         .execute(tx.as_mut())
         .await?;
+        Ok(())
+    }
+}
+
+/// Represents the payday pool rewards distributed to a baker pool captured from
+/// the `SpecialTransactionOutcome::PaydayPoolReward` event.
+struct PreparedPaydayPoolReward {
+    baker_id:            Option<i64>,
+    transaction_fees:    i64,
+    baker_reward:        i64,
+    finalization_reward: i64,
+}
+
+impl PreparedPaydayPoolReward {
+    fn prepare(
+        pool_owner: Option<i64>,
+        transaction_fees: Amount,
+        baker_reward: Amount,
+        finalization_reward: Amount,
+    ) -> anyhow::Result<Self> {
+        Ok(Self {
+            baker_id:            pool_owner,
+            transaction_fees:    transaction_fees.micro_ccd.try_into()?,
+            baker_reward:        baker_reward.micro_ccd.try_into()?,
+            finalization_reward: finalization_reward.micro_ccd.try_into()?,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        if let Some(baker_id) = self.baker_id {
+            sqlx::query!(
+                "UPDATE bakers
+                SET
+                    payday_transaction_commission = $2,
+                    payday_baking_commission = $3,
+                    payday_finalization_commission = $4
+                WHERE id=$1",
+                baker_id,
+                self.transaction_fees,
+                self.baker_reward,
+                self.finalization_reward
+            )
+            .execute(tx.as_mut())
+            .await?;
+        };
         Ok(())
     }
 }

@@ -80,6 +80,9 @@ pub struct Baker {
     transaction_commission: Option<i64>,
     baking_commission: Option<i64>,
     finalization_commission: Option<i64>,
+    payday_transaction_commission: Option<i64>,
+    payday_baking_commission: Option<i64>,
+    payday_finalization_commission: Option<i64>,
 }
 impl Baker {
     pub async fn query_by_id(pool: &PgPool, baker_id: i64) -> ApiResult<Option<Self>> {
@@ -94,7 +97,10 @@ impl Baker {
                 metadata_url,
                 transaction_commission,
                 baking_commission,
-                finalization_commission
+                finalization_commission,
+                payday_transaction_commission,
+                payday_baking_commission,
+                payday_finalization_commission
             FROM bakers 
             WHERE id = $1
             "#,
@@ -125,6 +131,21 @@ impl Baker {
             .map(|c| AmountFraction::new_unchecked(c).into());
         let finalization_commission = self
             .finalization_commission
+            .map(u32::try_from)
+            .transpose()?
+            .map(|c| AmountFraction::new_unchecked(c).into());
+        let payday_transaction_commission = self
+            .payday_transaction_commission
+            .map(u32::try_from)
+            .transpose()?
+            .map(|c| AmountFraction::new_unchecked(c).into());
+        let payday_baking_commission = self
+            .payday_baking_commission
+            .map(u32::try_from)
+            .transpose()?
+            .map(|c| AmountFraction::new_unchecked(c).into());
+        let payday_finalization_commission = self
+            .payday_finalization_commission
             .map(u32::try_from)
             .transpose()?
             .map(|c| AmountFraction::new_unchecked(c).into());
@@ -161,7 +182,7 @@ impl Baker {
         .ok_or_else(|| ApiError::InternalError("Division by zero".to_string()))?
         .into();
 
-        let out = BakerState::ActiveBakerState(ActiveBakerState {
+        let out = BakerState::ActiveBakerState(Box::new(ActiveBakerState {
             staked_amount:    Amount::try_from(self.staked)?,
             restake_earnings: self.restake_earnings,
             pool:             BakerPool {
@@ -171,6 +192,11 @@ impl Baker {
                     baking_commission,
                     finalization_commission,
                 },
+                payday_commission_rates: CommissionRates {
+                    transaction_commission:  payday_transaction_commission,
+                    baking_commission:       payday_baking_commission,
+                    finalization_commission: payday_finalization_commission,
+                },
                 metadata_url: self.metadata_url.as_deref(),
                 total_stake_percentage,
                 total_stake: total_pool_stake.try_into()?,
@@ -178,7 +204,7 @@ impl Baker {
                 delegator_count: row.delegator_count.unwrap_or(0),
             },
             pending_change:   None, // This is not used starting from P7.
-        });
+        }));
         Ok(out)
     }
 
@@ -313,7 +339,7 @@ struct InterimTransaction {
 
 #[derive(Union)]
 enum BakerState<'a> {
-    ActiveBakerState(ActiveBakerState<'a>),
+    ActiveBakerState(Box<ActiveBakerState<'a>>),
     RemovedBakerState(RemovedBakerState),
 }
 
@@ -378,16 +404,16 @@ enum BakerSort {
 struct BakerPool<'a> {
     /// Total stake of the baker pool as a percentage of all CCDs in existence.
     /// Includes both baker stake and delegated stake.
-    total_stake_percentage: Decimal,
+    total_stake_percentage:  Decimal,
     /// The total amount staked in this baker pool. Includes both baker stake
     /// and delegated stake.
-    total_stake:            Amount,
+    total_stake:             Amount,
     /// The total amount staked by delegators to this baker pool.
-    delegated_stake:        Amount,
+    delegated_stake:         Amount,
     /// The number of delegators that delegate to this baker pool.
-    delegator_count:        i64,
+    delegator_count:         i64,
+    payday_commission_rates: CommissionRates,
     // lottery_power:           Decimal,
-    // payday_commission_rates: CommissionRates,
     // /// Ranking of the baker pool by total staked amount. Value may be null for
     // /// brand new bakers where statistics have not been calculated yet. This
     // /// should be rare and only a temporary condition.
@@ -395,9 +421,9 @@ struct BakerPool<'a> {
     // /// The maximum amount that may be delegated to the pool, accounting for
     // /// leverage and stake limits.
     // delegated_stake_cap:     Amount,
-    open_status:            Option<BakerPoolOpenStatus>,
-    commission_rates:       CommissionRates,
-    metadata_url:           Option<&'a str>,
+    open_status:             Option<BakerPoolOpenStatus>,
+    commission_rates:        CommissionRates,
+    metadata_url:            Option<&'a str>,
     // TODO: apy(period: ApyPeriod!): PoolApy!
     // TODO: delegators("Returns the first _n_ elements from the list." first: Int "Returns the
     // elements in the list that come after the specified cursor." after: String "Returns the last

@@ -349,6 +349,18 @@ CREATE TABLE bakers(
     -- Stored as a fraction of an amount with a precision of `1/100_000`.
     finalization_commission
         BIGINT,
+    -- Fraction of transaction rewards rewarded at payday to this baker pool.
+    -- Stored as a fraction of an amount with a precision of `1/100_000`.
+    payday_transaction_commission
+        BIGINT,
+    -- Fraction of baking rewards rewarded at payday to this baker pool.
+    -- Stored as a fraction of an amount with a precision of `1/100_000`.
+    payday_baking_commission
+        BIGINT,
+    -- Fraction of finalization rewards rewarded at payday to this baker pool.
+    -- Stored as a fraction of an amount with a precision of `1/100_000`.
+    payday_finalization_commission
+        BIGINT,
     -- Transaction used for self-suspending.
     -- This is not null only when a baker is suspended due to sending the transaction for
     -- self-suspending.
