@@ -91,6 +91,7 @@ impl QueryContract {
             before,
             config.contract_connection_limit,
         )?;
+
         // The CCDScan front-end currently expects an DESC order of the nodes/edges
         // returned (outer `ORDER BY`), while the inner `ORDER BY` is a trick to
         // get the correct nodes/edges selected based on whether the `first` or `last`
