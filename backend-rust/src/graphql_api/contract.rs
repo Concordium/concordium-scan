@@ -226,17 +226,28 @@ impl Contract {
         let skip = skip.unwrap_or(0);
         let take = take.unwrap_or(config.contract_events_collection_limit);
 
+        let total_contract_events_count: u64 = sqlx::query_scalar!(
+            "SELECT
+                COUNT(*)
+            FROM contract_events
+                WHERE contract_index = $1 AND contract_sub_index = $2",
+            self.contract_address_index.0 as i64,
+            self.contract_address_sub_index.0 as i64
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0)
+        .try_into()?;
         // If `skip` is 0 and at least one event is taken, include the
         // `init_transaction_event`.
-        let include_initial_event = skip == 0 && take > 0;
+        let include_initial_event =
+            skip <= total_contract_events_count && skip + take >= total_contract_events_count;
         // Adjust the `take` and `skip` values considering if the
         // `init_transaction_event` is requested to be included or not.
-        let take_without_initial_event = take.saturating_sub(include_initial_event as u64);
-        let skip_without_initial_event = skip.saturating_sub(1);
 
         // Limit the number of events to be fetched from the `contract_events` table.
         let limit = std::cmp::min(
-            take_without_initial_event,
+            take,
             config.contract_events_collection_limit.saturating_sub(include_initial_event as u64),
         );
 
@@ -246,7 +257,6 @@ impl Contract {
         // Get the events from the `contract_events` table.
         let mut rows = sqlx::query!(
             "
-            SELECT * FROM (
                 SELECT
                     event_index_per_contract,
                     contract_events.transaction_index,
@@ -267,15 +277,14 @@ impl Contract {
                     ON contract_events.block_height = blocks.height
                 WHERE contract_events.contract_index = $1 AND contract_events.contract_sub_index = \
              $2
-                AND event_index_per_contract >= $4
-                LIMIT $3
-                ) AS contract_data
+                AND event_index_per_contract < $4
                 ORDER BY event_index_per_contract DESC
+                LIMIT $3
             ",
             self.contract_address_index.0 as i64,
             self.contract_address_sub_index.0 as i64,
             limit as i64 + 1,
-            skip_without_initial_event as i64
+            total_contract_events_count as i64 - skip as i64
         )
         .fetch_all(pool)
         .await?;
@@ -396,19 +405,6 @@ impl Contract {
             };
             contract_events.push(initial_event);
         }
-
-        let total_contract_events_count: u64 = sqlx::query_scalar!(
-            "SELECT
-                COUNT(*)
-            FROM contract_events
-                WHERE contract_index = $1 AND contract_sub_index = $2",
-            self.contract_address_index.0 as i64,
-            self.contract_address_sub_index.0 as i64
-        )
-        .fetch_one(pool)
-        .await?
-        .unwrap_or(0)
-        .try_into()?;
 
         Ok(ContractEventsCollectionSegment {
             page_info:   CollectionSegmentInfo {
