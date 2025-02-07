@@ -39,7 +39,7 @@
 		:message="props.contractEvent.contractUpdated.message"
 	/>
 	<MessageHEX
-		v-else-if="props.contractEvent.contractUpdated.messageAsHex"
+		v-if="props.contractEvent.contractUpdated.messageAsHex"
 		:message-as-hex="props.contractEvent.contractUpdated.messageAsHex"
 	/>
 	<Logs
@@ -47,7 +47,7 @@
 		:events="props.contractEvent.contractUpdated.events"
 	/>
 	<LogsHEX
-		v-else-if="props.contractEvent.contractUpdated.eventsAsHex?.nodes?.length"
+		v-if="props.contractEvent.contractUpdated.eventsAsHex?.nodes?.length"
 		:events-as-hex="props.contractEvent.contractUpdated.eventsAsHex"
 	/>
 </template>

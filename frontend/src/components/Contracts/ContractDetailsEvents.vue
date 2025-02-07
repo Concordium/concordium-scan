@@ -74,7 +74,7 @@
 						:events="contractEvent.event.events"
 					/>
 					<LogsHEX
-						v-else-if="contractEvent.event.eventsAsHex?.nodes?.length"
+						v-if="contractEvent.event.eventsAsHex?.nodes?.length"
 						:events-as-hex="contractEvent.event.eventsAsHex"
 					/>
 				</DetailsView>
