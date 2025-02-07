@@ -22,6 +22,7 @@ Database schema version: 2
 
 ### Fixed
 
+- Fix button to display the schema decoding error at front-end by returning the error as an object.
 - Fix typo in `versions` endpoint.
 - Fix unit conversion for `avg_finalization_time` in `Query::block_metrics`.
 - Issue for `Query::transaction_metrics` producing an internal error when query period is beyond the genesis block.

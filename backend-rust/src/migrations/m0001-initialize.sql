@@ -841,6 +841,7 @@ CREATE INDEX block_special_transaction_outcomes_idx
 
 -- Function for generating a table where each row is a bucket.
 -- Used by metrics queries.
+-- This function is replaced with a function of the same name in migration file `m0002`.
 CREATE OR REPLACE FUNCTION date_bin_series(bucket_size interval, starting TIMESTAMPTZ, ending TIMESTAMPTZ)
 RETURNS TABLE(bucket_start TIMESTAMPTZ, bucket_end TIMESTAMPTZ) AS $$
     SELECT
