@@ -69,20 +69,17 @@ impl ConnectionCursor for i64 {
 /// Cursor Connection resolver.
 pub struct ConnectionQuery<A> {
     /// The lower to use for the SQL query.
-    pub from:       A,
+    pub from:  A,
     /// The upper to use for the SQL query.
-    pub to:         A,
+    pub to:    A,
     /// The limit to use for the SQL query.
-    pub limit:      i64,
+    pub limit: i64,
     /// If the `last` elements are requested instead of the `first` elements
     /// (indicated by the `last` key being set when creating a new
     /// `ConnectionQuery`), the edges/nodes should be ordered in reverse
     /// (DESC) order before applying the range. This allows the range from
     /// `from` to `to` to be applied starting from the last element.
-    /// TODO: Migrate away from this and use descending instead
-    pub desc:       bool,
-    /// Reflects whether the query should be descending or ascending
-    pub descending: bool,
+    pub desc:  bool,
 }
 impl<A> ConnectionQuery<A> {
     /// Validate and prepare GraphQL Cursor Connection arguments to be used for
@@ -97,38 +94,18 @@ impl<A> ConnectionQuery<A> {
     where
         A: std::str::FromStr<Err = E> + ConnectionCursor,
         E: Into<ApiError>, {
-        Self::new_reverse(first, after, last, before, true, connection_limit)
-    }
-
-    // TODO: Migrate towards this function instead of new, such that this method
-    // becomes the new new.
-    pub fn new_reverse<E>(
-        first: Option<u64>,
-        after: Option<String>,
-        last: Option<u64>,
-        before: Option<String>,
-        ascending_default_order: bool,
-        connection_limit: u64,
-    ) -> ApiResult<Self>
-    where
-        A: std::str::FromStr<Err = E> + ConnectionCursor,
-        E: Into<ApiError>, {
         if first.is_some() && last.is_some() {
             return Err(ApiError::QueryConnectionFirstLast);
         }
 
         let from = if let Some(a) = after {
             a.parse::<A>().map_err(|e| e.into())?
-        } else if ascending_default_order {
-            A::MIN
         } else {
             A::MAX
         };
 
         let to = if let Some(b) = before {
             b.parse::<A>().map_err(|e| e.into())?
-        } else if ascending_default_order {
-            A::MAX
         } else {
             A::MIN
         };
@@ -140,7 +117,6 @@ impl<A> ConnectionQuery<A> {
             to,
             limit,
             desc: last.is_some(),
-            descending: !(last.is_some() ^ ascending_default_order),
         })
     }
 }

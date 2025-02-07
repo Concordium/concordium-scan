@@ -83,7 +83,7 @@ impl QueryContract {
     ) -> ApiResult<connection::Connection<String, Contract>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
-        let query = ConnectionQuery::<i64>::new_reverse(
+        let query = ConnectionQuery::<i64>::new(
             first,
             after,
             last,
@@ -111,17 +111,17 @@ impl QueryContract {
                 JOIN transactions ON transaction_index = transactions.index
                 JOIN blocks ON transactions.block_height = blocks.height
                 JOIN accounts ON transactions.sender_index = accounts.index
-                WHERE contracts.index > $2 AND contracts.index < $1
+                WHERE contracts.index < $1 AND contracts.index > $2
                 ORDER BY
-                    (CASE WHEN $4 THEN contracts.index END) DESC,
-                    (CASE WHEN NOT $4 THEN contracts.index END) ASC
+                    (CASE WHEN $4 THEN contracts.index END) ASC,
+                    (CASE WHEN NOT $4 THEN contracts.index END) DESC
                 LIMIT $3
             ) AS contract_data
             ORDER BY contract_data.index DESC",
             query.from,
             query.to,
             query.limit,
-            query.descending
+            query.desc
         )
         .fetch(pool);
 
