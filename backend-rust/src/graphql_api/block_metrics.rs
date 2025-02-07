@@ -126,6 +126,7 @@ impl QueryBlockMetrics {
                          slot_time,
                          cumulative_finalization_time
                      FROM blocks
+                     WHERE cumulative_finalization_time IS NOT NULL
                      ORDER BY slot_time DESC
                      LIMIT 1
                  )
