@@ -536,7 +536,7 @@ impl Contract {
                 init_transaction_index
             FROM tokens
             WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2
-                AND tokens.token_index_per_contract <= $3
+                AND tokens.token_index_per_contract >= $3
             ORDER BY tokens.token_index_per_contract DESC
             LIMIT $4
             ",
