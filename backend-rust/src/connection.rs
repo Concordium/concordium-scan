@@ -124,6 +124,7 @@ impl<A> ConnectionQuery<A> {
 
         let limit =
             first.or(last).map_or(connection_limit, |limit| connection_limit.min(limit)) as i64;
+
         Ok(Self {
             from,
             to,
