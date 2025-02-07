@@ -27,7 +27,7 @@
 		:events="props.contractEvent.events"
 	/>
 	<LogsHEX
-		v-else-if="props.contractEvent.eventsAsHex?.nodes?.length"
+		v-if="props.contractEvent.eventsAsHex?.nodes?.length"
 		:events-as-hex="props.contractEvent.eventsAsHex"
 	/>
 </template>

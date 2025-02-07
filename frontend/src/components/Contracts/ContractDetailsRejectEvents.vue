@@ -78,7 +78,7 @@
 						:message="contractRejectEvent.rejectedEvent.message"
 					/>
 					<MessageHEX
-						v-else-if="contractRejectEvent.rejectedEvent.messageAsHex"
+						v-if="contractRejectEvent.rejectedEvent.messageAsHex"
 						:message-as-hex="contractRejectEvent.rejectedEvent.messageAsHex"
 					/>
 				</DetailsView>
