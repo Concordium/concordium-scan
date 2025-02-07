@@ -4,7 +4,6 @@ use super::{
 };
 use crate::{
     address::{AccountAddress, ContractIndex},
-    connection::DescendingI64,
     graphql_api::token::Token,
     scalar_types::{Amount, BlockHeight, DateTime, TransactionHash},
     transaction_event::Event,
