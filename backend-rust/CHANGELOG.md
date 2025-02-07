@@ -25,10 +25,10 @@ Database schema version: 2
 - Fix typo in `versions` endpoint.
 - Fix unit conversion for `avg_finalization_time` in `Query::block_metrics`.
 - Issue for `Query::transaction_metrics` producing an internal error when query period is beyond the genesis block.
-- Next and previous page on contracts.
 - Contract rejected event skips in the correct way.
 - Fix issue where `ContractUpdated::message` attempted to parse empty messages, resulting in parsing error messages instead of `null`.
 - Issue making `avgFinalizationTime` field of `Query::block_metrics` always return `null`.
+- Next and previous page on contracts.
 - Issue making `Query::block_metrics` included a bucket for a period in the future.
 
 ## [0.1.19] - 2025-01-30
