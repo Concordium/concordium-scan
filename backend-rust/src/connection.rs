@@ -113,13 +113,13 @@ impl<A> ConnectionQuery<A> {
         let from = if let Some(a) = after {
             a.parse::<A>().map_err(|e| e.into())?
         } else {
-            A::MAX
+            A::MIN
         };
 
         let to = if let Some(b) = before {
             b.parse::<A>().map_err(|e| e.into())?
         } else {
-            A::MIN
+            A::MAX
         };
 
         let limit =
