@@ -12,6 +12,7 @@ use crate::{
 use async_graphql::{connection, ComplexObject, Context, Object, SimpleObject};
 use futures::TryStreamExt;
 use std::cmp::{max, min};
+use crate::connection::DescendingI64;
 
 #[derive(Default)]
 pub struct QueryContract;
