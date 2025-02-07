@@ -4,6 +4,7 @@ use super::{
 };
 use crate::{
     address::{AccountAddress, ContractIndex},
+    connection::DescendingI64,
     graphql_api::token::Token,
     scalar_types::{Amount, BlockHeight, DateTime, TransactionHash},
     transaction_event::Event,
@@ -12,7 +13,6 @@ use crate::{
 use async_graphql::{connection, ComplexObject, Context, Object, SimpleObject};
 use futures::TryStreamExt;
 use std::cmp::{max, min};
-use crate::connection::DescendingI64;
 
 #[derive(Default)]
 pub struct QueryContract;
