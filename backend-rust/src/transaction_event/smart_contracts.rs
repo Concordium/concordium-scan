@@ -11,6 +11,7 @@ use concordium_rust_sdk::base::{
     },
     smart_contracts::ReceiveName,
 };
+use serde::Serialize;
 
 #[derive(Enum, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ContractVersion {
@@ -118,7 +119,7 @@ impl ContractInitialized {
                 opt_event_schema.as_ref(),
                 log,
                 SmartContractSchemaNames::Event,
-            );
+            )?;
 
             connection.edges.push(connection::Edge::new(index.to_string(), decoded_log));
         }
@@ -190,7 +191,7 @@ impl ContractUpdated {
             opt_receive_param_schema.as_ref(),
             &self.input_parameter,
             SmartContractSchemaNames::InputParameterReceiveFunction,
-        );
+        )?;
 
         Ok(Some(decoded_input_parameter))
     }
@@ -250,7 +251,7 @@ impl ContractUpdated {
                 opt_event_schema.as_ref(),
                 log,
                 SmartContractSchemaNames::Event,
-            );
+            )?;
 
             connection.edges.push(connection::Edge::new(index.to_string(), decoded_log));
         }
@@ -331,7 +332,7 @@ impl ContractInterrupted {
                 opt_event_schema.as_ref(),
                 log,
                 SmartContractSchemaNames::Event,
-            );
+            )?;
 
             connection.edges.push(connection::Edge::new(index.to_string(), decoded_log));
         }
@@ -394,38 +395,55 @@ impl SmartContractSchemaNames {
     }
 }
 
+/// Schema decoding error reported to the front-end.
+#[derive(Serialize)]
+struct SchemaDecodingError {
+    error: String,
+}
+
 fn decode_value_with_schema(
     opt_schema: Option<&Type>,
     value: &[u8],
     schema_name: SmartContractSchemaNames,
-) -> String {
+) -> Result<String, ApiError> {
     let Some(schema) = opt_schema else {
         // Note: There could be something better displayed than this string if no schema
         // is available for decoding at the frontend long-term.
-        return format!(
-            "No embedded {} schema in smart contract available for decoding",
-            schema_name.kind()
-        );
+        return serde_json::to_string(&SchemaDecodingError {
+                     error: format!(
+                          "No embedded {} schema in smart contract available for decoding",
+                     schema_name.kind()
+                    ),
+                   }).map_err(|_| ApiError::InternalError("Should be valid error string".to_string()));     
     };
 
     let mut cursor = Cursor::new(&value);
+
     match schema.to_json(&mut cursor) {
         Ok(v) => {
-            serde_json::to_string(&v).unwrap_or_else(|e| {
-                // We don't return an error here since the query is correctly formed and
-                // the CCDScan backend is working as expected.
-                // A wrong/missing schema is a mistake by the smart contract
-                // developer which in general cannot be fixed after the deployment of
-                // the contract. We display the error message (instead of the decoded
-                // value) in the block explorer to make the info visible to the smart
-                // contract developer for debugging purposes here.
-                format!(
-                    "Failed to deserialize {} with {} schema into string: {:?}",
-                    schema_name.value(),
-                    schema_name.kind(),
-                    e
-                )
-            })
+            match serde_json::to_string(&v) {
+                Ok(v) => Ok(v),
+                Err(error) => {
+                    // We don't return an error here since the query is correctly formed and
+                    // the CCDScan backend is working as expected.
+                    // A wrong/missing schema is a mistake by the smart contract
+                    // developer which in general cannot be fixed after the deployment of
+                    // the contract. We display the error message (instead of the decoded
+                    // value) in the block explorer to make the info visible to the smart
+                    // contract developer for debugging purposes here.
+                    Ok(serde_json::to_string(&SchemaDecodingError {
+                        error: format!(
+                            "Failed to deserialize {} with {} schema into string: {:?}",
+                            schema_name.value(),
+                            schema_name.kind(),
+                            error
+                        ),
+                    })
+                    .map_err(|_| {
+                        ApiError::InternalError("Should be valid error string".to_string())
+                    })?)
+                }
+            }
         }
         Err(e) => {
             // We don't return an error here since the query is correctly formed and
@@ -435,12 +453,15 @@ fn decode_value_with_schema(
             // the contract. We display the error message (instead of the decoded
             // value) in the block explorer to make the info visible to the smart
             // contract developer for debugging purposes here.
-            format!(
-                "Failed to deserialize {} with {} schema: {:?}",
-                schema_name.value(),
-                schema_name.kind(),
-                e.display(true)
-            )
+            Ok(serde_json::to_string(&SchemaDecodingError {
+                error: format!(
+                    "Failed to deserialize {} with {} schema: {:?}",
+                    schema_name.value(),
+                    schema_name.kind(),
+                    e.display(true)
+                ),
+            })
+            .map_err(|_| ApiError::InternalError("Should be valid error string".to_string()))?)
         }
     }
 }
