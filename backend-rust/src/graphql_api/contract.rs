@@ -4,6 +4,7 @@ use super::{
 };
 use crate::{
     address::{AccountAddress, ContractIndex},
+    connection::DescendingI64,
     graphql_api::token::Token,
     scalar_types::{Amount, BlockHeight, DateTime, TransactionHash},
     transaction_event::Event,
@@ -83,7 +84,7 @@ impl QueryContract {
     ) -> ApiResult<connection::Connection<String, Contract>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
-        let query = ConnectionQuery::<i64>::new(
+        let query = ConnectionQuery::<DescendingI64>::new(
             first,
             after,
             last,
@@ -117,8 +118,8 @@ impl QueryContract {
                 LIMIT $3
             ) AS contract_data
             ORDER BY contract_data.index DESC",
-            query.from,
-            query.to,
+            i64::from(query.from),
+            i64::from(query.to),
             query.limit,
             query.desc
         )
