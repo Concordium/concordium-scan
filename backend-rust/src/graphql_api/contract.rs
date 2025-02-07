@@ -252,6 +252,7 @@ impl Contract {
 
         let mut contract_events = vec![];
         let mut initial_contract_event_exists_in_database = false;
+
         // Get the events from the `contract_events` table.
         let mut rows = sqlx::query!(
             "
@@ -282,7 +283,7 @@ impl Contract {
             self.contract_address_index.0 as i64,
             self.contract_address_sub_index.0 as i64,
             limit as i64 + 1,
-            (total_contract_events_count - skip) as i64
+            total_contract_events_count as i64 - skip as i64
         )
         .fetch_all(pool)
         .await?;
