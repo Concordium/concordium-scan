@@ -4,11 +4,13 @@ use super::{
 };
 use crate::{
     address::ContractIndex,
+    connection::{ConnectionQuery, DescendingI64},
     scalar_types::{BigInteger, TransactionIndex},
     transaction_event::CisEvent,
 };
-use async_graphql::{ComplexObject, Context, Object, SimpleObject};
+use async_graphql::{connection, ComplexObject, Context, Object, SimpleObject};
 use sqlx::PgPool;
+use tokio_stream::StreamExt;
 
 #[derive(Default)]
 pub struct QueryToken;
@@ -29,6 +31,68 @@ impl QueryToken {
             &token_id,
         )
         .await
+    }
+
+    async fn tokens(
+        &self,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        before: Option<String>,
+    ) -> ApiResult<connection::Connection<String, Token>> {
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+        let query = ConnectionQuery::<DescendingI64>::new(
+            first,
+            after,
+            last,
+            before,
+            config.tokens_connection_limit,
+        )?;
+        let mut row_stream = sqlx::query_as!(
+            Token,
+            "SELECT * FROM (
+                SELECT
+                    index,
+                    init_transaction_index,
+                    total_supply as raw_total_supply,
+                    token_id,
+                    contract_index,
+                    contract_sub_index,
+                    token_address,
+                    metadata_url
+                FROM tokens
+                WHERE tokens.index > $2 AND tokens.index < $1
+                ORDER BY
+                    (CASE WHEN $4 THEN tokens.index END) ASC,
+                    (CASE WHEN NOT $4 THEN tokens.index END) DESC
+                LIMIT $3
+            ) AS token_data
+            ORDER BY token_data.index DESC",
+            i64::from(query.from),
+            i64::from(query.to),
+            query.limit,
+            query.desc
+        )
+        .fetch(pool);
+        let mut connection = connection::Connection::new(false, false);
+        while let Some(token) = row_stream.try_next().await? {
+            connection.edges.push(connection::Edge::new(token.index.to_string(), token));
+        }
+        if let Some(page_max_index) = connection.edges.first() {
+            if let Some(max_index) =
+                sqlx::query_scalar!("SELECT MAX(index) FROM tokens").fetch_one(pool).await?
+            {
+                connection.has_next_page = max_index > page_max_index.node.index;
+            }
+        }
+        if let Some(edge) = connection.edges.last() {
+            connection.has_previous_page = edge.node.index != 0;
+        }
+        Ok(connection)
     }
 }
 
@@ -217,46 +281,6 @@ impl Token {
     ) -> ApiResult<TokenEventsCollectionSegment> {
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
-        let min_index = i64::try_from(skip.unwrap_or(0))?;
-        let limit = i64::try_from(take.map_or(config.token_events_collection_limit, |t| {
-            config.token_events_collection_limit.min(t)
-        }))?;
-
-        let mut items = sqlx::query_as!(
-            Cis2Event,
-            r#"SELECT
-                token_id,
-                contract_index,
-                contract_sub_index,
-                transaction_index,
-                index_per_token,
-                cis2_token_event as "event: sqlx::types::Json<CisEvent>"
-            FROM cis2_token_events
-            JOIN tokens
-                ON tokens.contract_index = $1
-                AND tokens.contract_sub_index = $2
-                AND tokens.token_id = $3
-                AND tokens.index = cis2_token_events.token_index
-                AND index_per_token >= $4
-            LIMIT $5
-        "#,
-            self.contract_index,
-            self.contract_sub_index,
-            self.token_id,
-            min_index,
-            limit + 1
-        )
-        .fetch_all(pool)
-        .await?;
-
-        // Determine if there is a next page by checking if we got more than `limit`
-        // rows.
-        let has_next_page = items.len() > limit as usize;
-        // If there is a next page, remove the extra row used for pagination detection.
-        if has_next_page {
-            items.pop();
-        }
-        let has_previous_page = min_index > 0;
 
         let total_count: u64 = sqlx::query_scalar!(
             "SELECT
@@ -275,6 +299,49 @@ impl Token {
         .await?
         .unwrap_or(0)
         .try_into()?;
+
+        let max_index: i64 = if let Some(value) = skip {
+            total_count.saturating_sub(value).try_into()?
+        } else {
+            i64::MAX
+        };
+        let limit = i64::try_from(take.map_or(config.token_events_collection_limit, |t| {
+            config.token_events_collection_limit.min(t)
+        }))?;
+        let mut items = sqlx::query_as!(
+            Cis2Event,
+            r#"SELECT
+                token_id,
+                contract_index,
+                contract_sub_index,
+                transaction_index,
+                index_per_token,
+                cis2_token_event as "event: _"
+            FROM cis2_token_events
+            JOIN tokens
+                ON tokens.contract_index = $1
+                AND tokens.contract_sub_index = $2
+                AND tokens.token_id = $3
+                AND tokens.index = cis2_token_events.token_index
+                AND index_per_token < $4
+            ORDER BY index_per_token DESC
+            LIMIT $5"#,
+            self.contract_index,
+            self.contract_sub_index,
+            self.token_id,
+            max_index,
+            limit + 1
+        )
+        .fetch_all(pool)
+        .await?;
+        // Determine if there is a next page by checking if we got more than `limit`
+        // rows.
+        let has_next_page = items.len() > limit as usize;
+        // If there is a next page, remove the extra row used for pagination detection.
+        if has_next_page {
+            items.pop();
+        }
+        let has_previous_page = skip.is_some_and(|value| value > 0);
 
         Ok(TokenEventsCollectionSegment {
             page_info: CollectionSegmentInfo {

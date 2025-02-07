@@ -146,9 +146,11 @@ pub struct ContractUpdated {
 impl ContractUpdated {
     async fn message_as_hex(&self) -> ApiResult<String> { Ok(hex::encode(&self.input_parameter)) }
 
-    async fn message<'a>(&self, ctx: &Context<'a>) -> ApiResult<String> {
+    async fn message<'a>(&self, ctx: &Context<'a>) -> ApiResult<Option<String>> {
+        if self.input_parameter.is_empty() {
+            return Ok(None);
+        }
         let pool = get_pool(ctx)?;
-
         let row = sqlx::query!(
             "
             SELECT
@@ -190,7 +192,7 @@ impl ContractUpdated {
             SmartContractSchemaNames::InputParameterReceiveFunction,
         );
 
-        Ok(decoded_input_parameter)
+        Ok(Some(decoded_input_parameter))
     }
 
     async fn events_as_hex(&self) -> ApiResult<connection::Connection<String, String>> {

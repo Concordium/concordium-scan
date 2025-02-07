@@ -4,6 +4,7 @@ use super::{
 };
 use crate::{
     address::{AccountAddress, ContractIndex},
+    connection::DescendingI64,
     graphql_api::token::Token,
     scalar_types::{Amount, BlockHeight, DateTime, TransactionHash},
     transaction_event::Event,
@@ -83,7 +84,7 @@ impl QueryContract {
     ) -> ApiResult<connection::Connection<String, Contract>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
-        let query = ConnectionQuery::<i64>::new(
+        let query = ConnectionQuery::<DescendingI64>::new(
             first,
             after,
             last,
@@ -111,21 +112,21 @@ impl QueryContract {
                 JOIN transactions ON transaction_index = transactions.index
                 JOIN blocks ON transactions.block_height = blocks.height
                 JOIN accounts ON transactions.sender_index = accounts.index
-                WHERE contracts.index > $1 AND contracts.index < $2
+                WHERE contracts.index < $1 AND contracts.index > $2
                 ORDER BY
                     (CASE WHEN $4 THEN contracts.index END) ASC,
                     (CASE WHEN NOT $4 THEN contracts.index END) DESC
                 LIMIT $3
             ) AS contract_data
             ORDER BY contract_data.index DESC",
-            query.from,
-            query.to,
+            i64::from(query.from),
+            i64::from(query.to),
             query.limit,
             query.desc
         )
         .fetch(pool);
 
-        let mut connection = connection::Connection::new(true, true);
+        let mut connection = connection::Connection::new(false, false);
         let mut page_max_index = None;
         let mut page_min_index = None;
 

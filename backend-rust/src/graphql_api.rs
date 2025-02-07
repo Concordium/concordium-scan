@@ -52,7 +52,6 @@ use std::{
     str::FromStr,
     sync::Arc,
 };
-use token::Token;
 use tokio::{
     net::TcpListener,
     sync::{broadcast, watch::Receiver},
@@ -512,84 +511,6 @@ impl BaseQuery {
             next_payday_time,
             opt_last_payday_block_height: row.opt_last_payday_block_height,
         })
-    }
-
-    async fn tokens(
-        &self,
-        ctx: &Context<'_>,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, Token>> {
-        let pool = get_pool(ctx)?;
-        let config = get_config(ctx)?;
-
-        let query = ConnectionQuery::<i64>::new(
-            first,
-            after,
-            last,
-            before,
-            config.tokens_connection_limit,
-        )?;
-
-        let mut row_stream = sqlx::query_as!(
-            Token,
-            "SELECT * FROM (
-                SELECT
-                    index,
-                    init_transaction_index,
-                    total_supply as raw_total_supply,
-                    token_id,
-                    contract_index,
-                    contract_sub_index,
-                    token_address,
-                    metadata_url
-                FROM tokens
-                WHERE tokens.index > $1 AND tokens.index < $2
-                ORDER BY
-                    (CASE WHEN $4 THEN tokens.index END) DESC,
-                    (CASE WHEN NOT $4 THEN tokens.index END) ASC
-                LIMIT $3
-            ) AS token_data
-            ORDER BY token_data.index ASC",
-            query.from,
-            query.to,
-            query.limit,
-            query.desc
-        )
-        .fetch(pool);
-
-        let mut connection = connection::Connection::new(false, false);
-
-        let mut page_max_index = None;
-        while let Some(token) = row_stream.try_next().await? {
-            page_max_index = Some(match page_max_index {
-                None => token.index,
-                Some(current_max) => max(current_max, token.index),
-            });
-            connection.edges.push(connection::Edge::new(token.index.to_string(), token));
-        }
-
-        if let Some(page_max_index) = page_max_index {
-            let max_index = sqlx::query_scalar!(
-                "
-                    SELECT MAX(index) as max_index
-                    FROM tokens
-                "
-            )
-            .fetch_one(pool)
-            .await?;
-            connection.has_next_page = max_index.map_or(false, |db_max| db_max > page_max_index)
-        }
-
-        if let Some(edge) = connection.edges.first() {
-            connection.has_previous_page = edge.node.index != 0;
-        }
-
-        Ok(connection)
     }
 
     async fn search(&self, query: String) -> SearchResult {
