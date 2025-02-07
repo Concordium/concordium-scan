@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.7.1] - 2025-02-07
+
 ### Changed
 
 - Always display the `hexDecimal` representation of smart contract logs and messages.
