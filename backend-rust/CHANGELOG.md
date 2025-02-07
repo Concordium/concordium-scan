@@ -29,7 +29,7 @@ Database schema version: 2
 - Fix issue where `ContractUpdated::message` attempted to parse empty messages, resulting in parsing error messages instead of `null`.
 - Issue making `avgFinalizationTime` field of `Query::block_metrics` always return `null`.
 - Next and previous page on contracts.
-
+- Issue making `Query::block_metrics` included a bucket for a period in the future.
 ## [0.1.19] - 2025-01-30
 
 Database schema version: 1
