@@ -1,4 +1,4 @@
-use super::{get_config, get_pool, ApiError, ApiResult, CollectionSegmentInfo};
+use super::{get_config, get_pool, ApiError, ApiResult};
 use crate::{
     address::{AccountAddress, ContractAddress},
     scalar_types::{BlockHeight, DateTime, ModuleReference, TransactionHash},
@@ -139,37 +139,6 @@ impl ModuleReferenceEvent {
             }),
         )?;
 
-        let mut items = sqlx::query_as!(
-            ModuleReferenceContractLinkEvent,
-            r#"SELECT
-                link_action as "link_action: ModuleReferenceContractLinkAction",
-                contract_index,
-                contract_sub_index,
-                transactions.hash as transaction_hash,
-                blocks.slot_time as block_slot_time
-            FROM link_smart_contract_module_transactions
-                JOIN transactions ON transaction_index = transactions.index
-                JOIN blocks ON blocks.height = transactions.block_height
-            WHERE module_reference = $1
-                AND link_smart_contract_module_transactions.index >= $2
-            LIMIT $3
-        "#,
-            self.module_reference,
-            min_index,
-            limit + 1
-        )
-        .fetch_all(pool)
-        .await?;
-
-        // Determine if there is a next page by checking if we got more than `limit`
-        // rows.
-        let has_next_page = items.len() > limit as usize;
-        // If there is a next page, remove the extra row used for pagination detection.
-        if has_next_page {
-            items.pop();
-        }
-        let has_previous_page = min_index > 0;
-
         let total_count: u64 = sqlx::query_scalar!(
             "SELECT
                 COUNT(*)
@@ -182,11 +151,30 @@ impl ModuleReferenceEvent {
         .unwrap_or(0)
         .try_into()?;
 
+        let items = sqlx::query_as!(
+            ModuleReferenceContractLinkEvent,
+            r#"SELECT
+                link_action as "link_action: ModuleReferenceContractLinkAction",
+                contract_index,
+                contract_sub_index,
+                transactions.hash as transaction_hash,
+                blocks.slot_time as block_slot_time
+            FROM link_smart_contract_module_transactions
+                JOIN transactions ON transaction_index = transactions.index
+                JOIN blocks ON blocks.height = transactions.block_height
+            WHERE module_reference = $1
+                AND link_smart_contract_module_transactions.index < $2
+            ORDER BY block_slot_time DESC
+            LIMIT $3
+        "#,
+            self.module_reference,
+            (total_count as i64).saturating_sub(min_index),
+            limit
+        )
+        .fetch_all(pool)
+        .await?;
+
         Ok(ModuleReferenceContractLinkEventsCollectionSegment {
-            page_info: CollectionSegmentInfo {
-                has_next_page,
-                has_previous_page,
-            },
             total_count,
             items,
         })
@@ -303,8 +291,6 @@ impl ModuleReferenceContractLinkEvent {
 /// A segment of a collection.
 #[derive(SimpleObject)]
 struct ModuleReferenceContractLinkEventsCollectionSegment {
-    /// Information to aid in pagination.
-    page_info:   CollectionSegmentInfo,
     /// A flattened list of the items.
     items:       Vec<ModuleReferenceContractLinkEvent>,
     total_count: u64,
