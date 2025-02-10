@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                MAX(index) + 1\n            FROM rejected_smart_contract_module_transactions\n                WHERE module_reference = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "?column?",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bpchar"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "3f601550bb7a97a06f32f2a7378d4e675b50f68b3064f3cf375471bf764fd22c"
+}

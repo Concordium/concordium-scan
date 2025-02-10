@@ -83,7 +83,19 @@ impl ModuleReferenceEvent {
             }),
         )?;
 
-        let mut items = sqlx::query_as!(
+        let total_count: u64 = sqlx::query_scalar!(
+            "SELECT
+                MAX(index) + 1
+            FROM rejected_smart_contract_module_transactions
+                WHERE module_reference = $1",
+            self.module_reference,
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0)
+        .try_into()?;
+
+        let items = sqlx::query_as!(
             ModuleReferenceRejectEvent,
             r#"SELECT
                 module_reference,
@@ -95,42 +107,18 @@ impl ModuleReferenceEvent {
                 JOIN transactions ON transaction_index = transactions.index
                 JOIN blocks ON blocks.height = transactions.block_height
             WHERE module_reference = $1
-                AND rejected_smart_contract_module_transactions.index >= $2
+                AND rejected_smart_contract_module_transactions.index < $2
+            ORDER BY rejected_smart_contract_module_transactions.index DESC
             LIMIT $3
         "#,
             self.module_reference,
-            min_index,
-            limit + 1
+            (total_count as i64).saturating_sub(min_index),
+            limit
         )
         .fetch_all(pool)
         .await?;
 
-        // Determine if there is a next page by checking if we got more than `limit`
-        // rows.
-        let has_next_page = items.len() > limit as usize;
-        // If there is a next page, remove the extra row used for pagination detection.
-        if has_next_page {
-            items.pop();
-        }
-        let has_previous_page = min_index > 0;
-
-        let total_count: u64 = sqlx::query_scalar!(
-            "SELECT
-                COUNT(*)
-            FROM rejected_smart_contract_module_transactions
-                WHERE module_reference = $1",
-            self.module_reference,
-        )
-        .fetch_one(pool)
-        .await?
-        .unwrap_or(0)
-        .try_into()?;
-
         Ok(ModuleReferenceRejectEventsCollectionSegment {
-            page_info: CollectionSegmentInfo {
-                has_next_page,
-                has_previous_page,
-            },
             total_count,
             items,
         })
@@ -218,12 +206,13 @@ impl ModuleReferenceEvent {
                 config.module_reference_linked_contracts_collection_limit.min(t)
             }),
         )?;
+
         // This offset approach below does not scale well for smart contract modules
         // with a large number of instances currently linked, since a large
         // offset would traverse these. This might have to be improved in the
         // future by either indexing more or break the API to not use offset
         // pagination.
-        let mut items = sqlx::query_as!(
+        let items = sqlx::query_as!(
             LinkedContract,
             "SELECT
                 contracts.index as contract_index,
@@ -235,23 +224,15 @@ impl ModuleReferenceEvent {
                         COALESCE(last_upgrade_transaction_index, transaction_index)
                 JOIN blocks ON blocks.height = transactions.block_height
             WHERE contracts.module_reference = $1
+            ORDER BY linked_date_time DESC
             OFFSET $2
             LIMIT $3",
             self.module_reference,
             offset,
-            limit + 1
+            limit
         )
         .fetch_all(pool)
         .await?;
-
-        // Determine if there is a next page by checking if we got more than `limit`
-        // rows.
-        let has_next_page = items.len() > limit as usize;
-        // If there is a next page, remove the extra row used for pagination detection.
-        if has_next_page {
-            items.pop();
-        }
-        let has_previous_page = offset > 0;
 
         let total_count: u64 = sqlx::query_scalar!(
             "SELECT
@@ -266,10 +247,6 @@ impl ModuleReferenceEvent {
         .try_into()?;
 
         Ok(LinkedContractsCollectionSegment {
-            page_info: CollectionSegmentInfo {
-                has_next_page,
-                has_previous_page,
-            },
             total_count,
             items,
         })
@@ -278,7 +255,6 @@ impl ModuleReferenceEvent {
 
 #[derive(SimpleObject)]
 struct ModuleReferenceRejectEventsCollectionSegment {
-    page_info:   CollectionSegmentInfo,
     items:       Vec<ModuleReferenceRejectEvent>,
     total_count: u64,
 }
@@ -337,8 +313,6 @@ struct ModuleReferenceContractLinkEventsCollectionSegment {
 /// A segment of a collection.
 #[derive(SimpleObject)]
 struct LinkedContractsCollectionSegment {
-    /// Information to aid in pagination.
-    page_info:   CollectionSegmentInfo,
     /// A flattened list of the items.
     items:       Vec<LinkedContract>,
     total_count: u64,

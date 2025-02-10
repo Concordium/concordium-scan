@@ -4,11 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Remove PageInfo from module reference reject events
+- Remove PageInfo from chained contracts events
+
 ### Fixed
 
 - Revert the API breaking change of renaming `Versions::backend_versions` to `Versions::backend_version`.
+- Fix order of module reference reject events to DESC
+- Fix order of chained contracts events to DESC
 
-## [0.1.21] - 2025-02-07
+
+## [0.1.21] - 2025-02-10
 
 Database schema version: 2
 
