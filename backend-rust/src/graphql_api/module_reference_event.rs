@@ -113,25 +113,12 @@ impl ModuleReferenceEvent {
         "#,
             self.module_reference,
             (total_count as i64).saturating_sub(min_index),
-            limit + 1
+            limit
         )
         .fetch_all(pool)
         .await?;
 
-        // Determine if there is a next page by checking if we got more than `limit`
-        // rows.
-        let has_next_page = items.len() > limit as usize;
-        // If there is a next page, remove the extra row used for pagination detection.
-        if has_next_page {
-            items.pop();
-        }
-        let has_previous_page = min_index > 0;
-
         Ok(ModuleReferenceRejectEventsCollectionSegment {
-            page_info: CollectionSegmentInfo {
-                has_next_page,
-                has_previous_page,
-            },
             total_count,
             items,
         })
@@ -267,10 +254,6 @@ impl ModuleReferenceEvent {
         .try_into()?;
 
         Ok(LinkedContractsCollectionSegment {
-            page_info: CollectionSegmentInfo {
-                has_next_page,
-                has_previous_page,
-            },
             total_count,
             items,
         })
@@ -279,7 +262,6 @@ impl ModuleReferenceEvent {
 
 #[derive(SimpleObject)]
 struct ModuleReferenceRejectEventsCollectionSegment {
-    page_info:   CollectionSegmentInfo,
     items:       Vec<ModuleReferenceRejectEvent>,
     total_count: u64,
 }
@@ -338,8 +320,6 @@ struct ModuleReferenceContractLinkEventsCollectionSegment {
 /// A segment of a collection.
 #[derive(SimpleObject)]
 struct LinkedContractsCollectionSegment {
-    /// Information to aid in pagination.
-    page_info:   CollectionSegmentInfo,
     /// A flattened list of the items.
     items:       Vec<LinkedContract>,
     total_count: u64,
