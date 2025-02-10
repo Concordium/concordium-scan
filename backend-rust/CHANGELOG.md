@@ -7,7 +7,8 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - Remove PageInfo from module reference reject events
-- Remove PageInfo from chained contracts events
+- Remove PageInfo from module linked contracts events
+- Remove PageInfo from module linked events
 
 ### Fixed
 
