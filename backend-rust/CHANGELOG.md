@@ -6,9 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- Remove PageInfo from module reference reject events
-- Remove PageInfo from module linked contracts events
-- Remove PageInfo from module linked events
+- Remove `LinkedContractsCollectionSegment::PageInfo`, `ModuleReferenceRejectEventsCollectionSegment::PageInfo`, `ModuleReferenceContractLinkEventsCollectionSegment::PageInfo`, `TokensCollectionSegment::PageInfo` and `ContractRejectEventsCollectionSegment::PageInfo` from API as these are never used by the frontend.
 
 ### Fixed
 
@@ -16,7 +14,7 @@ All notable changes to this project will be documented in this file.
 - Fix order of module reference reject events to DESC
 - Fix order of module linked contracts events to DESC
 - Fix order of module linked events to DESC
-
+- Fix API `Contract::tokens` and `Contract::contract_reject_events` only providing a single item for its first page.
 
 ## [0.1.21] - 2025-02-10
 
