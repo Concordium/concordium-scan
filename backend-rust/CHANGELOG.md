@@ -5,13 +5,13 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+
 - Remove PageInfo from module reference reject event
 
 ### Fixed
 
 - Change ORDER of module reference reject event to DESC
-
-## [0.1.21] - 2025-02-10
+- Revert the API breaking change of renaming `Versions::backend_versions` to `Versions::backend_version`.
 
 Database schema version: 2
 
