@@ -40,10 +40,10 @@ impl QueryBaker {
         &self,
         #[graphql(default)] _sort: BakerSort,
         _filter: BakerFilterInput,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<i32>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         _after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         _before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Baker>> {

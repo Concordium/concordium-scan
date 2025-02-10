@@ -30,8 +30,8 @@ use concordium_rust_sdk::{
         self as sdk_types, block_certificates::BlockCertificates, queries::BlockInfo,
         AbsoluteBlockHeight, AccountStakingInfo, AccountTransactionDetails,
         AccountTransactionEffects, BakerId, BlockItemSummary, BlockItemSummaryDetails,
-        ContractAddress, ContractInitializedEvent, ContractTraceElement, DelegationTarget,
-        PartsPerHundredThousands, ProtocolVersion, RejectReason, RewardsOverview,
+        CommissionRates, ContractAddress, ContractInitializedEvent, ContractTraceElement,
+        DelegationTarget, PartsPerHundredThousands, ProtocolVersion, RejectReason, RewardsOverview,
         SpecialTransactionOutcome, TransactionType,
     },
     v2::{
@@ -39,7 +39,10 @@ use concordium_rust_sdk::{
         RPCError,
     },
 };
-use futures::{future::join_all, StreamExt, TryStreamExt};
+use futures::{
+    future::{join_all, try_join_all},
+    StreamExt, TryStreamExt,
+};
 use prometheus_client::{
     metrics::{
         counter::Counter,
@@ -931,9 +934,11 @@ impl PreparedBlock {
         }
 
         let special_transaction_outcomes = PreparedSpecialTransactionOutcomes::prepare(
-            data.block_info.block_height,
+            node_client,
+            &data.block_info,
             &data.special_events,
-        )?;
+        )
+        .await?;
         let baker_unmark_suspended = PreparedUnmarkPrimedForSuspension::prepare(data)?;
         Ok(Self {
             hash,
@@ -3669,17 +3674,29 @@ struct PreparedSpecialTransactionOutcomes {
 }
 
 impl PreparedSpecialTransactionOutcomes {
-    fn prepare(
-        block_height: AbsoluteBlockHeight,
+    async fn prepare(
+        node_client: &mut v2::Client,
+        block_info: &BlockInfo,
         events: &[SpecialTransactionOutcome],
     ) -> anyhow::Result<Self> {
         Ok(Self {
             insert_special_transaction_outcomes:
-                PreparedInsertBlockSpecialTransacionOutcomes::prepare(block_height, events)?,
-            updates: events
-                .iter()
-                .map(|event| PreparedSpecialTransactionOutcomeUpdate::prepare(event, block_height))
-                .collect::<Result<_, _>>()?,
+                PreparedInsertBlockSpecialTransacionOutcomes::prepare(
+                    block_info.block_height,
+                    events,
+                )?,
+            updates: try_join_all(events.iter().map(|event| {
+                let mut node_client = node_client.clone();
+                async move {
+                    PreparedSpecialTransactionOutcomeUpdate::prepare(
+                        &mut node_client,
+                        event,
+                        block_info,
+                    )
+                    .await
+                }
+            }))
+            .await?,
         })
     }
 
@@ -3774,37 +3791,21 @@ enum PreparedSpecialTransactionOutcomeUpdate {
     /// payday block.
     Rewards(Vec<PreparedUpdateAccountBalance>),
     /// Represents a payday block and its associated updates.
-    Payday(Payday),
+    PreparedPayDayBlock(PreparedPayDayBlock),
     /// Validator is primed for suspension.
     ValidatorPrimedForSuspension(PreparedValidatorPrimedForSuspension),
     /// Validator is suspended.
     ValidatorSuspended(PreparedValidatorSuspension),
 }
 
-enum Payday {
-    /// Represents a payday block with its CCD mint rewards.
-    PreparedPayDayBlock(PreparedPayDayBlock),
-    /// Represents the payday pool rewards to a given baker pool.
-    PreparedPaydayPoolReward(PreparedPaydayPoolReward),
-}
-
-impl Payday {
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
-        match self {
-            Self::PreparedPaydayPoolReward(event) => event.save(tx).await,
-            Self::PreparedPayDayBlock(event) => event.save(tx).await,
-        }
-    }
-}
-
 impl PreparedSpecialTransactionOutcomeUpdate {
-    fn prepare(
+    async fn prepare(
+        node_client: &mut v2::Client,
         event: &SpecialTransactionOutcome,
-        block_height: AbsoluteBlockHeight,
+        block_info: &BlockInfo,
     ) -> anyhow::Result<Self> {
+        let block_height = block_info.block_height;
+
         let results = match &event {
             SpecialTransactionOutcome::BakingRewards {
                 baker_rewards,
@@ -3837,10 +3838,9 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                     AccountStatementEntryType::FoundationReward,
                 )?;
 
-                Self::Payday(Payday::PreparedPayDayBlock(PreparedPayDayBlock::prepare(
-                    block_height,
-                    rewards,
-                )?))
+                Self::PreparedPayDayBlock(
+                    PreparedPayDayBlock::prepare(node_client, block_info, rewards).await?,
+                )
             }
             SpecialTransactionOutcome::FinalizationRewards {
                 finalization_rewards,
@@ -3919,18 +3919,10 @@ impl PreparedSpecialTransactionOutcomeUpdate {
             // TODO: Support these two types. (Deviates from Old CCDScan)
             SpecialTransactionOutcome::BlockAccrueReward {
                 ..
+            }
+            | SpecialTransactionOutcome::PaydayPoolReward {
+                ..
             } => Self::Rewards(Vec::new()),
-            SpecialTransactionOutcome::PaydayPoolReward {
-                pool_owner,
-                transaction_fees,
-                baker_reward,
-                finalization_reward,
-            } => Self::Payday(Payday::PreparedPaydayPoolReward(PreparedPaydayPoolReward::prepare(
-                pool_owner.map(|i| i.id.index as i64),
-                *transaction_fees,
-                *baker_reward,
-                *finalization_reward,
-            )?)),
             SpecialTransactionOutcome::ValidatorSuspended {
                 baker_id,
                 ..
@@ -3960,7 +3952,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 }
                 Ok(())
             }
-            Self::Payday(event) => event.save(tx).await,
+            Self::PreparedPayDayBlock(event) => event.save(tx).await,
             Self::ValidatorPrimedForSuspension(event) => event.save(tx).await,
             Self::ValidatorSuspended(event) => event.save(tx).await,
         }
@@ -4065,22 +4057,53 @@ struct PreparedValidatorSuspension {
     block_height: i64,
 }
 
-/// Represents a payday block with its CCD mint rewards and the associated block
-/// height. The block was identified by observing the
-/// `SpecialTransactionOutcome::Mint` event.
+/// Represents a payday block with its CCD mint rewards, its payday commission
+/// rates, and the associated block height. The block was identified by
+/// observing the `SpecialTransactionOutcome::Mint` event.
 struct PreparedPayDayBlock {
-    block_height: i64,
-    mint_reward:  PreparedUpdateAccountBalance,
+    block_height:            i64,
+    mint_reward:             PreparedUpdateAccountBalance,
+    /// Represents the payday baker pool commission rates captured from
+    /// the `get_bakers_reward_period` node endpoint.
+    payday_commission_rates: Vec<PreparedPaydayCommissionRates>,
 }
 
 impl PreparedPayDayBlock {
-    fn prepare(
-        block_height: AbsoluteBlockHeight,
+    async fn prepare(
+        node_client: &mut v2::Client,
+        block_info: &BlockInfo,
         mint_reward: PreparedUpdateAccountBalance,
     ) -> anyhow::Result<Self> {
+        let block_height = block_info.block_height;
+
+        // Fetching the `get_bakers_reward_period` endpoint prior to P4 results in a
+        // InvalidArgument gRPC error, so we produce the empty vector of
+        // `payday_pool_rewards` instead. The information of the last payday commission
+        // rate of baker pools is expected to be used when the indexer has fully
+        // caught up to the top of the chain.
+        let payday_commission_rates: Vec<PreparedPaydayCommissionRates> =
+            if block_info.protocol_version >= ProtocolVersion::P4 {
+                let mut stream = node_client
+                    .get_bakers_reward_period(BlockIdentifier::AbsoluteHeight(block_height))
+                    .await?
+                    .response;
+
+                let mut payday_commission_rates = vec![];
+                while let Some(baker_reward_period_info) = stream.try_next().await? {
+                    payday_commission_rates.push(PreparedPaydayCommissionRates::prepare(
+                        i64::try_from(baker_reward_period_info.baker.baker_id.id.index)?,
+                        baker_reward_period_info.commission_rates,
+                    )?)
+                }
+                payday_commission_rates
+            } else {
+                vec![]
+            };
+
         Ok(Self {
             block_height: block_height.height.try_into()?,
             mint_reward,
+            payday_commission_rates,
         })
     }
 
@@ -4090,6 +4113,11 @@ impl PreparedPayDayBlock {
     ) -> anyhow::Result<()> {
         // Save the `rewards` to the database.
         self.mint_reward.save(tx, None).await?;
+
+        // Save the commission rates to the database.
+        for event in &self.payday_commission_rates {
+            event.save(tx).await?;
+        }
 
         sqlx::query!(
             "UPDATE current_chain_parameters
@@ -4102,27 +4130,29 @@ impl PreparedPayDayBlock {
     }
 }
 
-/// Represents the payday pool rewards distributed to a baker pool captured from
-/// the `SpecialTransactionOutcome::PaydayPoolReward` event.
-struct PreparedPaydayPoolReward {
-    baker_id:            Option<i64>,
-    transaction_fees:    i64,
-    baker_reward:        i64,
-    finalization_reward: i64,
+/// Represents the payday baker pool commission rates captured from
+/// the `get_bakers_reward_period` node endpoint.
+struct PreparedPaydayCommissionRates {
+    baker_id:                i64,
+    transaction_commission:  i64,
+    baking_commission:       i64,
+    finalization_commission: i64,
 }
 
-impl PreparedPaydayPoolReward {
-    fn prepare(
-        pool_owner: Option<i64>,
-        transaction_fees: Amount,
-        baker_reward: Amount,
-        finalization_reward: Amount,
-    ) -> anyhow::Result<Self> {
+impl PreparedPaydayCommissionRates {
+    fn prepare(baker_id: i64, commission_rates: CommissionRates) -> anyhow::Result<Self> {
+        let transaction_commission =
+            i64::from(u32::from(PartsPerHundredThousands::from(commission_rates.transaction)));
+        let baking_commission =
+            i64::from(u32::from(PartsPerHundredThousands::from(commission_rates.baking)));
+        let finalization_commission =
+            i64::from(u32::from(PartsPerHundredThousands::from(commission_rates.finalization)));
+
         Ok(Self {
-            baker_id:            pool_owner,
-            transaction_fees:    transaction_fees.micro_ccd.try_into()?,
-            baker_reward:        baker_reward.micro_ccd.try_into()?,
-            finalization_reward: finalization_reward.micro_ccd.try_into()?,
+            baker_id,
+            transaction_commission,
+            baking_commission,
+            finalization_commission,
         })
     }
 
@@ -4130,22 +4160,20 @@ impl PreparedPaydayPoolReward {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
-        if let Some(baker_id) = self.baker_id {
-            sqlx::query!(
-                "UPDATE bakers
+        sqlx::query!(
+            "UPDATE bakers
                 SET
                     payday_transaction_commission = $2,
                     payday_baking_commission = $3,
                     payday_finalization_commission = $4
                 WHERE id=$1",
-                baker_id,
-                self.transaction_fees,
-                self.baker_reward,
-                self.finalization_reward
-            )
-            .execute(tx.as_mut())
-            .await?;
-        };
+            self.baker_id,
+            self.transaction_commission,
+            self.baking_commission,
+            self.finalization_commission
+        )
+        .execute(tx.as_mut())
+        .await?;
         Ok(())
     }
 }
