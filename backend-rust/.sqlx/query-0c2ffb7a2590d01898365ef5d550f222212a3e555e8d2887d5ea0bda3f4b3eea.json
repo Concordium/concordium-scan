@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                link_action as \"link_action: ModuleReferenceContractLinkAction\",\n                contract_index,\n                contract_sub_index,\n                transactions.hash as transaction_hash,\n                blocks.slot_time as block_slot_time\n            FROM link_smart_contract_module_transactions\n                JOIN transactions ON transaction_index = transactions.index\n                JOIN blocks ON blocks.height = transactions.block_height\n            WHERE module_reference = $1\n                AND link_smart_contract_module_transactions.index >= $2\n            LIMIT $3\n        ",
+  "query": "SELECT\n                link_action as \"link_action: ModuleReferenceContractLinkAction\",\n                contract_index,\n                contract_sub_index,\n                transactions.hash as transaction_hash,\n                blocks.slot_time as block_slot_time\n            FROM link_smart_contract_module_transactions\n                JOIN transactions ON transaction_index = transactions.index\n                JOIN blocks ON blocks.height = transactions.block_height\n            WHERE module_reference = $1\n                AND link_smart_contract_module_transactions.index < $2\n            ORDER BY block_slot_time DESC\n            LIMIT $3\n        ",
   "describe": {
     "columns": [
       {
@@ -54,5 +54,5 @@
       false
     ]
   },
-  "hash": "998838bc13a2cbeefd45aeac96f6d93a1aaa1b90b119e1761ead70ce05da6924"
+  "hash": "0c2ffb7a2590d01898365ef5d550f222212a3e555e8d2887d5ea0bda3f4b3eea"
 }
