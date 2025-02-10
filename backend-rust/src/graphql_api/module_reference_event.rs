@@ -141,7 +141,7 @@ impl ModuleReferenceEvent {
 
         let total_count: u64 = sqlx::query_scalar!(
             "SELECT
-                COUNT(*)
+                MAX(index) + 1
             FROM link_smart_contract_module_transactions
                 WHERE module_reference = $1",
             self.module_reference,
