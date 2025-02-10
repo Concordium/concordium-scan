@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+Database schema version: 3
+
+### Added
+
+- Add `payday_commission_rates` to the `Baker::state` query. These rates contain the `transaction`, `baking`, and `finalization` commissions payed out to a baker pool at payday.
+
 ### Fixed
 
 - Fix API issue where `Query::block_metrics` computed summary of metrics period using the wrong starting point, causing metrics to be off some of the time.
