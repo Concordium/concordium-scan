@@ -83,18 +83,6 @@ impl ModuleReferenceEvent {
             }),
         )?;
 
-        let total_count: u64 = sqlx::query_scalar!(
-            "SELECT
-                COUNT(*)
-            FROM rejected_smart_contract_module_transactions
-                WHERE module_reference = $1",
-            self.module_reference,
-        )
-        .fetch_one(pool)
-        .await?
-        .unwrap_or(0)
-        .try_into()?;
-
         let items = sqlx::query_as!(
             ModuleReferenceRejectEvent,
             r#"SELECT
@@ -107,7 +95,7 @@ impl ModuleReferenceEvent {
                 JOIN transactions ON transaction_index = transactions.index
                 JOIN blocks ON blocks.height = transactions.block_height
             WHERE module_reference = $1
-                AND rejected_smart_contract_module_transactions.index < $2
+            OFFSET $2
             ORDER BY rejected_smart_contract_module_transactions.index DESC
             LIMIT $3
         "#,
@@ -117,6 +105,18 @@ impl ModuleReferenceEvent {
         )
         .fetch_all(pool)
         .await?;
+
+        let total_count: u64 = sqlx::query_scalar!(
+            "SELECT
+                COUNT(*)
+            FROM rejected_smart_contract_module_transactions
+                WHERE module_reference = $1",
+            self.module_reference,
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0)
+        .try_into()?;
 
         Ok(ModuleReferenceRejectEventsCollectionSegment {
             total_count,
@@ -236,10 +236,10 @@ impl ModuleReferenceEvent {
                 WHERE module_reference = $1",
             self.module_reference,
         )
-            .fetch_one(pool)
-            .await?
-            .unwrap_or(0)
-            .try_into()?;
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0)
+        .try_into()?;
 
         Ok(LinkedContractsCollectionSegment {
             total_count,
