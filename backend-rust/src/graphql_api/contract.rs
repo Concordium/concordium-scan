@@ -122,7 +122,7 @@ impl QueryContract {
             i64::from(query.from),
             i64::from(query.to),
             query.limit,
-            query.desc
+            query.is_last
         )
         .fetch(pool);
 

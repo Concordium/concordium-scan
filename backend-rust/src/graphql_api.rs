@@ -870,7 +870,7 @@ impl SearchResult {
             query.from,
             query.to,
             query.limit,
-            query.desc,
+            query.is_last,
             lower_case_query.parse::<i64>().ok(),
             lower_case_query
         )
@@ -1007,7 +1007,7 @@ impl SearchResult {
             query.from,
             query.to,
             query.limit,
-            query.desc,
+            query.is_last,
             self.query
         )
         .fetch_all(pool)
