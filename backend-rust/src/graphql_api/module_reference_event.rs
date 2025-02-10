@@ -95,7 +95,7 @@ impl ModuleReferenceEvent {
         .unwrap_or(0)
         .try_into()?;
 
-        let mut items = sqlx::query_as!(
+        let items = sqlx::query_as!(
             ModuleReferenceRejectEvent,
             r#"SELECT
                 module_reference,
@@ -206,12 +206,8 @@ impl ModuleReferenceEvent {
                 config.module_reference_linked_contracts_collection_limit.min(t)
             }),
         )?;
-        // This offset approach below does not scale well for smart contract modules
-        // with a large number of instances currently linked, since a large
-        // offset would traverse these. This might have to be improved in the
-        // future by either indexing more or break the API to not use offset
-        // pagination.
-        let mut items = sqlx::query_as!(
+
+        let items = sqlx::query_as!(
             LinkedContract,
             "SELECT
                 contracts.index as contract_index,
@@ -223,23 +219,15 @@ impl ModuleReferenceEvent {
                         COALESCE(last_upgrade_transaction_index, transaction_index)
                 JOIN blocks ON blocks.height = transactions.block_height
             WHERE contracts.module_reference = $1
+            ORDER BY linked_date_time DESC
             OFFSET $2
             LIMIT $3",
             self.module_reference,
             offset,
-            limit + 1
+            limit
         )
         .fetch_all(pool)
         .await?;
-
-        // Determine if there is a next page by checking if we got more than `limit`
-        // rows.
-        let has_next_page = items.len() > limit as usize;
-        // If there is a next page, remove the extra row used for pagination detection.
-        if has_next_page {
-            items.pop();
-        }
-        let has_previous_page = offset > 0;
 
         let total_count: u64 = sqlx::query_scalar!(
             "SELECT
@@ -248,10 +236,10 @@ impl ModuleReferenceEvent {
                 WHERE module_reference = $1",
             self.module_reference,
         )
-        .fetch_one(pool)
-        .await?
-        .unwrap_or(0)
-        .try_into()?;
+            .fetch_one(pool)
+            .await?
+            .unwrap_or(0)
+            .try_into()?;
 
         Ok(LinkedContractsCollectionSegment {
             total_count,

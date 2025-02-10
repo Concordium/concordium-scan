@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                contracts.index as contract_index,\n                contracts.sub_index as contract_sub_index,\n                blocks.slot_time as linked_date_time\n            FROM contracts\n                JOIN transactions\n                    ON transactions.index =\n                        COALESCE(last_upgrade_transaction_index, transaction_index)\n                JOIN blocks ON blocks.height = transactions.block_height\n            WHERE contracts.module_reference = $1\n            ORDER BY linked_date_time DESC\n            OFFSET $2\n            LIMIT $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "contract_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "contract_sub_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "linked_date_time",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bpchar",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "34076dc40c51af6d3e26c4af01e6211f9239fa103eb6b00a323b7f1b60e661a3"
+}
