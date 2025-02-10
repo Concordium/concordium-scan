@@ -55,14 +55,19 @@ pub fn connection_from_slice<T: AsRef<[A]>, A: async_graphql::OutputType + Clone
     Ok(connection)
 }
 
-/// Upper and lower limits for the Cursor in a GraphQL Cursor Connection.
+/// Bounds for the Cursor in a GraphQL Cursor Connection, used as the fallback
+/// when no explicit range is provided as `after`/`before`.
 pub trait ConnectionCursor {
-    const MIN: Self;
-    const MAX: Self;
+    /// A non-inclusive bound for the start of the collection provided as the
+    /// connection.
+    const START_BOUND: Self;
+    /// A non-inclusive bound for the end of the collection provided as the
+    /// connection.
+    const END_BOUND: Self;
 }
 impl ConnectionCursor for i64 {
-    const MAX: i64 = i64::MAX;
-    const MIN: i64 = i64::MIN;
+    const END_BOUND: i64 = i64::MAX;
+    const START_BOUND: i64 = i64::MIN;
 }
 
 /// GraphQL Connection Cursor representing a collection where the pages are
@@ -72,26 +77,26 @@ impl ConnectionCursor for i64 {
 pub struct DescendingI64(i64);
 
 impl ConnectionCursor for DescendingI64 {
-    const MAX: Self = Self(i64::MIN);
-    const MIN: Self = Self(i64::MAX);
+    const END_BOUND: Self = Self(i64::MIN);
+    const START_BOUND: Self = Self(i64::MAX);
 }
 
 /// Prepared query arguments for SQL query, based on arguments from a GraphQL
 /// Cursor Connection resolver.
 #[derive(Debug)]
 pub struct ConnectionQuery<A> {
-    /// The lower to use for the SQL query.
-    pub from:  A,
-    /// The upper to use for the SQL query.
-    pub to:    A,
-    /// The limit to use for the SQL query.
-    pub limit: i64,
+    /// The non-inclusive starting bound to use for the SQL sub-query.
+    pub from:    A,
+    /// The non-inclusive end bound to use for the SQL sub-query.
+    pub to:      A,
+    /// The limit to use for the SQL sub-query.
+    pub limit:   i64,
     /// If the `last` elements are requested instead of the `first` elements
     /// (indicated by the `last` key being set when creating a new
-    /// `ConnectionQuery`), the edges/nodes should be ordered in reverse
-    /// (DESC) order before applying the range. This allows the range from
-    /// `from` to `to` to be applied starting from the last element.
-    pub desc:  bool,
+    /// `ConnectionQuery`), the edges/nodes should first be ordered in reverse
+    /// order with the limit in a sub-query and the result then ordered again to
+    /// keep the page ordering consistent.
+    pub is_last: bool,
 }
 impl<A> ConnectionQuery<A> {
     /// Validate and prepare GraphQL Cursor Connection arguments to be used for
@@ -113,13 +118,13 @@ impl<A> ConnectionQuery<A> {
         let from = if let Some(a) = after {
             a.parse::<A>().map_err(|e| e.into())?
         } else {
-            A::MIN
+            A::START_BOUND
         };
 
         let to = if let Some(b) = before {
             b.parse::<A>().map_err(|e| e.into())?
         } else {
-            A::MAX
+            A::END_BOUND
         };
 
         let limit =
@@ -129,7 +134,7 @@ impl<A> ConnectionQuery<A> {
             from,
             to,
             limit,
-            desc: last.is_some(),
+            is_last: last.is_some(),
         })
     }
 }

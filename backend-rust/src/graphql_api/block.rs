@@ -78,7 +78,7 @@ impl QueryBlocks {
             i64::from(query.from),
             i64::from(query.to),
             query.limit,
-            query.desc
+            query.is_last
         )
         .fetch_all(pool)
         .await?;
@@ -252,7 +252,7 @@ impl Block {
             ) ORDER BY block_outcome_index ASC"#,
             query.from,
             query.to,
-            query.desc,
+            query.is_last,
             query.limit,
             self.height,
             disable_filtering,
@@ -344,7 +344,7 @@ impl Block {
             ) ORDER BY index ASC"#,
             query.from,
             query.to,
-            query.desc,
+            query.is_last,
             query.limit,
             self.height
         )

@@ -140,7 +140,7 @@ impl QueryAccounts {
             matches!(order.field, AccountOrderField::TransactionCount),
             matches!(order.field, AccountOrderField::DelegatedStake),
             filter.map(|f| f.is_delegator).unwrap_or_default(),
-            query.desc != matches!(order.dir, OrderDir::Desc),
+            query.is_last != matches!(order.dir, OrderDir::Desc),
             query.limit,
             matches!(order.dir, OrderDir::Desc),
         )
@@ -458,7 +458,7 @@ impl Account {
             query.from,
             query.to,
             query.limit,
-            query.desc,
+            query.is_last,
             &self.index
         )
         .fetch(pool);
@@ -559,7 +559,7 @@ impl Account {
             self.index,
             query.from,
             query.to,
-            query.desc,
+            query.is_last,
             query.limit,
         )
         .fetch(pool);
@@ -670,7 +670,7 @@ impl Account {
             query.from,
             query.to,
             query.limit,
-            query.desc,
+            query.is_last,
             &self.index
         )
         .fetch(pool);
@@ -771,7 +771,7 @@ impl Account {
             query.from,
             query.to,
             query.limit,
-            query.desc,
+            query.is_last,
             &self.index
         )
         .fetch(pool);
@@ -882,7 +882,7 @@ impl AccountReleaseSchedule {
             query.from,
             query.to,
             query.limit,
-            query.desc,
+            query.is_last,
             self.account_index
         )
         .fetch_all(pool)

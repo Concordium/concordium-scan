@@ -250,7 +250,7 @@ impl Baker {
             ) ORDER BY index DESC"#,
             query.from,
             query.to,
-            query.desc,
+            query.is_last,
             query.limit,
             self.id.0,
             account_transaction_type_filter as &[AccountTransactionType]

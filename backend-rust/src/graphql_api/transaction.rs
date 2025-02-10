@@ -87,7 +87,7 @@ impl QueryTransactions {
             ) ORDER BY index ASC"#,
             query.from,
             query.to,
-            query.desc,
+            query.is_last,
             query.limit,
         )
         .fetch(pool);
