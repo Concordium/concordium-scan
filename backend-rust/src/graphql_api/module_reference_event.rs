@@ -90,10 +90,10 @@ impl ModuleReferenceEvent {
                 WHERE module_reference = $1",
             self.module_reference,
         )
-            .fetch_one(pool)
-            .await?
-            .unwrap_or(0)
-            .try_into()?;
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0)
+        .try_into()?;
 
         let items = sqlx::query_as!(
             ModuleReferenceRejectEvent,
@@ -112,7 +112,7 @@ impl ModuleReferenceEvent {
             LIMIT $3
         "#,
             self.module_reference,
-            (   total_count as i64).saturating_sub(min_index),
+            (total_count as i64).saturating_sub(min_index),
             limit
         )
         .fetch_all(pool)
