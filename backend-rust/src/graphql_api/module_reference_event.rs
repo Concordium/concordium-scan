@@ -90,10 +90,10 @@ impl ModuleReferenceEvent {
                 WHERE module_reference = $1",
             self.module_reference,
         )
-            .fetch_one(pool)
-            .await?
-            .unwrap_or(0)
-            .try_into()?;
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0)
+        .try_into()?;
 
         let mut items = sqlx::query_as!(
             ModuleReferenceRejectEvent,
