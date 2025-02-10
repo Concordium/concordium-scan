@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Revert the API breaking change of renaming `Versions::backend_versions` to `Versions::backend_version`.
+
 ## [0.1.21] - 2025-02-07
 
 Database schema version: 2

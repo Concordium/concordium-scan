@@ -438,7 +438,7 @@ struct BaseQuery;
 impl BaseQuery {
     async fn versions(&self, ctx: &Context<'_>) -> ApiResult<Versions> {
         Ok(Versions {
-            backend_version: VERSION.to_string(),
+            backend_versions: VERSION.to_string(),
             database_schema_version: current_schema_version(get_pool(ctx)?)
                 .await
                 .map_err(|e| ApiError::InternalError(e.to_string()))?
@@ -769,7 +769,7 @@ pub struct ChainParametersV1 {
 
 #[derive(SimpleObject)]
 struct Versions {
-    backend_version: String,
+    backend_versions: String,
     database_schema_version: String,
     api_supported_database_schema_version: String,
 }
