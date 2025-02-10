@@ -41,7 +41,6 @@ Database schema version: 2
 - Next and previous page on contracts.
 - Issue making `Query::block_metrics` included a bucket for a period in the future.
 - Contract events order fixed
-- Contract 
 
 ## [0.1.19] - 2025-01-30
 
