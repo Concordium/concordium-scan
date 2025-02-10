@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file.
 - Revert the API breaking change of renaming `Versions::backend_versions` to `Versions::backend_version`.
 - Fix order of module reference reject events to DESC
 - Fix order of chained contracts events to DESC
-
+- Fix issue in API `Query::blocks`, where providing `before` or `after` did not consider the blocks to be descending block height order.
 
 ## [0.1.21] - 2025-02-10
 

@@ -1,6 +1,7 @@
 use super::{get_config, get_pool, ApiError, ApiResult, ConnectionQuery};
 use crate::{
     block_special_event::{SpecialEvent, SpecialEventTypeFilter},
+    connection::DescendingI64,
     graphql_api::Transaction,
     scalar_types::{Amount, BakerId, BlockHash, BlockHeight, DateTime},
     transaction_event::Event,
@@ -45,7 +46,7 @@ impl QueryBlocks {
     ) -> ApiResult<connection::Connection<String, Block>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
-        let query = ConnectionQuery::<BlockHeight>::new(
+        let query = ConnectionQuery::<DescendingI64>::new(
             first,
             after,
             last,
@@ -68,14 +69,14 @@ impl QueryBlocks {
                     baker_id,
                     total_amount
                 FROM blocks
-                WHERE height > $1 AND height < $2
+                WHERE height < $1 AND height > $2
                 ORDER BY
                     (CASE WHEN $4 THEN height END) ASC,
                     (CASE WHEN NOT $4 THEN height END) DESC
                 LIMIT $3
             ) ORDER BY height DESC",
-            query.from,
-            query.to,
+            i64::from(query.from),
+            i64::from(query.to),
             query.limit,
             query.desc
         )
