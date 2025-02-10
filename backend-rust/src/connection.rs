@@ -85,17 +85,17 @@ impl ConnectionCursor for DescendingI64 {
 /// Cursor Connection resolver.
 #[derive(Debug)]
 pub struct ConnectionQuery<A> {
-    /// The lower to use for the SQL query.
+    /// The non-inclusive starting bound to use for the SQL sub-query.
     pub from:    A,
-    /// The upper to use for the SQL query.
+    /// The non-inclusive end bound to use for the SQL sub-query.
     pub to:      A,
-    /// The limit to use for the SQL query.
+    /// The limit to use for the SQL sub-query.
     pub limit:   i64,
     /// If the `last` elements are requested instead of the `first` elements
     /// (indicated by the `last` key being set when creating a new
-    /// `ConnectionQuery`), the edges/nodes should be ordered in reverse
-    /// (DESC) order before applying the range. This allows the range from
-    /// `from` to `to` to be applied starting from the last element.
+    /// `ConnectionQuery`), the edges/nodes should first be ordered in reverse
+    /// order with the limit in a sub-query and the result then ordered again to
+    /// keep the page ordering consistent.
     pub is_last: bool,
 }
 impl<A> ConnectionQuery<A> {
