@@ -15,6 +15,9 @@ All notable changes to this project will be documented in this file.
 - Change order of module reference reject events to DESC
 - Change order of chained contracts events to DESC
 
+
+## [0.1.21] - 2025-02-10
+
 Database schema version: 2
 
 ### Added
