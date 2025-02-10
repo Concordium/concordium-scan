@@ -505,8 +505,8 @@ impl Contract {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
 
-        let max_token_index = sqlx::query_scalar!(
-            "SELECT MAX(token_index_per_contract)
+        let total_count = sqlx::query_scalar!(
+            "SELECT MAX(token_index_per_contract) + 1
             FROM tokens
             WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2",
             self.contract_address_index.0 as i64,
@@ -516,12 +516,12 @@ impl Contract {
         .await?
         .unwrap_or(0) as u64;
 
-        let max_index = max_token_index.saturating_sub(skip.unwrap_or(0));
+        let max_index = total_count.saturating_sub(skip.unwrap_or(0));
         let limit = i64::try_from(take.map_or(config.contract_tokens_collection_limit, |t| {
             config.contract_tokens_collection_limit.min(t)
         }))?;
 
-        let mut items = sqlx::query_as!(
+        let items = sqlx::query_as!(
             Token,
             "SELECT
                 index,
@@ -534,7 +534,7 @@ impl Contract {
                 init_transaction_index
             FROM tokens
             WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2
-                AND tokens.token_index_per_contract >= $3
+                AND tokens.token_index_per_contract < $3
             ORDER BY tokens.token_index_per_contract DESC
             LIMIT $4
             ",
@@ -546,33 +546,7 @@ impl Contract {
         .fetch_all(pool)
         .await?;
 
-        // Determine if there is a next page by checking if we got more than `limit`
-        // rows.
-        let has_next_page = items.len() > limit as usize;
-        // If there is a next page, remove the extra row used for pagination detection.
-        if has_next_page {
-            items.pop();
-        }
-        let has_previous_page = max_token_index > max_index;
-
-        let total_count: u64 = sqlx::query_scalar!(
-            "SELECT
-                COUNT(*)
-            FROM tokens
-                WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2",
-            self.contract_address_index.0 as i64,
-            self.contract_address_sub_index.0 as i64,
-        )
-        .fetch_one(pool)
-        .await?
-        .unwrap_or(0)
-        .try_into()?;
-
         Ok(TokensCollectionSegment {
-            page_info: CollectionSegmentInfo {
-                has_next_page,
-                has_previous_page,
-            },
             total_count,
             items,
         })
