@@ -392,8 +392,6 @@ impl Cis2Event {
 /// A segment of a collection.
 #[derive(SimpleObject)]
 pub struct TokensCollectionSegment {
-    /// Information to aid in pagination.
-    pub page_info:   CollectionSegmentInfo,
     /// A flattened list of the items.
     pub items:       Vec<Token>,
     pub total_count: u64,
