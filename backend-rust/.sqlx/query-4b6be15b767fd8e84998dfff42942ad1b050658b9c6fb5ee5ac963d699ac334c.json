@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                MAX(index) + 1\n            FROM link_smart_contract_module_transactions\n                WHERE module_reference = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "?column?",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bpchar"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "4b6be15b767fd8e84998dfff42942ad1b050658b9c6fb5ee5ac963d699ac334c"
+}
