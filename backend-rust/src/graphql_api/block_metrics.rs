@@ -205,8 +205,6 @@ LEFT JOIN LATERAL (
         .fetch_all(pool)
         .await?;
 
-        println!("Rows: {:?}", bucket_query);
-
         let mut buckets = BlockMetricsBuckets {
             bucket_width: bucket_width.into(),
             x_time: Vec::new(),
