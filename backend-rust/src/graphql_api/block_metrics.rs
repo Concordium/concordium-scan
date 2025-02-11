@@ -108,7 +108,6 @@ impl QueryBlockMetrics {
             .as_duration()
             .try_into()
             .map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))?;
-
         let period_query = sqlx::query!(
             "WITH
                  p_start AS (
@@ -117,8 +116,7 @@ impl QueryBlockMetrics {
                          slot_time,
                          cumulative_finalization_time
                      FROM blocks
-                     WHERE (NOW() - $1::interval) <= slot_time
-                     LIMIT 1
+                     WHERE slot_time = (SELECT min(slot_time) FROM blocks WHERE (NOW() - $1::interval) <= slot_time)
                  ),
                  p_end AS (
                      SELECT
@@ -131,6 +129,9 @@ impl QueryBlockMetrics {
                      LIMIT 1
                  )
              SELECT
+                 p_end.height as first,
+                 p_start.height as second,
+                 (NOW() - $1::interval) as third,
                  p_end.height - p_start.height AS blocks_added,
                  ((p_end.slot_time - p_start.slot_time) /
                      NULLIF(p_end.height - p_start.height, 0)
