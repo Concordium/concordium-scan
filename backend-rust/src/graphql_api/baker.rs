@@ -102,7 +102,7 @@ impl Baker {
                 payday_baking_commission,
                 payday_finalization_commission
             FROM bakers 
-                JOIN bakers_payday_commission_rates ON bakers_payday_commission_rates.id = bakers.id
+                LEFT JOIN bakers_payday_commission_rates ON bakers_payday_commission_rates.id = bakers.id
             WHERE bakers.id = $1
             "#,
             baker_id
