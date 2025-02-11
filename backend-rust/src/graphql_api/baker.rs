@@ -90,7 +90,7 @@ impl Baker {
             Baker,
             r#"
             SELECT
-                id,
+                bakers.id as id,
                 staked,
                 restake_earnings,
                 open_status as "open_status: BakerPoolOpenStatus",
@@ -102,7 +102,8 @@ impl Baker {
                 payday_baking_commission,
                 payday_finalization_commission
             FROM bakers 
-            WHERE id = $1
+                JOIN bakers_payday_commission_rates ON bakers_payday_commission_rates.id = bakers.id
+            WHERE bakers.id = $1
             "#,
             baker_id
         )
@@ -134,21 +135,35 @@ impl Baker {
             .map(u32::try_from)
             .transpose()?
             .map(|c| AmountFraction::new_unchecked(c).into());
-        let payday_transaction_commission = self
-            .payday_transaction_commission
-            .map(u32::try_from)
-            .transpose()?
-            .map(|c| AmountFraction::new_unchecked(c).into());
-        let payday_baking_commission = self
-            .payday_baking_commission
-            .map(u32::try_from)
-            .transpose()?
-            .map(|c| AmountFraction::new_unchecked(c).into());
-        let payday_finalization_commission = self
-            .payday_finalization_commission
-            .map(u32::try_from)
-            .transpose()?
-            .map(|c| AmountFraction::new_unchecked(c).into());
+
+        // `payday_transaction_commission`, `payday_baking_commission` and
+        // `payday_finalization_commission` are either set or not set
+        // for a given baker. Hence we only check if `payday_transaction_commission` is
+        // set.
+        let payday_commission_rates = if self.payday_transaction_commission.is_some() {
+            let payday_transaction_commission = self
+                .payday_transaction_commission
+                .map(u32::try_from)
+                .transpose()?
+                .map(|c| AmountFraction::new_unchecked(c).into());
+            let payday_baking_commission = self
+                .payday_baking_commission
+                .map(u32::try_from)
+                .transpose()?
+                .map(|c| AmountFraction::new_unchecked(c).into());
+            let payday_finalization_commission = self
+                .payday_finalization_commission
+                .map(u32::try_from)
+                .transpose()?
+                .map(|c| AmountFraction::new_unchecked(c).into());
+            Some(CommissionRates {
+                transaction_commission:  payday_transaction_commission,
+                baking_commission:       payday_baking_commission,
+                finalization_commission: payday_finalization_commission,
+            })
+        } else {
+            None
+        };
 
         let total_stake: i64 =
             sqlx::query_scalar!("SELECT total_staked FROM blocks ORDER BY height DESC LIMIT 1")
@@ -192,11 +207,7 @@ impl Baker {
                     baking_commission,
                     finalization_commission,
                 },
-                payday_commission_rates: CommissionRates {
-                    transaction_commission:  payday_transaction_commission,
-                    baking_commission:       payday_baking_commission,
-                    finalization_commission: payday_finalization_commission,
-                },
+                payday_commission_rates,
                 metadata_url: self.metadata_url.as_deref(),
                 total_stake_percentage,
                 total_stake: total_pool_stake.try_into()?,
@@ -423,9 +434,9 @@ struct BakerPool<'a> {
     /// Both `commission_rates` and `payday_commission_rates` are optional:  
     /// - When a validator is initially added, only `commission_rates` are
     ///   available until the next payday.
-    /// - When a validator is removed, we do not currently clean-up the
-    ///   database. Hence, the `payday_commission_rates`/`commission_rates` are
-    ///   the last observed value in that case.
+    /// - When a validator is removed, the `payday_commission_rates` remain
+    ///   until the next payday but the `commission_rates` stays in the
+    ///   database.
     commission_rates:        CommissionRates,
     /// The `payday_commission_rates` represent the commission settings at the
     /// last payday block. These values are retrieved from the
@@ -435,10 +446,10 @@ struct BakerPool<'a> {
     /// Both `commission_rates` and `payday_commission_rates` are optional:  
     /// - When a validator is initially added, only `commission_rates` are
     ///   available until the next payday.
-    /// - When a validator is removed, we do not currently clean-up the
-    ///   database. Hence, the `payday_commission_rates`/`commission_rates` are
-    ///   the last observed value in that case.
-    payday_commission_rates: CommissionRates,
+    /// - When a validator is removed, the `payday_commission_rates` remain
+    ///   until the next payday but the `commission_rates` stays in the
+    ///   database.
+    payday_commission_rates: Option<CommissionRates>,
     // lottery_power:           Decimal,
     // /// Ranking of the baker pool by total staked amount. Value may be null for
     // /// brand new bakers where statistics have not been calculated yet. This

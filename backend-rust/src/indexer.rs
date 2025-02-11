@@ -29,8 +29,8 @@ use concordium_rust_sdk::{
     types::{
         self as sdk_types, block_certificates::BlockCertificates, queries::BlockInfo,
         AbsoluteBlockHeight, AccountStakingInfo, AccountTransactionDetails,
-        AccountTransactionEffects, BakerId, BlockItemSummary, BlockItemSummaryDetails,
-        CommissionRates, ContractAddress, ContractInitializedEvent, ContractTraceElement,
+        AccountTransactionEffects, BakerId, BakerRewardPeriodInfo, BlockItemSummary,
+        BlockItemSummaryDetails, ContractAddress, ContractInitializedEvent, ContractTraceElement,
         DelegationTarget, PartsPerHundredThousands, ProtocolVersion, RejectReason, RewardsOverview,
         SpecialTransactionOutcome, TransactionType,
     },
@@ -4065,7 +4065,7 @@ struct PreparedPayDayBlock {
     mint_reward:             PreparedUpdateAccountBalance,
     /// Represents the payday baker pool commission rates captured from
     /// the `get_bakers_reward_period` node endpoint.
-    payday_commission_rates: Vec<PreparedPaydayCommissionRates>,
+    payday_commission_rates: PreparedPaydayCommissionRates,
 }
 
 impl PreparedPayDayBlock {
@@ -4081,24 +4081,20 @@ impl PreparedPayDayBlock {
         // `payday_pool_rewards` instead. The information of the last payday commission
         // rate of baker pools is expected to be used when the indexer has fully
         // caught up to the top of the chain.
-        let payday_commission_rates: Vec<PreparedPaydayCommissionRates> =
+        let baker_reward_period_infos: Vec<BakerRewardPeriodInfo> =
             if block_info.protocol_version >= ProtocolVersion::P4 {
-                let mut stream = node_client
+                let stream = node_client
                     .get_bakers_reward_period(BlockIdentifier::AbsoluteHeight(block_height))
                     .await?
                     .response;
 
-                let mut payday_commission_rates = vec![];
-                while let Some(baker_reward_period_info) = stream.try_next().await? {
-                    payday_commission_rates.push(PreparedPaydayCommissionRates::prepare(
-                        i64::try_from(baker_reward_period_info.baker.baker_id.id.index)?,
-                        baker_reward_period_info.commission_rates,
-                    )?)
-                }
-                payday_commission_rates
+                stream.try_collect().await?
             } else {
                 vec![]
             };
+
+        let payday_commission_rates =
+            PreparedPaydayCommissionRates::prepare(baker_reward_period_infos)?;
 
         Ok(Self {
             block_height: block_height.height.try_into()?,
@@ -4115,9 +4111,7 @@ impl PreparedPayDayBlock {
         self.mint_reward.save(tx, None).await?;
 
         // Save the commission rates to the database.
-        for event in &self.payday_commission_rates {
-            event.save(tx).await?;
-        }
+        self.payday_commission_rates.save(tx).await?;
 
         sqlx::query!(
             "UPDATE current_chain_parameters
@@ -4133,26 +4127,39 @@ impl PreparedPayDayBlock {
 /// Represents the payday baker pool commission rates captured from
 /// the `get_bakers_reward_period` node endpoint.
 struct PreparedPaydayCommissionRates {
-    baker_id:                i64,
-    transaction_commission:  i64,
-    baking_commission:       i64,
-    finalization_commission: i64,
+    baker_ids:                Vec<i64>,
+    transaction_commissions:  Vec<i64>,
+    baking_commissions:       Vec<i64>,
+    finalization_commissions: Vec<i64>,
 }
 
 impl PreparedPaydayCommissionRates {
-    fn prepare(baker_id: i64, commission_rates: CommissionRates) -> anyhow::Result<Self> {
-        let transaction_commission =
-            i64::from(u32::from(PartsPerHundredThousands::from(commission_rates.transaction)));
-        let baking_commission =
-            i64::from(u32::from(PartsPerHundredThousands::from(commission_rates.baking)));
-        let finalization_commission =
-            i64::from(u32::from(PartsPerHundredThousands::from(commission_rates.finalization)));
+    fn prepare(baker_reward_period_info: Vec<BakerRewardPeriodInfo>) -> anyhow::Result<Self> {
+        let capacity = baker_reward_period_info.len();
+        let mut baker_ids: Vec<i64> = Vec::with_capacity(capacity);
+        let mut transaction_commissions: Vec<i64> = Vec::with_capacity(capacity);
+        let mut baking_commissions: Vec<i64> = Vec::with_capacity(capacity);
+        let mut finalization_commissions: Vec<i64> = Vec::with_capacity(capacity);
+        for info in baker_reward_period_info.iter() {
+            baker_ids.push(i64::try_from(info.baker.baker_id.id.index)?);
+            let commission_rates = info.commission_rates;
+
+            transaction_commissions.push(i64::from(u32::from(PartsPerHundredThousands::from(
+                commission_rates.transaction,
+            ))));
+            baking_commissions.push(i64::from(u32::from(PartsPerHundredThousands::from(
+                commission_rates.baking,
+            ))));
+            finalization_commissions.push(i64::from(u32::from(PartsPerHundredThousands::from(
+                commission_rates.finalization,
+            ))));
+        }
 
         Ok(Self {
-            baker_id,
-            transaction_commission,
-            baking_commission,
-            finalization_commission,
+            baker_ids,
+            transaction_commissions,
+            baking_commissions,
+            finalization_commissions,
         })
     }
 
@@ -4161,16 +4168,28 @@ impl PreparedPaydayCommissionRates {
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
         sqlx::query!(
-            "UPDATE bakers
-                SET
-                    payday_transaction_commission = $2,
-                    payday_baking_commission = $3,
-                    payday_finalization_commission = $4
-                WHERE id=$1",
-            self.baker_id,
-            self.transaction_commission,
-            self.baking_commission,
-            self.finalization_commission
+            "DELETE FROM
+                bakers_payday_commission_rates"
+        )
+        .execute(tx.as_mut())
+        .await?;
+
+        sqlx::query!(
+            "INSERT INTO bakers_payday_commission_rates (
+                id,
+                payday_transaction_commission,
+                payday_baking_commission,
+                payday_finalization_commission
+            )
+            SELECT
+                UNNEST($1::BIGINT[]) AS id,
+                UNNEST($2::BIGINT[]) AS transaction_commission,
+                UNNEST($3::BIGINT[]) AS baking_commission,
+                UNNEST($4::BIGINT[]) AS finalization_commission",
+            &self.baker_ids,
+            &self.transaction_commissions,
+            &self.baking_commissions,
+            &self.finalization_commissions
         )
         .execute(tx.as_mut())
         .await?;

@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM\n        bakers_payday_commission_rates",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "b8cceb02767cf909ec2d1f476a053cd69e5956c2cbd128d3d0356288042afbac"
+}

@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO bakers_payday_commission_rates (\n                id,\n                payday_transaction_commission,\n                payday_baking_commission,\n                payday_finalization_commission\n            )\n            SELECT\n                UNNEST($1::BIGINT[]) AS id,\n                UNNEST($2::BIGINT[]) AS transaction_commission,\n                UNNEST($3::BIGINT[]) AS baking_commission,\n                UNNEST($4::BIGINT[]) AS finalization_commission",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8Array",
+        "Int8Array",
+        "Int8Array",
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e7d303ca80e0393982768a3e28508fcd6db7273ce49973df98f8efbb0078be70"
+}
