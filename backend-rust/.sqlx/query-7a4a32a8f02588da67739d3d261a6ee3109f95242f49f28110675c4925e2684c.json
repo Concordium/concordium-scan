@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nSELECT\n    bucket.bucket_start,\n    COALESCE(bucket_last_block.height - bucket_first_block.height, 0) AS y_blocks_added,\n    (\n        EXTRACT(epoch FROM (bucket_last_block.slot_time - bucket_first_block.slot_time))\n            / NULLIF(bucket_last_block.height - bucket_first_block.height, 0)\n    )::float AS y_block_time_avg_s,\n    (\n        (bucket_last_block.cumulative_finalization_time -\n            bucket_first_block.cumulative_finalization_time)::float / (\n                NULLIF(\n                    bucket_last_block.height - bucket_first_block.height,\n                    0\n                ) * 1000\n            )\n    ) AS y_finalization_time_avg_s,\n    bucket_last_block.total_staked AS y_last_total_micro_ccd_staked\nFROM\n    date_bin_series($2::INTERVAL, NOW() - $1::INTERVAL, NOW()) AS bucket\nLEFT JOIN LATERAL (\n    SELECT\n        height,\n        slot_time,\n        cumulative_finalization_time\n    FROM blocks\n    WHERE slot_time <= bucket.bucket_start AND cumulative_finalization_time IS NOT NULL\n    ORDER BY slot_time DESC\n    LIMIT 1\n) bucket_first_block ON true\nLEFT JOIN LATERAL (\n    SELECT\n        height,\n        slot_time,\n        cumulative_finalization_time,\n        total_staked\n    FROM blocks\n    WHERE slot_time < bucket.bucket_end AND cumulative_finalization_time IS NOT NULL\n    ORDER BY slot_time DESC\n    LIMIT 1\n) bucket_last_block ON true\n\n ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "bucket_start",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 1,
+        "name": "y_blocks_added",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "y_block_time_avg_s",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 3,
+        "name": "y_finalization_time_avg_s",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 4,
+        "name": "y_last_total_micro_ccd_staked",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Interval",
+        "Interval"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      true
+    ]
+  },
+  "hash": "7a4a32a8f02588da67739d3d261a6ee3109f95242f49f28110675c4925e2684c"
+}
