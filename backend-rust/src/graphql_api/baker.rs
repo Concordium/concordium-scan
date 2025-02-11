@@ -412,6 +412,30 @@ struct BakerPool<'a> {
     delegated_stake:         Amount,
     /// The number of delegators that delegate to this baker pool.
     delegator_count:         i64,
+    /// The `commission_rates` represent the current commission settings of a
+    /// baker pool, as configured by the baker account through
+    /// `bakerConfiguration` transactions. These values are updated
+    /// immediatly by observing the following `BakerEvent`s in the indexer:
+    /// - `BakerSetBakingRewardCommission`
+    /// - `BakerSetTransactionFeeCommission`
+    /// - `BakerSetFinalizationRewardCommission`
+    ///  
+    /// Both `commission_rates` and `payday_commission_rates` are optional:  
+    /// - When a validator is initially added, only `commission_rates` are
+    ///   available until the next payday.
+    /// - When a validator is removed, only `payday_commission_rates` remain
+    ///   until the next payday.
+    commission_rates:        CommissionRates,
+    /// The `payday_commission_rates` represent the commission settings at the
+    /// last payday block. These values are retrieved from the
+    /// `get_bakers_reward_period(BlockIdentifier::AbsoluteHeight(payday_block_height))`  
+    /// endpoint at each payday.  
+    ///  
+    /// Both `commission_rates` and `payday_commission_rates` are optional:  
+    /// - When a validator is initially added, only `commission_rates` are
+    ///   available until the next payday.
+    /// - When a validator is removed, only `payday_commission_rates` remain
+    ///   until the next payday.
     payday_commission_rates: CommissionRates,
     // lottery_power:           Decimal,
     // /// Ranking of the baker pool by total staked amount. Value may be null for
@@ -422,7 +446,6 @@ struct BakerPool<'a> {
     // /// leverage and stake limits.
     // delegated_stake_cap:     Amount,
     open_status:             Option<BakerPoolOpenStatus>,
-    commission_rates:        CommissionRates,
     metadata_url:            Option<&'a str>,
     // TODO: apy(period: ApyPeriod!): PoolApy!
     // TODO: delegators("Returns the first _n_ elements from the list." first: Int "Returns the
