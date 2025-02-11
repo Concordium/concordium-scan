@@ -22,6 +22,7 @@ const TransactionMetricsQuery = gql<TransactionMetricsQueryResponse>`
 
 export const useTransactionMetricsQuery = (period: Ref<MetricsPeriod>) => {
 	const { data, executeQuery, fetching } = useQuery({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: TransactionMetricsQuery,
 		requestPolicy: 'cache-and-network',
 		variables: { period },
