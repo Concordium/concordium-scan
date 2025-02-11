@@ -1,6 +1,7 @@
 use super::{block::Block, get_config, get_pool, ApiError, ApiResult, ConnectionQuery};
 use crate::{
     address::AccountAddress,
+    connection::DescendingI64,
     scalar_types::{AccountIndex, Amount, BlockHeight, Energy, TransactionHash, TransactionIndex},
     transaction_event::Event,
     transaction_reject::TransactionRejectReason,
@@ -13,10 +14,7 @@ use crate::{
 use async_graphql::{connection, types, Context, Object, SimpleObject, Union};
 use futures::TryStreamExt;
 use sqlx::PgPool;
-use std::{
-    cmp::{max, min},
-    str::FromStr,
-};
+use std::str::FromStr;
 
 #[derive(Default)]
 pub struct QueryTransactions;
@@ -50,7 +48,7 @@ impl QueryTransactions {
     ) -> ApiResult<connection::Connection<String, Transaction>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
-        let query = ConnectionQuery::<i64>::new(
+        let query = ConnectionQuery::<DescendingI64>::new(
             first,
             after,
             last,
@@ -79,52 +77,34 @@ impl QueryTransactions {
                     events as "events: sqlx::types::Json<Vec<Event>>",
                     reject as "reject: sqlx::types::Json<TransactionRejectReason>"
                 FROM transactions
-                WHERE $1 < index AND index < $2
+                WHERE $2 < index AND index < $1
                 ORDER BY
-                    (CASE WHEN $3 THEN index END) DESC,
-                    (CASE WHEN NOT $3 THEN index END) ASC
+                    (CASE WHEN $3 THEN index END) ASC,
+                    (CASE WHEN NOT $3 THEN index END) DESC
                 LIMIT $4
-            ) ORDER BY index ASC"#,
-            query.from,
-            query.to,
+            ) ORDER BY index DESC"#,
+            i64::from(query.from),
+            i64::from(query.to),
             query.is_last,
             query.limit,
         )
         .fetch(pool);
-
         let mut connection = connection::Connection::new(false, false);
-
-        let mut page_max_index = None;
-        let mut page_min_index = None;
         while let Some(tx) = row_stream.try_next().await? {
-            page_max_index = Some(match page_max_index {
-                None => tx.index,
-                Some(current_max) => max(current_max, tx.index),
-            });
-
-            page_min_index = Some(match page_min_index {
-                None => tx.index,
-                Some(current_min) => min(current_min, tx.index),
-            });
-
             connection.edges.push(connection::Edge::new(tx.index.to_string(), tx));
         }
-
-        if let (Some(page_min_id), Some(page_max_id)) = (page_min_index, page_max_index) {
-            let result = sqlx::query!(
-                "
-                    SELECT MAX(index) as max_id, MIN(index) as min_id 
-                    FROM transactions
-                "
-            )
-            .fetch_one(pool)
-            .await?;
-
+        if let (Some(page_min), Some(page_max)) =
+            (connection.edges.last(), connection.edges.first())
+        {
+            let result =
+                sqlx::query!("SELECT MAX(index) as max_id, MIN(index) as min_id FROM transactions")
+                    .fetch_one(pool)
+                    .await?;
+            connection.has_next_page =
+                result.min_id.map_or(false, |db_min| db_min < page_min.node.index);
             connection.has_previous_page =
-                result.min_id.map_or(false, |db_min| db_min < page_min_id);
-            connection.has_next_page = result.max_id.map_or(false, |db_max| db_max > page_max_id);
+                result.max_id.map_or(false, |db_max| db_max > page_max.node.index);
         }
-
         Ok(connection)
     }
 }

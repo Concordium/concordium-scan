@@ -15,6 +15,7 @@ Database schema version: 3
 - Fix API issue where `Query::block_metrics` computed summary of metrics period using the wrong starting point, causing metrics to be off some of the time.
 - Fix API issue where `Query::block_metrics` computed summary of metrics period using blocks which had no finalization time set.
 - Fix now on application side in `Query::block_metrics` to ensure data calculated on across different queries are the same.
+- Query `Query::transactions` now outputs items in the order of newest->oldest, instead of oldest->newest.
 
 ## [0.1.22] - 2025-02-11
 

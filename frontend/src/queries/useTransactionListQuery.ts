@@ -60,6 +60,7 @@ export const useTransactionsListQuery = (
 	variables: Partial<QueryVariables>
 ) => {
 	const { data, executeQuery } = useQuery({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: TransactionsQuery,
 		requestPolicy: 'cache-and-network',
 		variables,
