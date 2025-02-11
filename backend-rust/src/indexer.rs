@@ -99,6 +99,15 @@ pub struct IndexerServiceConfig {
     /// is tried.
     #[arg(long, env = "CCDSCAN_INDEXER_CONFIG_NODE_MAX_BEHIND", default_value = "60")]
     pub node_max_behind:                  u64,
+    /// Enables rate limit on the number of requests send through
+    /// each connection to the node.
+    /// Provided as the number of requests per second.
+    #[arg(long, env = "CCDSCAN_INDEXER_CONFIG_NODE_REQUEST_RATE_LIMIT")]
+    pub node_request_rate_limit:          Option<u64>,
+    /// Enables limit on the number of concurrent requests send through each
+    /// connection to the node.
+    #[arg(long, env = "CCDSCAN_INDEXER_CONFIG_NODE_REQUEST_CONCURRENCY_LIMIT")]
+    pub node_request_concurrency_limit:   Option<usize>,
     /// Set the max number of acceptable successive failures before shutting
     /// down the service.
     #[arg(long, env = "CCDSCAN_INDEXER_CONFIG_MAX_SUCCESSIVE_FAILURES", default_value = "10")]
@@ -117,18 +126,25 @@ impl IndexerService {
         // every endpoint.
         let endpoints: Vec<v2::Endpoint> = endpoints
             .into_iter()
-            .map(|endpoint| {
-                let endpoint = if endpoint
+            .map(|mut endpoint| {
+                // Enable TLS when using HTTPS
+                if endpoint
                     .uri()
                     .scheme()
                     .map_or(false, |x| x == &concordium_rust_sdk::v2::Scheme::HTTPS)
                 {
-                    endpoint
+                    endpoint = endpoint
                         .tls_config(tonic::transport::ClientTlsConfig::new())
                         .context("Unable to construct TLS configuration for the Concordium node.")?
-                } else {
-                    endpoint
-                };
+                }
+                // Enable rate limit per second.
+                if let Some(limit) = config.node_request_rate_limit {
+                    endpoint = endpoint.rate_limit(limit, Duration::from_secs(1))
+                }
+                // Enable concurrency limit per connection.
+                if let Some(concurrency) = config.node_request_concurrency_limit {
+                    endpoint = endpoint.concurrency_limit(concurrency)
+                }
                 Ok(endpoint
                     .timeout(Duration::from_secs(config.node_request_timeout))
                     .connect_timeout(Duration::from_secs(config.node_connect_timeout)))
