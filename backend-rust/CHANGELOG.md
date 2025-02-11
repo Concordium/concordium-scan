@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.22] - 2025-02-11
+
 ### Added
 
 - Add `--node-request-rate-limit <limit-per-second>` and `--node-request-concurrency-limit <limit>` options to `ccdscan-indexer` allowing the operator to limit the load on the node.
