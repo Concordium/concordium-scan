@@ -40,10 +40,10 @@ impl QueryBaker {
         &self,
         #[graphql(default)] _sort: BakerSort,
         _filter: BakerFilterInput,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<i32>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         _after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         _before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Baker>> {
@@ -80,6 +80,9 @@ pub struct Baker {
     transaction_commission: Option<i64>,
     baking_commission: Option<i64>,
     finalization_commission: Option<i64>,
+    payday_transaction_commission: Option<i64>,
+    payday_baking_commission: Option<i64>,
+    payday_finalization_commission: Option<i64>,
 }
 impl Baker {
     pub async fn query_by_id(pool: &PgPool, baker_id: i64) -> ApiResult<Option<Self>> {
@@ -87,16 +90,20 @@ impl Baker {
             Baker,
             r#"
             SELECT
-                id,
+                bakers.id as id,
                 staked,
                 restake_earnings,
                 open_status as "open_status: BakerPoolOpenStatus",
                 metadata_url,
                 transaction_commission,
                 baking_commission,
-                finalization_commission
+                finalization_commission,
+                payday_transaction_commission,
+                payday_baking_commission,
+                payday_finalization_commission
             FROM bakers 
-            WHERE id = $1
+                LEFT JOIN bakers_payday_commission_rates ON bakers_payday_commission_rates.id = bakers.id
+            WHERE bakers.id = $1
             "#,
             baker_id
         )
@@ -128,6 +135,35 @@ impl Baker {
             .map(u32::try_from)
             .transpose()?
             .map(|c| AmountFraction::new_unchecked(c).into());
+
+        // `payday_transaction_commission`, `payday_baking_commission` and
+        // `payday_finalization_commission` are either set or not set
+        // for a given baker. Hence we only check if `payday_transaction_commission` is
+        // set.
+        let payday_commission_rates = if self.payday_transaction_commission.is_some() {
+            let payday_transaction_commission = self
+                .payday_transaction_commission
+                .map(u32::try_from)
+                .transpose()?
+                .map(|c| AmountFraction::new_unchecked(c).into());
+            let payday_baking_commission = self
+                .payday_baking_commission
+                .map(u32::try_from)
+                .transpose()?
+                .map(|c| AmountFraction::new_unchecked(c).into());
+            let payday_finalization_commission = self
+                .payday_finalization_commission
+                .map(u32::try_from)
+                .transpose()?
+                .map(|c| AmountFraction::new_unchecked(c).into());
+            Some(CommissionRates {
+                transaction_commission:  payday_transaction_commission,
+                baking_commission:       payday_baking_commission,
+                finalization_commission: payday_finalization_commission,
+            })
+        } else {
+            None
+        };
 
         let total_stake: i64 =
             sqlx::query_scalar!("SELECT total_staked FROM blocks ORDER BY height DESC LIMIT 1")
@@ -161,7 +197,7 @@ impl Baker {
         .ok_or_else(|| ApiError::InternalError("Division by zero".to_string()))?
         .into();
 
-        let out = BakerState::ActiveBakerState(ActiveBakerState {
+        let out = BakerState::ActiveBakerState(Box::new(ActiveBakerState {
             staked_amount:    Amount::try_from(self.staked)?,
             restake_earnings: self.restake_earnings,
             pool:             BakerPool {
@@ -171,6 +207,7 @@ impl Baker {
                     baking_commission,
                     finalization_commission,
                 },
+                payday_commission_rates,
                 metadata_url: self.metadata_url.as_deref(),
                 total_stake_percentage,
                 total_stake: total_pool_stake.try_into()?,
@@ -178,7 +215,7 @@ impl Baker {
                 delegator_count: row.delegator_count.unwrap_or(0),
             },
             pending_change:   None, // This is not used starting from P7.
-        });
+        }));
         Ok(out)
     }
 
@@ -313,7 +350,7 @@ struct InterimTransaction {
 
 #[derive(Union)]
 enum BakerState<'a> {
-    ActiveBakerState(ActiveBakerState<'a>),
+    ActiveBakerState(Box<ActiveBakerState<'a>>),
     RemovedBakerState(RemovedBakerState),
 }
 
@@ -378,16 +415,52 @@ enum BakerSort {
 struct BakerPool<'a> {
     /// Total stake of the baker pool as a percentage of all CCDs in existence.
     /// Includes both baker stake and delegated stake.
-    total_stake_percentage: Decimal,
+    total_stake_percentage:  Decimal,
     /// The total amount staked in this baker pool. Includes both baker stake
     /// and delegated stake.
-    total_stake:            Amount,
+    total_stake:             Amount,
     /// The total amount staked by delegators to this baker pool.
-    delegated_stake:        Amount,
+    delegated_stake:         Amount,
     /// The number of delegators that delegate to this baker pool.
-    delegator_count:        i64,
+    delegator_count:         i64,
+    /// The `commission_rates` represent the current commission settings of a
+    /// baker pool, as configured by the baker account through
+    /// `bakerConfiguration` transactions. These values are updated
+    /// immediatly by observing the following `BakerEvent`s in the indexer:
+    /// - `BakerSetBakingRewardCommission`
+    /// - `BakerSetTransactionFeeCommission`
+    /// - `BakerSetFinalizationRewardCommission`
+    ///  
+    /// Both `commission_rates` and `payday_commission_rates` are optional and
+    /// usually return the same value. But at the following edge cases, they
+    /// return different values:
+    /// - When a validator is initially added (observed by the event
+    ///   `BakerEvent::Added`), only `commission_rates` are available until the
+    ///   next payday. The `payday_commission_rates` will be set at the next
+    ///   payday.
+    /// - When a validator is removed (observed by the event
+    ///   `BakerEvent::Removed`), `commission_rates` are immediately cleared
+    ///   from the bakers table upon detecting the `BakerEvent::Removed`,
+    ///   whereas `payday_commission_rates` persist until the next payday.
+    commission_rates:        CommissionRates,
+    /// The `payday_commission_rates` represent the commission settings at the
+    /// last payday block. These values are retrieved from the
+    /// `get_bakers_reward_period(BlockIdentifier::AbsoluteHeight(payday_block_height))`  
+    /// endpoint at each payday.  
+    ///  
+    /// Both `commission_rates` and `payday_commission_rates` are optional and
+    /// usually return the same value. But at the following edge cases, they
+    /// return different values:
+    /// - When a validator is initially added (observed by the event
+    ///   `BakerEvent::Added`), only `commission_rates` are available until the
+    ///   next payday. The `payday_commission_rates` will be set at the next
+    ///   payday.
+    /// - When a validator is removed (observed by the event
+    ///   `BakerEvent::Removed`), `commission_rates` are immediately cleared
+    ///   from the bakers table upon detecting the `BakerEvent::Removed`,
+    ///   whereas `payday_commission_rates` persist until the next payday.
+    payday_commission_rates: Option<CommissionRates>,
     // lottery_power:           Decimal,
-    // payday_commission_rates: CommissionRates,
     // /// Ranking of the baker pool by total staked amount. Value may be null for
     // /// brand new bakers where statistics have not been calculated yet. This
     // /// should be rare and only a temporary condition.
@@ -395,9 +468,8 @@ struct BakerPool<'a> {
     // /// The maximum amount that may be delegated to the pool, accounting for
     // /// leverage and stake limits.
     // delegated_stake_cap:     Amount,
-    open_status:            Option<BakerPoolOpenStatus>,
-    commission_rates:       CommissionRates,
-    metadata_url:           Option<&'a str>,
+    open_status:             Option<BakerPoolOpenStatus>,
+    metadata_url:            Option<&'a str>,
     // TODO: apy(period: ApyPeriod!): PoolApy!
     // TODO: delegators("Returns the first _n_ elements from the list." first: Int "Returns the
     // elements in the list that come after the specified cursor." after: String "Returns the last

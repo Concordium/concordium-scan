@@ -29,9 +29,9 @@ use concordium_rust_sdk::{
     types::{
         self as sdk_types, block_certificates::BlockCertificates, queries::BlockInfo,
         AbsoluteBlockHeight, AccountStakingInfo, AccountTransactionDetails,
-        AccountTransactionEffects, BakerId, BlockItemSummary, BlockItemSummaryDetails,
-        ContractAddress, ContractInitializedEvent, ContractTraceElement, DelegationTarget,
-        PartsPerHundredThousands, ProtocolVersion, RejectReason, RewardsOverview,
+        AccountTransactionEffects, BakerId, BakerRewardPeriodInfo, BlockItemSummary,
+        BlockItemSummaryDetails, ContractAddress, ContractInitializedEvent, ContractTraceElement,
+        DelegationTarget, PartsPerHundredThousands, ProtocolVersion, RejectReason, RewardsOverview,
         SpecialTransactionOutcome, TransactionType,
     },
     v2::{
@@ -931,9 +931,11 @@ impl PreparedBlock {
         }
 
         let special_transaction_outcomes = PreparedSpecialTransactionOutcomes::prepare(
-            data.block_info.block_height,
+            node_client,
+            &data.block_info,
             &data.special_events,
-        )?;
+        )
+        .await?;
         let baker_unmark_suspended = PreparedUnmarkPrimedForSuspension::prepare(data)?;
         Ok(Self {
             hash,
@@ -3666,20 +3668,44 @@ struct PreparedSpecialTransactionOutcomes {
     /// Updates to various tables depending on the type of special transaction
     /// outcome.
     updates: Vec<PreparedSpecialTransactionOutcomeUpdate>,
+    /// Present if block is a payday block with its associated updates.
+    payday_updates: Option<PreparedPayDayBlock>,
 }
 
 impl PreparedSpecialTransactionOutcomes {
-    fn prepare(
-        block_height: AbsoluteBlockHeight,
+    async fn prepare(
+        node_client: &mut v2::Client,
+        block_info: &BlockInfo,
         events: &[SpecialTransactionOutcome],
     ) -> anyhow::Result<Self> {
+        let is_payday_block = events.iter().any(|ev| {
+            matches!(
+                ev,
+                SpecialTransactionOutcome::PaydayFoundationReward { .. }
+                    | SpecialTransactionOutcome::PaydayAccountReward { .. }
+                    | SpecialTransactionOutcome::PaydayPoolReward { .. }
+            )
+        });
+
+        let payday_updates = if is_payday_block {
+            Some(PreparedPayDayBlock::prepare(node_client, block_info).await?)
+        } else {
+            None
+        };
+
         Ok(Self {
             insert_special_transaction_outcomes:
-                PreparedInsertBlockSpecialTransacionOutcomes::prepare(block_height, events)?,
+                PreparedInsertBlockSpecialTransacionOutcomes::prepare(
+                    block_info.block_height,
+                    events,
+                )?,
             updates: events
                 .iter()
-                .map(|event| PreparedSpecialTransactionOutcomeUpdate::prepare(event, block_height))
+                .map(|event| {
+                    PreparedSpecialTransactionOutcomeUpdate::prepare(event, block_info.block_height)
+                })
                 .collect::<Result<_, _>>()?,
+            payday_updates,
         })
     }
 
@@ -3688,6 +3714,9 @@ impl PreparedSpecialTransactionOutcomes {
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
         self.insert_special_transaction_outcomes.save(tx).await?;
+        if let Some(payday_updates) = &self.payday_updates {
+            payday_updates.save(tx).await?;
+        }
         for update in self.updates.iter() {
             update.save(tx).await?;
         }
@@ -3770,11 +3799,8 @@ impl PreparedInsertBlockSpecialTransacionOutcomes {
 /// Represents updates in the database caused by a single special transaction
 /// outcome in a block.
 enum PreparedSpecialTransactionOutcomeUpdate {
-    /// Distribution of various CCD rewards. Excluding CCD mint rewards.
+    /// Distribution of various CCD rewards.
     Rewards(Vec<PreparedUpdateAccountBalance>),
-    /// Represents a payday block with its CCD mint rewards and its block
-    /// height.
-    Payday(PreparedPayDayBlock),
     /// Validator is primed for suspension.
     ValidatorPrimedForSuspension(PreparedValidatorPrimedForSuspension),
     /// Validator is suspended.
@@ -3809,16 +3835,13 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 mint_platform_development_charge,
                 ..
             } => {
-                // The `SpecialTransactionOutcome::Mint` event is used to recognise a new payday
-                // block.
-                let rewards = PreparedUpdateAccountBalance::prepare(
+                let rewards = vec![PreparedUpdateAccountBalance::prepare(
                     Arc::new(foundation_account.to_string()),
                     mint_platform_development_charge.micro_ccd.try_into()?,
                     block_height,
                     AccountStatementEntryType::FoundationReward,
-                )?;
-
-                Self::Payday(PreparedPayDayBlock::prepare(block_height, rewards)?)
+                )?];
+                Self::Rewards(rewards)
             }
             SpecialTransactionOutcome::FinalizationRewards {
                 finalization_rewards,
@@ -3930,7 +3953,6 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 }
                 Ok(())
             }
-            Self::Payday(event) => event.save(tx).await,
             Self::ValidatorPrimedForSuspension(event) => event.save(tx).await,
             Self::ValidatorSuspended(event) => event.save(tx).await,
         }
@@ -4035,22 +4057,42 @@ struct PreparedValidatorSuspension {
     block_height: i64,
 }
 
-/// Represents a payday block with its CCD mint rewards and the associated block
-/// height. The block was identified by observing the
-/// `SpecialTransactionOutcome::Mint` event.
+/// Represents a payday block, its payday commission
+/// rates, and the associated block height.
 struct PreparedPayDayBlock {
-    block_height: i64,
-    mint_reward:  PreparedUpdateAccountBalance,
+    block_height:            i64,
+    /// Represents the payday baker pool commission rates captured from
+    /// the `get_bakers_reward_period` node endpoint.
+    payday_commission_rates: PreparedPaydayCommissionRates,
 }
 
 impl PreparedPayDayBlock {
-    fn prepare(
-        block_height: AbsoluteBlockHeight,
-        mint_reward: PreparedUpdateAccountBalance,
-    ) -> anyhow::Result<Self> {
+    async fn prepare(node_client: &mut v2::Client, block_info: &BlockInfo) -> anyhow::Result<Self> {
+        let block_height = block_info.block_height;
+
+        // Fetching the `get_bakers_reward_period` endpoint prior to P4 results in a
+        // InvalidArgument gRPC error, so we produce the empty vector of
+        // `payday_pool_rewards` instead. The information of the last payday commission
+        // rate of baker pools is expected to be used when the indexer has fully
+        // caught up to the top of the chain.
+        let baker_reward_period_infos: Vec<BakerRewardPeriodInfo> =
+            if block_info.protocol_version >= ProtocolVersion::P4 {
+                let stream = node_client
+                    .get_bakers_reward_period(BlockIdentifier::AbsoluteHeight(block_height))
+                    .await?
+                    .response;
+
+                stream.try_collect().await?
+            } else {
+                vec![]
+            };
+
+        let payday_commission_rates =
+            PreparedPaydayCommissionRates::prepare(baker_reward_period_infos)?;
+
         Ok(Self {
             block_height: block_height.height.try_into()?,
-            mint_reward,
+            payday_commission_rates,
         })
     }
 
@@ -4058,13 +4100,86 @@ impl PreparedPayDayBlock {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
-        // Save the `rewards` to the database.
-        self.mint_reward.save(tx, None).await?;
+        // Save the commission rates to the database.
+        self.payday_commission_rates.save(tx).await?;
 
         sqlx::query!(
             "UPDATE current_chain_parameters
                 SET last_payday_block_height = $1",
             self.block_height
+        )
+        .execute(tx.as_mut())
+        .await?;
+        Ok(())
+    }
+}
+
+/// Represents the payday baker pool commission rates captured from
+/// the `get_bakers_reward_period` node endpoint.
+struct PreparedPaydayCommissionRates {
+    baker_ids:                Vec<i64>,
+    transaction_commissions:  Vec<i64>,
+    baking_commissions:       Vec<i64>,
+    finalization_commissions: Vec<i64>,
+}
+
+impl PreparedPaydayCommissionRates {
+    fn prepare(baker_reward_period_info: Vec<BakerRewardPeriodInfo>) -> anyhow::Result<Self> {
+        let capacity = baker_reward_period_info.len();
+        let mut baker_ids: Vec<i64> = Vec::with_capacity(capacity);
+        let mut transaction_commissions: Vec<i64> = Vec::with_capacity(capacity);
+        let mut baking_commissions: Vec<i64> = Vec::with_capacity(capacity);
+        let mut finalization_commissions: Vec<i64> = Vec::with_capacity(capacity);
+        for info in baker_reward_period_info.iter() {
+            baker_ids.push(i64::try_from(info.baker.baker_id.id.index)?);
+            let commission_rates = info.commission_rates;
+
+            transaction_commissions.push(i64::from(u32::from(PartsPerHundredThousands::from(
+                commission_rates.transaction,
+            ))));
+            baking_commissions.push(i64::from(u32::from(PartsPerHundredThousands::from(
+                commission_rates.baking,
+            ))));
+            finalization_commissions.push(i64::from(u32::from(PartsPerHundredThousands::from(
+                commission_rates.finalization,
+            ))));
+        }
+
+        Ok(Self {
+            baker_ids,
+            transaction_commissions,
+            baking_commissions,
+            finalization_commissions,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            "DELETE FROM
+                bakers_payday_commission_rates"
+        )
+        .execute(tx.as_mut())
+        .await?;
+
+        sqlx::query!(
+            "INSERT INTO bakers_payday_commission_rates (
+                id,
+                payday_transaction_commission,
+                payday_baking_commission,
+                payday_finalization_commission
+            )
+            SELECT
+                UNNEST($1::BIGINT[]) AS id,
+                UNNEST($2::BIGINT[]) AS transaction_commission,
+                UNNEST($3::BIGINT[]) AS baking_commission,
+                UNNEST($4::BIGINT[]) AS finalization_commission",
+            &self.baker_ids,
+            &self.transaction_commissions,
+            &self.baking_commissions,
+            &self.finalization_commissions
         )
         .execute(tx.as_mut())
         .await?;
