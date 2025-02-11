@@ -86,11 +86,11 @@ impl QueryToken {
             if let Some(max_index) =
                 sqlx::query_scalar!("SELECT MAX(index) FROM tokens").fetch_one(pool).await?
             {
-                connection.has_next_page = max_index > page_max_index.node.index;
+                connection.has_previous_page = max_index > page_max_index.node.index;
             }
         }
         if let Some(edge) = connection.edges.last() {
-            connection.has_previous_page = edge.node.index != 0;
+            connection.has_next_page = edge.node.index != 0;
         }
         Ok(connection)
     }

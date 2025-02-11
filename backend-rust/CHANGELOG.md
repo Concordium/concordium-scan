@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 - Fix order of module linked events to DESC.
 - Fix issue in API `Query::blocks`, where providing `before` or `after` did not consider the blocks to be descending block height order.
 - Fix API `Contract::tokens` and `Contract::contract_reject_events` only providing a single item for its first page.
+- Fix issue in API `Query::tokens`, where page information `has_previous_page` and `has_next_page` got switched around.
 
 ## [0.1.21] - 2025-02-10
 
