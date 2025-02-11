@@ -171,6 +171,8 @@ pub enum SchemaVersion {
          performance."
     )]
     IndexBlocksWithNoCumulativeFinTime,
+    #[display("0003:PayDayPoolCommissionRates")]
+    PayDayPoolCommissionRates,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -178,7 +180,7 @@ impl SchemaVersion {
     /// introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::InitialFirstHalf;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::IndexBlocksWithNoCumulativeFinTime;
+    const LATEST: SchemaVersion = SchemaVersion::PayDayPoolCommissionRates;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -196,6 +198,7 @@ impl SchemaVersion {
             SchemaVersion::Empty => false,
             SchemaVersion::InitialFirstHalf => false,
             SchemaVersion::IndexBlocksWithNoCumulativeFinTime => false,
+            SchemaVersion::PayDayPoolCommissionRates => false,
         }
     }
 
@@ -219,7 +222,11 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::IndexBlocksWithNoCumulativeFinTime
             }
-            SchemaVersion::IndexBlocksWithNoCumulativeFinTime => unimplemented!(
+            SchemaVersion::IndexBlocksWithNoCumulativeFinTime => {
+                tx.as_mut().execute(sqlx::raw_sql(include_str!("./migrations/m0003.sql"))).await?;
+                SchemaVersion::PayDayPoolCommissionRates
+            }
+            SchemaVersion::PayDayPoolCommissionRates => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
