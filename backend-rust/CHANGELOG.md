@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix 30 days block metrics query
+
 ## [0.1.22] - 2025-02-11
 
 ### Added
