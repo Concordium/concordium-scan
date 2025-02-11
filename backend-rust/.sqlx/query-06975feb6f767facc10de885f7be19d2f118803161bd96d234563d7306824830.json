@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n                 p_start AS (\n                     SELECT\n                         height,\n                         slot_time,\n                         cumulative_finalization_time\n                     FROM blocks\n                     WHERE slot_time = (SELECT min(slot_time) FROM blocks WHERE (NOW() - $1::interval) <= slot_time)\n                 ),\n                 p_end AS (\n                     SELECT\n                         height,\n                         slot_time,\n                         cumulative_finalization_time\n                     FROM blocks\n                     WHERE cumulative_finalization_time IS NOT NULL\n                     ORDER BY slot_time DESC\n                     LIMIT 1\n                 )\n             SELECT\n                 p_end.height - p_start.height AS blocks_added,\n                 ((p_end.slot_time - p_start.slot_time) /\n                     NULLIF(p_end.height - p_start.height, 0)\n                 ) AS avg_block_time,\n                 (\n                     (p_end.cumulative_finalization_time\n                         - p_start.cumulative_finalization_time)::float /\n                     (NULLIF(p_end.height - p_start.height, 0) * 1000)\n                 ) AS avg_finalization_time_s\n             FROM p_start, p_end",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "blocks_added",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "avg_block_time",
+        "type_info": "Interval"
+      },
+      {
+        "ordinal": 2,
+        "name": "avg_finalization_time_s",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Interval"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "06975feb6f767facc10de885f7be19d2f118803161bd96d234563d7306824830"
+}
