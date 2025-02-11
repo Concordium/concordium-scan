@@ -178,7 +178,7 @@ LEFT JOIN LATERAL (
         slot_time,
         cumulative_finalization_time
     FROM blocks
-    WHERE slot_time <= bucket.bucket_start
+    WHERE slot_time <= bucket.bucket_start AND cumulative_finalization_time IS NOT NULL
     ORDER BY slot_time DESC
     LIMIT 1
 ) bucket_first_block ON true
@@ -189,7 +189,7 @@ LEFT JOIN LATERAL (
         cumulative_finalization_time,
         total_staked
     FROM blocks
-    WHERE slot_time < bucket.bucket_end
+    WHERE slot_time < bucket.bucket_end AND cumulative_finalization_time IS NOT NULL
     ORDER BY slot_time DESC
     LIMIT 1
 ) bucket_last_block ON true
