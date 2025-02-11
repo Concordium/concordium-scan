@@ -153,11 +153,6 @@ impl QueryBlockMetrics {
         let bucket_query = sqlx::query!(
             "
 SELECT
-    bucket_last_block.cumulative_finalization_time as first,
-    bucket_first_block.cumulative_finalization_time as second,
-    bucket_last_block.height as third,
-    bucket_first_block.height as fourth,
-
     bucket.bucket_start,
     COALESCE(bucket_last_block.height - bucket_first_block.height, 0) AS y_blocks_added,
     (
