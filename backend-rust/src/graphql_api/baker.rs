@@ -423,8 +423,9 @@ struct BakerPool<'a> {
     /// Both `commission_rates` and `payday_commission_rates` are optional:  
     /// - When a validator is initially added, only `commission_rates` are
     ///   available until the next payday.
-    /// - When a validator is removed, only `payday_commission_rates` remain
-    ///   until the next payday.
+    /// - When a validator is removed, we do not currently clean-up the
+    ///   database. Hence, the `payday_commission_rates`/`commission_rates` are
+    ///   the last observed value in that case.
     commission_rates:        CommissionRates,
     /// The `payday_commission_rates` represent the commission settings at the
     /// last payday block. These values are retrieved from the
@@ -434,8 +435,9 @@ struct BakerPool<'a> {
     /// Both `commission_rates` and `payday_commission_rates` are optional:  
     /// - When a validator is initially added, only `commission_rates` are
     ///   available until the next payday.
-    /// - When a validator is removed, only `payday_commission_rates` remain
-    ///   until the next payday.
+    /// - When a validator is removed, we do not currently clean-up the
+    ///   database. Hence, the `payday_commission_rates`/`commission_rates` are
+    ///   the last observed value in that case.
     payday_commission_rates: CommissionRates,
     // lottery_power:           Decimal,
     // /// Ranking of the baker pool by total staked amount. Value may be null for
