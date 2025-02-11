@@ -109,6 +109,8 @@ impl QueryBlockMetrics {
             .try_into()
             .map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))?;
 
+        let now = chrono::Utc::now();
+
         let period_query = sqlx::query!(
             "WITH
                  p_start AS (
@@ -117,7 +119,7 @@ impl QueryBlockMetrics {
                          slot_time,
                          cumulative_finalization_time
                      FROM blocks
-                     WHERE (NOW() - $1::interval) <= slot_time
+                     WHERE ($2::TIMESTAMPTZ - $1::INTERVAL) <= slot_time
                      ORDER BY slot_time ASC
                      LIMIT 1
                  ),
@@ -142,7 +144,8 @@ impl QueryBlockMetrics {
                      (NULLIF(p_end.height - p_start.height, 0) * 1000)
                  ) AS avg_finalization_time_s
              FROM p_start, p_end",
-            interval
+            interval,
+            now
         )
         .fetch_one(pool)
         .await?;
@@ -171,7 +174,7 @@ SELECT
     ) AS y_finalization_time_avg_s,
     bucket_last_block.total_staked AS y_last_total_micro_ccd_staked
 FROM
-    date_bin_series($2::INTERVAL, NOW() - $1::INTERVAL, NOW()) AS bucket
+    date_bin_series($2::INTERVAL, $3::TIMESTAMPTZ - $1::INTERVAL, $3) AS bucket
 LEFT JOIN LATERAL (
     SELECT
         height,
@@ -196,7 +199,8 @@ LEFT JOIN LATERAL (
 
  ",
             interval,
-            bucket_interval
+            bucket_interval,
+            now
         )
         .fetch_all(pool)
         .await?;
