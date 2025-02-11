@@ -108,6 +108,7 @@ impl QueryBlockMetrics {
             .as_duration()
             .try_into()
             .map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))?;
+
         let period_query = sqlx::query!(
             "WITH
                  p_start AS (
