@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM (\n                SELECT\n                    index,\n                    block_height,\n                    hash,\n                    ccd_cost,\n                    energy_cost,\n                    sender_index,\n                    type as \"tx_type: DbTransactionType\",\n                    type_account as \"type_account: AccountTransactionType\",\n                    type_credential_deployment as \"type_credential_deployment: CredentialDeploymentTransactionType\",\n                    type_update as \"type_update: UpdateTransactionType\",\n                    success,\n                    events as \"events: sqlx::types::Json<Vec<Event>>\",\n                    reject as \"reject: sqlx::types::Json<TransactionRejectReason>\"\n                FROM transactions\n                WHERE $1 < index AND index < $2\n                ORDER BY\n                    (CASE WHEN $3 THEN index END) DESC,\n                    (CASE WHEN NOT $3 THEN index END) ASC\n                LIMIT $4\n            ) ORDER BY index ASC",
+  "query": "SELECT * FROM (\n                SELECT\n                    index,\n                    block_height,\n                    hash,\n                    ccd_cost,\n                    energy_cost,\n                    sender_index,\n                    type as \"tx_type: DbTransactionType\",\n                    type_account as \"type_account: AccountTransactionType\",\n                    type_credential_deployment as \"type_credential_deployment: CredentialDeploymentTransactionType\",\n                    type_update as \"type_update: UpdateTransactionType\",\n                    success,\n                    events as \"events: sqlx::types::Json<Vec<Event>>\",\n                    reject as \"reject: sqlx::types::Json<TransactionRejectReason>\"\n                FROM transactions\n                WHERE $2 < index AND index < $1\n                ORDER BY\n                    (CASE WHEN $3 THEN index END) ASC,\n                    (CASE WHEN NOT $3 THEN index END) DESC\n                LIMIT $4\n            ) ORDER BY index DESC",
   "describe": {
     "columns": [
       {
@@ -175,5 +175,5 @@
       true
     ]
   },
-  "hash": "d22e09eb2c0419201f6c81e0d183947129e28d081d83704562a1672d9345ca45"
+  "hash": "9184bfdb5aebf2a9b62399e363e1be7d7f1f79dcda47f0e0d2486b1084ea632a"
 }

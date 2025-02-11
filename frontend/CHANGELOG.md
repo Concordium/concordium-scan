@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ## [1.7.2] - 2025-02-11
 
-- Move query `useTransactionMetricsQuery` to new API.
+- Move query `useTransactionMetricsQuery` and `useTransactionsListQuery` to new API.
 
 ## [1.7.1] - 2025-02-07
 
