@@ -117,8 +117,9 @@ impl QueryBlockMetrics {
                          slot_time,
                          cumulative_finalization_time
                      FROM blocks
-                     WHERE slot_time = (SELECT min(slot_time) FROM blocks WHERE (NOW() - \
-             $1::interval) <= slot_time)
+                     WHERE (NOW() - $1::interval) <= slot_time
+                     ORDER BY slot_time ASC
+                     LIMIT 1
                  ),
                  p_end AS (
                      SELECT
