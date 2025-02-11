@@ -431,24 +431,34 @@ struct BakerPool<'a> {
     /// - `BakerSetTransactionFeeCommission`
     /// - `BakerSetFinalizationRewardCommission`
     ///  
-    /// Both `commission_rates` and `payday_commission_rates` are optional:  
-    /// - When a validator is initially added, only `commission_rates` are
-    ///   available until the next payday.
-    /// - When a validator is removed, the `payday_commission_rates` remain
-    ///   until the next payday but the `commission_rates` stays in the
-    ///   database.
+    /// Both `commission_rates` and `payday_commission_rates` are optional and
+    /// usually return the same value. But at the following edge cases, they
+    /// return different values:
+    /// - When a validator is initially added (observed by the event
+    ///   `BakerEvent::Added`), only `commission_rates` are available until the
+    ///   next payday. The `payday_commission_rates` will be set at the next
+    ///   payday.
+    /// - When a validator is removed (observed by the event
+    ///   `BakerEvent::Removed`), `commission_rates` are immediately cleared
+    ///   from the bakers table upon detecting the `BakerEvent::Removed`,
+    ///   whereas `payday_commission_rates` persist until the next payday.
     commission_rates:        CommissionRates,
     /// The `payday_commission_rates` represent the commission settings at the
     /// last payday block. These values are retrieved from the
     /// `get_bakers_reward_period(BlockIdentifier::AbsoluteHeight(payday_block_height))`  
     /// endpoint at each payday.  
     ///  
-    /// Both `commission_rates` and `payday_commission_rates` are optional:  
-    /// - When a validator is initially added, only `commission_rates` are
-    ///   available until the next payday.
-    /// - When a validator is removed, the `payday_commission_rates` remain
-    ///   until the next payday but the `commission_rates` stays in the
-    ///   database.
+    /// Both `commission_rates` and `payday_commission_rates` are optional and
+    /// usually return the same value. But at the following edge cases, they
+    /// return different values:
+    /// - When a validator is initially added (observed by the event
+    ///   `BakerEvent::Added`), only `commission_rates` are available until the
+    ///   next payday. The `payday_commission_rates` will be set at the next
+    ///   payday.
+    /// - When a validator is removed (observed by the event
+    ///   `BakerEvent::Removed`), `commission_rates` are immediately cleared
+    ///   from the bakers table upon detecting the `BakerEvent::Removed`,
+    ///   whereas `payday_commission_rates` persist until the next payday.
     payday_commission_rates: Option<CommissionRates>,
     // lottery_power:           Decimal,
     // /// Ranking of the baker pool by total staked amount. Value may be null for

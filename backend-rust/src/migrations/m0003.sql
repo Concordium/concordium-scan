@@ -6,13 +6,16 @@ CREATE TABLE bakers_payday_commission_rates(
     -- Fraction of transaction rewards rewarded at payday to this baker pool.
     -- Stored as a fraction of an amount with a precision of `1/100_000`.
     payday_transaction_commission 
-        BIGINT,
+        BIGINT
+        NOT NULL,
     -- Fraction of baking rewards rewarded at payday to this baker pool.
     -- Stored as a fraction of an amount with a precision of `1/100_000`.
     payday_baking_commission 
-        BIGINT,
+        BIGINT
+        NOT NULL,
     -- Fraction of finalization rewards rewarded at payday to this baker pool.
     -- Stored as a fraction of an amount with a precision of `1/100_000`.
     payday_finalization_commission 
         BIGINT
+        NOT NULL
 );

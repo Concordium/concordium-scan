@@ -178,7 +178,8 @@ impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking database schema versions have been
     /// introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::InitialFirstHalf;
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
+        SchemaVersion::PayDayPoolCommissionRates;
     /// The latest known version of the schema.
     const LATEST: SchemaVersion = SchemaVersion::PayDayPoolCommissionRates;
 
