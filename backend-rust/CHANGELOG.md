@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Add `--node-request-rate-limit <limit-per-second>` and `--node-request-concurrency-limit <limit>` options to `ccdscan-indexer` allowing the operator to limit the load on the node.
+
 ### Changed
 
 - Remove `LinkedContractsCollectionSegment::PageInfo`, `ModuleReferenceRejectEventsCollectionSegment::PageInfo`, `ModuleReferenceContractLinkEventsCollectionSegment::PageInfo`, `TokensCollectionSegment::PageInfo` and `ContractRejectEventsCollectionSegment::PageInfo` from API as these are never used by the frontend.
