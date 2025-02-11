@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - Fix API issue where `Query::block_metrics` computed summary of metrics period using the wrong starting point, causing metrics to be off some of the time.
 - Fix API issue where `Query::block_metrics` computed summary of metrics period using blocks which had no finalization time set.
+- Fix now on application side in `Query::block_metrics` to ensure data calculated on across different queries are the same.
 
 ## [0.1.22] - 2025-02-11
 
