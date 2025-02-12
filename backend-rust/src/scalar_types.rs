@@ -1,5 +1,6 @@
 use anyhow::Context;
 use async_graphql::{scalar, InputValueError, InputValueResult, Scalar, ScalarType, Value};
+use std::fmt;
 
 pub type Amount = UnsignedLong;
 pub type TokenId = String;
@@ -137,6 +138,43 @@ impl From<concordium_rust_sdk::types::AmountFraction> for Decimal {
 #[repr(transparent)]
 #[serde(try_from = "String", into = "String")]
 pub struct TimeSpan(pub chrono::Duration);
+
+impl fmt::Display for TimeSpan {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let total_secs = self.0.num_seconds();
+        let days = total_secs / 86_400; // 86,400 seconds in a day
+        let remainder = total_secs % 86_400;
+        let hours = remainder / 3600;
+        let remainder = remainder % 3600;
+        let minutes = remainder / 60;
+        let seconds = remainder % 60;
+
+        let mut s = String::new();
+        s.push('P');
+
+        if days > 0 {
+            s.push_str(&format!("{}D", days));
+        }
+
+        if days == 0 || hours > 0 || minutes > 0 || seconds > 0 {
+            s.push('T');
+            if hours > 0 {
+                s.push_str(&format!("{}H", hours));
+            }
+            if minutes > 0 {
+                s.push_str(&format!("{}M", minutes));
+            }
+            if seconds > 0 {
+                s.push_str(&format!("{}S", seconds));
+            }
+            if s.ends_with('T') {
+                s.push_str("0S");
+            }
+        }
+        write!(f, "{}", s)
+    }
+}
+
 #[Scalar]
 impl ScalarType for TimeSpan {
     fn parse(value: Value) -> InputValueResult<Self> {
@@ -146,7 +184,7 @@ impl ScalarType for TimeSpan {
         Ok(Self::try_from(string)?)
     }
 
-    fn to_value(&self) -> Value { Value::String(self.0.to_string()) }
+    fn to_value(&self) -> Value { Value::String(self.to_string()) }
 }
 impl TryFrom<String> for TimeSpan {
     type Error = anyhow::Error;
@@ -210,4 +248,47 @@ impl ScalarType for Byte {
     }
 
     fn to_value(&self) -> Value { Value::Number(self.0.into()) }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::scalar_types::TimeSpan;
+    use chrono::Duration;
+
+    #[test]
+    fn test_zero_duration() {
+        let d = TimeSpan(Duration::seconds(0));
+        assert_eq!(d.to_string(), "PT0S");
+    }
+
+    #[test]
+    fn test_two_minutes() {
+        let d = TimeSpan(Duration::seconds(120));
+        assert_eq!(d.to_string(), "PT2M");
+    }
+
+    #[test]
+    fn test_an_hour() {
+        let d = TimeSpan(Duration::seconds(3600));
+        assert_eq!(d.to_string(), "PT1H");
+    }
+
+    #[test]
+    fn test_six_hours() {
+        let d = TimeSpan(Duration::seconds(3600 * 6));
+        assert_eq!(d.to_string(), "PT6H");
+    }
+
+    // P15D
+    #[test]
+    fn test_1d() {
+        let d = TimeSpan(Duration::seconds(3600 * 24));
+        assert_eq!(d.to_string(), "P1D");
+    }
+
+    #[test]
+    fn test_15d() {
+        let d = TimeSpan(Duration::seconds(3600 * 24 * 15));
+        assert_eq!(d.to_string(), "P15D");
+    }
 }
