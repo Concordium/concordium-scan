@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix metrics where interval is being shown in greater units than strictly seconds
+
 ## [0.1.23] - 2025-02-11
 
 Database schema version: 3
