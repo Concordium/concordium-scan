@@ -1,10 +1,10 @@
 ﻿<template>
-	<div v-if="props.hash || props.id" class="inline-block whitespace-nowrap">
+	<div v-if="props.hash" class="inline-block whitespace-nowrap">
 		<TransactionIcon class="h-4 w-4 align-text-top" />
 		<LinkButton
 			class="numerical px-2"
 			@blur="emitBlur"
-			@click="() => handleOnClick(props.hash, props.id)"
+			@click="() => handleOnClick(props.hash)"
 		>
 			<div v-if="props.hideTooltip" text-class="text-theme-body">
 				{{ shortenHash(props.hash) }}
@@ -14,7 +14,7 @@
 			</Tooltip>
 		</LinkButton>
 		<TextCopy
-			:text="props.hash ?? ''"
+			:text="props.hash"
 			label="Click to copy transaction hash to clipboard"
 			class="h-5 inline align-baseline"
 			tooltip-class="font-sans"
@@ -27,8 +27,7 @@ import { useDrawer } from '~/composables/useDrawer'
 import LinkButton from '~/components/atoms/LinkButton.vue'
 import TransactionIcon from '~/components/icons/TransactionIcon.vue'
 type Props = {
-	hash?: string
-	id?: string
+	hash: string
 	hideTooltip?: boolean
 }
 const props = defineProps<Props>()
@@ -38,8 +37,7 @@ const emitBlur = (newTarget: FocusEvent) => {
 	emit('blur', newTarget)
 }
 
-const handleOnClick = (hash?: string, id?: string) => {
-	if (hash || id)
-		drawer.push({ entityTypeName: 'transaction', hash: hash || '', id })
+const handleOnClick = (hash: string) => {
+	drawer.push({ entityTypeName: 'transaction', hash })
 }
 </script>

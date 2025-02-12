@@ -53,10 +53,7 @@
 					:key="transaction.transactionHash"
 				>
 					<TableTd>
-						<TransactionLink
-							:id="transaction.id"
-							:hash="transaction.transactionHash"
-						/>
+						<TransactionLink :hash="transaction.transactionHash" />
 					</TableTd>
 					<TableTd>
 						<TransactionResult :result="transaction.result" :show-text="true" />

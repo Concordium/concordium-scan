@@ -4,7 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix transaction links from transaction list page. These failed due to using a transaction ID which is incompatible with the new API, instead only the transaction hash can be used now.
+
 ## [1.7.2] - 2025-02-11
+
+### Changed
 
 - Move query `useTransactionMetricsQuery` and `useTransactionsListQuery` to new API.
 
