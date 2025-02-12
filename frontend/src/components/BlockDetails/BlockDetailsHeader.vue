@@ -15,6 +15,16 @@
 					icon-size="h-5 w-5"
 					tooltip-class="font-sans"
 				/>
+				<h1 class="inline-block text-2xl numerical">
+					{{ String(block?.blockHeight) }}
+				</h1>
+				<TextCopy
+					:text="String(block?.blockHeight)"
+					label="Click to copy block height to clipboard"
+					class="mx-3"
+					icon-size="h-5 w-5"
+					tooltip-class="font-sans"
+				/>
 				<Badge :type="block.finalized ? 'success' : 'failure'">
 					{{ block?.finalized ? 'Finalized' : 'Rejected' }}
 				</Badge>
