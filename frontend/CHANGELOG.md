@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Add `blockHeight` at block details page.
+
 ## [1.7.3] - 2025-02-12
 
 ### Fixed
