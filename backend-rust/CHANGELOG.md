@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.24] - 2025-02-12
+
 ### Fixed
 
 - Fix metrics where interval is being shown in greater units than strictly seconds
