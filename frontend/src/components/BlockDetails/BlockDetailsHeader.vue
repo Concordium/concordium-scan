@@ -16,10 +16,10 @@
 					tooltip-class="font-sans"
 				/>
 				<h1 class="inline-block text-2xl numerical">
-					{{ String(block?.id) }}
+					{{ String(block?.blockHeight) }}
 				</h1>
 				<TextCopy
-					:text="String(block.id)"
+					:text="String(block?.blockHeight)"
 					label="Click to copy block height to clipboard"
 					class="mx-3"
 					icon-size="h-5 w-5"

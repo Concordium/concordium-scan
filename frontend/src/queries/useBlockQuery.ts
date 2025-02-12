@@ -53,6 +53,7 @@ const BlockQuery = gql<BlockResponse>`
 	query ($id: ID!, $afterTx: String, $beforeTx: String, $firstTx: Int, $lastTx: Int) {
 		block(id: $id) {
 			id
+			blockHeight
 			blockHash
 			bakerId
 			blockSlotTime
@@ -79,6 +80,7 @@ const BlockQueryByHash = gql<BlockByBlockHashResponse>`
 	) {
 		blockByBlockHash(blockHash: $hash) {
 			id
+			blockHeight
 			blockHash
 			bakerId
 			blockSlotTime
