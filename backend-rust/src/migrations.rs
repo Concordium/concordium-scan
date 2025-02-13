@@ -173,6 +173,8 @@ pub enum SchemaVersion {
     IndexBlocksWithNoCumulativeFinTime,
     #[display("0003:PayDayPoolCommissionRates")]
     PayDayPoolCommissionRates,
+    #[display("0004:Fix invalid data of dangling delegators.")]
+    FixDanglingDelegators,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -181,7 +183,7 @@ impl SchemaVersion {
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
         SchemaVersion::PayDayPoolCommissionRates;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::PayDayPoolCommissionRates;
+    const LATEST: SchemaVersion = SchemaVersion::FixDanglingDelegators;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -200,6 +202,7 @@ impl SchemaVersion {
             SchemaVersion::InitialFirstHalf => false,
             SchemaVersion::IndexBlocksWithNoCumulativeFinTime => false,
             SchemaVersion::PayDayPoolCommissionRates => false,
+            SchemaVersion::FixDanglingDelegators => false,
         }
     }
 
@@ -227,7 +230,15 @@ impl SchemaVersion {
                 tx.as_mut().execute(sqlx::raw_sql(include_str!("./migrations/m0003.sql"))).await?;
                 SchemaVersion::PayDayPoolCommissionRates
             }
-            SchemaVersion::PayDayPoolCommissionRates => unimplemented!(
+            SchemaVersion::PayDayPoolCommissionRates => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0004-fix-dangling-delegators.sql"
+                    )))
+                    .await?;
+                SchemaVersion::FixDanglingDelegators
+            }
+            SchemaVersion::FixDanglingDelegators => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
