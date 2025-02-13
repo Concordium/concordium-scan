@@ -8,7 +8,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 
 type Props = {
 	isOpen: boolean
@@ -18,6 +18,9 @@ const { currentDrawerCount } = useDrawer()
 const props = defineProps<Props>()
 onMounted(() => {
 	if (!props.isMobile) toggleClasses(currentDrawerCount.value > 0)
+})
+onUnmounted(() => {
+	if (!props.isMobile) toggleClasses(false)
 })
 watch(
 	() => props.isOpen,
