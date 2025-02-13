@@ -4093,11 +4093,11 @@ impl PreparedPayDayBlock {
         let payday_commission_rates =
             PreparedPaydayCommissionRates::prepare(baker_reward_period_infos)?;
 
-        let consensus_info = node_client
+        let election_info = node_client
             .get_election_info(BlockIdentifier::AbsoluteHeight(block_height))
             .await?
             .response;
-        let bakers_lottery_powers = PreparedPaydayLotteryPowers::prepare(consensus_info.bakers)?;
+        let bakers_lottery_powers = PreparedPaydayLotteryPowers::prepare(election_info.bakers)?;
 
         Ok(Self {
             block_height: block_height.height.try_into()?,
@@ -4218,7 +4218,7 @@ impl PreparedPaydayLotteryPowers {
             bakers_lottery_powers.push(
                 BigDecimal::from_f64(baker.baker_lottery_power)
                     .context(
-                        "Expected 64 type (baker_lottery_power) to be converted correctly into \
+                        "Expected f64 type (baker_lottery_power) to be converted correctly into \
                          BigDecimal type",
                     )
                     .map_err(RPCError::ParseError)?,

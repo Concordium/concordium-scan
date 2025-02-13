@@ -3,8 +3,7 @@ CREATE TABLE bakers_payday_lottery_powers(
     id
         BIGINT
         PRIMARY KEY,
-    -- Fraction of transaction rewards rewarded at payday to this baker pool.
-    -- Stored as a fraction of an amount with a precision of `1/100_000`.
+    -- Lottery power in the consensus algorithm at the last payday period of the above baker.
     payday_lottery_power
         NUMERIC
         NOT NULL

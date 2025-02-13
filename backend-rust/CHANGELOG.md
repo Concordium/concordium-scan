@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+Database schema version: 4
+
+### Added
+
+- Database migration to add the lottery power of each baker pool during the last payday period.
+- Add Query `Query::Baker::state::pool::lotteryPower` which returns the `lotteryPower` of the baker pool during the last payday period.
+
 ## [0.1.24] - 2025-02-12
 
 ### Fixed

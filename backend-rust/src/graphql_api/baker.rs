@@ -84,7 +84,7 @@ pub struct Baker {
     payday_transaction_commission: Option<i64>,
     payday_baking_commission: Option<i64>,
     payday_finalization_commission: Option<i64>,
-    lottery_power: BigDecimal,
+    lottery_power: Option<BigDecimal>,
 }
 impl Baker {
     pub async fn query_by_id(pool: &PgPool, baker_id: i64) -> ApiResult<Option<Self>> {
@@ -214,7 +214,8 @@ impl Baker {
                 payday_commission_rates,
                 lottery_power: self
                     .lottery_power
-                    .clone()
+                    .as_ref()
+                    .unwrap_or(&BigDecimal::default())
                     .try_into()
                     .map_err(|e: anyhow::Error| ApiError::InternalError(e.to_string()))?,
                 metadata_url: self.metadata_url.as_deref(),
@@ -469,7 +470,8 @@ struct BakerPool<'a> {
     ///   from the bakers table upon detecting the `BakerEvent::Removed`,
     ///   whereas `payday_commission_rates` persist until the next payday.
     payday_commission_rates: Option<CommissionRates>,
-    /// comments
+    /// The lottery power of the baker pool during the last payday period
+    /// captured from the `get_election_info` node endpoint.`
     lottery_power:           Decimal,
     // /// Ranking of the baker pool by total staked amount. Value may be null for
     // /// brand new bakers where statistics have not been calculated yet. This

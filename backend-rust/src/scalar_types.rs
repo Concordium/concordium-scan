@@ -135,10 +135,10 @@ impl From<concordium_rust_sdk::types::AmountFraction> for Decimal {
     }
 }
 
-impl TryFrom<BigDecimal> for Decimal {
+impl TryFrom<&BigDecimal> for Decimal {
     type Error = anyhow::Error;
 
-    fn try_from(value: BigDecimal) -> Result<Self, Self::Error> {
+    fn try_from(value: &BigDecimal) -> Result<Self, Self::Error> {
         let float_value =
             value.to_f64().ok_or_else(|| anyhow::anyhow!("Failed to convert BigDecimal to f64"))?;
 
