@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 - Add `blockHeight` at block details page.
 
+### Fixed
+
+- Scrolling bar issue after having opened drawer
+
 ## [1.7.3] - 2025-02-12
 
 ### Fixed
