@@ -4,9 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.7.4] - 2025-02-13
+
 ### Added
 
 - Add `blockHeight` at block details page.
+
+### Changed
+
+- Remove id from block query
 
 ## [1.7.3] - 2025-02-12
 
