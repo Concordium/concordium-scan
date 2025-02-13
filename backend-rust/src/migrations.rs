@@ -173,15 +173,16 @@ pub enum SchemaVersion {
     IndexBlocksWithNoCumulativeFinTime,
     #[display("0003:PayDayPoolCommissionRates")]
     PayDayPoolCommissionRates,
+    #[display("0004:PayDayLotteryPowers")]
+    PayDayLotteryPowers,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking database schema versions have been
     /// introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
-        SchemaVersion::PayDayPoolCommissionRates;
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::PayDayLotteryPowers;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::PayDayPoolCommissionRates;
+    const LATEST: SchemaVersion = SchemaVersion::PayDayLotteryPowers;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -200,6 +201,7 @@ impl SchemaVersion {
             SchemaVersion::InitialFirstHalf => false,
             SchemaVersion::IndexBlocksWithNoCumulativeFinTime => false,
             SchemaVersion::PayDayPoolCommissionRates => false,
+            SchemaVersion::PayDayLotteryPowers => false,
         }
     }
 
@@ -227,7 +229,11 @@ impl SchemaVersion {
                 tx.as_mut().execute(sqlx::raw_sql(include_str!("./migrations/m0003.sql"))).await?;
                 SchemaVersion::PayDayPoolCommissionRates
             }
-            SchemaVersion::PayDayPoolCommissionRates => unimplemented!(
+            SchemaVersion::PayDayPoolCommissionRates => {
+                tx.as_mut().execute(sqlx::raw_sql(include_str!("./migrations/m0004.sql"))).await?;
+                SchemaVersion::PayDayLotteryPowers
+            }
+            SchemaVersion::PayDayLotteryPowers => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
