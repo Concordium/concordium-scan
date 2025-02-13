@@ -12,7 +12,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- Remove id from block query
+- Remove id from blocks
 
 ## [1.7.3] - 2025-02-12
 
