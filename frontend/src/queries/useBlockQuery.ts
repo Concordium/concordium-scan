@@ -7,6 +7,7 @@ import { useComponentState } from '~/composables/useComponentState'
 type BlockResponse = {
 	block: Block
 }
+
 type BlockByBlockHashResponse = {
 	blockByBlockHash: Block
 }
@@ -49,27 +50,6 @@ pageInfo {
 	hasNextPage
 }
 `
-const BlockQuery = gql<BlockResponse>`
-	query ($id: ID!, $afterTx: String, $beforeTx: String, $firstTx: Int, $lastTx: Int) {
-		block(id: $id) {
-			id
-			blockHeight
-			blockHash
-			bakerId
-			blockSlotTime
-			finalized
-			transactionCount
-			transactions(after: $afterTx, before: $beforeTx, first: $firstTx, last: $lastTx) {
-				${transactionsFragment}
-			}
-			blockStatistics {
-				blockTime
-				finalizationTime
-			}
-		}
-	}
-`
-
 const BlockQueryByHash = gql<BlockByBlockHashResponse>`
 	query (
 		$hash: String!
@@ -97,22 +77,15 @@ const BlockQueryByHash = gql<BlockByBlockHashResponse>`
 	}
 `
 
-type QueryParams = (
-	| {
-			id: Ref<string>
-			hash?: Ref<string>
-	  }
-	| {
-			hash: Ref<string>
-			id?: Ref<string>
-	  }
-) & {
+type QueryParams = {
+	hash?: Ref<string>
+} & {
 	eventsVariables?: BlockQueryVariables
 }
 
-export const useBlockQuery = ({ id, hash, eventsVariables }: QueryParams) => {
-	const query = id?.value ? BlockQuery : BlockQueryByHash
-	const identifier = id?.value ? { id: id.value } : { hash: hash?.value }
+export const useBlockQuery = ({ hash, eventsVariables }: QueryParams) => {
+	const query = BlockQueryByHash
+	const identifier = { hash: hash?.value }
 
 	const { data, fetching, error } = useQuery<
 		BlockResponse | BlockByBlockHashResponse | undefined

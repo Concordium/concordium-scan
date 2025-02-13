@@ -36,15 +36,12 @@ const paginationVars = {
 }
 
 type Props = {
-	id?: string
 	hash?: string
 }
 const props = defineProps<Props>()
-const refId = toRef(props, 'id')
 const refHash = toRef(props, 'hash')
 
 const { data, error, componentState } = useBlockQuery({
-	id: refId as Ref<string>,
 	hash: refHash as Ref<string>,
 	eventsVariables: paginationVars,
 })
