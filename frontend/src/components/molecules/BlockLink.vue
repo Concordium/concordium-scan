@@ -1,5 +1,5 @@
 ﻿<template>
-	<div v-if="props.hash || props.id" class="inline-block whitespace-nowrap">
+	<div v-if="props.hash" class="inline-block whitespace-nowrap">
 		<BlockIcon
 			v-if="props.iconSize == 'big'"
 			class="h-5 inline align-middle mr-3"
@@ -8,7 +8,7 @@
 		<LinkButton
 			class="numerical px-2"
 			@blur="emitBlur"
-			@click="() => handleOnClick(props.hash, props.id)"
+			@click="() => handleOnClick(props.hash)"
 		>
 			<div v-if="props.hideTooltip">
 				{{ shortenHash(props.hash) }}
@@ -18,7 +18,7 @@
 			</Tooltip>
 		</LinkButton>
 		<TextCopy
-			:text="props.hash ?? ''"
+			:text="props.hash"
 			label="Click to copy block hash to clipboard"
 			class="h-5 inline align-baseline"
 			tooltip-class="font-sans"
@@ -31,8 +31,7 @@ import { useDrawer } from '~/composables/useDrawer'
 import LinkButton from '~/components/atoms/LinkButton.vue'
 import BlockIcon from '~/components/icons/BlockIcon.vue'
 type Props = {
-	hash?: string
-	id?: string
+	hash: string
 	iconSize?: string
 	hideTooltip?: boolean
 }
@@ -43,7 +42,7 @@ const emitBlur = (newTarget: FocusEvent) => {
 	emit('blur', newTarget)
 }
 
-const handleOnClick = (hash?: string, id?: string) => {
-	if (hash || id) drawer.push({ entityTypeName: 'block', hash: hash || '', id })
+const handleOnClick = (hash: string) => {
+	if (hash) drawer.push({ entityTypeName: 'block', hash: hash })
 }
 </script>

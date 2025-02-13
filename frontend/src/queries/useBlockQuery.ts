@@ -4,10 +4,6 @@ import type { Block } from '~/types/generated'
 import type { QueryVariables } from '~/types/queryVariables'
 import { useComponentState } from '~/composables/useComponentState'
 
-type BlockResponse = {
-	block: Block
-}
-
 type BlockByBlockHashResponse = {
 	blockByBlockHash: Block
 }
@@ -78,17 +74,17 @@ const BlockQueryByHash = gql<BlockByBlockHashResponse>`
 `
 
 type QueryParams = {
-	hash?: Ref<string>
+	hash: Ref<string>
 } & {
 	eventsVariables?: BlockQueryVariables
 }
 
 export const useBlockQuery = ({ hash, eventsVariables }: QueryParams) => {
 	const query = BlockQueryByHash
-	const identifier = { hash: hash?.value }
+	const identifier = { hash: hash.value }
 
 	const { data, fetching, error } = useQuery<
-		BlockResponse | BlockByBlockHashResponse | undefined
+		BlockByBlockHashResponse | undefined
 	>({
 		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query,
@@ -100,13 +96,11 @@ export const useBlockQuery = ({ hash, eventsVariables }: QueryParams) => {
 	})
 
 	const getData = (
-		responseData: BlockResponse | BlockByBlockHashResponse | undefined
+		responseData: BlockByBlockHashResponse | undefined
 	): Block | undefined => {
 		if (!responseData) return undefined
 
-		return 'block' in responseData
-			? responseData.block
-			: responseData.blockByBlockHash
+		return responseData.blockByBlockHash
 	}
 
 	const dataRef = ref(getData(data.value))

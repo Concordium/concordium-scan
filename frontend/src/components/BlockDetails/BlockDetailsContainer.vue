@@ -11,7 +11,6 @@
 </template>
 
 <script lang="ts" setup>
-import type { Ref } from 'vue'
 import { useBlockQuery } from '~/queries/useBlockQuery'
 import { usePagination, PAGE_SIZE_SMALL } from '~/composables/usePagination'
 import BlockDetailsContent from '~/components/BlockDetails/BlockDetailsContent.vue'
@@ -36,13 +35,13 @@ const paginationVars = {
 }
 
 type Props = {
-	hash?: string
+	hash: string
 }
 const props = defineProps<Props>()
 const refHash = toRef(props, 'hash')
 
 const { data, error, componentState } = useBlockQuery({
-	hash: refHash as Ref<string>,
+	hash: refHash,
 	eventsVariables: paginationVars,
 })
 </script>
