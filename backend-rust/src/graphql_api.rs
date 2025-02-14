@@ -915,14 +915,74 @@ impl SearchResult {
 
     async fn transactions(
         &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<i32>,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        _after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        _before: Option<String>,
+        before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Transaction>> {
-        todo_api!()
+        let transaction_hash_regex: Regex = Regex::new(r"^[a-fA-F0-9]{1,64}$")
+            .map_err(|_| ApiError::InternalError("Invalid regex".to_string()))?;
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+        let query =
+            ConnectionQuery::<i64>::new(first, after, last, before, config.transaction_connection_limit)?;
+        let mut connection = connection::Connection::new(false, false);
+        if !transaction_hash_regex.is_match(&self.query) {
+            return Ok(connection);
+        }
+        let lower_case_query = self.query.to_lowercase();
+        let mut row_stream = sqlx::query_as!(
+            Transaction,
+            r#"SELECT
+                    index,
+                    block_height,
+                    hash,
+                    ccd_cost,
+                    energy_cost,
+                    sender_index,
+                    type as "tx_type: DbTransactionType",
+                    type_account as "type_account: AccountTransactionType",
+                    type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
+                    type_update as "type_update: UpdateTransactionType",
+                    success,
+                    events as "events: sqlx::types::Json<Vec<Event>>",
+                    reject as "reject: sqlx::types::Json<TransactionRejectReason>"
+                FROM transactions
+                WHERE
+                    starts_with(hash, $5)
+                    AND $2 < index
+                    AND index < $1
+                ORDER BY
+                    (CASE WHEN $3 THEN index END) ASC,
+                    (CASE WHEN NOT $3 THEN index END) DESC
+                LIMIT $4"#,
+            query.from,
+            query.to,
+            query.limit,
+            query.is_last,
+            lower_case_query
+        )
+        .fetch(pool);
+
+        while let Some(tx) = row_stream.try_next().await? {
+            connection.edges.push(connection::Edge::new(tx.index.to_string(), tx));
+        }
+        if let (Some(page_min), Some(page_max)) =
+            (connection.edges.last(), connection.edges.first())
+        {
+            let result =
+                sqlx::query!("SELECT MAX(index) as max_id, MIN(index) as min_id FROM transactions")
+                    .fetch_one(pool)
+                    .await?;
+            connection.has_next_page =
+                result.min_id.map_or(false, |db_min| db_min < page_min.node.index);
+            connection.has_previous_page =
+                result.max_id.map_or(false, |db_max| db_max > page_max.node.index);
+        }
+        Ok(connection)
     }
 
     async fn tokens(
