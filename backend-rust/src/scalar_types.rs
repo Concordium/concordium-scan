@@ -1,5 +1,7 @@
 use anyhow::Context;
 use async_graphql::{scalar, InputValueError, InputValueResult, Scalar, ScalarType, Value};
+use bigdecimal::BigDecimal;
+use num_traits::{FromPrimitive, ToPrimitive};
 use std::fmt;
 
 pub type Amount = UnsignedLong;
@@ -130,6 +132,20 @@ impl ScalarType for Decimal {
 impl From<concordium_rust_sdk::types::AmountFraction> for Decimal {
     fn from(fraction: concordium_rust_sdk::types::AmountFraction) -> Self {
         Self(concordium_rust_sdk::types::PartsPerHundredThousands::from(fraction).into())
+    }
+}
+
+impl TryFrom<&BigDecimal> for Decimal {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &BigDecimal) -> Result<Self, Self::Error> {
+        let float_value =
+            value.to_f64().ok_or_else(|| anyhow::anyhow!("Failed to convert BigDecimal to f64"))?;
+
+        let decimal = rust_decimal::Decimal::from_f64(float_value)
+            .ok_or_else(|| anyhow::anyhow!("Failed to convert f64 to rust_decimal::Decimal"))?;
+
+        Ok(Decimal(decimal))
     }
 }
 
