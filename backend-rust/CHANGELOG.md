@@ -4,9 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Fixed
-
 ## [0.1.25] - 2025-02-14
+
+### Fixed
 
 - Remove locked CCD metrics
 
