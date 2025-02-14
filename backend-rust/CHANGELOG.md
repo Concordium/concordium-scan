@@ -13,7 +13,7 @@ Database schema version: 4
 
 ### Changed
 
-- Query the `get_module_source` on the most recent block instead of the current block being indexed to improve performance.
+- Query the `get_module_source` on the `LastFinal` block to improve performance.
 
 ## [0.1.24] - 2025-02-12
 
