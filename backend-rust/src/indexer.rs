@@ -1536,7 +1536,7 @@ impl PreparedEvent {
             AccountTransactionEffects::ModuleDeployed {
                 module_ref,
             } => PreparedEvent::ModuleDeployed(
-                PreparedModuleDeployed::prepare(node_client, data, *module_ref).await?,
+                PreparedModuleDeployed::prepare(node_client, *module_ref).await?,
             ),
             AccountTransactionEffects::ContractInitialized {
                 data: event_data,
@@ -2263,13 +2263,12 @@ struct PreparedModuleDeployed {
 impl PreparedModuleDeployed {
     async fn prepare(
         node_client: &mut v2::Client,
-        data: &BlockData,
         module_reference: sdk_types::hashes::ModuleReference,
     ) -> anyhow::Result<Self> {
-        let block_height = data.finalized_block_info.height;
-
+        // The `get_module_source` query on old blocks are currently not performing
+        // well in the node. We query on the `lastFinal` block here as a result (https://github.com/Concordium/concordium-scan/issues/534).
         let wasm_module = node_client
-            .get_module_source(&module_reference, BlockIdentifier::AbsoluteHeight(block_height))
+            .get_module_source(&module_reference, BlockIdentifier::LastFinal)
             .await?
             .response;
         let schema = match wasm_module.version {
