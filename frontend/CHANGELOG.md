@@ -14,6 +14,11 @@ All notable changes to this project will be documented in this file.
 
 - Remove id from blocks
 
+### Fixed
+
+- Scrolling bar issue after having opened drawer
+- Remove locked CCD number
+
 ## [1.7.3] - 2025-02-12
 
 ### Fixed
