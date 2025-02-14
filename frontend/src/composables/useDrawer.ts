@@ -10,7 +10,8 @@ import { useState } from '#app'
 
 type BlockDrawerItem = {
 	entityTypeName: 'block'
-} & { hash: string }
+	hash: string
+}
 
 type TxDrawerItem = {
 	entityTypeName: 'transaction'
@@ -38,7 +39,7 @@ type ModuleDrawerItem = {
  */
 type BakerDrawerItem = {
 	entityTypeName: 'baker'
-	hash: string
+	id: number
 }
 
 type ValidatorDrawerItem = {

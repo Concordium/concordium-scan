@@ -75,7 +75,6 @@ const BlockQueryByHash = gql<BlockByBlockHashResponse>`
 
 type QueryParams = {
 	hash: Ref<string>
-} & {
 	eventsVariables?: BlockQueryVariables
 }
 

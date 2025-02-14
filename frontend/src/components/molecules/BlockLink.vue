@@ -1,5 +1,5 @@
 ﻿<template>
-	<div v-if="props.hash" class="inline-block whitespace-nowrap">
+	<div class="inline-block whitespace-nowrap">
 		<BlockIcon
 			v-if="props.iconSize == 'big'"
 			class="h-5 inline align-middle mr-3"
@@ -43,6 +43,6 @@ const emitBlur = (newTarget: FocusEvent) => {
 }
 
 const handleOnClick = (hash: string) => {
-	if (hash) drawer.push({ entityTypeName: 'block', hash: hash })
+	drawer.push({ entityTypeName: 'block', hash: hash })
 }
 </script>
