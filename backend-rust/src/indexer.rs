@@ -2265,8 +2265,8 @@ impl PreparedModuleDeployed {
         node_client: &mut v2::Client,
         module_reference: sdk_types::hashes::ModuleReference,
     ) -> anyhow::Result<Self> {
-        // The `get_module_source`` query on old blocks are currently not performing
-        // well in the node, We query on the `lastFinal` block here as a result (https://github.com/Concordium/concordium-scan/issues/534).
+        // The `get_module_source` query on old blocks are currently not performing
+        // well in the node. We query on the `lastFinal` block here as a result (https://github.com/Concordium/concordium-scan/issues/534).
         // The connected node should be caught-up to the top of the chain to make use of
         // the performance gain.
         let wasm_module = node_client
