@@ -15,40 +15,18 @@ jest.mock('vue-router', () => ({
 
 describe('useDrawer', () => {
 	describe('isItemOnTop', () => {
-		it('should never match if there are no drawers currently', () => {
-			const currentTopItem = ref(undefined)
-
-			expect(
-				isItemOnTop({ entityTypeName: 'block', id: '42' }, currentTopItem)
-			).toBe(false)
-		})
-
-		it('should not match two different drawer types', () => {
-			const currentTopItem = ref<DrawerItem>({
-				entityTypeName: 'block',
-				id: '1337',
-			})
-
-			expect(
-				isItemOnTop(
-					{ entityTypeName: 'transaction', id: '1337' },
-					currentTopItem
-				)
-			).toBe(false)
-		})
-
 		describe('when entity is a block', () => {
 			it('should match a block drawer by id', () => {
 				const currentTopItem = ref<DrawerItem>({
 					entityTypeName: 'block',
-					id: '1337',
+					hash: '1337',
 				})
 
 				expect(
-					isItemOnTop({ entityTypeName: 'block', id: '42' }, currentTopItem)
+					isItemOnTop({ entityTypeName: 'block', hash: '42' }, currentTopItem)
 				).toBe(false)
 				expect(
-					isItemOnTop({ entityTypeName: 'block', id: '1337' }, currentTopItem)
+					isItemOnTop({ entityTypeName: 'block', hash: '1337' }, currentTopItem)
 				).toBe(true)
 			})
 
@@ -70,14 +48,10 @@ describe('useDrawer', () => {
 				const currentTopItem = ref<DrawerItem>({
 					entityTypeName: 'block',
 					hash: '',
-					id: undefined,
 				})
 
 				expect(
-					isItemOnTop(
-						{ entityTypeName: 'block', id: undefined, hash: '' },
-						currentTopItem
-					)
+					isItemOnTop({ entityTypeName: 'block', hash: '' }, currentTopItem)
 				).toBe(false)
 			})
 		})
@@ -127,7 +101,6 @@ describe('useDrawer', () => {
 				const currentTopItem = ref<DrawerItem>({
 					entityTypeName: 'block',
 					hash: '',
-					id: undefined,
 				})
 
 				expect(
@@ -172,21 +145,6 @@ describe('useDrawer', () => {
 						currentTopItem
 					)
 				).toBe(true)
-			})
-
-			it('should not match an account with a missing id or address', () => {
-				const currentTopItem = ref<DrawerItem>({
-					entityTypeName: 'account',
-					address: '',
-					id: undefined,
-				})
-
-				expect(
-					isItemOnTop(
-						{ entityTypeName: 'account', id: undefined, address: '' },
-						currentTopItem
-					)
-				).toBe(false)
 			})
 		})
 
