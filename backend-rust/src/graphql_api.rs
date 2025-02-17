@@ -9,10 +9,10 @@ mod block_metrics;
 mod contract;
 mod module_reference_event;
 pub mod node_status;
+mod search_result;
 mod token;
 mod transaction;
 mod transaction_metrics;
-mod search_result;
 
 // TODO remove this macro, when done with first iteration
 /// Short hand for returning API error with the message not implemented.
@@ -25,6 +25,7 @@ pub(crate) use todo_api;
 
 use crate::{
     connection::ConnectionQuery,
+    graphql_api::search_result::SearchResult,
     migrations::{current_schema_version, SchemaVersion},
     scalar_types::{BlockHeight, DateTime, TimeSpan, UnsignedLong},
     transaction_event::smart_contracts::InvalidContractVersionError,
@@ -45,11 +46,7 @@ use futures::prelude::*;
 use node_status::NodeStatus;
 use prometheus_client::registry::Registry;
 use sqlx::PgPool;
-use std::{
-    error::Error,
-    str::FromStr,
-    sync::Arc,
-};
+use std::{error::Error, str::FromStr, sync::Arc};
 use tokio::{
     net::TcpListener,
     sync::{broadcast, watch::Receiver},
@@ -59,7 +56,6 @@ use tokio_util::sync::CancellationToken;
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{error, info};
 use transaction::Transaction;
-use crate::graphql_api::search_result::SearchResult;
 
 const VERSION: &str = clap::crate_version!();
 
@@ -789,7 +785,6 @@ struct Ranking {
     rank:  i32,
     total: i32,
 }
-
 
 #[derive(Enum, Clone, Copy, PartialEq, Eq)]
 enum MetricsPeriod {

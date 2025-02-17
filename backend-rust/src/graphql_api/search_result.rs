@@ -1,22 +1,24 @@
-use super::{baker, block::Block, contract, get_config, get_pool, todo_api, token, ApiError, ApiResult, ConnectionQuery};
-use crate::graphql_api::account::Account;
-use crate::graphql_api::node_status::NodeStatus;
-use crate::graphql_api::transaction::Transaction;
+use super::{
+    baker, block::Block, contract, get_config, get_pool, todo_api, token, ApiError, ApiResult,
+    ConnectionQuery,
+};
 use crate::{
+    connection::DescendingI64,
+    graphql_api::{account::Account, node_status::NodeStatus, transaction::Transaction},
     transaction_event::Event,
     transaction_reject::TransactionRejectReason,
     transaction_type::{
-        AccountTransactionType,
-        CredentialDeploymentTransactionType, DbTransactionType,
+        AccountTransactionType, CredentialDeploymentTransactionType, DbTransactionType,
         UpdateTransactionType,
     },
 };
 use async_graphql::{connection, Context, Object};
 use futures::TryStreamExt;
 use regex::Regex;
-use std::cmp::{max, min};
-use std::str::FromStr;
-use crate::connection::DescendingI64;
+use std::{
+    cmp::{max, min},
+    str::FromStr,
+};
 
 pub struct SearchResult {
     pub query: String,
@@ -101,7 +103,7 @@ impl SearchResult {
             lower_case_query.parse::<i64>().ok(),
             lower_case_query
         )
-            .fetch(pool);
+        .fetch(pool);
 
         let mut min_height = None;
         let mut max_height = None;
@@ -130,8 +132,8 @@ impl SearchResult {
                 lower_case_query.parse::<i64>().ok(),
                 lower_case_query,
             )
-                .fetch_one(pool)
-                .await?;
+            .fetch_one(pool)
+            .await?;
             connection.has_previous_page =
                 result.max_height.map_or(false, |db_max| db_max > page_max_height);
             connection.has_next_page =
@@ -154,8 +156,13 @@ impl SearchResult {
             .map_err(|_| ApiError::InternalError("Invalid regex".to_string()))?;
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
-        let query =
-            ConnectionQuery::<DescendingI64>::new(first, after, last, before, config.transaction_connection_limit)?;
+        let query = ConnectionQuery::<DescendingI64>::new(
+            first,
+            after,
+            last,
+            before,
+            config.transaction_connection_limit,
+        )?;
         let mut connection = connection::Connection::new(false, false);
         if !transaction_hash_regex.is_match(&self.query) {
             return Ok(connection);
@@ -264,8 +271,8 @@ impl SearchResult {
                 address = $1",
                 parsed_address.to_string()
             )
-                .fetch_optional(pool)
-                .await?
+            .fetch_optional(pool)
+            .await?
             {
                 connection.edges.push(connection::Edge::new(account.index.to_string(), account));
             }
@@ -299,8 +306,8 @@ impl SearchResult {
             query.is_last,
             self.query
         )
-            .fetch_all(pool)
-            .await?;
+        .fetch_all(pool)
+        .await?;
 
         let mut min_index = None;
         let mut max_index = None;
@@ -327,8 +334,8 @@ impl SearchResult {
                 "#,
                 &self.query
             )
-                .fetch_one(pool)
-                .await?;
+            .fetch_one(pool)
+            .await?;
 
             connection.has_previous_page =
                 result.min_id.map_or(false, |db_min| db_min < page_min_id);
