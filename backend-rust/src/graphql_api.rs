@@ -1125,3 +1125,21 @@ pub enum AccountStatementEntryType {
     BakerReward,
     TransactionFeeReward,
 }
+
+impl AccountStatementEntryType {
+    /// Whether the statement entry type is a reward, used to check for updates
+    /// when restake earnings is enable when staking.
+    pub fn is_reward(&self) -> bool {
+        match self {
+            Self::TransferIn
+            | Self::TransferOut
+            | Self::AmountDecrypted
+            | Self::AmountEncrypted
+            | Self::TransactionFee => false,
+            Self::FinalizationReward
+            | Self::FoundationReward
+            | Self::BakerReward
+            | Self::TransactionFeeReward => true,
+        }
+    }
+}

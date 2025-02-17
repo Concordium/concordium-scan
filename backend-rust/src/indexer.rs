@@ -1068,6 +1068,9 @@ SELECT * FROM UNNEST(
     }
 }
 
+/// Database operation for adding new row into the account statement table.
+/// Notes the current balance of the account and assumes the balance is not yet
+/// updated.
 struct PreparedAccountStatement {
     account_address:  Arc<String>,
     amount:           i64,
@@ -3723,12 +3726,14 @@ impl PreparedUpdateEncryptedBalance {
 
 /// Represents change in the balance of some account.
 struct PreparedUpdateAccountBalance {
+    /// Tracking the account statement causing the change in balance.
+    account_statement: PreparedAccountStatement,
     /// Address of the account.
     account_address:   Arc<String>,
     /// Difference in the balance.
     change:            i64,
-    /// Tracking the account statement causing the change in balance.
-    account_statement: PreparedAccountStatement,
+    /// Whether the update in balance is some reward.
+    is_reward:         bool,
 }
 
 impl PreparedUpdateAccountBalance {
@@ -3748,6 +3753,7 @@ impl PreparedUpdateAccountBalance {
             account_address: sender,
             change: amount,
             account_statement,
+            is_reward: transaction_type.is_reward(),
         })
     }
 
@@ -3760,14 +3766,65 @@ impl PreparedUpdateAccountBalance {
             // Difference of 0 means nothing needs to be updated.
             return Ok(());
         }
-        sqlx::query!(
-            "UPDATE accounts SET amount = amount + $1 WHERE address = $2",
+        // We update the account statement first, since this operation assumes the
+        // balance is not updated yet.
+        self.account_statement.save(tx, transaction_index).await?;
+        // Then we update the balance. If this is a reward and
+        // delegated_restake_earnings is not NULL we know this account is delegating and
+        // if delegated_restake_earnings is true we update the delegated_stake as well.
+        let account_info = sqlx::query!(
+            "UPDATE accounts
+             SET
+                 amount = amount + $1,
+                 delegated_stake = CASE
+                         WHEN $3 AND delegated_restake_earnings THEN delegated_stake + $1
+                         ELSE delegated_stake
+                     END
+             WHERE address = $2
+             RETURNING index, delegated_restake_earnings, delegated_target_baker_id",
             self.change,
             self.account_address.as_ref(),
+            self.is_reward
         )
-        .execute(tx.as_mut())
+        .fetch_one(tx.as_mut())
         .await?;
-        self.account_statement.save(tx, transaction_index).await?;
+
+        if !self.is_reward {
+            return Ok(());
+        }
+        if let Some(restake) = account_info.delegated_restake_earnings {
+            // Account is delegating.
+            if restake {
+                // Restake is enabled
+                if let Some(pool) = account_info.delegated_target_baker_id {
+                    // delegating to a pool (and not the passive pool).
+                    sqlx::query!(
+                        "UPDATE bakers
+                             SET pool_total_staked = pool_total_staked + $2
+                         WHERE id = $1",
+                        pool,
+                        self.change,
+                    )
+                    .execute(tx.as_mut())
+                    .await?;
+                }
+            }
+        } else {
+            // Account is not delegating and could be the pool owner, so
+            // check and update the baker pool if restakeEarnings are enabled.
+            sqlx::query!(
+                "UPDATE bakers
+                     SET
+                         staked = staked + $2,
+                         pool_total_staked = pool_total_staked + $2
+                 WHERE id = $1 AND restake_earnings",
+                account_info.index,
+                self.change,
+            )
+            .execute(tx.as_mut())
+            .await?;
+        }
+
         Ok(())
     }
 }
