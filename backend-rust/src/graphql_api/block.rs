@@ -167,9 +167,6 @@ impl Block {
 
 #[Object]
 impl Block {
-    // chain_parameters: ChainParameters,
-    // balance_statistics: BalanceStatistics,
-
     /// Absolute block height.
     async fn id(&self) -> types::ID { types::ID::from(self.height) }
 
@@ -417,36 +414,4 @@ struct BlockStatistics {
 struct BlockSpecialTransactionOutcome {
     block_outcome_index: i64,
     outcome:             sqlx::types::Json<SpecialEvent>,
-}
-
-#[derive(SimpleObject)]
-struct BalanceStatistics {
-    /// The total CCD in existence
-    total_amount: Amount,
-    /// The total CCD Released. This is total CCD supply not counting the
-    /// balances of non circulating accounts.
-    total_amount_released: Amount,
-    /// The total CCD Unlocked according to the Concordium promise published on
-    /// deck.concordium.com. Will be null for blocks with slot time before the
-    /// published release schedule.
-    total_amount_unlocked: Amount,
-    /// The total CCD in encrypted balances.
-    total_amount_encrypted: Amount,
-    /// The total CCD locked in release schedules (from transfers with
-    /// schedule).
-    total_amount_locked_in_release_schedules: Amount,
-    /// The total CCD staked.
-    total_amount_staked: Amount,
-    /// The amount in the baking reward account.
-    baking_reward_account: Amount,
-    /// The amount in the finalization reward account.
-    finalization_reward_account: Amount,
-    /// The amount in the GAS account.
-    gas_account: Amount,
-}
-
-#[derive(SimpleObject)]
-struct ExchangeRate {
-    numerator:   u64,
-    denominator: u64,
 }
