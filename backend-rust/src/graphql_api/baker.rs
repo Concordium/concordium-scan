@@ -14,6 +14,7 @@ use crate::{
     },
 };
 use async_graphql::{connection, types, Context, Enum, InputObject, Object, SimpleObject, Union};
+use bigdecimal::BigDecimal;
 use concordium_rust_sdk::types::AmountFraction;
 use futures::TryStreamExt;
 use sqlx::PgPool;
@@ -76,10 +77,13 @@ impl QueryBaker {
                     finalization_commission,
                     payday_transaction_commission,
                     payday_baking_commission,
-                    payday_finalization_commission
+                    payday_finalization_commission,
+                    payday_lottery_power as lottery_power
                 FROM bakers
                     LEFT JOIN bakers_payday_commission_rates
                         ON bakers_payday_commission_rates.id = bakers.id
+                    LEFT JOIN bakers_payday_lottery_powers
+                        ON bakers_payday_lottery_powers.id = bakers.id
                 WHERE
                     (NOT $6 OR bakers.id       > $1 AND bakers.id       < $2) AND
                     (NOT $7 OR staked          > $1 AND staked          < $2) AND
@@ -217,6 +221,7 @@ pub struct Baker {
     payday_transaction_commission: Option<i64>,
     payday_baking_commission: Option<i64>,
     payday_finalization_commission: Option<i64>,
+    lottery_power: Option<BigDecimal>,
 }
 impl Baker {
     pub async fn query_by_id(pool: &PgPool, baker_id: i64) -> ApiResult<Option<Self>> {
@@ -235,8 +240,11 @@ impl Baker {
                 payday_transaction_commission,
                 payday_baking_commission,
                 payday_finalization_commission
-            FROM bakers
+                payday_finalization_commission,
+                payday_lottery_power as lottery_power
+            FROM bakers 
                 LEFT JOIN bakers_payday_commission_rates ON bakers_payday_commission_rates.id = bakers.id
+                LEFT JOIN bakers_payday_lottery_powers ON bakers_payday_lottery_powers.id = bakers.id
             WHERE bakers.id = $1
             "#,
             baker_id
@@ -354,6 +362,12 @@ impl Baker {
                     finalization_commission,
                 },
                 payday_commission_rates,
+                lottery_power: self
+                    .lottery_power
+                    .as_ref()
+                    .unwrap_or(&BigDecimal::default())
+                    .try_into()
+                    .map_err(|e: anyhow::Error| ApiError::InternalError(e.to_string()))?,
                 metadata_url: self.metadata_url.as_deref(),
                 total_stake_percentage,
                 total_stake: total_pool_stake.try_into()?,
@@ -655,7 +669,9 @@ struct BakerPool<'a> {
     ///   from the bakers table upon detecting the `BakerEvent::Removed`,
     ///   whereas `payday_commission_rates` persist until the next payday.
     payday_commission_rates: Option<CommissionRates>,
-    // lottery_power:           Decimal,
+    /// The lottery power of the baker pool during the last payday period
+    /// captured from the `get_election_info` node endpoint.`
+    lottery_power:           Decimal,
     // /// Ranking of the baker pool by total staked amount. Value may be null for
     // /// brand new bakers where statistics have not been calculated yet. This
     // /// should be rare and only a temporary condition.

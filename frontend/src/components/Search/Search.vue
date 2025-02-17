@@ -333,7 +333,6 @@ const gotoSearchResult = () => {
 		drawer.push({
 			entityTypeName: 'block',
 			hash: data.value.search.blocks.nodes[0].blockHash,
-			id: data.value.search.blocks.nodes[0].id,
 		})
 	else if (data.value.search.accounts.nodes[0])
 		drawer.push({

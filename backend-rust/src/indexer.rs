@@ -29,7 +29,7 @@ use concordium_rust_sdk::{
     types::{
         self as sdk_types, block_certificates::BlockCertificates, queries::BlockInfo,
         AbsoluteBlockHeight, AccountStakingInfo, AccountTransactionDetails,
-        AccountTransactionEffects, BakerId, BakerRewardPeriodInfo, BlockItemSummary,
+        AccountTransactionEffects, BakerId, BakerRewardPeriodInfo, BirkBaker, BlockItemSummary,
         BlockItemSummaryDetails, ContractAddress, ContractInitializedEvent, ContractTraceElement,
         DelegationTarget, PartsPerHundredThousands, ProtocolVersion, RejectReason, RewardsOverview,
         SpecialTransactionOutcome, TransactionType,
@@ -40,6 +40,7 @@ use concordium_rust_sdk::{
     },
 };
 use futures::{future::join_all, StreamExt, TryStreamExt};
+use num_traits::FromPrimitive;
 use prometheus_client::{
     metrics::{
         counter::Counter,
@@ -50,7 +51,7 @@ use prometheus_client::{
     registry::Registry,
 };
 use sqlx::PgPool;
-use std::{convert::TryInto, sync::Arc, time::Duration};
+use std::{convert::TryInto, sync::Arc};
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
@@ -122,35 +123,6 @@ impl IndexerService {
         registry: &mut Registry,
         config: IndexerServiceConfig,
     ) -> anyhow::Result<Self> {
-        // Handle TLS configuration and set timeouts according to the configuration for
-        // every endpoint.
-        let endpoints: Vec<v2::Endpoint> = endpoints
-            .into_iter()
-            .map(|mut endpoint| {
-                // Enable TLS when using HTTPS
-                if endpoint
-                    .uri()
-                    .scheme()
-                    .map_or(false, |x| x == &concordium_rust_sdk::v2::Scheme::HTTPS)
-                {
-                    endpoint = endpoint
-                        .tls_config(tonic::transport::ClientTlsConfig::new())
-                        .context("Unable to construct TLS configuration for the Concordium node.")?
-                }
-                // Enable rate limit per second.
-                if let Some(limit) = config.node_request_rate_limit {
-                    endpoint = endpoint.rate_limit(limit, Duration::from_secs(1))
-                }
-                // Enable concurrency limit per connection.
-                if let Some(concurrency) = config.node_request_concurrency_limit {
-                    endpoint = endpoint.concurrency_limit(concurrency)
-                }
-                Ok(endpoint
-                    .timeout(Duration::from_secs(config.node_request_timeout))
-                    .connect_timeout(Duration::from_secs(config.node_connect_timeout)))
-            })
-            .collect::<anyhow::Result<_>>()?;
-
         let last_height_stored = sqlx::query!(
             "
 SELECT height FROM blocks ORDER BY height DESC LIMIT 1
@@ -1538,7 +1510,7 @@ impl PreparedEvent {
             AccountTransactionEffects::ModuleDeployed {
                 module_ref,
             } => PreparedEvent::ModuleDeployed(
-                PreparedModuleDeployed::prepare(node_client, data, *module_ref).await?,
+                PreparedModuleDeployed::prepare(node_client, *module_ref).await?,
             ),
             AccountTransactionEffects::ContractInitialized {
                 data: event_data,
@@ -2448,13 +2420,12 @@ struct PreparedModuleDeployed {
 impl PreparedModuleDeployed {
     async fn prepare(
         node_client: &mut v2::Client,
-        data: &BlockData,
         module_reference: sdk_types::hashes::ModuleReference,
     ) -> anyhow::Result<Self> {
-        let block_height = data.finalized_block_info.height;
-
+        // The `get_module_source` query on old blocks are currently not performing
+        // well in the node. We query on the `lastFinal` block here as a result (https://github.com/Concordium/concordium-scan/issues/534).
         let wasm_module = node_client
-            .get_module_source(&module_reference, BlockIdentifier::AbsoluteHeight(block_height))
+            .get_module_source(&module_reference, BlockIdentifier::LastFinal)
             .await?
             .response;
         let schema = match wasm_module.version {
@@ -4250,6 +4221,9 @@ struct PreparedPayDayBlock {
     /// Represents the payday baker pool commission rates captured from
     /// the `get_bakers_reward_period` node endpoint.
     payday_commission_rates: PreparedPaydayCommissionRates,
+    /// Represents the payday lottery power updates for bakers captured from
+    /// the `get_election_info` node endpoint.
+    bakers_lottery_powers:   PreparedPaydayLotteryPowers,
 }
 
 impl PreparedPayDayBlock {
@@ -4272,13 +4246,19 @@ impl PreparedPayDayBlock {
             } else {
                 vec![]
             };
-
         let payday_commission_rates =
             PreparedPaydayCommissionRates::prepare(baker_reward_period_infos)?;
+
+        let election_info = node_client
+            .get_election_info(BlockIdentifier::AbsoluteHeight(block_height))
+            .await?
+            .response;
+        let bakers_lottery_powers = PreparedPaydayLotteryPowers::prepare(election_info.bakers)?;
 
         Ok(Self {
             block_height: block_height.height.try_into()?,
             payday_commission_rates,
+            bakers_lottery_powers,
         })
     }
 
@@ -4288,6 +4268,9 @@ impl PreparedPayDayBlock {
     ) -> anyhow::Result<()> {
         // Save the commission rates to the database.
         self.payday_commission_rates.save(tx).await?;
+
+        // Save the lottery_powers to the database.
+        self.bakers_lottery_powers.save(tx).await?;
 
         sqlx::query!(
             "UPDATE current_chain_parameters
@@ -4366,6 +4349,65 @@ impl PreparedPaydayCommissionRates {
             &self.transaction_commissions,
             &self.baking_commissions,
             &self.finalization_commissions
+        )
+        .execute(tx.as_mut())
+        .await?;
+        Ok(())
+    }
+}
+
+/// Represents the payday lottery power updates for bakers captured from
+/// the `get_election_info` node endpoint.
+struct PreparedPaydayLotteryPowers {
+    baker_ids:             Vec<i64>,
+    bakers_lottery_powers: Vec<BigDecimal>,
+}
+
+impl PreparedPaydayLotteryPowers {
+    fn prepare(bakers: Vec<BirkBaker>) -> anyhow::Result<Self> {
+        let capacity = bakers.len();
+        let mut baker_ids: Vec<i64> = Vec::with_capacity(capacity);
+        let mut bakers_lottery_powers: Vec<BigDecimal> = Vec::with_capacity(capacity);
+
+        for baker in bakers.iter() {
+            baker_ids.push(i64::try_from(baker.baker_id.id.index)?);
+            bakers_lottery_powers.push(
+                BigDecimal::from_f64(baker.baker_lottery_power)
+                    .context(
+                        "Expected f64 type (baker_lottery_power) to be converted correctly into \
+                         BigDecimal type",
+                    )
+                    .map_err(RPCError::ParseError)?,
+            );
+        }
+
+        Ok(Self {
+            baker_ids,
+            bakers_lottery_powers,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            "DELETE FROM
+                bakers_payday_lottery_powers"
+        )
+        .execute(tx.as_mut())
+        .await?;
+
+        sqlx::query!(
+            "INSERT INTO bakers_payday_lottery_powers (
+                id,
+                payday_lottery_power
+            )
+            SELECT
+                UNNEST($1::BIGINT[]) AS id,
+                UNNEST($2::NUMERIC[]) AS payday_lottery_power",
+            &self.baker_ids,
+            &self.bakers_lottery_powers
         )
         .execute(tx.as_mut())
         .await?;
