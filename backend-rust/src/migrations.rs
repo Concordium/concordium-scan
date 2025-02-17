@@ -1,8 +1,10 @@
 use anyhow::Context;
 use sqlx::{Executor, PgPool};
 use std::cmp::Ordering;
+use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 use tracing::info;
+use std::{str::FromStr};
 
 type Transaction = sqlx::Transaction<'static, sqlx::Postgres>;
 
@@ -175,14 +177,16 @@ pub enum SchemaVersion {
     PayDayPoolCommissionRates,
     #[display("0004:PayDayLotteryPowers")]
     PayDayLotteryPowers,
+    #[display("0006:AccountBaseAddress")]
+    AccountBaseAddress,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking database schema versions have been
     /// introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::PayDayLotteryPowers;
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::AccountBaseAddress;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::PayDayLotteryPowers;
+    const LATEST: SchemaVersion = SchemaVersion::AccountBaseAddress;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -202,6 +206,7 @@ impl SchemaVersion {
             SchemaVersion::IndexBlocksWithNoCumulativeFinTime => false,
             SchemaVersion::PayDayPoolCommissionRates => false,
             SchemaVersion::PayDayLotteryPowers => false,
+            SchemaVersion::AccountBaseAddress => false,
         }
     }
 
@@ -237,6 +242,30 @@ impl SchemaVersion {
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
+            SchemaVersion::AccountBaseAddress => {
+                let tx = tx.as_mut();
+                tx.execute(sqlx::raw_sql(include_str!("./migrations/m0006.sql"))).await?;
+                let mut accounts = sqlx::query!("SELECT index, address FROM accounts").fetch(pool);
+                while let Some(account) = accounts.try_next().await? {
+                    let _ = concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(&account.address)?;
+
+
+//                            sqlx::query!(
+//                            "UPDATE accounts
+//                                SET
+//                                     = NULL,
+//                                WHERE index=$1",
+//                            account.index,
+//
+//                        )
+//                        .execute(tx.as_mut())
+//                        .await?;
+
+
+                }
+
+                SchemaVersion::AccountBaseAddress
+            }
         };
         let end_time = chrono::Utc::now();
         insert_migration(&mut tx, &new_version.into(), start_time, end_time).await?;
