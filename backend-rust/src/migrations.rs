@@ -247,21 +247,17 @@ impl SchemaVersion {
                 tx.execute(sqlx::raw_sql(include_str!("./migrations/m0006.sql"))).await?;
                 let mut accounts = sqlx::query!("SELECT index, address FROM accounts").fetch(pool);
                 while let Some(account) = accounts.try_next().await? {
-                    let _ = concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(&account.address)?;
-
-
-//                            sqlx::query!(
-//                            "UPDATE accounts
-//                                SET
-//                                     = NULL,
-//                                WHERE index=$1",
-//                            account.index,
-//
-//                        )
-//                        .execute(tx.as_mut())
-//                        .await?;
-
-
+                    let account_address = concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(&account.address)?;
+                    let canonical_account_address = account_address.get_canonical_address();
+                    sqlx::query!(
+                        "UPDATE accounts
+                            SET canonical_address = $2
+                            WHERE index = $1",
+                        account.index,
+                        canonical_account_address.0.into()
+                    )
+                    .execute(tx.as_mut())
+                    .await?;
                 }
 
                 SchemaVersion::AccountBaseAddress
