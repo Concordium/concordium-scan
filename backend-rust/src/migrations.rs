@@ -173,15 +173,16 @@ pub enum SchemaVersion {
     IndexBlocksWithNoCumulativeFinTime,
     #[display("0003:PayDayPoolCommissionRates")]
     PayDayPoolCommissionRates,
-    #[display("0004:Fix invalid data of dangling delegators.")]
+    #[display("0004:PayDayLotteryPowers")]
+    PayDayLotteryPowers,
+    #[display("0005:Fix invalid data of dangling delegators.")]
     FixDanglingDelegators,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking database schema versions have been
     /// introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
-        SchemaVersion::PayDayPoolCommissionRates;
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::PayDayLotteryPowers;
     /// The latest known version of the schema.
     const LATEST: SchemaVersion = SchemaVersion::FixDanglingDelegators;
 
@@ -202,6 +203,7 @@ impl SchemaVersion {
             SchemaVersion::InitialFirstHalf => false,
             SchemaVersion::IndexBlocksWithNoCumulativeFinTime => false,
             SchemaVersion::PayDayPoolCommissionRates => false,
+            SchemaVersion::PayDayLotteryPowers => false,
             SchemaVersion::FixDanglingDelegators => false,
         }
     }
@@ -231,9 +233,13 @@ impl SchemaVersion {
                 SchemaVersion::PayDayPoolCommissionRates
             }
             SchemaVersion::PayDayPoolCommissionRates => {
+                tx.as_mut().execute(sqlx::raw_sql(include_str!("./migrations/m0004.sql"))).await?;
+                SchemaVersion::PayDayLotteryPowers
+            }
+            SchemaVersion::PayDayLotteryPowers => {
                 tx.as_mut()
                     .execute(sqlx::raw_sql(include_str!(
-                        "./migrations/m0004-fix-dangling-delegators.sql"
+                        "./migrations/m0005-fix-dangling-delegators.sql"
                     )))
                     .await?;
                 SchemaVersion::FixDanglingDelegators

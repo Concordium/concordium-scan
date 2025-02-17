@@ -10,7 +10,8 @@ import { useState } from '#app'
 
 type BlockDrawerItem = {
 	entityTypeName: 'block'
-} & ({ id: string; hash?: string } | { hash: string; id?: string })
+	hash: string
+}
 
 type TxDrawerItem = {
 	entityTypeName: 'transaction'
@@ -94,14 +95,18 @@ export const isItemOnTop = (
 		return false
 
 	if (
-		(item.entityTypeName === 'block' ||
-			item.entityTypeName === 'transaction') &&
+		item.entityTypeName === 'transaction' &&
 		item.entityTypeName === currentTopItem.value.entityTypeName
 	)
 		return !!(
 			(item.hash && item.hash === currentTopItem.value.hash) ||
 			(item.id && item.id === currentTopItem.value.id)
 		)
+	if (
+		item.entityTypeName === 'block' &&
+		item.entityTypeName === currentTopItem.value.entityTypeName
+	)
+		return !!(item.hash && item.hash === currentTopItem.value.hash)
 
 	if (
 		item.entityTypeName === 'account' &&

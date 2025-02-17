@@ -25,7 +25,6 @@
 					<template #content>
 						<BlockDetailsContainer
 							v-if="drawerItem && drawerItem.entityTypeName === 'block'"
-							:id="drawerItem.id"
 							:hash="drawerItem.hash"
 						/>
 						<TransactionDetailsContainer
