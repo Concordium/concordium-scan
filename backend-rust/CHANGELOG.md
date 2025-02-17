@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Remove locked CCD metrics
+
 Database schema version: 5
 
 ### Fixed
