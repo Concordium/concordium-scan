@@ -175,15 +175,16 @@ pub enum SchemaVersion {
     PayDayPoolCommissionRates,
     #[display("0004:Fix invalid data of dangling delegators.")]
     FixDanglingDelegators,
+    #[display("0005:Accumulated pool state columns.")]
+    AddAccumulatedPoolState,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking database schema versions have been
     /// introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
-        SchemaVersion::PayDayPoolCommissionRates;
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::AddAccumulatedPoolState;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::FixDanglingDelegators;
+    const LATEST: SchemaVersion = SchemaVersion::AddAccumulatedPoolState;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -203,6 +204,7 @@ impl SchemaVersion {
             SchemaVersion::IndexBlocksWithNoCumulativeFinTime => false,
             SchemaVersion::PayDayPoolCommissionRates => false,
             SchemaVersion::FixDanglingDelegators => false,
+            SchemaVersion::AddAccumulatedPoolState => false,
         }
     }
 
@@ -238,7 +240,15 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::FixDanglingDelegators
             }
-            SchemaVersion::FixDanglingDelegators => unimplemented!(
+            SchemaVersion::FixDanglingDelegators => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0005-cumulate-pool-info.sql"
+                    )))
+                    .await?;
+                SchemaVersion::AddAccumulatedPoolState
+            }
+            SchemaVersion::AddAccumulatedPoolState => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),

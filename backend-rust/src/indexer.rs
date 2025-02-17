@@ -864,8 +864,9 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
             });
             sqlx::query!(
                 "INSERT INTO bakers (id, staked, restake_earnings, open_status, metadata_url, \
-                 transaction_commission, baking_commission, finalization_commission)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+                 transaction_commission, baking_commission, finalization_commission, \
+                 pool_total_staked, pool_delegator_count)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
                 index,
                 stake,
                 restake_earnings,
@@ -873,7 +874,9 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
                 metadata_url,
                 transaction_commission,
                 baking_commission,
-                finalization_commission
+                finalization_commission,
+                stake,
+                0
             )
             .execute(&mut *tx)
             .await?;
@@ -1871,8 +1874,20 @@ impl PreparedAccountDelegationEvent {
                 account_id,
                 staked,
             } => {
+                // Update total stake of the pool first.
                 sqlx::query!(
-                    r#"UPDATE accounts SET delegated_stake = $1 WHERE index = $2"#,
+                    "UPDATE bakers
+                     SET pool_total_staked = pool_total_staked + $1 - accounts.delegated_stake
+                     FROM accounts
+                     WHERE bakers.id = accounts.delegated_target_baker_id AND accounts.index = $2",
+                    staked,
+                    account_id
+                )
+                .execute(tx.as_mut())
+                .await?;
+                // Then the stake of the delegator.
+                sqlx::query!(
+                    "UPDATE accounts SET delegated_stake = $1 WHERE index = $2",
                     staked,
                     account_id
                 )
@@ -1885,8 +1900,28 @@ impl PreparedAccountDelegationEvent {
             | PreparedAccountDelegationEvent::Removed {
                 account_id,
             } => {
+                // Update the total pool stake when removed.
+                // Note that `Added` event is accommodated by a `StakeIncrease` event and
+                // `SetDelegationTarget` event, meaning we don't have to handle pool state here.
+                if let PreparedAccountDelegationEvent::Removed {
+                    ..
+                } = self
+                {
+                    sqlx::query!(
+                        "UPDATE bakers
+                         SET pool_total_staked = pool_total_staked - accounts.delegated_stake,
+                             pool_delegator_count = pool_delegator_count - 1
+                         FROM accounts
+                         WHERE bakers.id = accounts.delegated_target_baker_id
+                             AND accounts.index = $1",
+                        account_id
+                    )
+                    .execute(tx.as_mut())
+                    .await?;
+                }
                 sqlx::query!(
-                    r#"UPDATE accounts SET delegated_stake = 0, delegated_restake_earnings = false, delegated_target_baker_id = NULL WHERE index = $1"#,
+                    "UPDATE accounts SET delegated_stake = 0, delegated_restake_earnings = false, \
+                     delegated_target_baker_id = NULL WHERE index = $1",
                     account_id
                 )
                 .execute(tx.as_mut())
@@ -1898,7 +1933,7 @@ impl PreparedAccountDelegationEvent {
                 restake_earnings,
             } => {
                 sqlx::query!(
-                    r#"UPDATE accounts SET delegated_restake_earnings = $1 WHERE index = $2"#,
+                    "UPDATE accounts SET delegated_restake_earnings = $1 WHERE index = $2",
                     *restake_earnings,
                     account_id
                 )
@@ -1909,8 +1944,36 @@ impl PreparedAccountDelegationEvent {
                 account_id,
                 target_id,
             } => {
+                // Update total pool stake and delegator count for the old target (if old pool
+                // was the passive pool nothing happens).
                 sqlx::query!(
-                    r#"UPDATE accounts SET delegated_target_baker_id = $1 WHERE index = $2"#,
+                    "UPDATE bakers
+                     SET
+                         pool_total_staked = pool_total_staked - accounts.delegated_stake,
+                         pool_delegator_count = pool_delegator_count - 1
+                     FROM accounts
+                     WHERE bakers.id = accounts.delegated_target_baker_id AND accounts.index = $1",
+                    account_id
+                )
+                .execute(tx.as_mut())
+                .await?;
+                // Update total pool stake and delegator count for new target.
+                if let Some(target) = target_id {
+                    sqlx::query!(
+                        "UPDATE bakers
+                         SET pool_total_staked = pool_total_staked + accounts.delegated_stake,
+                             pool_delegator_count = pool_delegator_count + 1
+                         FROM accounts
+                         WHERE bakers.id = $2 AND accounts.index = $1",
+                        account_id,
+                        target
+                    )
+                    .execute(tx.as_mut())
+                    .await?;
+                }
+                // Set the new target on the delegator.
+                sqlx::query!(
+                    "UPDATE accounts SET delegated_target_baker_id = $1 WHERE index = $2",
                     *target_id,
                     account_id
                 )
@@ -1928,14 +1991,14 @@ impl PreparedAccountDelegationEvent {
 /// Represents the event of a baker being removed, resulting in the delegators
 /// targeting the pool are moved to the passive pool.
 struct BakerRemoved {
-    remove_baker:    RemoveBaker,
     move_delegators: MovePoolDelegatorsToPassivePool,
+    remove_baker:    RemoveBaker,
 }
 impl BakerRemoved {
     fn prepare(baker_id: &sdk_types::BakerId) -> anyhow::Result<Self> {
         Ok(Self {
-            remove_baker:    RemoveBaker::prepare(baker_id)?,
             move_delegators: MovePoolDelegatorsToPassivePool::prepare(baker_id)?,
+            remove_baker:    RemoveBaker::prepare(baker_id)?,
         })
     }
 
@@ -1943,8 +2006,8 @@ impl BakerRemoved {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
-        self.remove_baker.save(tx).await?;
         self.move_delegators.save(tx).await?;
+        self.remove_baker.save(tx).await?;
         Ok(())
     }
 }
@@ -2188,10 +2251,13 @@ impl PreparedBakerEvent {
                 restake_earnings,
             } => {
                 sqlx::query!(
-                    "INSERT INTO bakers (id, staked, restake_earnings) VALUES ($1, $2, $3)",
+                    "INSERT INTO bakers (id, staked, restake_earnings, pool_total_staked, \
+                     pool_delegator_count) VALUES ($1, $2, $3, $4, $5)",
                     baker_id,
                     staked,
                     restake_earnings,
+                    staked,
+                    0
                 )
                 .execute(tx.as_mut())
                 .await?;
@@ -2203,17 +2269,31 @@ impl PreparedBakerEvent {
                 baker_id,
                 staked,
             } => {
-                sqlx::query!("UPDATE bakers SET staked = $2 WHERE id=$1", baker_id, staked,)
-                    .execute(tx.as_mut())
-                    .await?;
+                sqlx::query!(
+                    "UPDATE bakers
+                        SET pool_total_staked = pool_total_staked + $2 - staked,
+                            staked = $2
+                    WHERE id = $1",
+                    baker_id,
+                    staked,
+                )
+                .execute(tx.as_mut())
+                .await?;
             }
             PreparedBakerEvent::StakeDecrease {
                 baker_id,
                 staked,
             } => {
-                sqlx::query!("UPDATE bakers SET staked = $2 WHERE id=$1", baker_id, staked,)
-                    .execute(tx.as_mut())
-                    .await?;
+                sqlx::query!(
+                    "UPDATE bakers
+                        SET pool_total_staked = pool_total_staked + $2 - staked,
+                            staked = $2
+                    WHERE id = $1",
+                    baker_id,
+                    staked,
+                )
+                .execute(tx.as_mut())
+                .await?;
             }
             PreparedBakerEvent::SetRestakeEarnings {
                 baker_id,
@@ -2240,6 +2320,15 @@ impl PreparedBakerEvent {
                 .execute(tx.as_mut())
                 .await?;
                 if let Some(move_operation) = move_delegators {
+                    sqlx::query!(
+                        "UPDATE bakers
+                         SET pool_total_staked = bakers.staked,
+                             pool_delegator_count = 0
+                         WHERE id = $1",
+                        baker_id
+                    )
+                    .execute(tx.as_mut())
+                    .await?;
                     move_operation.save(tx).await?;
                 }
             }
@@ -2294,8 +2383,23 @@ impl PreparedBakerEvent {
             PreparedBakerEvent::RemoveDelegation {
                 delegator_id,
             } => {
+                // Update total pool stake of old pool (if not the passive pool).
                 sqlx::query!(
-                    r#"UPDATE accounts SET delegated_stake = 0, delegated_restake_earnings = false, delegated_target_baker_id = NULL WHERE index = $1"#,
+                    "UPDATE bakers
+                     SET pool_total_staked = pool_total_staked - accounts.delegated_stake
+                     FROM accounts
+                     WHERE bakers.id = accounts.delegated_target_baker_id AND accounts.index = $1",
+                    delegator_id
+                )
+                .execute(tx.as_mut())
+                .await?;
+                // Set account information to not be delegating.
+                sqlx::query!(
+                    "UPDATE accounts
+                        SET delegated_stake = 0,
+                            delegated_restake_earnings = false,
+                            delegated_target_baker_id = NULL
+                       WHERE index = $1",
                     delegator_id
                 )
                 .execute(tx.as_mut())

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO bakers (id, staked, restake_earnings, open_status, metadata_url, transaction_commission, baking_commission, finalization_commission)\n        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+  "query": "INSERT INTO bakers (id, staked, restake_earnings, open_status, metadata_url, transaction_commission, baking_commission, finalization_commission, pool_total_staked, pool_delegator_count)\n        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
   "describe": {
     "columns": [],
     "parameters": {
@@ -23,10 +23,12 @@
         "Varchar",
         "Int8",
         "Int8",
+        "Int8",
+        "Int8",
         "Int8"
       ]
     },
     "nullable": []
   },
-  "hash": "44265e9d95a4e8d13849d8dab52582e44f516370ac80a97b5866bbd807921ddb"
+  "hash": "4c467527e7e4dff9544627c066d7306ea7f0cea91c506bc9cc988f1cdcadda5d"
 }

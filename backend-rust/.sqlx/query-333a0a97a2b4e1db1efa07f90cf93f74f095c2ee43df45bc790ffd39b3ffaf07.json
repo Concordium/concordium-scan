@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO bakers (id, staked, restake_earnings, pool_total_staked, pool_delegator_count) VALUES ($1, $2, $3, $4, $5)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Bool",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "333a0a97a2b4e1db1efa07f90cf93f74f095c2ee43df45bc790ffd39b3ffaf07"
+}
