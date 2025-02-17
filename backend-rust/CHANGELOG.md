@@ -4,11 +4,34 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [0.1.25] - 2025-02-14
-
 ### Fixed
 
 - Remove locked CCD metrics
+
+## [0.1.25] - 2025-02-14
+
+Database schema version: 5
+
+### Fixed
+
+- Add database migration fixing:
+  - Invalid bakers caused by `DelegationEvent::RemoveBaker` event not being handled by the indexer until now.
+  - Invalid delegator state, caused by validator/baker getting removed or changing status to 'ClosedForAll' without moving delegators to the passive pool.
+- Fixed indexer missing handling of moving delegators as pool got removed or closed.
+- Fixed indexer missing handling of event of baker switching directly to delegation.
+
+## [0.1.25] - 2025-02-14
+
+Database schema version: 4
+
+### Added
+
+- Database migration to add the lottery power of each baker pool during the last payday period.
+- Add Query `Query::Baker::state::pool::lotteryPower` which returns the `lotteryPower` of the baker pool during the last payday period.
+
+### Changed
+
+- Query the `get_module_source` on the `LastFinal` block to improve performance.
 
 ## [0.1.24] - 2025-02-12
 
