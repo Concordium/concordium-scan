@@ -1,10 +1,13 @@
 use anyhow::Context;
+use concordium_rust_sdk::v2;
 use sqlx::{Executor, PgPool};
 use std::cmp::Ordering;
 use tokio_util::sync::CancellationToken;
 use tracing::info;
 
 type Transaction = sqlx::Transaction<'static, sqlx::Postgres>;
+
+mod m0005_fix_dangling_delegators;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.
@@ -74,7 +77,11 @@ The following breaking schema migrations have happened:
 }
 
 /// Migrate the database schema to the latest version.
-pub async fn run_migrations(pool: PgPool, cancel_token: CancellationToken) -> anyhow::Result<()> {
+pub async fn run_migrations(
+    pool: PgPool,
+    endpoints: Vec<v2::Endpoint>,
+    cancel_token: CancellationToken,
+) -> anyhow::Result<()> {
     cancel_token
         .run_until_cancelled(async move {
             ensure_migrations_table(&pool).await?;
@@ -83,7 +90,7 @@ pub async fn run_migrations(pool: PgPool, cancel_token: CancellationToken) -> an
             info!("Latest database schema version {}", SchemaVersion::LATEST.as_i64());
             while current < SchemaVersion::LATEST {
                 info!("Running migration from database schema version {}", current.as_i64());
-                let new_version = current.migration_to_next(&pool).await?;
+                let new_version = current.migration_to_next(&pool, endpoints.as_slice()).await?;
                 info!("Migrated database schema to version {} successfully", new_version.as_i64());
                 current = new_version
             }
@@ -175,6 +182,8 @@ pub enum SchemaVersion {
     PayDayPoolCommissionRates,
     #[display("0004:PayDayLotteryPowers")]
     PayDayLotteryPowers,
+    #[display("0005:Fix invalid data of dangling delegators.")]
+    FixDanglingDelegators,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -182,7 +191,7 @@ impl SchemaVersion {
     /// introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::PayDayLotteryPowers;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::PayDayLotteryPowers;
+    const LATEST: SchemaVersion = SchemaVersion::FixDanglingDelegators;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -202,11 +211,16 @@ impl SchemaVersion {
             SchemaVersion::IndexBlocksWithNoCumulativeFinTime => false,
             SchemaVersion::PayDayPoolCommissionRates => false,
             SchemaVersion::PayDayLotteryPowers => false,
+            SchemaVersion::FixDanglingDelegators => false,
         }
     }
 
     /// Run migrations for this schema version to the next.
-    async fn migration_to_next(&self, pool: &PgPool) -> anyhow::Result<SchemaVersion> {
+    async fn migration_to_next(
+        &self,
+        pool: &PgPool,
+        endpoints: &[v2::Endpoint],
+    ) -> anyhow::Result<SchemaVersion> {
         let mut tx = pool.begin().await?;
         let start_time = chrono::Utc::now();
         let new_version = match self {
@@ -233,7 +247,10 @@ impl SchemaVersion {
                 tx.as_mut().execute(sqlx::raw_sql(include_str!("./migrations/m0004.sql"))).await?;
                 SchemaVersion::PayDayLotteryPowers
             }
-            SchemaVersion::PayDayLotteryPowers => unimplemented!(
+            SchemaVersion::PayDayLotteryPowers => {
+                m0005_fix_dangling_delegators::run(&mut tx, endpoints).await?
+            }
+            SchemaVersion::FixDanglingDelegators => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),

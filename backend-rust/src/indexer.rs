@@ -51,7 +51,7 @@ use prometheus_client::{
     registry::Registry,
 };
 use sqlx::PgPool;
-use std::{convert::TryInto, sync::Arc, time::Duration};
+use std::{convert::TryInto, sync::Arc};
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
@@ -123,35 +123,6 @@ impl IndexerService {
         registry: &mut Registry,
         config: IndexerServiceConfig,
     ) -> anyhow::Result<Self> {
-        // Handle TLS configuration and set timeouts according to the configuration for
-        // every endpoint.
-        let endpoints: Vec<v2::Endpoint> = endpoints
-            .into_iter()
-            .map(|mut endpoint| {
-                // Enable TLS when using HTTPS
-                if endpoint
-                    .uri()
-                    .scheme()
-                    .map_or(false, |x| x == &concordium_rust_sdk::v2::Scheme::HTTPS)
-                {
-                    endpoint = endpoint
-                        .tls_config(tonic::transport::ClientTlsConfig::new())
-                        .context("Unable to construct TLS configuration for the Concordium node.")?
-                }
-                // Enable rate limit per second.
-                if let Some(limit) = config.node_request_rate_limit {
-                    endpoint = endpoint.rate_limit(limit, Duration::from_secs(1))
-                }
-                // Enable concurrency limit per connection.
-                if let Some(concurrency) = config.node_request_concurrency_limit {
-                    endpoint = endpoint.concurrency_limit(concurrency)
-                }
-                Ok(endpoint
-                    .timeout(Duration::from_secs(config.node_request_timeout))
-                    .connect_timeout(Duration::from_secs(config.node_connect_timeout)))
-            })
-            .collect::<anyhow::Result<_>>()?;
-
         let last_height_stored = sqlx::query!(
             "
 SELECT height FROM blocks ORDER BY height DESC LIMIT 1
@@ -1800,7 +1771,7 @@ enum PreparedAccountDelegationEvent {
         account_id: i64,
         target_id:  Option<i64>,
     },
-    NoOperation,
+    RemoveBaker(BakerRemoved),
 }
 
 impl PreparedAccountDelegationEvent {
@@ -1853,8 +1824,8 @@ impl PreparedAccountDelegationEvent {
                 account_id: delegator_id.id.index.try_into()?,
             },
             DelegationEvent::BakerRemoved {
-                ..
-            } => PreparedAccountDelegationEvent::NoOperation,
+                baker_id,
+            } => PreparedAccountDelegationEvent::RemoveBaker(BakerRemoved::prepare(baker_id)?),
         };
         Ok(prepared)
     }
@@ -1918,8 +1889,83 @@ impl PreparedAccountDelegationEvent {
                 .execute(tx.as_mut())
                 .await?;
             }
-            PreparedAccountDelegationEvent::NoOperation {} => (),
+            PreparedAccountDelegationEvent::RemoveBaker(baker_removed) => {
+                baker_removed.save(tx).await?;
+            }
         }
+        Ok(())
+    }
+}
+
+/// Represents the event of a baker being removed, resulting in the delegators
+/// targeting the pool are moved to the passive pool.
+struct BakerRemoved {
+    remove_baker:    RemoveBaker,
+    move_delegators: MovePoolDelegatorsToPassivePool,
+}
+impl BakerRemoved {
+    fn prepare(baker_id: &sdk_types::BakerId) -> anyhow::Result<Self> {
+        Ok(Self {
+            remove_baker:    RemoveBaker::prepare(baker_id)?,
+            move_delegators: MovePoolDelegatorsToPassivePool::prepare(baker_id)?,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        self.remove_baker.save(tx).await?;
+        self.move_delegators.save(tx).await?;
+        Ok(())
+    }
+}
+
+/// Represents the database operation of removing baker from the baker table.
+struct RemoveBaker {
+    baker_id: i64,
+}
+impl RemoveBaker {
+    fn prepare(baker_id: &sdk_types::BakerId) -> anyhow::Result<Self> {
+        Ok(Self {
+            baker_id: baker_id.id.index.try_into()?,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        sqlx::query!("DELETE FROM bakers WHERE id=$1", self.baker_id,).execute(tx.as_mut()).await?;
+        Ok(())
+    }
+}
+
+/// Represents the database operation of moving delegators for a pool to the
+/// passive pool.
+struct MovePoolDelegatorsToPassivePool {
+    /// Baker ID of the pool to move delegators from.
+    baker_id: i64,
+}
+impl MovePoolDelegatorsToPassivePool {
+    fn prepare(baker_id: &sdk_types::BakerId) -> anyhow::Result<Self> {
+        Ok(Self {
+            baker_id: baker_id.id.index.try_into()?,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            "UPDATE accounts
+             SET delegated_target_baker_id = NULL
+             WHERE delegated_target_baker_id = $1",
+            self.baker_id
+        )
+        .execute(tx.as_mut())
+        .await?;
         Ok(())
     }
 }
@@ -1950,9 +1996,7 @@ enum PreparedBakerEvent {
         staked:           i64,
         restake_earnings: bool,
     },
-    Remove {
-        baker_id: i64,
-    },
+    Remove(BakerRemoved),
     StakeIncrease {
         baker_id: i64,
         staked:   i64,
@@ -1966,8 +2010,10 @@ enum PreparedBakerEvent {
         restake_earnings: bool,
     },
     SetOpenStatus {
-        baker_id:    i64,
-        open_status: BakerPoolOpenStatus,
+        baker_id:        i64,
+        open_status:     BakerPoolOpenStatus,
+        /// When set to ClosedForAll move delegators to passive pool.
+        move_delegators: Option<MovePoolDelegatorsToPassivePool>,
     },
     SetMetadataUrl {
         baker_id:     i64,
@@ -2009,9 +2055,7 @@ impl PreparedBakerEvent {
             },
             BakerEvent::BakerRemoved {
                 baker_id,
-            } => PreparedBakerEvent::Remove {
-                baker_id: baker_id.id.index.try_into()?,
-            },
+            } => PreparedBakerEvent::Remove(BakerRemoved::prepare(baker_id)?),
             BakerEvent::BakerStakeIncreased {
                 baker_id,
                 new_stake,
@@ -2039,10 +2083,19 @@ impl PreparedBakerEvent {
             BakerEvent::BakerSetOpenStatus {
                 baker_id,
                 open_status,
-            } => PreparedBakerEvent::SetOpenStatus {
-                baker_id:    baker_id.id.index.try_into()?,
-                open_status: open_status.to_owned().into(),
-            },
+            } => {
+                let open_status = open_status.to_owned().into();
+                let move_delegators = if matches!(open_status, BakerPoolOpenStatus::ClosedForAll) {
+                    Some(MovePoolDelegatorsToPassivePool::prepare(baker_id)?)
+                } else {
+                    None
+                };
+                PreparedBakerEvent::SetOpenStatus {
+                    baker_id: baker_id.id.index.try_into()?,
+                    open_status,
+                    move_delegators,
+                }
+            }
             BakerEvent::BakerSetMetadataURL {
                 baker_id,
                 metadata_url,
@@ -2115,12 +2168,8 @@ impl PreparedBakerEvent {
                 .execute(tx.as_mut())
                 .await?;
             }
-            PreparedBakerEvent::Remove {
-                baker_id,
-            } => {
-                sqlx::query!("DELETE FROM bakers WHERE id=$1", baker_id,)
-                    .execute(tx.as_mut())
-                    .await?;
+            PreparedBakerEvent::Remove(baker_removed) => {
+                baker_removed.save(tx).await?;
             }
             PreparedBakerEvent::StakeIncrease {
                 baker_id,
@@ -2153,6 +2202,7 @@ impl PreparedBakerEvent {
             PreparedBakerEvent::SetOpenStatus {
                 baker_id,
                 open_status,
+                move_delegators,
             } => {
                 sqlx::query!(
                     "UPDATE bakers SET open_status = $2 WHERE id=$1",
@@ -2161,6 +2211,9 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?;
+                if let Some(move_operation) = move_delegators {
+                    move_operation.save(tx).await?;
+                }
             }
             PreparedBakerEvent::SetMetadataUrl {
                 baker_id,
