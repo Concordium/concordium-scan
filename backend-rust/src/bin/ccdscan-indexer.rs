@@ -12,7 +12,7 @@ use prometheus_client::{
 };
 use serde_json::json;
 use sqlx::postgres::PgPoolOptions;
-use std::{net::SocketAddr, path::PathBuf};
+use std::{net::SocketAddr, path::PathBuf, time::Duration};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
@@ -92,10 +92,42 @@ async fn main() -> anyhow::Result<()> {
         .context("Failed constructing database connection pool")?;
     let cancel_token = CancellationToken::new();
 
+    // Handle TLS configuration and set timeouts according to the configuration for
+    // every endpoint.
+    let endpoints: Vec<v2::Endpoint> = cli
+        .node
+        .into_iter()
+        .map(|mut endpoint| {
+            // Enable TLS when using HTTPS
+            if endpoint
+                .uri()
+                .scheme()
+                .map_or(false, |x| x == &concordium_rust_sdk::v2::Scheme::HTTPS)
+            {
+                endpoint = endpoint
+                    .tls_config(tonic::transport::ClientTlsConfig::new())
+                    .context("Unable to construct TLS configuration for the Concordium node.")?
+            }
+            // Enable rate limit per second.
+            if let Some(limit) = cli.indexer_config.node_request_rate_limit {
+                endpoint = endpoint.rate_limit(limit, Duration::from_secs(1))
+            }
+            // Enable concurrency limit per connection.
+            if let Some(concurrency) = cli.indexer_config.node_request_concurrency_limit {
+                endpoint = endpoint.concurrency_limit(concurrency)
+            }
+            Ok(endpoint
+                .timeout(Duration::from_secs(cli.indexer_config.node_request_timeout))
+                .connect_timeout(Duration::from_secs(cli.indexer_config.node_connect_timeout)))
+        })
+        .collect::<anyhow::Result<_>>()?;
+
     if cli.migrate || cli.migrate_only {
         let pool = pool.clone();
         let stop_signal = cancel_token.child_token();
-        let mut migration_task = tokio::spawn(migrations::run_migrations(pool, stop_signal));
+        let endpoints = endpoints.clone();
+        let mut migration_task =
+            tokio::spawn(migrations::run_migrations(pool, endpoints, stop_signal));
         tokio::select! {
             _ = tokio::signal::ctrl_c() => {
                 info!("Migrations aborted, shutting down");
@@ -135,7 +167,8 @@ async fn main() -> anyhow::Result<()> {
         let pool = pool.clone();
         let stop_signal = cancel_token.child_token();
         let indexer =
-            indexer::IndexerService::new(cli.node, pool, &mut registry, cli.indexer_config).await?;
+            indexer::IndexerService::new(endpoints, pool, &mut registry, cli.indexer_config)
+                .await?;
         tokio::spawn(indexer.run(stop_signal))
     };
     let mut monitoring_task = {

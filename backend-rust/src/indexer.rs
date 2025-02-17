@@ -51,7 +51,7 @@ use prometheus_client::{
     registry::Registry,
 };
 use sqlx::PgPool;
-use std::{convert::TryInto, sync::Arc, time::Duration};
+use std::{convert::TryInto, sync::Arc};
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
@@ -123,35 +123,6 @@ impl IndexerService {
         registry: &mut Registry,
         config: IndexerServiceConfig,
     ) -> anyhow::Result<Self> {
-        // Handle TLS configuration and set timeouts according to the configuration for
-        // every endpoint.
-        let endpoints: Vec<v2::Endpoint> = endpoints
-            .into_iter()
-            .map(|mut endpoint| {
-                // Enable TLS when using HTTPS
-                if endpoint
-                    .uri()
-                    .scheme()
-                    .map_or(false, |x| x == &concordium_rust_sdk::v2::Scheme::HTTPS)
-                {
-                    endpoint = endpoint
-                        .tls_config(tonic::transport::ClientTlsConfig::new())
-                        .context("Unable to construct TLS configuration for the Concordium node.")?
-                }
-                // Enable rate limit per second.
-                if let Some(limit) = config.node_request_rate_limit {
-                    endpoint = endpoint.rate_limit(limit, Duration::from_secs(1))
-                }
-                // Enable concurrency limit per connection.
-                if let Some(concurrency) = config.node_request_concurrency_limit {
-                    endpoint = endpoint.concurrency_limit(concurrency)
-                }
-                Ok(endpoint
-                    .timeout(Duration::from_secs(config.node_request_timeout))
-                    .connect_timeout(Duration::from_secs(config.node_connect_timeout)))
-            })
-            .collect::<anyhow::Result<_>>()?;
-
         let last_height_stored = sqlx::query!(
             "
 SELECT height FROM blocks ORDER BY height DESC LIMIT 1
