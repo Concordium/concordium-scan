@@ -8,8 +8,6 @@ All notable changes to this project will be documented in this file.
 
 - Remove locked CCD metrics
 
-## [0.1.25] - 2025-02-14
-
 Database schema version: 5
 
 ### Fixed
