@@ -78,22 +78,30 @@ impl QueryBaker {
                     payday_transaction_commission,
                     payday_baking_commission,
                     payday_finalization_commission,
-                    payday_lottery_power as lottery_power
+                    payday_lottery_power as lottery_power,
+                    pool_total_staked,
+                    pool_delegator_count
                 FROM bakers
                     LEFT JOIN bakers_payday_commission_rates
                         ON bakers_payday_commission_rates.id = bakers.id
                     LEFT JOIN bakers_payday_lottery_powers
                         ON bakers_payday_lottery_powers.id = bakers.id
                 WHERE
-                    (NOT $6 OR bakers.id       > $1 AND bakers.id       < $2) AND
-                    (NOT $7 OR staked          > $1 AND staked          < $2) AND
+                    (NOT $6 OR bakers.id            > $1 AND bakers.id            < $2) AND
+                    (NOT $7 OR staked               > $1 AND staked               < $2) AND
+                    (NOT $8 OR pool_total_staked    > $1 AND pool_total_staked    < $2) AND
+                    (NOT $9 OR pool_delegator_count > $1 AND pool_delegator_count < $2) AND
                     -- filters
-                    ($8::pool_open_status IS NULL OR open_status = $8::pool_open_status)
+                    ($10::pool_open_status IS NULL OR open_status = $10::pool_open_status)
                 ORDER BY
-                    (CASE WHEN $6 AND     $3 THEN bakers.id       END) DESC,
-                    (CASE WHEN $6 AND NOT $3 THEN bakers.id       END) ASC,
-                    (CASE WHEN $7 AND     $3 THEN staked          END) DESC,
-                    (CASE WHEN $7 AND NOT $3 THEN staked          END) ASC
+                    (CASE WHEN $6 AND     $3 THEN bakers.id            END) DESC,
+                    (CASE WHEN $6 AND NOT $3 THEN bakers.id            END) ASC,
+                    (CASE WHEN $7 AND     $3 THEN staked               END) DESC,
+                    (CASE WHEN $7 AND NOT $3 THEN staked               END) ASC,
+                    (CASE WHEN $8 AND     $3 THEN pool_total_staked    END) DESC,
+                    (CASE WHEN $8 AND NOT $3 THEN pool_total_staked    END) ASC,
+                    (CASE WHEN $9 AND     $3 THEN pool_delegator_count END) DESC,
+                    (CASE WHEN $9 AND NOT $3 THEN pool_delegator_count END) ASC
                 LIMIT $4
             ) ORDER BY
                 (CASE WHEN $6 AND     $5 THEN id       END) DESC,
@@ -107,14 +115,15 @@ impl QueryBaker {
             matches!(sort_direction, OrderDir::Desc),                  // $5
             matches!(order_field, BakerOrderField::BakerId),           // $6
             matches!(order_field, BakerOrderField::BakerStakedAmount), // $7
-            open_status_filter as Option<BakerPoolOpenStatus>          // $8
+            matches!(order_field, BakerOrderField::TotalStakedAmount), // $8
+            matches!(order_field, BakerOrderField::DelegatorCount),    // $9
+            open_status_filter as Option<BakerPoolOpenStatus>          // $10
         )
         .fetch(pool);
-        // matches!(sort_field, BakerOrderField::TotalStakedAmount), // $8
-        // matches!(sort_field, BakerOrderField::DelegatorCount), // $9
-        // matches!(sort_field, BakerOrderField::BakerApy30Days), // $10
-        // matches!(sort_field, BakerOrderField::DelegatorApy30Days), // $11
-        // matches!(sort_field, BakerOrderField::BlockCommissions), // $12
+        // TODO:
+        // matches!(order_field, BakerOrderField::BakerApy30Days), // $10
+        // matches!(order_field, BakerOrderField::DelegatorApy30Days), // $11
+        // matches!(order_field, BakerOrderField::BlockCommissions), // $12
 
         let mut connection = connection::Connection::new(false, false);
         connection.edges.reserve_exact(query.limit.try_into()?);
@@ -128,23 +137,33 @@ impl QueryBaker {
                 "SELECT true
                 FROM bakers
                 WHERE
-                    (NOT $3 OR NOT $2 AND id              < $1
-                            OR     $2 AND id              > $1) AND
-                    (NOT $4 OR NOT $2 AND staked          < $1
-                            OR     $2 AND id              > $1) AND
+                    (NOT $3 OR NOT $2 AND id                   < $1
+                            OR     $2 AND id                   > $1) AND
+                    (NOT $4 OR NOT $2 AND staked               < $1
+                            OR     $2 AND staked               > $1) AND
+                    (NOT $5 OR NOT $2 AND pool_total_staked    < $1
+                            OR     $2 AND pool_total_staked    > $1) AND
+                    (NOT $6 OR NOT $2 AND pool_delegator_count < $1
+                            OR     $2 AND pool_delegator_count > $1) AND
                     -- filters
-                    ($5::pool_open_status IS NULL OR open_status = $5::pool_open_status)
+                    ($7::pool_open_status IS NULL OR open_status = $7::pool_open_status)
                 ORDER BY
-                    (CASE WHEN $3 AND NOT $2 THEN id              END) ASC,
-                    (CASE WHEN $3 AND     $2 THEN id              END) DESC,
-                    (CASE WHEN $4 AND NOT $2 THEN staked          END) ASC,
-                    (CASE WHEN $4 AND     $2 THEN staked          END) DESC
+                    (CASE WHEN $3 AND NOT $2 THEN id                   END) ASC,
+                    (CASE WHEN $3 AND     $2 THEN id                   END) DESC,
+                    (CASE WHEN $4 AND NOT $2 THEN staked               END) ASC,
+                    (CASE WHEN $4 AND     $2 THEN staked               END) DESC,
+                    (CASE WHEN $5 AND NOT $2 THEN pool_total_staked    END) ASC,
+                    (CASE WHEN $5 AND     $2 THEN pool_total_staked    END) DESC,
+                    (CASE WHEN $6 AND NOT $2 THEN pool_delegator_count END) ASC,
+                    (CASE WHEN $6 AND     $2 THEN pool_delegator_count END) DESC
                 LIMIT 1",
                 first_item_sort_value,                                     // $1
                 matches!(sort_direction, OrderDir::Desc),                  // $2
                 matches!(order_field, BakerOrderField::BakerId),           // $3
                 matches!(order_field, BakerOrderField::BakerStakedAmount), // $4
-                open_status_filter as Option<BakerPoolOpenStatus>          // $5
+                matches!(order_field, BakerOrderField::TotalStakedAmount), // $5
+                matches!(order_field, BakerOrderField::DelegatorCount),    // $6
+                open_status_filter as Option<BakerPoolOpenStatus>          // $7
             )
             .fetch_optional(pool)
             .await?
@@ -159,23 +178,33 @@ impl QueryBaker {
                 "SELECT true
                 FROM bakers
                 WHERE
-                    (NOT $3 OR NOT $2 AND id              > $1
-                            OR     $2 AND id              < $1) AND
-                    (NOT $4 OR NOT $2 AND staked          > $1
-                            OR     $2 AND id              < $1) AND
+                    (NOT $3 OR NOT $2 AND id                   > $1
+                            OR     $2 AND id                   < $1) AND
+                    (NOT $4 OR NOT $2 AND staked               > $1
+                            OR     $2 AND staked               < $1) AND
+                    (NOT $5 OR NOT $2 AND pool_total_staked    > $1
+                            OR     $2 AND pool_total_staked    < $1) AND
+                    (NOT $6 OR NOT $2 AND pool_delegator_count > $1
+                            OR     $2 AND pool_delegator_count < $1) AND
                     -- filters
-                    ($5::pool_open_status IS NULL OR open_status = $5::pool_open_status)
+                    ($7::pool_open_status IS NULL OR open_status = $7::pool_open_status)
                 ORDER BY
-                    (CASE WHEN $3 AND NOT $2 THEN id              END) ASC,
-                    (CASE WHEN $3 AND     $2 THEN id              END) DESC,
-                    (CASE WHEN $4 AND NOT $2 THEN staked          END) ASC,
-                    (CASE WHEN $4 AND     $2 THEN staked          END) DESC
+                    (CASE WHEN $3 AND NOT $2 THEN id                   END) ASC,
+                    (CASE WHEN $3 AND     $2 THEN id                   END) DESC,
+                    (CASE WHEN $4 AND NOT $2 THEN staked               END) ASC,
+                    (CASE WHEN $4 AND     $2 THEN staked               END) DESC,
+                    (CASE WHEN $5 AND NOT $2 THEN pool_total_staked    END) ASC,
+                    (CASE WHEN $5 AND     $2 THEN pool_total_staked    END) DESC,
+                    (CASE WHEN $6 AND NOT $2 THEN pool_delegator_count END) ASC,
+                    (CASE WHEN $6 AND     $2 THEN pool_delegator_count END) DESC
                 LIMIT 1",
                 last_item_sort_value,                                      // $1
                 matches!(sort_direction, OrderDir::Desc),                  // $2
                 matches!(order_field, BakerOrderField::BakerId),           // $3
                 matches!(order_field, BakerOrderField::BakerStakedAmount), // $4
-                open_status_filter as Option<BakerPoolOpenStatus>          // $5
+                matches!(order_field, BakerOrderField::TotalStakedAmount), // $5
+                matches!(order_field, BakerOrderField::DelegatorCount),    // $6
+                open_status_filter as Option<BakerPoolOpenStatus>          // $7
             )
             .fetch_optional(pool)
             .await?
@@ -222,6 +251,8 @@ pub struct Baker {
     payday_baking_commission: Option<i64>,
     payday_finalization_commission: Option<i64>,
     lottery_power: Option<BigDecimal>,
+    pool_total_staked: i64,
+    pool_delegator_count: i64,
 }
 impl Baker {
     pub async fn query_by_id(pool: &PgPool, baker_id: i64) -> ApiResult<Option<Self>> {
@@ -239,10 +270,11 @@ impl Baker {
                 finalization_commission,
                 payday_transaction_commission,
                 payday_baking_commission,
-                payday_finalization_commission
                 payday_finalization_commission,
-                payday_lottery_power as lottery_power
-            FROM bakers 
+                payday_lottery_power as lottery_power,
+                pool_total_staked,
+                pool_delegator_count
+            FROM bakers
                 LEFT JOIN bakers_payday_commission_rates ON bakers_payday_commission_rates.id = bakers.id
                 LEFT JOIN bakers_payday_lottery_powers ON bakers_payday_lottery_powers.id = bakers.id
             WHERE bakers.id = $1
@@ -257,8 +289,8 @@ impl Baker {
         match order_field {
             BakerOrderField::BakerId => self.id.into(),
             BakerOrderField::BakerStakedAmount => self.staked,
-            BakerOrderField::TotalStakedAmount => todo!(),
-            BakerOrderField::DelegatorCount => todo!(),
+            BakerOrderField::TotalStakedAmount => self.pool_total_staked,
+            BakerOrderField::DelegatorCount => self.pool_delegator_count,
             BakerOrderField::BakerApy30Days => todo!(),
             BakerOrderField::DelegatorApy30days => todo!(),
             BakerOrderField::BlockCommissions => todo!(),
@@ -324,28 +356,9 @@ impl Baker {
                 .fetch_one(pool)
                 .await?;
 
-        let row = sqlx::query!(
-            "
-                SELECT
-                    COUNT(*) AS delegator_count,
-                    SUM(delegated_stake)::BIGINT AS delegated_stake
-                FROM accounts 
-                WHERE delegated_target_baker_id = $1
-            ",
-            self.id.0
-        )
-        .fetch_one(pool)
-        .await?;
-
-        let delegated_stake = row.delegated_stake.unwrap_or(0);
-
-        // The total amount staked in this baker pool includes the baker stake
-        // and the delegated stake.
-        let total_pool_stake = self.staked + delegated_stake;
-
-        // Division by 0 is not possible because `total_staked` is always a positive
-        // number.
-        let total_stake_percentage = (rust_decimal::Decimal::from(total_pool_stake)
+        // Division by 0 is not possible because `pool_total_staked` is always a
+        // positive number.
+        let total_stake_percentage = (rust_decimal::Decimal::from(self.pool_total_staked)
             * rust_decimal::Decimal::from(100))
         .checked_div(rust_decimal::Decimal::from(total_stake))
         .ok_or_else(|| ApiError::InternalError("Division by zero".to_string()))?
@@ -370,9 +383,9 @@ impl Baker {
                     .map_err(|e: anyhow::Error| ApiError::InternalError(e.to_string()))?,
                 metadata_url: self.metadata_url.as_deref(),
                 total_stake_percentage,
-                total_stake: total_pool_stake.try_into()?,
-                delegated_stake: delegated_stake.try_into()?,
-                delegator_count: row.delegator_count.unwrap_or(0),
+                total_stake: Amount::try_from(self.pool_total_staked)?,
+                delegated_stake: Amount::try_from(self.pool_total_staked - self.staked)?,
+                delegator_count: self.pool_delegator_count,
             },
             pending_change:   None, // This is not used starting from P7.
         }));

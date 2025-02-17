@@ -35,10 +35,12 @@ UPDATE bakers
 -- Mark new columns as NOT NULL
 ALTER TABLE bakers
     ALTER COLUMN pool_total_staked SET NOT NULL,
-    ALTER COLUMN pool_delegator_count SET NOT NULL;
+    ALTER COLUMN pool_delegator_count SET NOT NULL,
+    ADD CONSTRAINT check_pool_total_staked_positive CHECK (pool_total_staked > 0);
 
 -- Revert changes, useful for testing.
 
 -- ALTER TABLE bakers
+--     DROP CONSTRAINT check_pool_total_staked_positive,
 --     DROP COLUMN pool_total_staked,
 --     DROP COLUMN pool_delegator_count;

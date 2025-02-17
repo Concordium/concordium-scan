@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                bakers.id as id,\n                staked,\n                restake_earnings,\n                open_status as \"open_status: BakerPoolOpenStatus\",\n                metadata_url,\n                transaction_commission,\n                baking_commission,\n                finalization_commission,\n                payday_transaction_commission,\n                payday_baking_commission,\n                payday_finalization_commission\n                payday_finalization_commission,\n                payday_lottery_power as lottery_power\n            FROM bakers \n                LEFT JOIN bakers_payday_commission_rates ON bakers_payday_commission_rates.id = bakers.id\n                LEFT JOIN bakers_payday_lottery_powers ON bakers_payday_lottery_powers.id = bakers.id\n            WHERE bakers.id = $1\n            ",
+  "query": "\n            SELECT\n                bakers.id as id,\n                staked,\n                restake_earnings,\n                open_status as \"open_status: BakerPoolOpenStatus\",\n                metadata_url,\n                transaction_commission,\n                baking_commission,\n                finalization_commission,\n                payday_transaction_commission,\n                payday_baking_commission,\n                payday_finalization_commission,\n                payday_lottery_power as lottery_power,\n                pool_total_staked,\n                pool_delegator_count\n            FROM bakers\n                LEFT JOIN bakers_payday_commission_rates ON bakers_payday_commission_rates.id = bakers.id\n                LEFT JOIN bakers_payday_lottery_powers ON bakers_payday_lottery_powers.id = bakers.id\n            WHERE bakers.id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -73,6 +73,16 @@
         "ordinal": 11,
         "name": "lottery_power",
         "type_info": "Numeric"
+      },
+      {
+        "ordinal": 12,
+        "name": "pool_total_staked",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "pool_delegator_count",
+        "type_info": "Int8"
       }
     ],
     "parameters": {
@@ -92,8 +102,10 @@
       false,
       false,
       false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "9eee34111db6f0610c4a6ba97d4ae761d291de1ff494a0a0b13663630e261e09"
+  "hash": "c62fc50b51060049a3d048dc48a9afbcdf717ca5b2ff61ae507c577d90b6412a"
 }
