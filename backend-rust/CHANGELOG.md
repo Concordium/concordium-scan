@@ -8,7 +8,7 @@ Database schema version: 6
 
 ### Changed
 
-- Store canonical address on the account
+- Store canonical address as a column on the account
 
 ### Fixed
 
