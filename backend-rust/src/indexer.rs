@@ -3858,7 +3858,7 @@ impl PreparedInsertBlockSpecialTransacionOutcomes {
 /// outcome in a block.
 enum PreparedSpecialTransactionOutcomeUpdate {
     /// Distribution of various CCD rewards.
-    Rewards(Vec<PreparedUpdateAccountBalance>),
+    Rewards(Vec<AccountReceivedReward>),
     /// Validator is primed for suspension.
     ValidatorPrimedForSuspension(PreparedValidatorPrimedForSuspension),
     /// Validator is suspended.
@@ -3878,7 +3878,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 let rewards = baker_rewards
                     .iter()
                     .map(|(account_address, amount)| {
-                        PreparedUpdateAccountBalance::prepare(
+                        AccountReceivedReward::prepare(
                             Arc::new(account_address.to_string()),
                             amount.micro_ccd.try_into()?,
                             block_height,
@@ -3893,7 +3893,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 mint_platform_development_charge,
                 ..
             } => {
-                let rewards = vec![PreparedUpdateAccountBalance::prepare(
+                let rewards = vec![AccountReceivedReward::prepare(
                     Arc::new(foundation_account.to_string()),
                     mint_platform_development_charge.micro_ccd.try_into()?,
                     block_height,
@@ -3908,7 +3908,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 let rewards = finalization_rewards
                     .iter()
                     .map(|(account_address, amount)| {
-                        PreparedUpdateAccountBalance::prepare(
+                        AccountReceivedReward::prepare(
                             Arc::new(account_address.to_string()),
                             amount.micro_ccd.try_into()?,
                             block_height,
@@ -3925,13 +3925,13 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 foundation_charge,
                 ..
             } => Self::Rewards(vec![
-                PreparedUpdateAccountBalance::prepare(
+                AccountReceivedReward::prepare(
                     Arc::new(foundation_account.to_string()),
                     foundation_charge.micro_ccd.try_into()?,
                     block_height,
                     AccountStatementEntryType::FoundationReward,
                 )?,
-                PreparedUpdateAccountBalance::prepare(
+                AccountReceivedReward::prepare(
                     Arc::new(baker.to_string()),
                     baker_reward.micro_ccd.try_into()?,
                     block_height,
@@ -3941,7 +3941,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
             SpecialTransactionOutcome::PaydayFoundationReward {
                 foundation_account,
                 development_charge,
-            } => Self::Rewards(vec![PreparedUpdateAccountBalance::prepare(
+            } => Self::Rewards(vec![AccountReceivedReward::prepare(
                 Arc::new(foundation_account.to_string()),
                 development_charge.micro_ccd.try_into()?,
                 block_height,
@@ -3955,19 +3955,19 @@ impl PreparedSpecialTransactionOutcomeUpdate {
             } => {
                 let account_address = Arc::new(account.to_string());
                 Self::Rewards(vec![
-                    PreparedUpdateAccountBalance::prepare(
+                    AccountReceivedReward::prepare(
                         account_address.clone(),
                         transaction_fees.micro_ccd.try_into()?,
                         block_height,
                         AccountStatementEntryType::TransactionFeeReward,
                     )?,
-                    PreparedUpdateAccountBalance::prepare(
+                    AccountReceivedReward::prepare(
                         account_address.clone(),
                         baker_reward.micro_ccd.try_into()?,
                         block_height,
                         AccountStatementEntryType::BakerReward,
                     )?,
-                    PreparedUpdateAccountBalance::prepare(
+                    AccountReceivedReward::prepare(
                         account_address,
                         finalization_reward.micro_ccd.try_into()?,
                         block_height,
@@ -4007,13 +4007,107 @@ impl PreparedSpecialTransactionOutcomeUpdate {
         match self {
             Self::Rewards(events) => {
                 for event in events {
-                    event.save(tx, None).await?
+                    event.save(tx).await?
                 }
                 Ok(())
             }
             Self::ValidatorPrimedForSuspension(event) => event.save(tx).await,
             Self::ValidatorSuspended(event) => event.save(tx).await,
         }
+    }
+}
+
+/// Represents the event of an account receiving a reward.
+struct AccountReceivedReward {
+    /// Update the balance of the account.
+    update_account_balance: PreparedUpdateAccountBalance,
+    /// Update the stake if restake earnings.
+    update_stake:           RestakeEarnings,
+}
+
+impl AccountReceivedReward {
+    fn prepare(
+        account_address: Arc<String>,
+        amount: i64,
+        block_height: AbsoluteBlockHeight,
+        transaction_type: AccountStatementEntryType,
+    ) -> anyhow::Result<Self> {
+        Ok(Self {
+            update_account_balance: PreparedUpdateAccountBalance::prepare(
+                account_address.clone(),
+                amount,
+                block_height,
+                transaction_type,
+            )?,
+            update_stake:           RestakeEarnings::prepare(account_address, amount),
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        self.update_account_balance.save(tx, None).await?;
+        self.update_stake.save(tx).await?;
+        Ok(())
+    }
+}
+
+/// Represents the database operation of updating stake for a reward if restake
+/// earnings are enabled.
+struct RestakeEarnings {
+    /// The account address of the receiver of the reward.
+    account_address: Arc<String>,
+    /// Amount of CCD received as reward.
+    amount:          i64,
+}
+
+impl RestakeEarnings {
+    fn prepare(account_address: Arc<String>, amount: i64) -> Self {
+        Self {
+            account_address,
+            amount,
+        }
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        // Update the account if delegated_restake_earnings is set and is true, meaning
+        // the account is delegating.
+        let account_row = sqlx::query!(
+            "UPDATE accounts
+                SET
+                    delegated_stake = CASE
+                            WHEN delegated_restake_earnings THEN delegated_stake + $2
+                            ELSE delegated_stake
+                        END
+                WHERE address = $1
+                RETURNING index, delegated_restake_earnings",
+            self.account_address.as_ref(),
+            self.amount
+        )
+        .fetch_one(tx.as_mut())
+        .await?;
+        // When delegated_restake_earnings is None the account is not delegating, so it
+        // might be baking.
+        if account_row.delegated_restake_earnings.is_none() {
+            sqlx::query!(
+                "UPDATE bakers
+                    SET
+                        staked = CASE
+                                WHEN restake_earnings THEN staked + $2
+                                ELSE staked
+                            END
+                WHERE id = $1",
+                account_row.index,
+                self.amount
+            )
+            .execute(tx.as_mut())
+            .await?;
+        }
+        Ok(())
     }
 }
 
