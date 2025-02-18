@@ -8,6 +8,7 @@ use tracing::info;
 type Transaction = sqlx::Transaction<'static, sqlx::Postgres>;
 
 mod m0005_fix_dangling_delegators;
+mod m0006_fix_stake;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.
@@ -184,7 +185,9 @@ pub enum SchemaVersion {
     PayDayLotteryPowers,
     #[display("0005:Fix invalid data of dangling delegators.")]
     FixDanglingDelegators,
-    #[display("0006:Accumulated pool state columns.")]
+    #[display("0006:Fix staked amounts")]
+    FixStakedAmounts,
+    #[display("0007:Accumulated pool state columns.")]
     AddAccumulatedPoolState,
 }
 impl SchemaVersion {
@@ -214,6 +217,7 @@ impl SchemaVersion {
             SchemaVersion::PayDayPoolCommissionRates => false,
             SchemaVersion::PayDayLotteryPowers => false,
             SchemaVersion::FixDanglingDelegators => false,
+            SchemaVersion::FixStakedAmounts => false,
             SchemaVersion::AddAccumulatedPoolState => false,
         }
     }
@@ -254,9 +258,12 @@ impl SchemaVersion {
                 m0005_fix_dangling_delegators::run(&mut tx, endpoints).await?
             }
             SchemaVersion::FixDanglingDelegators => {
+                m0006_fix_stake::run(&mut tx, endpoints).await?
+            }
+            SchemaVersion::FixStakedAmounts => {
                 tx.as_mut()
                     .execute(sqlx::raw_sql(include_str!(
-                        "./migrations/m0006-cumulate-pool-info.sql"
+                        "./migrations/m0007-cumulate-pool-info.sql"
                     )))
                     .await?;
                 SchemaVersion::AddAccumulatedPoolState

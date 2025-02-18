@@ -1069,8 +1069,8 @@ SELECT * FROM UNNEST(
 }
 
 /// Database operation for adding new row into the account statement table.
-/// Notes the current balance of the account and assumes the balance is not yet
-/// updated.
+/// This reads the current balance of the account and assumes the balance is
+/// already updated with the amount part of the statement.
 struct PreparedAccountStatement {
     account_address:  Arc<String>,
     amount:           i64,
@@ -1086,7 +1086,7 @@ impl PreparedAccountStatement {
     ) -> anyhow::Result<()> {
         sqlx::query!(
             "WITH account_info AS (
-            SELECT index AS account_index, amount + $3 AS current_balance
+            SELECT index AS account_index, amount AS current_balance
             FROM accounts
             WHERE address = $1
         )
@@ -3726,14 +3726,12 @@ impl PreparedUpdateEncryptedBalance {
 
 /// Represents change in the balance of some account.
 struct PreparedUpdateAccountBalance {
-    /// Tracking the account statement causing the change in balance.
-    account_statement: PreparedAccountStatement,
     /// Address of the account.
     account_address:   Arc<String>,
     /// Difference in the balance.
     change:            i64,
-    /// Whether the update in balance is some reward.
-    is_reward:         bool,
+    /// Tracking the account statement causing the change in balance.
+    account_statement: PreparedAccountStatement,
 }
 
 impl PreparedUpdateAccountBalance {
@@ -3753,7 +3751,6 @@ impl PreparedUpdateAccountBalance {
             account_address: sender,
             change: amount,
             account_statement,
-            is_reward: transaction_type.is_reward(),
         })
     }
 
@@ -3766,65 +3763,16 @@ impl PreparedUpdateAccountBalance {
             // Difference of 0 means nothing needs to be updated.
             return Ok(());
         }
-        // We update the account statement first, since this operation assumes the
-        // balance is not updated yet.
-        self.account_statement.save(tx, transaction_index).await?;
-        // Then we update the balance. If this is a reward and
-        // delegated_restake_earnings is not NULL we know this account is delegating and
-        // if delegated_restake_earnings is true we update the delegated_stake as well.
-        let account_info = sqlx::query!(
-            "UPDATE accounts
-             SET
-                 amount = amount + $1,
-                 delegated_stake = CASE
-                         WHEN $3 AND delegated_restake_earnings THEN delegated_stake + $1
-                         ELSE delegated_stake
-                     END
-             WHERE address = $2
-             RETURNING index, delegated_restake_earnings, delegated_target_baker_id",
+        sqlx::query!(
+            "UPDATE accounts SET amount = amount + $1 WHERE address = $2",
             self.change,
             self.account_address.as_ref(),
-            self.is_reward
         )
-        .fetch_one(tx.as_mut())
+        .execute(tx.as_mut())
         .await?;
-
-        if !self.is_reward {
-            return Ok(());
-        }
-        if let Some(restake) = account_info.delegated_restake_earnings {
-            // Account is delegating.
-            if restake {
-                // Restake is enabled
-                if let Some(pool) = account_info.delegated_target_baker_id {
-                    // delegating to a pool (and not the passive pool).
-                    sqlx::query!(
-                        "UPDATE bakers
-                             SET pool_total_staked = pool_total_staked + $2
-                         WHERE id = $1",
-                        pool,
-                        self.change,
-                    )
-                    .execute(tx.as_mut())
-                    .await?;
-                }
-            }
-        } else {
-            // Account is not delegating and could be the pool owner, so
-            // check and update the baker pool if restakeEarnings are enabled.
-            sqlx::query!(
-                "UPDATE bakers
-                     SET
-                         staked = staked + $2,
-                         pool_total_staked = pool_total_staked + $2
-                 WHERE id = $1 AND restake_earnings",
-                account_info.index,
-                self.change,
-            )
-            .execute(tx.as_mut())
-            .await?;
-        }
-
+        // Add the account statement, note that this operation assumes the account
+        // balance is already updated.
+        self.account_statement.save(tx, transaction_index).await?;
         Ok(())
     }
 }
@@ -4014,7 +3962,7 @@ impl PreparedInsertBlockSpecialTransacionOutcomes {
 /// outcome in a block.
 enum PreparedSpecialTransactionOutcomeUpdate {
     /// Distribution of various CCD rewards.
-    Rewards(Vec<PreparedUpdateAccountBalance>),
+    Rewards(Vec<AccountReceivedReward>),
     /// Validator is primed for suspension.
     ValidatorPrimedForSuspension(PreparedValidatorPrimedForSuspension),
     /// Validator is suspended.
@@ -4034,7 +3982,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 let rewards = baker_rewards
                     .iter()
                     .map(|(account_address, amount)| {
-                        PreparedUpdateAccountBalance::prepare(
+                        AccountReceivedReward::prepare(
                             Arc::new(account_address.to_string()),
                             amount.micro_ccd.try_into()?,
                             block_height,
@@ -4049,7 +3997,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 mint_platform_development_charge,
                 ..
             } => {
-                let rewards = vec![PreparedUpdateAccountBalance::prepare(
+                let rewards = vec![AccountReceivedReward::prepare(
                     Arc::new(foundation_account.to_string()),
                     mint_platform_development_charge.micro_ccd.try_into()?,
                     block_height,
@@ -4064,7 +4012,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 let rewards = finalization_rewards
                     .iter()
                     .map(|(account_address, amount)| {
-                        PreparedUpdateAccountBalance::prepare(
+                        AccountReceivedReward::prepare(
                             Arc::new(account_address.to_string()),
                             amount.micro_ccd.try_into()?,
                             block_height,
@@ -4081,13 +4029,13 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 foundation_charge,
                 ..
             } => Self::Rewards(vec![
-                PreparedUpdateAccountBalance::prepare(
+                AccountReceivedReward::prepare(
                     Arc::new(foundation_account.to_string()),
                     foundation_charge.micro_ccd.try_into()?,
                     block_height,
                     AccountStatementEntryType::FoundationReward,
                 )?,
-                PreparedUpdateAccountBalance::prepare(
+                AccountReceivedReward::prepare(
                     Arc::new(baker.to_string()),
                     baker_reward.micro_ccd.try_into()?,
                     block_height,
@@ -4097,7 +4045,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
             SpecialTransactionOutcome::PaydayFoundationReward {
                 foundation_account,
                 development_charge,
-            } => Self::Rewards(vec![PreparedUpdateAccountBalance::prepare(
+            } => Self::Rewards(vec![AccountReceivedReward::prepare(
                 Arc::new(foundation_account.to_string()),
                 development_charge.micro_ccd.try_into()?,
                 block_height,
@@ -4111,19 +4059,19 @@ impl PreparedSpecialTransactionOutcomeUpdate {
             } => {
                 let account_address = Arc::new(account.to_string());
                 Self::Rewards(vec![
-                    PreparedUpdateAccountBalance::prepare(
+                    AccountReceivedReward::prepare(
                         account_address.clone(),
                         transaction_fees.micro_ccd.try_into()?,
                         block_height,
                         AccountStatementEntryType::TransactionFeeReward,
                     )?,
-                    PreparedUpdateAccountBalance::prepare(
+                    AccountReceivedReward::prepare(
                         account_address.clone(),
                         baker_reward.micro_ccd.try_into()?,
                         block_height,
                         AccountStatementEntryType::BakerReward,
                     )?,
-                    PreparedUpdateAccountBalance::prepare(
+                    AccountReceivedReward::prepare(
                         account_address,
                         finalization_reward.micro_ccd.try_into()?,
                         block_height,
@@ -4163,13 +4111,122 @@ impl PreparedSpecialTransactionOutcomeUpdate {
         match self {
             Self::Rewards(events) => {
                 for event in events {
-                    event.save(tx, None).await?
+                    event.save(tx).await?
                 }
                 Ok(())
             }
             Self::ValidatorPrimedForSuspension(event) => event.save(tx).await,
             Self::ValidatorSuspended(event) => event.save(tx).await,
         }
+    }
+}
+
+/// Represents the event of an account receiving a reward.
+struct AccountReceivedReward {
+    /// Update the balance of the account.
+    update_account_balance: PreparedUpdateAccountBalance,
+    /// Update the stake if restake earnings.
+    update_stake:           RestakeEarnings,
+}
+
+impl AccountReceivedReward {
+    fn prepare(
+        account_address: Arc<String>,
+        amount: i64,
+        block_height: AbsoluteBlockHeight,
+        transaction_type: AccountStatementEntryType,
+    ) -> anyhow::Result<Self> {
+        Ok(Self {
+            update_account_balance: PreparedUpdateAccountBalance::prepare(
+                account_address.clone(),
+                amount,
+                block_height,
+                transaction_type,
+            )?,
+            update_stake:           RestakeEarnings::prepare(account_address, amount),
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        self.update_account_balance.save(tx, None).await?;
+        self.update_stake.save(tx).await?;
+        Ok(())
+    }
+}
+
+/// Represents the database operation of updating stake for a reward if restake
+/// earnings are enabled.
+struct RestakeEarnings {
+    /// The account address of the receiver of the reward.
+    account_address: Arc<String>,
+    /// Amount of CCD received as reward.
+    amount:          i64,
+}
+
+impl RestakeEarnings {
+    fn prepare(account_address: Arc<String>, amount: i64) -> Self {
+        Self {
+            account_address,
+            amount,
+        }
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        // Update the account if delegated_restake_earnings is set and is true, meaning
+        // the account is delegating.
+        let account_row = sqlx::query!(
+            "UPDATE accounts
+                SET
+                    delegated_stake = CASE
+                            WHEN delegated_restake_earnings THEN delegated_stake + $2
+                            ELSE delegated_stake
+                        END
+                WHERE address = $1
+                RETURNING index, delegated_restake_earnings, delegated_target_baker_id",
+            self.account_address.as_ref(),
+            self.amount
+        )
+        .fetch_one(tx.as_mut())
+        .await?;
+        if let Some(restake) = account_row.delegated_restake_earnings {
+            // Account is delegating.
+            if restake {
+                // Restake is enabled.
+                if let Some(pool) = account_row.delegated_target_baker_id {
+                    // delegating to a pool (and not the passive pool).
+                    sqlx::query!(
+                        "UPDATE bakers
+                             SET pool_total_staked = pool_total_staked + $2
+                         WHERE id = $1",
+                        pool,
+                        self.amount,
+                    )
+                    .execute(tx.as_mut())
+                    .await?;
+                }
+            }
+        } else {
+            // When delegated_restake_earnings is None the account is not delegating, so it
+            // might be baking.
+            sqlx::query!(
+                "UPDATE bakers
+                    SET
+                        staked = staked + $2,
+                        pool_total_staked = pool_total_staked + $2
+                WHERE id = $1 AND restake_earnings",
+                account_row.index,
+                self.amount
+            )
+            .execute(tx.as_mut())
+            .await?;
+        }
+        Ok(())
     }
 }
 
