@@ -8,6 +8,7 @@ use tracing::info;
 type Transaction = sqlx::Transaction<'static, sqlx::Postgres>;
 
 mod m0005_fix_dangling_delegators;
+mod m0006_fix_stake;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.
@@ -184,6 +185,8 @@ pub enum SchemaVersion {
     PayDayLotteryPowers,
     #[display("0005:Fix invalid data of dangling delegators.")]
     FixDanglingDelegators,
+    #[display("0006:Fix staked amounts")]
+    FixStakedAmounts,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -191,7 +194,7 @@ impl SchemaVersion {
     /// introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::PayDayLotteryPowers;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::FixDanglingDelegators;
+    const LATEST: SchemaVersion = SchemaVersion::FixStakedAmounts;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -212,6 +215,7 @@ impl SchemaVersion {
             SchemaVersion::PayDayPoolCommissionRates => false,
             SchemaVersion::PayDayLotteryPowers => false,
             SchemaVersion::FixDanglingDelegators => false,
+            SchemaVersion::FixStakedAmounts => false,
         }
     }
 
@@ -250,7 +254,10 @@ impl SchemaVersion {
             SchemaVersion::PayDayLotteryPowers => {
                 m0005_fix_dangling_delegators::run(&mut tx, endpoints).await?
             }
-            SchemaVersion::FixDanglingDelegators => unimplemented!(
+            SchemaVersion::FixDanglingDelegators => {
+                m0006_fix_stake::run(&mut tx, endpoints).await?
+            }
+            SchemaVersion::FixStakedAmounts => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
