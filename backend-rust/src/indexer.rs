@@ -53,8 +53,6 @@ use prometheus_client::{
 use sqlx::PgPool;
 use std::{convert::TryInto, sync::Arc};
 use std::str::FromStr;
-use concordium_rust_sdk::base::contracts_common::CanonicalAccountAddress;
-use concordium_rust_sdk::smart_contracts::common::schema::Type::AccountAddress;
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
