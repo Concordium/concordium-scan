@@ -31,10 +31,6 @@ struct BlockMetrics {
     /// The total CCD Released. This is total CCD supply not counting the
     /// balances of non circulating accounts.
     last_total_micro_ccd_released: Amount,
-    /// The current total CCD released according to the Concordium promise
-    /// published on deck.concordium.com. Will be null for blocks with slot
-    /// time before the published release schedule.
-    last_total_micro_ccd_unlocked: Option<Amount>,
     /// The current total amount of CCD staked.
     last_total_micro_ccd_staked: Amount,
     buckets: BlockMetricsBuckets,
@@ -236,8 +232,6 @@ LEFT JOIN LATERAL (
                 .total_amount_released
                 .unwrap_or(0)
                 .try_into()?,
-            last_total_micro_ccd_unlocked: None, // TODO implement unlocking schedule
-            // TODO check what format this is expected to be in.
             buckets,
         })
     }
