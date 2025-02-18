@@ -1903,14 +1903,14 @@ impl PreparedAccountDelegationEvent {
 /// Represents the event of a baker being removed, resulting in the delegators
 /// targeting the pool are moved to the passive pool.
 struct BakerRemoved {
-    remove_baker:    RemoveBaker,
     move_delegators: MovePoolDelegatorsToPassivePool,
+    remove_baker:    RemoveBaker,
 }
 impl BakerRemoved {
     fn prepare(baker_id: &sdk_types::BakerId) -> anyhow::Result<Self> {
         Ok(Self {
-            remove_baker:    RemoveBaker::prepare(baker_id)?,
             move_delegators: MovePoolDelegatorsToPassivePool::prepare(baker_id)?,
+            remove_baker:    RemoveBaker::prepare(baker_id)?,
         })
     }
 
@@ -1918,8 +1918,8 @@ impl BakerRemoved {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
-        self.remove_baker.save(tx).await?;
         self.move_delegators.save(tx).await?;
+        self.remove_baker.save(tx).await?;
         Ok(())
     }
 }
