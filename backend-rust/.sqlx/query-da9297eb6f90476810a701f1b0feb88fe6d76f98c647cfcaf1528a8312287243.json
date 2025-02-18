@@ -21,7 +21,7 @@
       {
         "ordinal": 3,
         "name": "transaction_hash",
-        "type_info": "Bpchar"
+        "type_info": "Varchar"
       },
       {
         "ordinal": 4,

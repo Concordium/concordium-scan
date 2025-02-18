@@ -7,7 +7,7 @@
 
 use super::{SchemaVersion, Transaction};
 use sqlx::Executor;
-use std::{collections::BTreeSet, str::FromStr};
+use std::str::FromStr;
 use tokio_stream::StreamExt;
 
 /// Run database migration and returns the new database schema version when
@@ -15,7 +15,7 @@ use tokio_stream::StreamExt;
 pub async fn run(tx: &mut Transaction) -> anyhow::Result<SchemaVersion> {
     tx.as_mut()
         .execute(sqlx::raw_sql(include_str!(
-            "./m0006_canonical_address_and_transaction_search_index.sql"
+            "m0006-canonical-address-and-transaction-search-index.sql"
         )))
         .await?;
 
