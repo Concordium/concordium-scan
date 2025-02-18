@@ -75,10 +75,10 @@ impl QueryBaker {
                     transaction_commission,
                     baking_commission,
                     finalization_commission,
-                    payday_transaction_commission,
-                    payday_baking_commission,
-                    payday_finalization_commission,
-                    payday_lottery_power as lottery_power,
+                    payday_transaction_commission as "payday_transaction_commission?",
+                    payday_baking_commission as "payday_baking_commission?",
+                    payday_finalization_commission as "payday_finalization_commission?",
+                    payday_lottery_power as "lottery_power?",
                     pool_total_staked,
                     pool_delegator_count
                 FROM bakers
@@ -104,10 +104,14 @@ impl QueryBaker {
                     (CASE WHEN $9 AND NOT $3 THEN pool_delegator_count END) ASC
                 LIMIT $4
             ) ORDER BY
-                (CASE WHEN $6 AND     $5 THEN id       END) DESC,
-                (CASE WHEN $6 AND NOT $5 THEN id       END) ASC,
-                (CASE WHEN $7 AND     $5 THEN staked          END) DESC,
-                (CASE WHEN $7 AND NOT $5 THEN staked          END) ASC"#,
+                (CASE WHEN $6 AND     $5 THEN id                   END) DESC,
+                (CASE WHEN $6 AND NOT $5 THEN id                   END) ASC,
+                (CASE WHEN $7 AND     $5 THEN staked               END) DESC,
+                (CASE WHEN $7 AND NOT $5 THEN staked               END) ASC,
+                (CASE WHEN $8 AND     $5 THEN pool_total_staked    END) DESC,
+                (CASE WHEN $8 AND NOT $5 THEN pool_total_staked    END) ASC,
+                (CASE WHEN $9 AND     $5 THEN pool_delegator_count END) DESC,
+                (CASE WHEN $9 AND NOT $5 THEN pool_delegator_count END) ASC"#,
             query.from,                                                // $1
             query.to,                                                  // $2
             query.is_last != matches!(sort_direction, OrderDir::Desc), // $3
@@ -268,10 +272,10 @@ impl Baker {
                 transaction_commission,
                 baking_commission,
                 finalization_commission,
-                payday_transaction_commission,
-                payday_baking_commission,
-                payday_finalization_commission,
-                payday_lottery_power as lottery_power,
+                payday_transaction_commission as "payday_transaction_commission?",
+                payday_baking_commission as "payday_baking_commission?",
+                payday_finalization_commission as "payday_finalization_commission?",
+                payday_lottery_power as "lottery_power?",
                 pool_total_staked,
                 pool_delegator_count
             FROM bakers

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                bakers.id as id,\n                staked,\n                restake_earnings,\n                open_status as \"open_status: BakerPoolOpenStatus\",\n                metadata_url,\n                transaction_commission,\n                baking_commission,\n                finalization_commission,\n                payday_transaction_commission,\n                payday_baking_commission,\n                payday_finalization_commission,\n                payday_lottery_power as lottery_power,\n                pool_total_staked,\n                pool_delegator_count\n            FROM bakers\n                LEFT JOIN bakers_payday_commission_rates ON bakers_payday_commission_rates.id = bakers.id\n                LEFT JOIN bakers_payday_lottery_powers ON bakers_payday_lottery_powers.id = bakers.id\n            WHERE bakers.id = $1\n            ",
+  "query": "\n            SELECT\n                bakers.id as id,\n                staked,\n                restake_earnings,\n                open_status as \"open_status: BakerPoolOpenStatus\",\n                metadata_url,\n                transaction_commission,\n                baking_commission,\n                finalization_commission,\n                payday_transaction_commission as \"payday_transaction_commission?\",\n                payday_baking_commission as \"payday_baking_commission?\",\n                payday_finalization_commission as \"payday_finalization_commission?\",\n                payday_lottery_power as \"lottery_power?\",\n                pool_total_staked,\n                pool_delegator_count\n            FROM bakers\n                LEFT JOIN bakers_payday_commission_rates ON bakers_payday_commission_rates.id = bakers.id\n                LEFT JOIN bakers_payday_lottery_powers ON bakers_payday_lottery_powers.id = bakers.id\n            WHERE bakers.id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -56,22 +56,22 @@
       },
       {
         "ordinal": 8,
-        "name": "payday_transaction_commission",
+        "name": "payday_transaction_commission?",
         "type_info": "Int8"
       },
       {
         "ordinal": 9,
-        "name": "payday_baking_commission",
+        "name": "payday_baking_commission?",
         "type_info": "Int8"
       },
       {
         "ordinal": 10,
-        "name": "payday_finalization_commission",
+        "name": "payday_finalization_commission?",
         "type_info": "Int8"
       },
       {
         "ordinal": 11,
-        "name": "lottery_power",
+        "name": "lottery_power?",
         "type_info": "Numeric"
       },
       {
@@ -107,5 +107,5 @@
       false
     ]
   },
-  "hash": "c62fc50b51060049a3d048dc48a9afbcdf717ca5b2ff61ae507c577d90b6412a"
+  "hash": "d7ff56b797483966270b41d0739d2241d81903fc67b615001a24a7759076d292"
 }
