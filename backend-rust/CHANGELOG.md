@@ -26,6 +26,7 @@ Database schema version: 4
 
 - Database migration to add the lottery power of each baker pool during the last payday period.
 - Add Query `Query::Baker::state::pool::lotteryPower` which returns the `lotteryPower` of the baker pool during the last payday period.
+- Implement `SearchResult::transactions` and add relevant index to database
 
 ### Changed
 
