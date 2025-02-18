@@ -5,13 +5,12 @@
 //!   passive pool as their target validator pool got closed or removed (found
 //!   in the matching `.sql` file).
 
+
 use super::{SchemaVersion, Transaction};
 use sqlx::Executor;
 use std::str::FromStr;
 use tokio_stream::StreamExt;
 
-/// Run database migration and returns the new database schema version when
-/// successful.
 pub async fn run(tx: &mut Transaction) -> anyhow::Result<SchemaVersion> {
     tx.as_mut()
         .execute(sqlx::raw_sql(include_str!(
