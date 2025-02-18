@@ -1,11 +1,10 @@
 use anyhow::Context;
 use concordium_rust_sdk::v2;
 use sqlx::{Executor, PgPool};
-use std::cmp::Ordering;
+use std::{cmp::Ordering, str::FromStr};
 use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 use tracing::info;
-use std::{str::FromStr};
 
 type Transaction = sqlx::Transaction<'static, sqlx::Postgres>;
 
@@ -260,11 +259,11 @@ impl SchemaVersion {
             SchemaVersion::FixDanglingDelegators => {
                 m0006_canonical_address_and_transaction_search_index::run(&mut tx).await?;
                 SchemaVersion::AccountBaseAddress
-            },
+            }
             SchemaVersion::AccountBaseAddress => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
-            )
+            ),
         };
         let end_time = chrono::Utc::now();
         insert_migration(&mut tx, &new_version.into(), start_time, end_time).await?;
