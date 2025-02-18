@@ -19,3 +19,9 @@ ALTER TABLE accounts
     ADD CONSTRAINT fk_delegated_target_baker_id
         FOREIGN KEY (delegated_target_baker_id)
         REFERENCES bakers (id);
+
+-- Migration fixing invalid data for table `account_statements`. Here the changed amount (`amount`)
+-- got accounted for twice in `account_balance`.
+
+UPDATE account_statements
+    SET account_balance = account_balance - amount;
