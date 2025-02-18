@@ -5,7 +5,6 @@
 //!   passive pool as their target validator pool got closed or removed (found
 //!   in the matching `.sql` file).
 
-
 use super::{SchemaVersion, Transaction};
 use sqlx::Executor;
 use std::str::FromStr;
@@ -18,7 +17,7 @@ pub async fn run(tx: &mut Transaction) -> anyhow::Result<SchemaVersion> {
         )))
         .await?;
 
-    let mut update_queries = {
+    let update_queries = {
         let mut accounts = sqlx::query("SELECT index, address FROM accounts").fetch(tx.as_mut());
         let mut update_queries = Vec::new();
         while let Some(row) = accounts.try_next().await? {
@@ -29,9 +28,6 @@ pub async fn run(tx: &mut Transaction) -> anyhow::Result<SchemaVersion> {
                     &account_address,
                 )?;
             let canonical_address = account_address.get_canonical_address().0.as_slice().to_vec();
-            if canonical_address.len() != 29 {
-                println!("size: {}", canonical_address.len());
-            }
             update_queries.push(
                 sqlx::query("UPDATE accounts SET canonical_address = $1 WHERE index = $2")
                     .bind(canonical_address)
