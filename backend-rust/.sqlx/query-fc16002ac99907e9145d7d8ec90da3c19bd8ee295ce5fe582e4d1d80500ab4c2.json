@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE accounts\n                SET\n                    delegated_stake = CASE\n                            WHEN delegated_restake_earnings THEN delegated_stake + $2\n                            ELSE delegated_stake\n                        END\n                WHERE address = $1\n                RETURNING index, delegated_restake_earnings",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "delegated_restake_earnings",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "fc16002ac99907e9145d7d8ec90da3c19bd8ee295ce5fe582e4d1d80500ab4c2"
+}

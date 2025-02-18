@@ -9,7 +9,8 @@ use tracing::info;
 type Transaction = sqlx::Transaction<'static, sqlx::Postgres>;
 
 mod m0005_fix_dangling_delegators;
-mod m0006_canonical_address_and_transaction_search_index;
+mod m0006_fix_stake;
+mod m0007_canonical_address_and_transaction_search_index;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.
@@ -186,7 +187,9 @@ pub enum SchemaVersion {
     PayDayLotteryPowers,
     #[display("0005:Fix invalid data of dangling delegators.")]
     FixDanglingDelegators,
-    #[display("0006:AccountBaseAddress")]
+    #[display("0006:Fix staked amounts")]
+    FixStakedAmounts,
+    #[display("0007:AccountBaseAddress")]
     AccountBaseAddress,
 }
 impl SchemaVersion {
@@ -216,6 +219,7 @@ impl SchemaVersion {
             SchemaVersion::PayDayPoolCommissionRates => false,
             SchemaVersion::PayDayLotteryPowers => false,
             SchemaVersion::FixDanglingDelegators => false,
+            SchemaVersion::FixStakedAmounts => false,
             SchemaVersion::AccountBaseAddress => false,
         }
     }
@@ -257,8 +261,10 @@ impl SchemaVersion {
                 SchemaVersion::FixDanglingDelegators
             }
             SchemaVersion::FixDanglingDelegators => {
-                m0006_canonical_address_and_transaction_search_index::run(&mut tx).await?;
-                SchemaVersion::AccountBaseAddress
+                m0006_fix_stake::run(&mut tx, endpoints).await?
+            }
+            SchemaVersion::FixStakedAmounts => {
+                m0007_canonical_address_and_transaction_search_index::run(&mut tx).await?
             }
             SchemaVersion::AccountBaseAddress => unimplemented!(
                 "No migration implemented for database schema version {}",

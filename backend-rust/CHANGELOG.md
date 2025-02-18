@@ -4,19 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Fixed
-
-- Remove locked CCD metrics
-
-Database schema version: 5
+Database schema version: 6
 
 ### Fixed
 
-- Add database migration fixing:
+- Add database migration 6 fixing invalid baker and delegator stake due to missing handling of restake earnings.
+- Indexer now updates stake when restake earnings are enabled for bakers and delegators.
+- Remove locked CCD metrics.
+- Add database migration 5 fixing:
   - Invalid bakers caused by `DelegationEvent::RemoveBaker` event not being handled by the indexer until now.
   - Invalid delegator state, caused by validator/baker getting removed or changing status to 'ClosedForAll' without moving delegators to the passive pool.
+  - Invalid account balance for account statements, where the change in amount got accounted twice.
 - Fixed indexer missing handling of moving delegators as pool got removed or closed.
 - Fixed indexer missing handling of event of baker switching directly to delegation.
+- Fixed indexer account twice for the changed amount in account statements.
 
 ## [0.1.25] - 2025-02-14
 

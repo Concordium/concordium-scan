@@ -13,7 +13,7 @@ use tokio_stream::StreamExt;
 pub async fn run(tx: &mut Transaction) -> anyhow::Result<SchemaVersion> {
     tx.as_mut()
         .execute(sqlx::raw_sql(include_str!(
-            "m0006-canonical-address-and-transaction-search-index.sql"
+            "m0007-canonical-address-and-transaction-search-index.sql"
         )))
         .await?;
 
