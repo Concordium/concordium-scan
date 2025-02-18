@@ -598,7 +598,11 @@ impl DelegationSummary {
         })
     }
 
-    async fn restake_earnings(&self) -> Option<bool> { self.restake_earnings }
+    async fn restake_earnings(&self) -> ApiResult<bool> {
+        self.restake_earnings.ok_or(ApiError::InternalError(
+            "Delegator should have a boolean in the `restake_earnings` variable.".to_string(),
+        ))
+    }
 }
 #[derive(SimpleObject)]
 struct CommissionRates {
