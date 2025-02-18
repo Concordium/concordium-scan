@@ -194,7 +194,7 @@ impl SchemaVersion {
     /// introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::PayDayLotteryPowers;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::FixDanglingDelegators;
+    const LATEST: SchemaVersion = SchemaVersion::FixStakedAmounts;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
