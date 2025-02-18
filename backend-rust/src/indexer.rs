@@ -1065,6 +1065,9 @@ SELECT * FROM UNNEST(
     }
 }
 
+/// Database operation for adding new row into the account statement table.
+/// This reads the current balance of the account and assumes the balance is
+/// already updated with the amount part of the statement.
 struct PreparedAccountStatement {
     account_address:  Arc<String>,
     amount:           i64,
@@ -1080,7 +1083,7 @@ impl PreparedAccountStatement {
     ) -> anyhow::Result<()> {
         sqlx::query!(
             "WITH account_info AS (
-            SELECT index AS account_index, amount + $3 AS current_balance
+            SELECT index AS account_index, amount AS current_balance
             FROM accounts
             WHERE address = $1
         )
@@ -3663,6 +3666,8 @@ impl PreparedUpdateAccountBalance {
         )
         .execute(tx.as_mut())
         .await?;
+        // Add the account statement, note that this operation assumes the account
+        // balance is already updated.
         self.account_statement.save(tx, transaction_index).await?;
         Ok(())
     }

@@ -15,8 +15,10 @@ Database schema version: 5
 - Add database migration fixing:
   - Invalid bakers caused by `DelegationEvent::RemoveBaker` event not being handled by the indexer until now.
   - Invalid delegator state, caused by validator/baker getting removed or changing status to 'ClosedForAll' without moving delegators to the passive pool.
+  - Invalid account balance for account statements, where the change in amount got accounted twice.
 - Fixed indexer missing handling of moving delegators as pool got removed or closed.
 - Fixed indexer missing handling of event of baker switching directly to delegation.
+- Fixed indexer account twice for the changed amount in account statements.
 
 ## [0.1.25] - 2025-02-14
 
