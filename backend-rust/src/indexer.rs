@@ -51,8 +51,7 @@ use prometheus_client::{
     registry::Registry,
 };
 use sqlx::PgPool;
-use std::{convert::TryInto, sync::Arc};
-use std::str::FromStr;
+use std::{convert::TryInto, str::FromStr, sync::Arc};
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
@@ -3550,7 +3549,10 @@ impl PreparedScheduledReleases {
             block_height,
             AccountStatementEntryType::TransferOut,
         )?;
-        let account_address = concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(target_address.as_str())?;
+        let account_address =
+            concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(
+                target_address.as_str(),
+            )?;
         Ok(Self {
             canonical_address: account_address.get_canonical_address().0.as_slice().to_vec(),
             release_times,
