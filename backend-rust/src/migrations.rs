@@ -2,7 +2,6 @@ use anyhow::Context;
 use concordium_rust_sdk::v2;
 use sqlx::{Executor, PgPool};
 use std::cmp::Ordering;
-use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 use tracing::info;
 
