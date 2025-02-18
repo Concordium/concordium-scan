@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM (\n                SELECT\n                    index ,\n                    address as account_address,\n                    delegated_restake_earnings as restake_earnings,\n                    delegated_stake as staked_amount\n                FROM accounts\n                WHERE delegated_target_baker_id = $5 AND\n                    accounts.index > $2 AND accounts.index < $1\n                ORDER BY\n                    (CASE WHEN $4 THEN accounts.index END) ASC,\n                    (CASE WHEN NOT $4 THEN accounts.index END) DESC\n                LIMIT $3\n            ) AS delegators\n            ORDER BY delegators.index DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "account_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "restake_earnings",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "staked_amount",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Bool",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "a70f2b0f7e2af12d4554d9e3e946297237f1870427e1df78ed610d62bc324436"
+}
