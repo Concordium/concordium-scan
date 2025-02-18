@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 Database schema version: 6
 
+### Added
+
+- Add query `BakerPool::delegators` which returns the delegators of a baker pool.
+
 ### Fixed
 
 - Add database migration 6 fixing invalid baker and delegator stake due to missing handling of restake earnings.
@@ -26,7 +30,7 @@ Database schema version: 4
 ### Added
 
 - Database migration to add the lottery power of each baker pool during the last payday period.
-- Add Query `Query::Baker::state::pool::lotteryPower` which returns the `lotteryPower` of the baker pool during the last payday period.
+- Add query `BakerPool::lotteryPower` which returns the `lotteryPower` of the baker pool during the last payday period.
 - Implement `SearchResult::transactions` and add relevant index to database
 
 ### Changed
@@ -37,7 +41,7 @@ Database schema version: 4
 
 ### Fixed
 
-- Fix metrics where interval is being shown in greater units than strictly seconds
+- Fix metrics where interval is being shown in greater units than strictly seconds.
 
 ## [0.1.23] - 2025-02-11
 

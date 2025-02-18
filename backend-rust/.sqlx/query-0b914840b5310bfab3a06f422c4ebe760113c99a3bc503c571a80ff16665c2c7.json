@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT MAX(index) FROM accounts WHERE delegated_target_baker_id =\n    $1",
+  "query": "SELECT MAX(index) FROM accounts WHERE delegated_target_baker_id = $1",
   "describe": {
     "columns": [
       {
@@ -18,5 +18,5 @@
       null
     ]
   },
-  "hash": "65f464330ccb36415f37e42c43a20bcc966424c54cbb582fd0d69ff7256824dd"
+  "hash": "0b914840b5310bfab3a06f422c4ebe760113c99a3bc503c571a80ff16665c2c7"
 }

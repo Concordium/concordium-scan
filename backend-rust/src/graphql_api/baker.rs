@@ -102,11 +102,11 @@ impl Baker {
                 transaction_commission,
                 baking_commission,
                 finalization_commission,
-                payday_transaction_commission,
-                payday_baking_commission,
-                payday_finalization_commission,
-                payday_lottery_power as lottery_power
-            FROM bakers 
+                payday_transaction_commission as "payday_transaction_commission?",
+                payday_baking_commission as "payday_baking_commission?",
+                payday_finalization_commission as "payday_finalization_commission?",
+                payday_lottery_power as "lottery_power?"
+            FROM bakers
                 LEFT JOIN bakers_payday_commission_rates ON bakers_payday_commission_rates.id = bakers.id
                 LEFT JOIN bakers_payday_lottery_powers ON bakers_payday_lottery_powers.id = bakers.id
             WHERE bakers.id = $1
@@ -518,12 +518,10 @@ impl<'a> BakerPool<'a> {
         &self,
         ctx: &Context<'_>,
         #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that
-    come after the specified cursor.")]
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the
-    specified cursor.")]
+        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, DelegationSummary>> {
         let pool = get_pool(ctx)?;
@@ -539,7 +537,7 @@ impl<'a> BakerPool<'a> {
             DelegationSummary,
             "SELECT * FROM (
                 SELECT
-                    index ,
+                    index,
                     address as account_address,
                     delegated_restake_earnings as restake_earnings,
                     delegated_stake as staked_amount
@@ -565,8 +563,7 @@ impl<'a> BakerPool<'a> {
         }
         if let Some(page_max_index) = connection.edges.first() {
             if let Some(max_index) = sqlx::query_scalar!(
-                "SELECT MAX(index) FROM accounts WHERE delegated_target_baker_id =
-    $1",
+                "SELECT MAX(index) FROM accounts WHERE delegated_target_baker_id = $1",
                 self.id
             )
             .fetch_one(pool)
@@ -582,8 +579,6 @@ impl<'a> BakerPool<'a> {
     }
 }
 
-// #[derive(SimpleObject)]
-// #[graphql(complex)]
 struct DelegationSummary {
     index:            i64,
     account_address:  AccountAddress,
