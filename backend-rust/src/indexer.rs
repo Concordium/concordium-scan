@@ -797,16 +797,18 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
         let info = client.get_account_info(&account.into(), genesis_height).await?.response;
         let index = i64::try_from(info.account_index.index)?;
         let account_address = account.to_string();
+        let canonical_address = account.get_canonical_address();
         let amount = i64::try_from(info.account_amount.micro_ccd)?;
 
         // Note that we override the usual default num_txs = 1 here
         // because the genesis accounts do not have a creation transaction.
         sqlx::query!(
-            "INSERT INTO accounts (index, address, amount, num_txs)
-            VALUES ($1, $2, $3, 0)",
+            "INSERT INTO accounts (index, address, amount, canonical_address, num_txs)
+            VALUES ($1, $2, $3, $4, 0)",
             index,
             account_address,
             amount,
+            canonical_address.0.to_vec()
         )
         .execute(&mut *tx)
         .await?;
@@ -1692,6 +1694,7 @@ impl PreparedEvent {
 struct PreparedAccountCreation {
     /// The base58check representation of the canonical account address.
     account_address: String,
+    canonical_address: Vec<u8>
 }
 
 impl PreparedAccountCreation {
@@ -1700,6 +1703,7 @@ impl PreparedAccountCreation {
     ) -> anyhow::Result<Self> {
         Ok(Self {
             account_address: details.address.to_string(),
+            canonical_address: details.address.get_canonical_address().0.as_slice().to_vec()
         })
     }
 
@@ -1710,11 +1714,12 @@ impl PreparedAccountCreation {
     ) -> anyhow::Result<()> {
         let account_index = sqlx::query_scalar!(
             "INSERT INTO
-                accounts (index, address, transaction_index)
+                accounts (index, address, canonical_address, transaction_index)
             VALUES
-                ((SELECT COALESCE(MAX(index) + 1, 0) FROM accounts), $1, $2)
+                ((SELECT COALESCE(MAX(index) + 1, 0) FROM accounts), $1, $2, $3)
             RETURNING index",
             self.account_address,
+            self.canonical_address,
             transaction_index,
         )
         .fetch_one(tx.as_mut())
