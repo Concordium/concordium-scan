@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 Database schema version: 6
 
+### Changed
+
+- Store canonical address on the account
+
 ### Fixed
 
 - Add database migration 6 fixing invalid baker and delegator stake due to missing handling of restake earnings.

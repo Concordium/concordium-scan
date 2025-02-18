@@ -1,15 +1,13 @@
-//! Migration fixing corrupt data in:
-//! - `bakers` table due to `DelegationEvent::RemoveBaker` event not being
-//!   handled.
-//! - delegators in `accounts` table due to delegators not being moved to the
-//!   passive pool as their target validator pool got closed or removed (found
-//!   in the matching `.sql` file).
+//! Deriving account canonical address from the account address and storing it
+//! in the database
 
 use super::{SchemaVersion, Transaction};
 use sqlx::Executor;
 use std::str::FromStr;
 use tokio_stream::StreamExt;
 
+/// Run database migration and returns the new database schema version when
+/// successful.
 pub async fn run(tx: &mut Transaction) -> anyhow::Result<SchemaVersion> {
     tx.as_mut()
         .execute(sqlx::raw_sql(include_str!(
