@@ -1693,8 +1693,8 @@ impl PreparedEvent {
 /// Prepared database insertion of a new account.
 struct PreparedAccountCreation {
     /// The base58check representation of the canonical account address.
-    account_address: String,
-    canonical_address: Vec<u8>
+    account_address:   String,
+    canonical_address: Vec<u8>,
 }
 
 impl PreparedAccountCreation {
@@ -1702,8 +1702,8 @@ impl PreparedAccountCreation {
         details: &concordium_rust_sdk::types::AccountCreationDetails,
     ) -> anyhow::Result<Self> {
         Ok(Self {
-            account_address: details.address.to_string(),
-            canonical_address: details.address.get_canonical_address().0.as_slice().to_vec()
+            account_address:   details.address.to_string(),
+            canonical_address: details.address.get_canonical_address().0.as_slice().to_vec(),
         })
     }
 
