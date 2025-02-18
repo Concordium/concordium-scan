@@ -52,6 +52,9 @@ use prometheus_client::{
 };
 use sqlx::PgPool;
 use std::{convert::TryInto, sync::Arc};
+use std::str::FromStr;
+use concordium_rust_sdk::base::contracts_common::CanonicalAccountAddress;
+use concordium_rust_sdk::smart_contracts::common::schema::Type::AccountAddress;
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
@@ -3512,7 +3515,7 @@ async fn process_cis2_token_event(
 }
 
 struct PreparedScheduledReleases {
-    account_address: Arc<String>,
+    canonical_address: Vec<u8>,
     release_times: Vec<DateTime<Utc>>,
     amounts: Vec<i64>,
     target_account_balance_update: PreparedUpdateAccountBalance,
@@ -3549,8 +3552,9 @@ impl PreparedScheduledReleases {
             block_height,
             AccountStatementEntryType::TransferOut,
         )?;
+        let account_address = concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(target_address.as_str())?;
         Ok(Self {
-            account_address: target_address,
+            canonical_address: account_address.get_canonical_address().0.as_slice().to_vec(),
             release_times,
             amounts,
             target_account_balance_update,
@@ -3572,12 +3576,12 @@ impl PreparedScheduledReleases {
             )
             SELECT
                 $1,
-                (SELECT index FROM accounts WHERE address = $2),
+                (SELECT index FROM accounts WHERE canonical_address = $2),
                 UNNEST($3::TIMESTAMPTZ[]),
                 UNNEST($4::BIGINT[])
             ",
             transaction_index,
-            self.account_address.as_ref(),
+            &self.canonical_address,
             &self.release_times,
             &self.amounts
         )
