@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE accounts\n            SET num_txs = num_txs + 1\n            WHERE canonical_address = ANY($1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "ByteaArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2a1065f9cc46538088b5de2290ecb5458407f03fa578777617a12857628005ef"
+}

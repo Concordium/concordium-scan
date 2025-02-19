@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO affected_accounts (transaction_index, account_index)\n            SELECT $1, index FROM accounts WHERE canonical_address = ANY($2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "ByteaArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5a7182d1f0154ea9dbd75fb512dc7b1016c500985992f7c0460c9401dfcf3c14"
+}
