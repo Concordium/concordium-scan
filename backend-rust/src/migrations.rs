@@ -195,7 +195,7 @@ impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking database schema versions have been
     /// introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::FixDanglingDelegators;
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::PayDayLotteryPowers;
     /// The latest known version of the schema.
     const LATEST: SchemaVersion = SchemaVersion::AccountBaseAddress;
 
@@ -256,8 +256,7 @@ impl SchemaVersion {
                 SchemaVersion::PayDayLotteryPowers
             }
             SchemaVersion::PayDayLotteryPowers => {
-                m0005_fix_dangling_delegators::run(&mut tx, endpoints).await?;
-                SchemaVersion::FixDanglingDelegators
+                m0005_fix_dangling_delegators::run(&mut tx, endpoints).await?
             }
             SchemaVersion::FixDanglingDelegators => {
                 m0006_fix_stake::run(&mut tx, endpoints).await?
