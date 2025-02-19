@@ -1078,10 +1078,10 @@ SELECT * FROM UNNEST(
 /// This reads the current balance of the account and assumes the balance is
 /// already updated with the amount part of the statement.
 struct PreparedAccountStatement {
-    account_address:  Arc<String>,
-    amount:           i64,
-    block_height:     i64,
-    transaction_type: AccountStatementEntryType,
+    canonical_address: CanonicalAccountAddress,
+    amount:            i64,
+    block_height:      i64,
+    transaction_type:  AccountStatementEntryType,
 }
 
 impl PreparedAccountStatement {
@@ -1094,7 +1094,7 @@ impl PreparedAccountStatement {
             "WITH account_info AS (
             SELECT index AS account_index, amount AS current_balance
             FROM accounts
-            WHERE address = $1
+            WHERE canonical_address = $1
         )
         INSERT INTO account_statements (
             account_index,
@@ -1112,7 +1112,7 @@ impl PreparedAccountStatement {
             $5,
             current_balance
         FROM account_info",
-            self.account_address.as_ref(),
+            self.canonical_address.0.as_slice(),
             self.transaction_type as AccountStatementEntryType,
             self.amount,
             self.block_height,
@@ -1217,8 +1217,11 @@ impl PreparedBlockItem {
                 };
             (None, Some(reject))
         };
-        let affected_accounts =
-            item_summary.affected_addresses().into_iter().map(|a| a.get_canonical_address()).collect();
+        let affected_accounts = item_summary
+            .affected_addresses()
+            .into_iter()
+            .map(|a| a.get_canonical_address())
+            .collect();
         let prepared_event =
             PreparedBlockItemEvent::prepare(node_client, data, item_summary, item).await?;
 
@@ -1295,7 +1298,8 @@ impl PreparedBlockItem {
         )
         .fetch_one(tx.as_mut())
         .await?;
-        let affected_accounts = self.affected_accounts.iter().map(|acc| acc.0.as_slice().to_vec()).collect::<Vec<Vec<u8>>>();
+        let affected_accounts =
+            self.affected_accounts.iter().map(|acc| acc.0.to_vec()).collect::<Vec<Vec<u8>>>();
         // Note that this does not include account creation. We handle that when saving
         // the account creation event.
         sqlx::query!(
@@ -3360,7 +3364,7 @@ async fn process_cis2_token_event(
                         AND tokens.token_address = $2
                     ON CONFLICT (token_index, account_index)
                     DO UPDATE SET balance = account_tokens.balance + EXCLUDED.balance",
-                    owner.to_string(),
+                    &owner.to_string(),
                     token_address,
                     tokens_minted,
                 )
@@ -3802,7 +3806,7 @@ impl PreparedUpdateEncryptedBalance {
 /// Represents change in the balance of some account.
 struct PreparedUpdateAccountBalance {
     /// Address of the account.
-    account_address:   Arc<String>,
+    canonical_address: CanonicalAccountAddress,
     /// Difference in the balance.
     change:            i64,
     /// Tracking the account statement causing the change in balance.
@@ -3816,14 +3820,17 @@ impl PreparedUpdateAccountBalance {
         block_height: AbsoluteBlockHeight,
         transaction_type: AccountStatementEntryType,
     ) -> anyhow::Result<Self> {
+        let canonical_address =
+            concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(sender.as_str())?
+                .get_canonical_address();
         let account_statement = PreparedAccountStatement {
             block_height: block_height.height.try_into()?,
             amount,
-            account_address: sender.clone(),
+            canonical_address,
             transaction_type,
         };
         Ok(Self {
-            account_address: sender,
+            canonical_address,
             change: amount,
             account_statement,
         })
@@ -3839,9 +3846,9 @@ impl PreparedUpdateAccountBalance {
             return Ok(());
         }
         sqlx::query!(
-            "UPDATE accounts SET amount = amount + $1 WHERE address = $2",
+            "UPDATE accounts SET amount = amount + $1 WHERE canonical_address = $2",
             self.change,
-            self.account_address.as_ref(),
+            self.canonical_address.0.as_slice(),
         )
         .execute(tx.as_mut())
         .await?
