@@ -272,10 +272,10 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::AddAccumulatedPoolState
             }
-            SchemaVersion::AccountBaseAddress => {
-                m0008_canonical_address_and_transaction_search_index::run(&mut tx)
+            SchemaVersion::AddAccumulatedPoolState => {
+                m0008_canonical_address_and_transaction_search_index::run(&mut tx).await?
             }
-            SchemaVersion::AddAccumulatedPoolState => unimplemented!(
+            SchemaVersion::AccountBaseAddress => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
