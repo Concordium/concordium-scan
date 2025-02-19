@@ -1695,7 +1695,7 @@ impl PreparedEvent {
 struct PreparedAccountCreation {
     /// The base58check representation of the canonical account address.
     account_address:   String,
-    canonical_address: Vec<u8>,
+    canonical_address: CanonicalAccountAddress,
 }
 
 impl PreparedAccountCreation {
@@ -1704,7 +1704,7 @@ impl PreparedAccountCreation {
     ) -> anyhow::Result<Self> {
         Ok(Self {
             account_address:   details.address.to_string(),
-            canonical_address: details.address.get_canonical_address().0.as_slice().to_vec(),
+            canonical_address: details.address.get_canonical_address(),
         })
     }
 
@@ -1720,7 +1720,7 @@ impl PreparedAccountCreation {
                 ((SELECT COALESCE(MAX(index) + 1, 0) FROM accounts), $1, $2, $3)
             RETURNING index",
             self.account_address,
-            self.canonical_address,
+            self.canonical_address.0.as_slice(),
             transaction_index,
         )
         .fetch_one(tx.as_mut())
