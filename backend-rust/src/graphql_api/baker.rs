@@ -3,6 +3,8 @@ use super::{
     ApiResult, ConnectionQuery,
 };
 use crate::{
+    address::AccountAddress,
+    connection::DescendingI64,
     scalar_types::{Amount, BakerId, DateTime, Decimal, MetadataUrl},
     transaction_event::{baker::BakerPoolOpenStatus, Event},
     transaction_reject::TransactionRejectReason,
@@ -100,11 +102,11 @@ impl Baker {
                 transaction_commission,
                 baking_commission,
                 finalization_commission,
-                payday_transaction_commission,
-                payday_baking_commission,
-                payday_finalization_commission,
-                payday_lottery_power as lottery_power
-            FROM bakers 
+                payday_transaction_commission as "payday_transaction_commission?",
+                payday_baking_commission as "payday_baking_commission?",
+                payday_finalization_commission as "payday_finalization_commission?",
+                payday_lottery_power as "lottery_power?"
+            FROM bakers
                 LEFT JOIN bakers_payday_commission_rates ON bakers_payday_commission_rates.id = bakers.id
                 LEFT JOIN bakers_payday_lottery_powers ON bakers_payday_lottery_powers.id = bakers.id
             WHERE bakers.id = $1
@@ -205,6 +207,7 @@ impl Baker {
             staked_amount:    Amount::try_from(self.staked)?,
             restake_earnings: self.restake_earnings,
             pool:             BakerPool {
+                id: self.id.0,
                 open_status: self.open_status,
                 commission_rates: CommissionRates {
                     transaction_commission,
@@ -421,18 +424,18 @@ enum BakerSort {
     BlockCommissionsDesc,
 }
 
-#[derive(SimpleObject)]
 struct BakerPool<'a> {
+    id: i64,
     /// Total stake of the baker pool as a percentage of all CCDs in existence.
     /// Includes both baker stake and delegated stake.
-    total_stake_percentage:  Decimal,
+    total_stake_percentage: Decimal,
     /// The total amount staked in this baker pool. Includes both baker stake
     /// and delegated stake.
-    total_stake:             Amount,
+    total_stake: Amount,
     /// The total amount staked by delegators to this baker pool.
-    delegated_stake:         Amount,
+    delegated_stake: Amount,
     /// The number of delegators that delegate to this baker pool.
-    delegator_count:         i64,
+    delegator_count: i64,
     /// The `commission_rates` represent the current commission settings of a
     /// baker pool, as configured by the baker account through
     /// `bakerConfiguration` transactions. These values are updated
@@ -452,7 +455,7 @@ struct BakerPool<'a> {
     ///   `BakerEvent::Removed`), `commission_rates` are immediately cleared
     ///   from the bakers table upon detecting the `BakerEvent::Removed`,
     ///   whereas `payday_commission_rates` persist until the next payday.
-    commission_rates:        CommissionRates,
+    commission_rates: CommissionRates,
     /// The `payday_commission_rates` represent the commission settings at the
     /// last payday block. These values are retrieved from the
     /// `get_bakers_reward_period(BlockIdentifier::AbsoluteHeight(payday_block_height))`  
@@ -472,7 +475,7 @@ struct BakerPool<'a> {
     payday_commission_rates: Option<CommissionRates>,
     /// The lottery power of the baker pool during the last payday period
     /// captured from the `get_election_info` node endpoint.`
-    lottery_power:           Decimal,
+    lottery_power: Decimal,
     // /// Ranking of the baker pool by total staked amount. Value may be null for
     // /// brand new bakers where statistics have not been calculated yet. This
     // /// should be rare and only a temporary condition.
@@ -480,19 +483,127 @@ struct BakerPool<'a> {
     // /// The maximum amount that may be delegated to the pool, accounting for
     // /// leverage and stake limits.
     // delegated_stake_cap:     Amount,
-    open_status:             Option<BakerPoolOpenStatus>,
-    metadata_url:            Option<&'a str>,
+    open_status: Option<BakerPoolOpenStatus>,
+    metadata_url: Option<&'a str>,
     // TODO: apy(period: ApyPeriod!): PoolApy!
-    // TODO: delegators("Returns the first _n_ elements from the list." first: Int "Returns the
-    // elements in the list that come after the specified cursor." after: String "Returns the last
-    // _n_ elements from the list." last: Int "Returns the elements in the list that come before
-    // the specified cursor." before: String): DelegatorsConnection
     // TODO: poolRewards("Returns the first _n_ elements from the list." first: Int "Returns the
     // elements in the list that come after the specified cursor." after: String "Returns the last
     // _n_ elements from the list." last: Int "Returns the elements in the list that come before
     // the specified cursor." before: String): PaydayPoolRewardConnection
 }
 
+#[Object]
+impl<'a> BakerPool<'a> {
+    async fn total_stake_percentage(&self) -> &Decimal { &self.total_stake_percentage }
+
+    async fn total_stake(&self) -> Amount { self.total_stake }
+
+    async fn delegated_stake(&self) -> Amount { self.delegated_stake }
+
+    async fn delegator_count(&self) -> i64 { self.delegator_count }
+
+    async fn commission_rates(&self) -> &CommissionRates { &self.commission_rates }
+
+    async fn payday_commission_rates(&self) -> &Option<CommissionRates> {
+        &self.payday_commission_rates
+    }
+
+    async fn lottery_power(&self) -> &Decimal { &self.lottery_power }
+
+    async fn open_status(&self) -> Option<BakerPoolOpenStatus> { self.open_status }
+
+    async fn metadata_url(&self) -> Option<&'a str> { self.metadata_url }
+
+    async fn delegators(
+        &self,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        before: Option<String>,
+    ) -> ApiResult<connection::Connection<String, DelegationSummary>> {
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+        let query = ConnectionQuery::<DescendingI64>::new(
+            first,
+            after,
+            last,
+            before,
+            config.delegators_connection_limit,
+        )?;
+        let mut row_stream = sqlx::query_as!(
+            DelegationSummary,
+            "SELECT * FROM (
+                SELECT
+                    index,
+                    address as account_address,
+                    delegated_restake_earnings as restake_earnings,
+                    delegated_stake as staked_amount
+                FROM accounts
+                WHERE delegated_target_baker_id = $5 AND
+                    accounts.index > $2 AND accounts.index < $1
+                ORDER BY
+                    (CASE WHEN $4 THEN accounts.index END) ASC,
+                    (CASE WHEN NOT $4 THEN accounts.index END) DESC
+                LIMIT $3
+            ) AS delegators
+            ORDER BY delegators.index DESC",
+            i64::from(query.from),
+            i64::from(query.to),
+            query.limit,
+            query.is_last,
+            self.id
+        )
+        .fetch(pool);
+        let mut connection = connection::Connection::new(false, false);
+        while let Some(delegator) = row_stream.try_next().await? {
+            connection.edges.push(connection::Edge::new(delegator.index.to_string(), delegator));
+        }
+        if let Some(page_max_index) = connection.edges.first() {
+            if let Some(max_index) = sqlx::query_scalar!(
+                "SELECT MAX(index) FROM accounts WHERE delegated_target_baker_id = $1",
+                self.id
+            )
+            .fetch_one(pool)
+            .await?
+            {
+                connection.has_previous_page = max_index > page_max_index.node.index;
+            }
+        }
+        if let Some(edge) = connection.edges.last() {
+            connection.has_next_page = edge.node.index != 0;
+        }
+        Ok(connection)
+    }
+}
+
+struct DelegationSummary {
+    index:            i64,
+    account_address:  AccountAddress,
+    staked_amount:    i64,
+    restake_earnings: Option<bool>,
+}
+
+#[Object]
+impl DelegationSummary {
+    async fn account_address(&self) -> &AccountAddress { &self.account_address }
+
+    async fn staked_amount(&self) -> ApiResult<Amount> {
+        self.staked_amount.try_into().map_err(|_| {
+            ApiError::InternalError(
+                "Staked amount in database should be a valid UnsignedLong".to_string(),
+            )
+        })
+    }
+
+    async fn restake_earnings(&self) -> ApiResult<bool> {
+        self.restake_earnings.ok_or(ApiError::InternalError(
+            "Delegator should have a boolean in the `restake_earnings` variable.".to_string(),
+        ))
+    }
+}
 #[derive(SimpleObject)]
 struct CommissionRates {
     transaction_commission:  Option<Decimal>,
