@@ -40,9 +40,7 @@ pub async fn run(tx: &mut Transaction) -> anyhow::Result<SchemaVersion> {
     }
 
     tx.as_mut()
-        .execute(sqlx::raw_sql(include_str!(
-            "m0008-post-canonical-address-migration.sql"
-        )))
+        .execute(sqlx::raw_sql(include_str!("m0008-post-canonical-address-migration.sql")))
         .await?;
 
     Ok(SchemaVersion::AccountBaseAddress)

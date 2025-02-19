@@ -17,7 +17,7 @@ use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
     base::{
-        contracts_common::to_bytes,
+        contracts_common::{to_bytes, CanonicalAccountAddress},
         smart_contracts::WasmVersion,
         transactions::{BlockItem, EncodedPayload, Payload},
     },
@@ -52,7 +52,6 @@ use prometheus_client::{
 };
 use sqlx::PgPool;
 use std::{convert::TryInto, str::FromStr, sync::Arc};
-use concordium_rust_sdk::base::contracts_common::CanonicalAccountAddress;
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
