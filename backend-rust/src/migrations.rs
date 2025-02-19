@@ -9,7 +9,7 @@ type Transaction = sqlx::Transaction<'static, sqlx::Postgres>;
 
 mod m0005_fix_dangling_delegators;
 mod m0006_fix_stake;
-mod m0007_canonical_address_and_transaction_search_index;
+mod m0008_canonical_address_and_transaction_search_index;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.
@@ -188,14 +188,16 @@ pub enum SchemaVersion {
     FixDanglingDelegators,
     #[display("0006:Fix staked amounts")]
     FixStakedAmounts,
-    #[display("0007:AccountBaseAddress")]
+    #[display("0007:Accumulated pool state columns.")]
+    AddAccumulatedPoolState,
+    #[display("0008:AccountBaseAddress")]
     AccountBaseAddress,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking database schema versions have been
     /// introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::PayDayLotteryPowers;
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::AddAccumulatedPoolState;
     /// The latest known version of the schema.
     const LATEST: SchemaVersion = SchemaVersion::AccountBaseAddress;
 
@@ -219,6 +221,7 @@ impl SchemaVersion {
             SchemaVersion::PayDayLotteryPowers => false,
             SchemaVersion::FixDanglingDelegators => false,
             SchemaVersion::FixStakedAmounts => false,
+            SchemaVersion::AddAccumulatedPoolState => false,
             SchemaVersion::AccountBaseAddress => false,
         }
     }
@@ -262,9 +265,17 @@ impl SchemaVersion {
                 m0006_fix_stake::run(&mut tx, endpoints).await?
             }
             SchemaVersion::FixStakedAmounts => {
-                m0007_canonical_address_and_transaction_search_index::run(&mut tx).await?
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0007-cumulate-pool-info.sql"
+                    )))
+                    .await?;
+                SchemaVersion::AddAccumulatedPoolState
             }
-            SchemaVersion::AccountBaseAddress => unimplemented!(
+            SchemaVersion::AccountBaseAddress => {
+                m0008_canonical_address_and_transaction_search_index::run(&mut tx)
+            }
+            SchemaVersion::AddAccumulatedPoolState => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),

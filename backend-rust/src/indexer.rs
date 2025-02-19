@@ -57,6 +57,10 @@ use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
 
+mod ensure_affected_rows;
+
+use ensure_affected_rows::EnsureAffectedRows;
+
 /// Service traversing each block of the chain, indexing it into a database.
 ///
 /// The indexer purposefully performs insertions in a sequential manner, such
@@ -839,8 +843,9 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
             });
             sqlx::query!(
                 "INSERT INTO bakers (id, staked, restake_earnings, open_status, metadata_url, \
-                 transaction_commission, baking_commission, finalization_commission)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+                 transaction_commission, baking_commission, finalization_commission, \
+                 pool_total_staked, pool_delegator_count)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
                 index,
                 stake,
                 restake_earnings,
@@ -848,7 +853,9 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
                 metadata_url,
                 transaction_commission,
                 baking_commission,
-                finalization_commission
+                finalization_commission,
+                stake,
+                0
             )
             .execute(&mut *tx)
             .await?;
@@ -1113,7 +1120,8 @@ impl PreparedAccountStatement {
             transaction_index
         )
         .execute(tx.as_mut())
-        .await?;
+        .await?
+        .ensure_affected_one_row()?;
 
         Ok(())
     }
@@ -1297,7 +1305,8 @@ impl PreparedBlockItem {
             &self.affected_accounts,
         )
         .execute(tx.as_mut())
-        .await?;
+        .await?
+        .ensure_affected_rows(self.affected_accounts.len().try_into()?)?;
 
         // We also need to keep track of the number of transactions on the accounts
         // table.
@@ -1308,7 +1317,8 @@ impl PreparedBlockItem {
             &self.affected_accounts,
         )
         .execute(tx.as_mut())
-        .await?;
+        .await?
+        .ensure_affected_rows(self.affected_accounts.len().try_into()?)?;
 
         self.prepared_event.save(tx, tx_idx).await?;
         Ok(())
@@ -1852,13 +1862,27 @@ impl PreparedAccountDelegationEvent {
                 account_id,
                 staked,
             } => {
+                // Update total stake of the pool first.
                 sqlx::query!(
-                    r#"UPDATE accounts SET delegated_stake = $1 WHERE index = $2"#,
+                    "UPDATE bakers
+                     SET pool_total_staked = pool_total_staked + $1 - accounts.delegated_stake
+                     FROM accounts
+                     WHERE bakers.id = accounts.delegated_target_baker_id AND accounts.index = $2",
                     staked,
                     account_id
                 )
                 .execute(tx.as_mut())
-                .await?;
+                .await?
+                .ensure_affected_one_row()?;
+                // Then the stake of the delegator.
+                sqlx::query!(
+                    "UPDATE accounts SET delegated_stake = $1 WHERE index = $2",
+                    staked,
+                    account_id
+                )
+                .execute(tx.as_mut())
+                .await?
+                .ensure_affected_one_row()?;
             }
             PreparedAccountDelegationEvent::Added {
                 account_id,
@@ -1866,12 +1890,34 @@ impl PreparedAccountDelegationEvent {
             | PreparedAccountDelegationEvent::Removed {
                 account_id,
             } => {
+                // Update the total pool stake when removed.
+                // Note that `Added` event is accommodated by a `StakeIncrease` event and
+                // `SetDelegationTarget` event, meaning we don't have to handle pool state here.
+                if let PreparedAccountDelegationEvent::Removed {
+                    ..
+                } = self
+                {
+                    sqlx::query!(
+                        "UPDATE bakers
+                         SET pool_total_staked = pool_total_staked - accounts.delegated_stake,
+                             pool_delegator_count = pool_delegator_count - 1
+                         FROM accounts
+                         WHERE bakers.id = accounts.delegated_target_baker_id
+                             AND accounts.index = $1",
+                        account_id
+                    )
+                    .execute(tx.as_mut())
+                    .await?
+                    .ensure_affected_one_row()?;
+                }
                 sqlx::query!(
-                    r#"UPDATE accounts SET delegated_stake = 0, delegated_restake_earnings = false, delegated_target_baker_id = NULL WHERE index = $1"#,
+                    "UPDATE accounts SET delegated_stake = 0, delegated_restake_earnings = false, \
+                     delegated_target_baker_id = NULL WHERE index = $1",
                     account_id
                 )
                 .execute(tx.as_mut())
-                .await?;
+                .await?
+                .ensure_affected_one_row()?;
             }
 
             PreparedAccountDelegationEvent::SetRestakeEarnings {
@@ -1879,24 +1925,56 @@ impl PreparedAccountDelegationEvent {
                 restake_earnings,
             } => {
                 sqlx::query!(
-                    r#"UPDATE accounts SET delegated_restake_earnings = $1 WHERE index = $2"#,
+                    "UPDATE accounts SET delegated_restake_earnings = $1 WHERE index = $2",
                     *restake_earnings,
                     account_id
                 )
                 .execute(tx.as_mut())
-                .await?;
+                .await?
+                .ensure_affected_one_row()?;
             }
             PreparedAccountDelegationEvent::SetDelegationTarget {
                 account_id,
                 target_id,
             } => {
+                // Update total pool stake and delegator count for the old target (if old pool
+                // was the passive pool nothing happens).
                 sqlx::query!(
-                    r#"UPDATE accounts SET delegated_target_baker_id = $1 WHERE index = $2"#,
+                    "UPDATE bakers
+                     SET
+                         pool_total_staked = pool_total_staked - accounts.delegated_stake,
+                         pool_delegator_count = pool_delegator_count - 1
+                     FROM accounts
+                     WHERE bakers.id = accounts.delegated_target_baker_id AND accounts.index = $1",
+                    account_id
+                )
+                .execute(tx.as_mut())
+                .await?
+                .ensure_affected_rows_in_range(0..=1)?;
+                // Update total pool stake and delegator count for new target.
+                if let Some(target) = target_id {
+                    sqlx::query!(
+                        "UPDATE bakers
+                         SET pool_total_staked = pool_total_staked + accounts.delegated_stake,
+                             pool_delegator_count = pool_delegator_count + 1
+                         FROM accounts
+                         WHERE bakers.id = $2 AND accounts.index = $1",
+                        account_id,
+                        target
+                    )
+                    .execute(tx.as_mut())
+                    .await?
+                    .ensure_affected_one_row()?;
+                }
+                // Set the new target on the delegator.
+                sqlx::query!(
+                    "UPDATE accounts SET delegated_target_baker_id = $1 WHERE index = $2",
                     *target_id,
                     account_id
                 )
                 .execute(tx.as_mut())
-                .await?;
+                .await?
+                .ensure_affected_one_row()?;
             }
             PreparedAccountDelegationEvent::RemoveBaker(baker_removed) => {
                 baker_removed.save(tx).await?;
@@ -1945,7 +2023,10 @@ impl RemoveBaker {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
-        sqlx::query!("DELETE FROM bakers WHERE id=$1", self.baker_id,).execute(tx.as_mut()).await?;
+        sqlx::query!("DELETE FROM bakers WHERE id=$1", self.baker_id,)
+            .execute(tx.as_mut())
+            .await?
+            .ensure_affected_one_row()?;
         Ok(())
     }
 }
@@ -2169,10 +2250,13 @@ impl PreparedBakerEvent {
                 restake_earnings,
             } => {
                 sqlx::query!(
-                    "INSERT INTO bakers (id, staked, restake_earnings) VALUES ($1, $2, $3)",
+                    "INSERT INTO bakers (id, staked, restake_earnings, pool_total_staked, \
+                     pool_delegator_count) VALUES ($1, $2, $3, $4, $5)",
                     baker_id,
                     staked,
                     restake_earnings,
+                    staked,
+                    0
                 )
                 .execute(tx.as_mut())
                 .await?;
@@ -2184,17 +2268,33 @@ impl PreparedBakerEvent {
                 baker_id,
                 staked,
             } => {
-                sqlx::query!("UPDATE bakers SET staked = $2 WHERE id=$1", baker_id, staked,)
-                    .execute(tx.as_mut())
-                    .await?;
+                sqlx::query!(
+                    "UPDATE bakers
+                        SET pool_total_staked = pool_total_staked + $2 - staked,
+                            staked = $2
+                    WHERE id = $1",
+                    baker_id,
+                    staked,
+                )
+                .execute(tx.as_mut())
+                .await?
+                .ensure_affected_one_row()?;
             }
             PreparedBakerEvent::StakeDecrease {
                 baker_id,
                 staked,
             } => {
-                sqlx::query!("UPDATE bakers SET staked = $2 WHERE id=$1", baker_id, staked,)
-                    .execute(tx.as_mut())
-                    .await?;
+                sqlx::query!(
+                    "UPDATE bakers
+                        SET pool_total_staked = pool_total_staked + $2 - staked,
+                            staked = $2
+                    WHERE id = $1",
+                    baker_id,
+                    staked,
+                )
+                .execute(tx.as_mut())
+                .await?
+                .ensure_affected_one_row()?;
             }
             PreparedBakerEvent::SetRestakeEarnings {
                 baker_id,
@@ -2206,7 +2306,8 @@ impl PreparedBakerEvent {
                     restake_earnings,
                 )
                 .execute(tx.as_mut())
-                .await?;
+                .await?
+                .ensure_affected_one_row()?;
             }
             PreparedBakerEvent::SetOpenStatus {
                 baker_id,
@@ -2219,8 +2320,19 @@ impl PreparedBakerEvent {
                     *open_status as BakerPoolOpenStatus,
                 )
                 .execute(tx.as_mut())
-                .await?;
+                .await?
+                .ensure_affected_one_row()?;
                 if let Some(move_operation) = move_delegators {
+                    sqlx::query!(
+                        "UPDATE bakers
+                         SET pool_total_staked = bakers.staked,
+                             pool_delegator_count = 0
+                         WHERE id = $1",
+                        baker_id
+                    )
+                    .execute(tx.as_mut())
+                    .await?
+                    .ensure_affected_one_row()?;
                     move_operation.save(tx).await?;
                 }
             }
@@ -2234,7 +2346,8 @@ impl PreparedBakerEvent {
                     metadata_url
                 )
                 .execute(tx.as_mut())
-                .await?;
+                .await?
+                .ensure_affected_one_row()?;
             }
             PreparedBakerEvent::SetTransactionFeeCommission {
                 baker_id,
@@ -2246,7 +2359,8 @@ impl PreparedBakerEvent {
                     commission
                 )
                 .execute(tx.as_mut())
-                .await?;
+                .await?
+                .ensure_affected_one_row()?;
             }
             PreparedBakerEvent::SetBakingRewardCommission {
                 baker_id,
@@ -2258,7 +2372,8 @@ impl PreparedBakerEvent {
                     commission
                 )
                 .execute(tx.as_mut())
-                .await?;
+                .await?
+                .ensure_affected_one_row()?;
             }
             PreparedBakerEvent::SetFinalizationRewardCommission {
                 baker_id,
@@ -2270,17 +2385,35 @@ impl PreparedBakerEvent {
                     commission
                 )
                 .execute(tx.as_mut())
-                .await?;
+                .await?
+                .ensure_affected_one_row()?;
             }
             PreparedBakerEvent::RemoveDelegation {
                 delegator_id,
             } => {
+                // Update total pool stake of old pool (if not the passive pool).
                 sqlx::query!(
-                    r#"UPDATE accounts SET delegated_stake = 0, delegated_restake_earnings = false, delegated_target_baker_id = NULL WHERE index = $1"#,
+                    "UPDATE bakers
+                     SET pool_total_staked = pool_total_staked - accounts.delegated_stake
+                     FROM accounts
+                     WHERE bakers.id = accounts.delegated_target_baker_id AND accounts.index = $1",
                     delegator_id
                 )
                 .execute(tx.as_mut())
-                .await?;
+                .await?
+                .ensure_affected_rows_in_range(0..=1)?;
+                // Set account information to not be delegating.
+                sqlx::query!(
+                    "UPDATE accounts
+                        SET delegated_stake = 0,
+                            delegated_restake_earnings = false,
+                            delegated_target_baker_id = NULL
+                       WHERE index = $1",
+                    delegator_id
+                )
+                .execute(tx.as_mut())
+                .await?
+                .ensure_affected_one_row()?;
             }
             PreparedBakerEvent::Suspended {
                 baker_id,
@@ -2295,7 +2428,8 @@ impl PreparedBakerEvent {
                     transaction_index
                 )
                 .execute(tx.as_mut())
-                .await?;
+                .await?
+                .ensure_affected_one_row()?;
             }
             PreparedBakerEvent::Resumed {
                 baker_id,
@@ -2309,7 +2443,8 @@ impl PreparedBakerEvent {
                     baker_id
                 )
                 .execute(tx.as_mut())
-                .await?;
+                .await?
+                .ensure_affected_one_row()?;
             }
             PreparedBakerEvent::NoOperation => (),
         }
@@ -2935,7 +3070,8 @@ impl PreparedUpdateContractLastUpgrade {
             self.contract_sub_index
         )
         .execute(tx.as_mut())
-        .await?;
+        .await?
+        .ensure_affected_one_row()?;
         Ok(())
     }
 }
@@ -3067,7 +3203,8 @@ impl PreparedUpdateContractBalance {
             self.contract_sub_index
         )
         .execute(tx.as_mut())
-        .await?;
+        .await?
+        .ensure_affected_one_row()?;
         Ok(())
     }
 }
@@ -3309,7 +3446,8 @@ async fn process_cis2_token_event(
                 )
                 .execute(tx.as_mut())
                 .await
-                .context("Failed inserting or updating account balance from burn event")?;
+                .context("Failed inserting or updating account balance from burn event")?
+                .ensure_affected_one_row()?;
             }
 
             // Insert the token event into the table.
@@ -3333,7 +3471,8 @@ async fn process_cis2_token_event(
                 serde_json::to_value(cis2_burn_event)?,
             )
             .execute(tx.as_mut())
-            .await?;
+            .await?
+            .ensure_affected_one_row()?;
         }
 
         // - The `balance` values of the token are inserted/updated in the database here for the
@@ -3410,7 +3549,8 @@ async fn process_cis2_token_event(
                 )
                 .execute(tx.as_mut())
                 .await
-                .context("Failed inserting or updating account balance from transfer event (to)")?;
+                .context("Failed inserting or updating account balance from transfer event (to)")?
+                .ensure_affected_one_row()?;
             }
 
             // Insert the token event into the table.
@@ -3434,7 +3574,8 @@ async fn process_cis2_token_event(
                 serde_json::to_value(cis2_transfer_event)?,
             )
             .execute(tx.as_mut())
-            .await?;
+            .await?
+            .ensure_affected_one_row()?;
         }
 
         // - The `metadata_url` of a token is inserted/updated in the database here.
@@ -3505,7 +3646,8 @@ async fn process_cis2_token_event(
                 serde_json::to_value(cis2_token_metadata_event)?,
             )
             .execute(tx.as_mut())
-            .await?;
+            .await?
+            .ensure_affected_one_row()?;
         }
         _ => (),
     }
@@ -3587,7 +3729,8 @@ impl PreparedScheduledReleases {
             &self.amounts
         )
         .execute(tx.as_mut())
-        .await?;
+        .await?
+        .ensure_affected_rows(self.release_times.len().try_into()?)?;
         self.target_account_balance_update.save(tx, Some(transaction_index)).await?;
         self.source_account_balance_update.save(tx, Some(transaction_index)).await?;
         Ok(())
@@ -3675,7 +3818,8 @@ impl PreparedUpdateAccountBalance {
             self.account_address.as_ref(),
         )
         .execute(tx.as_mut())
-        .await?;
+        .await?
+        .ensure_affected_one_row()?;
         // Add the account statement, note that this operation assumes the account
         // balance is already updated.
         self.account_statement.save(tx, transaction_index).await?;
@@ -3859,7 +4003,8 @@ impl PreparedInsertBlockSpecialTransacionOutcomes {
             &self.outcomes
         )
         .execute(tx.as_mut())
-        .await?;
+        .await?
+        .ensure_affected_rows(self.outcomes.len().try_into()?)?;
         Ok(())
     }
 }
@@ -4094,28 +4239,45 @@ impl RestakeEarnings {
                             ELSE delegated_stake
                         END
                 WHERE address = $1
-                RETURNING index, delegated_restake_earnings",
+                RETURNING index, delegated_restake_earnings, delegated_target_baker_id",
             self.account_address.as_ref(),
             self.amount
         )
         .fetch_one(tx.as_mut())
         .await?;
-        // When delegated_restake_earnings is None the account is not delegating, so it
-        // might be baking.
-        if account_row.delegated_restake_earnings.is_none() {
+        if let Some(restake) = account_row.delegated_restake_earnings {
+            // Account is delegating.
+            if restake {
+                // Restake is enabled.
+                if let Some(pool) = account_row.delegated_target_baker_id {
+                    // delegating to a pool (and not the passive pool).
+                    sqlx::query!(
+                        "UPDATE bakers
+                             SET pool_total_staked = pool_total_staked + $2
+                         WHERE id = $1",
+                        pool,
+                        self.amount,
+                    )
+                    .execute(tx.as_mut())
+                    .await?
+                    .ensure_affected_one_row()?;
+                }
+            }
+        } else {
+            // When delegated_restake_earnings is None the account is not delegating, so it
+            // might be baking.
             sqlx::query!(
                 "UPDATE bakers
                     SET
-                        staked = CASE
-                                WHEN restake_earnings THEN staked + $2
-                                ELSE staked
-                            END
-                WHERE id = $1",
+                        staked = staked + $2,
+                        pool_total_staked = pool_total_staked + $2
+                WHERE id = $1 AND restake_earnings",
                 account_row.index,
                 self.amount
             )
             .execute(tx.as_mut())
-            .await?;
+            .await?
+            .ensure_affected_rows_in_range(0..=1)?;
         }
         Ok(())
     }
@@ -4153,7 +4315,8 @@ impl PreparedValidatorPrimedForSuspension {
             self.block_height
         )
         .execute(tx.as_mut())
-        .await?;
+        .await?
+        .ensure_affected_one_row()?;
         Ok(())
     }
 }
@@ -4283,7 +4446,8 @@ impl PreparedPayDayBlock {
             self.block_height
         )
         .execute(tx.as_mut())
-        .await?;
+        .await?
+        .ensure_affected_one_row()?;
         Ok(())
     }
 }
@@ -4443,7 +4607,8 @@ impl PreparedValidatorSuspension {
             self.block_height
         )
         .execute(tx.as_mut())
-        .await?;
+        .await?
+        .ensure_affected_one_row()?;
         Ok(())
     }
 }

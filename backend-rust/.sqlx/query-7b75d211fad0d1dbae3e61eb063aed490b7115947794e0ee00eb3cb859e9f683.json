@@ -1,0 +1,39 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT true\n                FROM bakers\n                WHERE\n                    (NOT $3 OR NOT $2 AND id                   < $1\n                            OR     $2 AND id                   > $1) AND\n                    (NOT $4 OR NOT $2 AND staked               < $1\n                            OR     $2 AND staked               > $1) AND\n                    (NOT $5 OR NOT $2 AND pool_total_staked    < $1\n                            OR     $2 AND pool_total_staked    > $1) AND\n                    (NOT $6 OR NOT $2 AND pool_delegator_count < $1\n                            OR     $2 AND pool_delegator_count > $1) AND\n                    -- filters\n                    ($7::pool_open_status IS NULL OR open_status = $7::pool_open_status)\n                ORDER BY\n                    (CASE WHEN $3 AND NOT $2 THEN id                   END) ASC,\n                    (CASE WHEN $3 AND     $2 THEN id                   END) DESC,\n                    (CASE WHEN $4 AND NOT $2 THEN staked               END) ASC,\n                    (CASE WHEN $4 AND     $2 THEN staked               END) DESC,\n                    (CASE WHEN $5 AND NOT $2 THEN pool_total_staked    END) ASC,\n                    (CASE WHEN $5 AND     $2 THEN pool_total_staked    END) DESC,\n                    (CASE WHEN $6 AND NOT $2 THEN pool_delegator_count END) ASC,\n                    (CASE WHEN $6 AND     $2 THEN pool_delegator_count END) DESC\n                LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "?column?",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        {
+          "Custom": {
+            "name": "pool_open_status",
+            "kind": {
+              "Enum": [
+                "OpenForAll",
+                "ClosedForNew",
+                "ClosedForAll"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "7b75d211fad0d1dbae3e61eb063aed490b7115947794e0ee00eb3cb859e9f683"
+}

@@ -129,7 +129,9 @@ pub struct BakerResumed {
     pub account_address: AccountAddress,
 }
 
-#[derive(Enum, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, sqlx::Type)]
+#[derive(
+    Debug, Enum, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, sqlx::Type,
+)]
 #[sqlx(type_name = "pool_open_status")] // only for PostgreSQL to match a type definition
 pub enum BakerPoolOpenStatus {
     OpenForAll,
