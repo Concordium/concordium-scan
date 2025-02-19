@@ -1118,7 +1118,8 @@ impl PreparedAccountStatement {
         )
         .execute(tx.as_mut())
         .await?
-        .ensure_affected_one_row()?;
+        .ensure_affected_one_row()
+        .context("Failed insert into account_statements")?;
 
         Ok(())
     }
@@ -1303,7 +1304,8 @@ impl PreparedBlockItem {
         )
         .execute(tx.as_mut())
         .await?
-        .ensure_affected_rows(self.affected_accounts.len().try_into()?)?;
+        .ensure_affected_rows(self.affected_accounts.len().try_into()?)
+        .context("Failed insert into affected_accounts")?;
 
         // We also need to keep track of the number of transactions on the accounts
         // table.
@@ -1315,7 +1317,8 @@ impl PreparedBlockItem {
         )
         .execute(tx.as_mut())
         .await?
-        .ensure_affected_rows(self.affected_accounts.len().try_into()?)?;
+        .ensure_affected_rows(self.affected_accounts.len().try_into()?)
+        .context("Failed incrementing num_txs for account")?;
 
         self.prepared_event.save(tx, tx_idx).await?;
         Ok(())
@@ -1856,7 +1859,7 @@ impl PreparedAccountDelegationEvent {
                 account_id,
                 staked,
             } => {
-                // Update total stake of the pool first.
+                // Update total stake of the pool first (if not the passive pool).
                 sqlx::query!(
                     "UPDATE bakers
                      SET pool_total_staked = pool_total_staked + $1 - accounts.delegated_stake
@@ -1867,7 +1870,8 @@ impl PreparedAccountDelegationEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()?;
+                .ensure_affected_rows_in_range(0..=1) // Targeting the passive pool would result in no affected rows.
+                .context("Failed update baker pool stake")?;
                 // Then the stake of the delegator.
                 sqlx::query!(
                     "UPDATE accounts SET delegated_stake = $1 WHERE index = $2",
@@ -1876,7 +1880,8 @@ impl PreparedAccountDelegationEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()?;
+                .ensure_affected_one_row()
+                .context("Failed update delegator stake")?;
             }
             PreparedAccountDelegationEvent::Added {
                 account_id,
@@ -1902,7 +1907,8 @@ impl PreparedAccountDelegationEvent {
                     )
                     .execute(tx.as_mut())
                     .await?
-                    .ensure_affected_one_row()?;
+                    .ensure_affected_rows_in_range(0..=1) // No row affected when target was the passive pool.
+                    .context("Failed updating pool state with removed delegator")?;
                 }
                 sqlx::query!(
                     "UPDATE accounts SET delegated_stake = 0, delegated_restake_earnings = false, \
@@ -1911,7 +1917,8 @@ impl PreparedAccountDelegationEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()?;
+                .ensure_affected_one_row()
+                .context("Failed updating delegator state to be removed")?;
             }
 
             PreparedAccountDelegationEvent::SetRestakeEarnings {
@@ -1925,7 +1932,8 @@ impl PreparedAccountDelegationEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()?;
+                .ensure_affected_one_row()
+                .context("Failed update restake earnings for delegator")?;
             }
             PreparedAccountDelegationEvent::SetDelegationTarget {
                 account_id,
@@ -1944,7 +1952,8 @@ impl PreparedAccountDelegationEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_rows_in_range(0..=1)?;
+                .ensure_affected_rows_in_range(0..=1) // Affected rows will be 0 for the passive pool
+                .context("Failed update pool stake removing delegator")?;
                 // Update total pool stake and delegator count for new target.
                 if let Some(target) = target_id {
                     sqlx::query!(
@@ -1958,7 +1967,8 @@ impl PreparedAccountDelegationEvent {
                     )
                     .execute(tx.as_mut())
                     .await?
-                    .ensure_affected_one_row()?;
+                    .ensure_affected_one_row()
+                    .context("Failed update pool stake adding delegator")?;
                 }
                 // Set the new target on the delegator.
                 sqlx::query!(
@@ -1968,7 +1978,8 @@ impl PreparedAccountDelegationEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()?;
+                .ensure_affected_one_row()
+                .context("Failed update delegator target")?;
             }
             PreparedAccountDelegationEvent::RemoveBaker(baker_removed) => {
                 baker_removed.save(tx).await?;
@@ -2020,7 +2031,8 @@ impl RemoveBaker {
         sqlx::query!("DELETE FROM bakers WHERE id=$1", self.baker_id,)
             .execute(tx.as_mut())
             .await?
-            .ensure_affected_one_row()?;
+            .ensure_affected_one_row()
+            .context("Failed removing validator")?;
         Ok(())
     }
 }
@@ -2272,7 +2284,8 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()?;
+                .ensure_affected_one_row()
+                .context("Failed increasing validator stake")?;
             }
             PreparedBakerEvent::StakeDecrease {
                 baker_id,
@@ -2288,7 +2301,8 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()?;
+                .ensure_affected_one_row()
+                .context("Failed decreasing validator stake")?;
             }
             PreparedBakerEvent::SetRestakeEarnings {
                 baker_id,
@@ -2301,7 +2315,8 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()?;
+                .ensure_affected_one_row()
+                .context("Failed updating validator restake earnings")?;
             }
             PreparedBakerEvent::SetOpenStatus {
                 baker_id,
@@ -2315,7 +2330,8 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()?;
+                .ensure_affected_one_row()
+                .context("Failed updating open_status of validator")?;
                 if let Some(move_operation) = move_delegators {
                     sqlx::query!(
                         "UPDATE bakers
@@ -2326,7 +2342,8 @@ impl PreparedBakerEvent {
                     )
                     .execute(tx.as_mut())
                     .await?
-                    .ensure_affected_one_row()?;
+                    .ensure_affected_one_row()
+                    .context("Failed updating pool stake when closing for all")?;
                     move_operation.save(tx).await?;
                 }
             }
@@ -2341,7 +2358,8 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()?;
+                .ensure_affected_one_row()
+                .context("Failed updating validator metadata url")?;
             }
             PreparedBakerEvent::SetTransactionFeeCommission {
                 baker_id,
@@ -2354,7 +2372,8 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()?;
+                .ensure_affected_one_row()
+                .context("Failed updating validator transaction fee commission")?;
             }
             PreparedBakerEvent::SetBakingRewardCommission {
                 baker_id,
@@ -2367,7 +2386,8 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()?;
+                .ensure_affected_one_row()
+                .context("Failed updating validator transaction fee commission")?;
             }
             PreparedBakerEvent::SetFinalizationRewardCommission {
                 baker_id,
@@ -2380,7 +2400,8 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()?;
+                .ensure_affected_one_row()
+                .context("Failed updating validator transaction fee commission")?;
             }
             PreparedBakerEvent::RemoveDelegation {
                 delegator_id,
@@ -2395,7 +2416,8 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_rows_in_range(0..=1)?;
+                .ensure_affected_rows_in_range(0..=1) // None affected when target was passive pool.
+                .context("Failed update pool state as delegator is removed")?;
                 // Set account information to not be delegating.
                 sqlx::query!(
                     "UPDATE accounts
@@ -2407,7 +2429,8 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()?;
+                .ensure_affected_one_row()
+                .context("Failed update account to remove delegation")?;
             }
             PreparedBakerEvent::Suspended {
                 baker_id,
@@ -2423,7 +2446,8 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()?;
+                .ensure_affected_one_row()
+                .context("Failed update validator state to self-suspended")?;
             }
             PreparedBakerEvent::Resumed {
                 baker_id,
@@ -2438,7 +2462,8 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()?;
+                .ensure_affected_one_row()
+                .context("Failed update validator state to resumed from suspension")?;
             }
             PreparedBakerEvent::NoOperation => (),
         }
@@ -3065,7 +3090,8 @@ impl PreparedUpdateContractLastUpgrade {
         )
         .execute(tx.as_mut())
         .await?
-        .ensure_affected_one_row()?;
+        .ensure_affected_one_row()
+        .context("Failed update contract with last upgrade transaction index")?;
         Ok(())
     }
 }
@@ -3198,7 +3224,8 @@ impl PreparedUpdateContractBalance {
         )
         .execute(tx.as_mut())
         .await?
-        .ensure_affected_one_row()?;
+        .ensure_affected_one_row()
+        .context("Failed update contract CCD balance")?;
         Ok(())
     }
 }
@@ -4267,6 +4294,7 @@ impl RestakeEarnings {
             )
             .execute(tx.as_mut())
             .await?
+            // An account might still earn rewards after stopping validation or delegation.
             .ensure_affected_rows_in_range(0..=1)?;
         }
         Ok(())
