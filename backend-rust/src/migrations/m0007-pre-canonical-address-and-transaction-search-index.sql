@@ -1,6 +1,5 @@
 -- Initial setup of canonical address with placeholder data
-ALTER TABLE accounts
-ADD COLUMN canonical_address BYTEA
+ALTER TABLE accounts ADD COLUMN canonical_address BYTEA NULL;
 
 -- Used to efficiently perform partial string matching on the hash column,
 -- allowing fast lookups when searching for transactions by their hash prefix using LIKE.
