@@ -1160,7 +1160,7 @@ struct PreparedBlockItem {
     reject:            Option<PreparedTransactionRejectReason>,
     /// All affected accounts for this transaction. Each entry is the `String`
     /// representation of an account address.
-    affected_accounts: Vec<String>,
+    affected_accounts: Vec<CanonicalAccountAddress>,
     /// Block item events prepared for inserting into the database.
     prepared_event:    PreparedBlockItemEvent,
 }
@@ -1217,7 +1217,7 @@ impl PreparedBlockItem {
             (None, Some(reject))
         };
         let affected_accounts =
-            item_summary.affected_addresses().into_iter().map(|a| a.to_string()).collect();
+            item_summary.affected_addresses().into_iter().map(|a| a.get_canonical_address()).collect();
         let prepared_event =
             PreparedBlockItemEvent::prepare(node_client, data, item_summary, item).await?;
 
@@ -1294,14 +1294,14 @@ impl PreparedBlockItem {
         )
         .fetch_one(tx.as_mut())
         .await?;
-
+        let affected_accounts = self.affected_accounts.iter().map(|acc| acc.0.as_slice().to_vec()).collect::<Vec<Vec<u8>>>();
         // Note that this does not include account creation. We handle that when saving
         // the account creation event.
         sqlx::query!(
             "INSERT INTO affected_accounts (transaction_index, account_index)
-            SELECT $1, index FROM accounts WHERE address = ANY($2)",
+            SELECT $1, index FROM accounts WHERE canonical_address = ANY($2)",
             tx_idx,
-            &self.affected_accounts,
+            &affected_accounts,
         )
         .execute(tx.as_mut())
         .await?
@@ -1312,8 +1312,8 @@ impl PreparedBlockItem {
         sqlx::query!(
             "UPDATE accounts
             SET num_txs = num_txs + 1
-            WHERE address = ANY($1)",
-            &self.affected_accounts,
+            WHERE canonical_address = ANY($1)",
+            &affected_accounts,
         )
         .execute(tx.as_mut())
         .await?
