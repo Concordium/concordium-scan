@@ -11,7 +11,7 @@ use tokio_stream::StreamExt;
 pub async fn run(tx: &mut Transaction) -> anyhow::Result<SchemaVersion> {
     tx.as_mut()
         .execute(sqlx::raw_sql(include_str!(
-            "m0007-canonical-address-and-transaction-search-index.sql"
+            "m0007-pre-canonical-address-and-transaction-search-index.sql"
         )))
         .await?;
 
@@ -38,6 +38,12 @@ pub async fn run(tx: &mut Transaction) -> anyhow::Result<SchemaVersion> {
     for query in update_queries {
         query.execute(tx.as_mut()).await?;
     }
+
+    tx.as_mut()
+        .execute(sqlx::raw_sql(include_str!(
+            "m0007-post-canonical-address-migration.sql"
+        )))
+        .await?;
 
     Ok(SchemaVersion::AccountBaseAddress)
 }

@@ -1,7 +1,6 @@
 -- Initial setup of canonical address with placeholder data
 ALTER TABLE accounts
-ADD COLUMN canonical_address BYTEA DEFAULT E'\\x00000000000000000000000000000000000000';
-CREATE INDEX accounts_base_address_idx ON accounts (canonical_address);
+ADD COLUMN canonical_address BYTEA
 
 -- Used to efficiently perform partial string matching on the hash column,
 -- allowing fast lookups when searching for transactions by their hash prefix using LIKE.
