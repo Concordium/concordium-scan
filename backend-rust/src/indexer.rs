@@ -3351,6 +3351,7 @@ async fn process_cis2_token_event(
             // incrementing the owner's balance by `tokens_minted`.
             // Note: CCDScan currently only tracks token balances of accounts (issue #357).
             if let Address::Account(owner) = owner {
+                let canonical_address = owner.get_canonical_address();
                 sqlx::query!(
                     "
                     INSERT INTO account_tokens (index, account_index, token_index, balance)
@@ -3360,11 +3361,11 @@ async fn process_cis2_token_event(
                         tokens.index,
                         $3
                     FROM accounts, tokens
-                    WHERE accounts.address = $1
+                    WHERE accounts.canonical_address = $1
                         AND tokens.token_address = $2
                     ON CONFLICT (token_index, account_index)
                     DO UPDATE SET balance = account_tokens.balance + EXCLUDED.balance",
-                    &owner.to_string(),
+                    canonical_address.0.as_slice(),
                     token_address,
                     tokens_minted,
                 )
@@ -3457,6 +3458,7 @@ async fn process_cis2_token_event(
             .context("Failed inserting or updating token from burn event")?;
 
             if let Address::Account(owner) = owner {
+                let canonical_address = owner.get_canonical_address();
                 sqlx::query!(
                     "
                     INSERT INTO account_tokens (index, account_index, token_index, balance)
@@ -3466,11 +3468,11 @@ async fn process_cis2_token_event(
                         tokens.index,
                         $3
                     FROM accounts, tokens
-                    WHERE accounts.address = $1
+                    WHERE accounts.canonical_address = $1
                         AND tokens.token_address = $2
                     ON CONFLICT (token_index, account_index)
                     DO UPDATE SET balance = account_tokens.balance + EXCLUDED.balance",
-                    owner.to_string(),
+                    canonical_address.0.as_slice(),
                     token_address.to_string(),
                     -tokens_burned
                 )
@@ -3531,6 +3533,7 @@ async fn process_cis2_token_event(
             // by decrementing the owner's balance by `tokens_transferred`.
             // Note: CCDScan currently only tracks token balances of accounts (issue #357).
             if let Address::Account(from) = from {
+                let canonical_address = from.get_canonical_address();
                 sqlx::query!(
                     "
                     INSERT INTO account_tokens (index, account_index, token_index, balance)
@@ -3540,11 +3543,11 @@ async fn process_cis2_token_event(
                         tokens.index,
                         $3
                     FROM accounts, tokens
-                    WHERE accounts.address = $1
+                    WHERE accounts.canonical_address = $1
                         AND tokens.token_address = $2
                     ON CONFLICT (token_index, account_index)
                     DO UPDATE SET balance = account_tokens.balance + EXCLUDED.balance",
-                    from.to_string(),
+                    canonical_address.0.as_slice(),
                     token_address,
                     -tokens_transferred.clone(),
                 )
@@ -3560,6 +3563,7 @@ async fn process_cis2_token_event(
             // incrementing the owner's balance by `tokens_transferred`.
             // Note: CCDScan currently only tracks token balances of accounts (issue #357).
             if let Address::Account(to) = to {
+                let canonical_address = to.get_canonical_address();
                 sqlx::query!(
                     "
                     INSERT INTO account_tokens (index, account_index, token_index, balance)
@@ -3569,11 +3573,11 @@ async fn process_cis2_token_event(
                         tokens.index,
                         $3
                     FROM accounts, tokens
-                    WHERE accounts.address = $1
+                    WHERE accounts.canonical_address = $1
                         AND tokens.token_address = $2
                     ON CONFLICT (token_index, account_index)
                         DO UPDATE SET balance = account_tokens.balance + EXCLUDED.balance",
-                    to.to_string(),
+                    canonical_address.0.as_slice(),
                     token_address,
                     tokens_transferred
                 )
