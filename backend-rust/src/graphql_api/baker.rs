@@ -1,6 +1,6 @@
 use super::{
-    account::Account, get_config, get_pool, todo_api, transaction::Transaction, ApiError,
-    ApiResult, ConnectionQuery,
+    account::Account, get_config, get_pool, transaction::Transaction, ApiError, ApiResult,
+    ConnectionQuery, OrderDir,
 };
 use crate::{
     address::AccountAddress,
@@ -41,16 +41,166 @@ impl QueryBaker {
     #[allow(clippy::too_many_arguments)]
     async fn bakers(
         &self,
-        #[graphql(default)] _sort: BakerSort,
-        _filter: BakerFilterInput,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<u64>,
+        ctx: &Context<'_>,
+        #[graphql(default)] sort: BakerSort,
+        filter: Option<BakerFilterInput>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        _after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<u64>,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        _before: Option<String>,
+        before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Baker>> {
-        todo_api!()
+        let config = get_config(ctx)?;
+        let pool = get_pool(ctx)?;
+        let query =
+            ConnectionQuery::<i64>::new(first, after, last, before, config.baker_connection_limit)?;
+
+        let sort_direction = OrderDir::from(sort);
+        let order_field = BakerOrderField::from(sort);
+
+        let open_status_filter = filter.and_then(|input| input.open_status_filter);
+        let _include_removed_filter =
+            filter.and_then(|input| input.include_removed).unwrap_or(false);
+
+        let mut row_stream = sqlx::query_as!(
+            Baker,
+            r#"SELECT * FROM (
+                SELECT
+                    bakers.id AS id,
+                    staked,
+                    restake_earnings,
+                    open_status as "open_status: _",
+                    metadata_url,
+                    transaction_commission,
+                    baking_commission,
+                    finalization_commission,
+                    payday_transaction_commission as "payday_transaction_commission?",
+                    payday_baking_commission as "payday_baking_commission?",
+                    payday_finalization_commission as "payday_finalization_commission?",
+                    payday_lottery_power as "lottery_power?",
+                    pool_total_staked,
+                    pool_delegator_count
+                FROM bakers
+                    LEFT JOIN bakers_payday_commission_rates
+                        ON bakers_payday_commission_rates.id = bakers.id
+                    LEFT JOIN bakers_payday_lottery_powers
+                        ON bakers_payday_lottery_powers.id = bakers.id
+                WHERE
+                    (NOT $6 OR bakers.id            > $1 AND bakers.id            < $2) AND
+                    (NOT $7 OR staked               > $1 AND staked               < $2) AND
+                    (NOT $8 OR pool_total_staked    > $1 AND pool_total_staked    < $2) AND
+                    (NOT $9 OR pool_delegator_count > $1 AND pool_delegator_count < $2) AND
+                    -- filters
+                    ($10::pool_open_status IS NULL OR open_status = $10::pool_open_status)
+                ORDER BY
+                    (CASE WHEN $6 AND     $3 THEN bakers.id            END) DESC,
+                    (CASE WHEN $6 AND NOT $3 THEN bakers.id            END) ASC,
+                    (CASE WHEN $7 AND     $3 THEN staked               END) DESC,
+                    (CASE WHEN $7 AND NOT $3 THEN staked               END) ASC,
+                    (CASE WHEN $8 AND     $3 THEN pool_total_staked    END) DESC,
+                    (CASE WHEN $8 AND NOT $3 THEN pool_total_staked    END) ASC,
+                    (CASE WHEN $9 AND     $3 THEN pool_delegator_count END) DESC,
+                    (CASE WHEN $9 AND NOT $3 THEN pool_delegator_count END) ASC
+                LIMIT $4
+            ) ORDER BY
+                (CASE WHEN $6 AND     $5 THEN id                   END) DESC,
+                (CASE WHEN $6 AND NOT $5 THEN id                   END) ASC,
+                (CASE WHEN $7 AND     $5 THEN staked               END) DESC,
+                (CASE WHEN $7 AND NOT $5 THEN staked               END) ASC,
+                (CASE WHEN $8 AND     $5 THEN pool_total_staked    END) DESC,
+                (CASE WHEN $8 AND NOT $5 THEN pool_total_staked    END) ASC,
+                (CASE WHEN $9 AND     $5 THEN pool_delegator_count END) DESC,
+                (CASE WHEN $9 AND NOT $5 THEN pool_delegator_count END) ASC"#,
+            query.from,                                                // $1
+            query.to,                                                  // $2
+            query.is_last != matches!(sort_direction, OrderDir::Desc), // $3
+            query.limit,                                               // $4
+            matches!(sort_direction, OrderDir::Desc),                  // $5
+            matches!(order_field, BakerOrderField::BakerId),           // $6
+            matches!(order_field, BakerOrderField::BakerStakedAmount), // $7
+            matches!(order_field, BakerOrderField::TotalStakedAmount), // $8
+            matches!(order_field, BakerOrderField::DelegatorCount),    // $9
+            open_status_filter as Option<BakerPoolOpenStatus>          // $10
+        )
+        .fetch(pool);
+        // TODO:
+        // matches!(order_field, BakerOrderField::BakerApy30Days), // $10
+        // matches!(order_field, BakerOrderField::DelegatorApy30Days), // $11
+        // matches!(order_field, BakerOrderField::BlockCommissions), // $12
+
+        let mut connection = connection::Connection::new(false, false);
+        connection.edges.reserve_exact(query.limit.try_into()?);
+        while let Some(row) = row_stream.try_next().await? {
+            let cursor = row.sort_field(order_field).to_string();
+            connection.edges.push(connection::Edge::new(cursor, row));
+        }
+        connection.has_previous_page = if let Some(first_item) = connection.edges.first() {
+            let first_item_sort_value = first_item.node.sort_field(order_field);
+            sqlx::query_scalar!(
+                "SELECT true
+                FROM bakers
+                WHERE
+                    (NOT $3 OR NOT $2 AND id                   < $1
+                            OR     $2 AND id                   > $1) AND
+                    (NOT $4 OR NOT $2 AND staked               < $1
+                            OR     $2 AND staked               > $1) AND
+                    (NOT $5 OR NOT $2 AND pool_total_staked    < $1
+                            OR     $2 AND pool_total_staked    > $1) AND
+                    (NOT $6 OR NOT $2 AND pool_delegator_count < $1
+                            OR     $2 AND pool_delegator_count > $1) AND
+                    -- filters
+                    ($7::pool_open_status IS NULL OR open_status = $7::pool_open_status)
+                LIMIT 1",
+                first_item_sort_value,                                     // $1
+                matches!(sort_direction, OrderDir::Desc),                  // $2
+                matches!(order_field, BakerOrderField::BakerId),           // $3
+                matches!(order_field, BakerOrderField::BakerStakedAmount), // $4
+                matches!(order_field, BakerOrderField::TotalStakedAmount), // $5
+                matches!(order_field, BakerOrderField::DelegatorCount),    // $6
+                open_status_filter as Option<BakerPoolOpenStatus>          // $7
+            )
+            .fetch_optional(pool)
+            .await?
+            .flatten()
+            .unwrap_or_default()
+        } else {
+            false
+        };
+        connection.has_next_page = if let Some(last_item) = connection.edges.last() {
+            let last_item_sort_value = last_item.node.sort_field(order_field);
+            sqlx::query_scalar!(
+                "SELECT true
+                FROM bakers
+                WHERE
+                    (NOT $3 OR NOT $2 AND id                   > $1
+                            OR     $2 AND id                   < $1) AND
+                    (NOT $4 OR NOT $2 AND staked               > $1
+                            OR     $2 AND staked               < $1) AND
+                    (NOT $5 OR NOT $2 AND pool_total_staked    > $1
+                            OR     $2 AND pool_total_staked    < $1) AND
+                    (NOT $6 OR NOT $2 AND pool_delegator_count > $1
+                            OR     $2 AND pool_delegator_count < $1) AND
+                    -- filters
+                    ($7::pool_open_status IS NULL OR open_status = $7::pool_open_status)
+                LIMIT 1",
+                last_item_sort_value,                                      // $1
+                matches!(sort_direction, OrderDir::Desc),                  // $2
+                matches!(order_field, BakerOrderField::BakerId),           // $3
+                matches!(order_field, BakerOrderField::BakerStakedAmount), // $4
+                matches!(order_field, BakerOrderField::TotalStakedAmount), // $5
+                matches!(order_field, BakerOrderField::DelegatorCount),    // $6
+                open_status_filter as Option<BakerPoolOpenStatus>          // $7
+            )
+            .fetch_optional(pool)
+            .await?
+            .flatten()
+            .unwrap_or_default()
+        } else {
+            false
+        };
+
+        Ok(connection)
     }
 }
 
@@ -87,6 +237,8 @@ pub struct Baker {
     payday_baking_commission: Option<i64>,
     payday_finalization_commission: Option<i64>,
     lottery_power: Option<BigDecimal>,
+    pool_total_staked: i64,
+    pool_delegator_count: i64,
 }
 impl Baker {
     pub async fn query_by_id(pool: &PgPool, baker_id: i64) -> ApiResult<Option<Self>> {
@@ -105,7 +257,9 @@ impl Baker {
                 payday_transaction_commission as "payday_transaction_commission?",
                 payday_baking_commission as "payday_baking_commission?",
                 payday_finalization_commission as "payday_finalization_commission?",
-                payday_lottery_power as "lottery_power?"
+                payday_lottery_power as "lottery_power?",
+                pool_total_staked,
+                pool_delegator_count
             FROM bakers
                 LEFT JOIN bakers_payday_commission_rates ON bakers_payday_commission_rates.id = bakers.id
                 LEFT JOIN bakers_payday_lottery_powers ON bakers_payday_lottery_powers.id = bakers.id
@@ -115,6 +269,18 @@ impl Baker {
         )
         .fetch_optional(pool)
         .await?)
+    }
+
+    fn sort_field(&self, order_field: BakerOrderField) -> i64 {
+        match order_field {
+            BakerOrderField::BakerId => self.id.into(),
+            BakerOrderField::BakerStakedAmount => self.staked,
+            BakerOrderField::TotalStakedAmount => self.pool_total_staked,
+            BakerOrderField::DelegatorCount => self.pool_delegator_count,
+            BakerOrderField::BakerApy30Days => todo!(),
+            BakerOrderField::DelegatorApy30days => todo!(),
+            BakerOrderField::BlockCommissions => todo!(),
+        }
     }
 }
 #[Object]
@@ -176,28 +342,9 @@ impl Baker {
                 .fetch_one(pool)
                 .await?;
 
-        let row = sqlx::query!(
-            "
-                SELECT
-                    COUNT(*) AS delegator_count,
-                    SUM(delegated_stake)::BIGINT AS delegated_stake
-                FROM accounts 
-                WHERE delegated_target_baker_id = $1
-            ",
-            self.id.0
-        )
-        .fetch_one(pool)
-        .await?;
-
-        let delegated_stake = row.delegated_stake.unwrap_or(0);
-
-        // The total amount staked in this baker pool includes the baker stake
-        // and the delegated stake.
-        let total_pool_stake = self.staked + delegated_stake;
-
-        // Division by 0 is not possible because `total_staked` is always a positive
-        // number.
-        let total_stake_percentage = (rust_decimal::Decimal::from(total_pool_stake)
+        // Division by 0 is not possible because `pool_total_staked` is always a
+        // positive number.
+        let total_stake_percentage = (rust_decimal::Decimal::from(self.pool_total_staked)
             * rust_decimal::Decimal::from(100))
         .checked_div(rust_decimal::Decimal::from(total_stake))
         .ok_or_else(|| ApiError::InternalError("Division by zero".to_string()))?
@@ -223,9 +370,9 @@ impl Baker {
                     .map_err(|e: anyhow::Error| ApiError::InternalError(e.to_string()))?,
                 metadata_url: self.metadata_url.as_deref(),
                 total_stake_percentage,
-                total_stake: total_pool_stake.try_into()?,
-                delegated_stake: delegated_stake.try_into()?,
-                delegator_count: row.delegator_count.unwrap_or(0),
+                total_stake: Amount::try_from(self.pool_total_staked)?,
+                delegated_stake: Amount::try_from(self.pool_total_staked - self.staked)?,
+                delegator_count: self.pool_delegator_count,
             },
             pending_change:   None, // This is not used starting from P7.
         }));
@@ -401,10 +548,10 @@ struct RemovedBakerState {
     removed_at: DateTime,
 }
 
-#[derive(InputObject)]
+#[derive(InputObject, Clone, Copy)]
 struct BakerFilterInput {
-    open_status_filter: BakerPoolOpenStatus,
-    include_removed:    bool,
+    open_status_filter: Option<BakerPoolOpenStatus>,
+    include_removed:    Option<bool>,
 }
 
 #[derive(Enum, Clone, Copy, PartialEq, Eq, Default)]
@@ -422,6 +569,55 @@ enum BakerSort {
     DelegatorApy30DaysDesc,
     BlockCommissionsAsc,
     BlockCommissionsDesc,
+}
+
+impl From<BakerSort> for OrderDir {
+    fn from(value: BakerSort) -> Self {
+        match value {
+            BakerSort::BakerIdAsc => OrderDir::Asc,
+            BakerSort::BakerIdDesc => OrderDir::Desc,
+            BakerSort::BakerStakedAmountAsc => OrderDir::Asc,
+            BakerSort::BakerStakedAmountDesc => OrderDir::Desc,
+            BakerSort::TotalStakedAmountAsc => OrderDir::Asc,
+            BakerSort::TotalStakedAmountDesc => OrderDir::Desc,
+            BakerSort::DelegatorCountAsc => OrderDir::Asc,
+            BakerSort::DelegatorCountDesc => OrderDir::Desc,
+            BakerSort::BakerApy30DaysDesc => OrderDir::Desc,
+            BakerSort::DelegatorApy30DaysDesc => OrderDir::Desc,
+            BakerSort::BlockCommissionsAsc => OrderDir::Asc,
+            BakerSort::BlockCommissionsDesc => OrderDir::Desc,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum BakerOrderField {
+    BakerId,
+    BakerStakedAmount,
+    TotalStakedAmount,
+    DelegatorCount,
+    BakerApy30Days,
+    DelegatorApy30days,
+    BlockCommissions,
+}
+
+impl From<BakerSort> for BakerOrderField {
+    fn from(value: BakerSort) -> Self {
+        match value {
+            BakerSort::BakerIdAsc => Self::BakerId,
+            BakerSort::BakerIdDesc => Self::BakerId,
+            BakerSort::BakerStakedAmountAsc => Self::BakerStakedAmount,
+            BakerSort::BakerStakedAmountDesc => Self::BakerStakedAmount,
+            BakerSort::TotalStakedAmountAsc => Self::TotalStakedAmount,
+            BakerSort::TotalStakedAmountDesc => Self::TotalStakedAmount,
+            BakerSort::DelegatorCountAsc => Self::DelegatorCount,
+            BakerSort::DelegatorCountDesc => Self::DelegatorCount,
+            BakerSort::BakerApy30DaysDesc => Self::BakerApy30Days,
+            BakerSort::DelegatorApy30DaysDesc => Self::DelegatorApy30days,
+            BakerSort::BlockCommissionsAsc => Self::BlockCommissions,
+            BakerSort::BlockCommissionsDesc => Self::BlockCommissions,
+        }
+    }
 }
 
 struct BakerPool<'a> {

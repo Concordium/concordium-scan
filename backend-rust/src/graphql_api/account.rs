@@ -1,6 +1,6 @@
 use super::{
     baker::Baker, get_config, get_pool, token::AccountToken, AccountStatementEntryType, ApiError,
-    ApiResult, ConnectionQuery,
+    ApiResult, ConnectionQuery, OrderDir,
 };
 use crate::{
     address::AccountAddress,
@@ -1047,13 +1047,6 @@ enum AccountOrderField {
     Amount,
     TransactionCount,
     DelegatedStake,
-}
-
-/// A sort direction, either ascending or descending.
-#[derive(Debug, Clone, Copy)]
-enum OrderDir {
-    Asc,
-    Desc,
 }
 
 #[derive(InputObject)]

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE bakers\n                        SET pool_total_staked = pool_total_staked + $2 - staked,\n                            staked = $2\n                    WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ad1a32bc9a77e1a17c3427c895f4c3f26c915917fb852e753f751ad7448aff98"
+}

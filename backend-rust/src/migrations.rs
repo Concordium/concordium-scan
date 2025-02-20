@@ -187,14 +187,16 @@ pub enum SchemaVersion {
     FixDanglingDelegators,
     #[display("0006:Fix staked amounts")]
     FixStakedAmounts,
+    #[display("0007:Accumulated pool state columns.")]
+    AddAccumulatedPoolState,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking database schema versions have been
     /// introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::PayDayLotteryPowers;
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::AddAccumulatedPoolState;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::FixStakedAmounts;
+    const LATEST: SchemaVersion = SchemaVersion::AddAccumulatedPoolState;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -216,6 +218,7 @@ impl SchemaVersion {
             SchemaVersion::PayDayLotteryPowers => false,
             SchemaVersion::FixDanglingDelegators => false,
             SchemaVersion::FixStakedAmounts => false,
+            SchemaVersion::AddAccumulatedPoolState => false,
         }
     }
 
@@ -257,7 +260,15 @@ impl SchemaVersion {
             SchemaVersion::FixDanglingDelegators => {
                 m0006_fix_stake::run(&mut tx, endpoints).await?
             }
-            SchemaVersion::FixStakedAmounts => unimplemented!(
+            SchemaVersion::FixStakedAmounts => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0007-cumulate-pool-info.sql"
+                    )))
+                    .await?;
+                SchemaVersion::AddAccumulatedPoolState
+            }
+            SchemaVersion::AddAccumulatedPoolState => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
