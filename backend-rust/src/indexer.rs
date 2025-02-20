@@ -1550,7 +1550,7 @@ impl PreparedEvent {
                 to,
                 ..
             } => PreparedEvent::CcdTransfer(PreparedCcdTransferEvent::prepare(
-                sender, &to, *amount, height,
+                sender, to, *amount, height,
             )?),
 
             AccountTransactionEffects::BakerAdded {
