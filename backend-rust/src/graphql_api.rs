@@ -95,6 +95,8 @@ pub struct ApiServiceConfig {
         default_value = "100"
     )]
     account_schedule_connection_limit: u64,
+    #[arg(long, env = "CCDSCAN_API_CONFIG_BAKER_CONNECTION_LIMIT", default_value = "100")]
+    baker_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_CONTRACT_CONNECTION_LIMIT", default_value = "100")]
     contract_connection_limit: u64,
     #[arg(
@@ -151,8 +153,6 @@ pub struct ApiServiceConfig {
     token_holder_addresses_collection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_TOKEN_EVENTS_COLLECTION_LIMIT", default_value = "100")]
     token_events_collection_limit: u64,
-    #[arg(long, env = "CCDSCAN_API_CONFIG_BAKER_CONNECTION_LIMIT", default_value = "100")]
-    baker_connection_limit: u64,
 }
 
 #[derive(MergedObject, Default)]
@@ -837,4 +837,11 @@ pub enum AccountStatementEntryType {
     FoundationReward,
     BakerReward,
     TransactionFeeReward,
+}
+
+/// A sort direction, either ascending or descending.
+#[derive(Debug, Clone, Copy)]
+enum OrderDir {
+    Asc,
+    Desc,
 }

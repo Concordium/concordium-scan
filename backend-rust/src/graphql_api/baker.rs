@@ -1,8 +1,6 @@
 use super::{
-    account::{Account, OrderDir},
-    get_config, get_pool,
-    transaction::Transaction,
-    ApiError, ApiResult, ConnectionQuery,
+    account::Account, get_config, get_pool, transaction::Transaction, ApiError, ApiResult,
+    ConnectionQuery, OrderDir,
 };
 use crate::{
     scalar_types::{Amount, BakerId, DateTime, Decimal, MetadataUrl},
@@ -151,15 +149,6 @@ impl QueryBaker {
                             OR     $2 AND pool_delegator_count > $1) AND
                     -- filters
                     ($7::pool_open_status IS NULL OR open_status = $7::pool_open_status)
-                ORDER BY
-                    (CASE WHEN $3 AND NOT $2 THEN id                   END) ASC,
-                    (CASE WHEN $3 AND     $2 THEN id                   END) DESC,
-                    (CASE WHEN $4 AND NOT $2 THEN staked               END) ASC,
-                    (CASE WHEN $4 AND     $2 THEN staked               END) DESC,
-                    (CASE WHEN $5 AND NOT $2 THEN pool_total_staked    END) ASC,
-                    (CASE WHEN $5 AND     $2 THEN pool_total_staked    END) DESC,
-                    (CASE WHEN $6 AND NOT $2 THEN pool_delegator_count END) ASC,
-                    (CASE WHEN $6 AND     $2 THEN pool_delegator_count END) DESC
                 LIMIT 1",
                 first_item_sort_value,                                     // $1
                 matches!(sort_direction, OrderDir::Desc),                  // $2
@@ -192,15 +181,6 @@ impl QueryBaker {
                             OR     $2 AND pool_delegator_count < $1) AND
                     -- filters
                     ($7::pool_open_status IS NULL OR open_status = $7::pool_open_status)
-                ORDER BY
-                    (CASE WHEN $3 AND NOT $2 THEN id                   END) ASC,
-                    (CASE WHEN $3 AND     $2 THEN id                   END) DESC,
-                    (CASE WHEN $4 AND NOT $2 THEN staked               END) ASC,
-                    (CASE WHEN $4 AND     $2 THEN staked               END) DESC,
-                    (CASE WHEN $5 AND NOT $2 THEN pool_total_staked    END) ASC,
-                    (CASE WHEN $5 AND     $2 THEN pool_total_staked    END) DESC,
-                    (CASE WHEN $6 AND NOT $2 THEN pool_delegator_count END) ASC,
-                    (CASE WHEN $6 AND     $2 THEN pool_delegator_count END) DESC
                 LIMIT 1",
                 last_item_sort_value,                                      // $1
                 matches!(sort_direction, OrderDir::Desc),                  // $2
