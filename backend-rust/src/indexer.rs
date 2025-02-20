@@ -17,7 +17,7 @@ use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
     base::{
-        contracts_common::to_bytes,
+        contracts_common::{to_bytes, AccountAddress, CanonicalAccountAddress},
         smart_contracts::WasmVersion,
         transactions::{BlockItem, EncodedPayload, Payload},
     },
@@ -51,7 +51,7 @@ use prometheus_client::{
     registry::Registry,
 };
 use sqlx::PgPool;
-use std::{convert::TryInto, sync::Arc};
+use std::convert::TryInto;
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
@@ -801,16 +801,18 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
         let info = client.get_account_info(&account.into(), genesis_height).await?.response;
         let index = i64::try_from(info.account_index.index)?;
         let account_address = account.to_string();
+        let canonical_address = account.get_canonical_address();
         let amount = i64::try_from(info.account_amount.micro_ccd)?;
 
         // Note that we override the usual default num_txs = 1 here
         // because the genesis accounts do not have a creation transaction.
         sqlx::query!(
-            "INSERT INTO accounts (index, address, amount, num_txs)
-            VALUES ($1, $2, $3, 0)",
+            "INSERT INTO accounts (index, address, amount, canonical_address, num_txs)
+            VALUES ($1, $2, $3, $4, 0)",
             index,
             account_address,
             amount,
+            canonical_address.0.as_slice()
         )
         .execute(&mut *tx)
         .await?;
@@ -1076,10 +1078,10 @@ SELECT * FROM UNNEST(
 /// This reads the current balance of the account and assumes the balance is
 /// already updated with the amount part of the statement.
 struct PreparedAccountStatement {
-    account_address:  Arc<String>,
-    amount:           i64,
-    block_height:     i64,
-    transaction_type: AccountStatementEntryType,
+    canonical_address: CanonicalAccountAddress,
+    amount:            i64,
+    block_height:      i64,
+    transaction_type:  AccountStatementEntryType,
 }
 
 impl PreparedAccountStatement {
@@ -1092,7 +1094,7 @@ impl PreparedAccountStatement {
             "WITH account_info AS (
             SELECT index AS account_index, amount AS current_balance
             FROM accounts
-            WHERE address = $1
+            WHERE canonical_address = $1
         )
         INSERT INTO account_statements (
             account_index,
@@ -1110,7 +1112,7 @@ impl PreparedAccountStatement {
             $5,
             current_balance
         FROM account_info",
-            self.account_address.as_ref(),
+            self.canonical_address.0.as_slice(),
             self.transaction_type as AccountStatementEntryType,
             self.amount,
             self.block_height,
@@ -1159,7 +1161,7 @@ struct PreparedBlockItem {
     reject:            Option<PreparedTransactionRejectReason>,
     /// All affected accounts for this transaction. Each entry is the `String`
     /// representation of an account address.
-    affected_accounts: Vec<String>,
+    affected_accounts: Vec<CanonicalAccountAddress>,
     /// Block item events prepared for inserting into the database.
     prepared_event:    PreparedBlockItemEvent,
 }
@@ -1215,8 +1217,11 @@ impl PreparedBlockItem {
                 };
             (None, Some(reject))
         };
-        let affected_accounts =
-            item_summary.affected_addresses().into_iter().map(|a| a.to_string()).collect();
+        let affected_accounts = item_summary
+            .affected_addresses()
+            .into_iter()
+            .map(|a| a.get_canonical_address())
+            .collect();
         let prepared_event =
             PreparedBlockItemEvent::prepare(node_client, data, item_summary, item).await?;
 
@@ -1293,14 +1298,15 @@ impl PreparedBlockItem {
         )
         .fetch_one(tx.as_mut())
         .await?;
-
+        let affected_accounts =
+            self.affected_accounts.iter().map(|acc| acc.0.to_vec()).collect::<Vec<Vec<u8>>>();
         // Note that this does not include account creation. We handle that when saving
         // the account creation event.
         sqlx::query!(
             "INSERT INTO affected_accounts (transaction_index, account_index)
-            SELECT $1, index FROM accounts WHERE address = ANY($2)",
+            SELECT $1, index FROM accounts WHERE canonical_address = ANY($2)",
             tx_idx,
-            &self.affected_accounts,
+            &affected_accounts,
         )
         .execute(tx.as_mut())
         .await?
@@ -1312,8 +1318,8 @@ impl PreparedBlockItem {
         sqlx::query!(
             "UPDATE accounts
             SET num_txs = num_txs + 1
-            WHERE address = ANY($1)",
-            &self.affected_accounts,
+            WHERE canonical_address = ANY($1)",
+            &affected_accounts,
         )
         .execute(tx.as_mut())
         .await?
@@ -1347,15 +1353,15 @@ impl PreparedBlockItemEvent {
                 PreparedBlockItemEvent::AccountCreation(PreparedAccountCreation::prepare(details)?),
             ),
             BlockItemSummaryDetails::AccountTransaction(details) => {
-                let sender = Arc::new(details.sender.to_string());
                 let fee = PreparedUpdateAccountBalance::prepare(
-                    sender.clone(),
+                    &details.sender,
                     -i64::try_from(details.cost.micro_ccd())?,
                     data.block_info.block_height,
                     AccountStatementEntryType::TransactionFee,
                 )?;
                 let event =
-                    PreparedEvent::prepare(node_client, data, details, item, sender).await?;
+                    PreparedEvent::prepare(node_client, data, details, item, &details.sender)
+                        .await?;
                 Ok(PreparedBlockItemEvent::AccountTransaction(Box::new(
                     PreparedAccountTransaction {
                         fee,
@@ -1421,7 +1427,7 @@ impl PreparedEvent {
         data: &BlockData,
         details: &AccountTransactionDetails,
         item: &BlockItem<EncodedPayload>,
-        sender: Arc<String>,
+        sender: &AccountAddress,
     ) -> anyhow::Result<Self> {
         let height = data.block_info.block_height;
         let prepared_event = match &details.effects {
@@ -1544,10 +1550,7 @@ impl PreparedEvent {
                 to,
                 ..
             } => PreparedEvent::CcdTransfer(PreparedCcdTransferEvent::prepare(
-                sender,
-                Arc::new(to.to_string()),
-                *amount,
-                height,
+                sender, to, *amount, height,
             )?),
 
             AccountTransactionEffects::BakerAdded {
@@ -1655,7 +1658,7 @@ impl PreparedEvent {
                 amount: scheduled_releases,
                 ..
             } => PreparedEvent::ScheduledTransfer(PreparedScheduledReleases::prepare(
-                Arc::new(to.to_string()),
+                to,
                 sender,
                 scheduled_releases,
                 height,
@@ -1704,7 +1707,8 @@ impl PreparedEvent {
 /// Prepared database insertion of a new account.
 struct PreparedAccountCreation {
     /// The base58check representation of the canonical account address.
-    account_address: String,
+    account_address:   String,
+    canonical_address: CanonicalAccountAddress,
 }
 
 impl PreparedAccountCreation {
@@ -1712,7 +1716,8 @@ impl PreparedAccountCreation {
         details: &concordium_rust_sdk::types::AccountCreationDetails,
     ) -> anyhow::Result<Self> {
         Ok(Self {
-            account_address: details.address.to_string(),
+            account_address:   details.address.to_string(),
+            canonical_address: details.address.get_canonical_address(),
         })
     }
 
@@ -1723,11 +1728,12 @@ impl PreparedAccountCreation {
     ) -> anyhow::Result<()> {
         let account_index = sqlx::query_scalar!(
             "INSERT INTO
-                accounts (index, address, transaction_index)
+                accounts (index, address, canonical_address, transaction_index)
             VALUES
-                ((SELECT COALESCE(MAX(index) + 1, 0) FROM accounts), $1, $2)
+                ((SELECT COALESCE(MAX(index) + 1, 0) FROM accounts), $1, $2, $3)
             RETURNING index",
             self.account_address,
+            self.canonical_address.0.as_slice(),
             transaction_index,
         )
         .fetch_one(tx.as_mut())
@@ -2594,7 +2600,7 @@ impl PreparedContractInitialized {
         node_client: &mut v2::Client,
         data: &BlockData,
         event: &ContractInitializedEvent,
-        sender_account: Arc<String>,
+        sender_account: &AccountAddress,
     ) -> anyhow::Result<Self> {
         let contract_address = event.address;
         let index = i64::try_from(event.address.index)?;
@@ -2861,7 +2867,7 @@ impl PreparedTraceElement {
                 to,
             } => PreparedContractTraceEvent::Transfer(PreparedTraceEventTransfer::prepare(
                 *from,
-                Arc::new(to.to_string()),
+                to,
                 *amount,
                 data.finalized_block_info.height,
             )?),
@@ -3113,7 +3119,7 @@ struct PreparedTraceEventTransfer {
 impl PreparedTraceEventTransfer {
     fn prepare(
         sender_contract: ContractAddress,
-        receiving_account: Arc<String>,
+        receiving_account: &AccountAddress,
         amount: Amount,
         block_height: AbsoluteBlockHeight,
     ) -> anyhow::Result<Self> {
@@ -3166,7 +3172,7 @@ impl PreparedTraceEventUpdate {
         let sender = match sender {
             Address::Account(address) => {
                 PreparedTraceEventUpdateSender::Account(PreparedUpdateAccountBalance::prepare(
-                    Arc::new(address.to_string()),
+                    &address,
                     -amount,
                     block_height,
                     AccountStatementEntryType::TransferOut,
@@ -3348,6 +3354,7 @@ async fn process_cis2_token_event(
             // incrementing the owner's balance by `tokens_minted`.
             // Note: CCDScan currently only tracks token balances of accounts (issue #357).
             if let Address::Account(owner) = owner {
+                let canonical_address = owner.get_canonical_address();
                 sqlx::query!(
                     "
                     INSERT INTO account_tokens (index, account_index, token_index, balance)
@@ -3357,11 +3364,11 @@ async fn process_cis2_token_event(
                         tokens.index,
                         $3
                     FROM accounts, tokens
-                    WHERE accounts.address = $1
+                    WHERE accounts.canonical_address = $1
                         AND tokens.token_address = $2
                     ON CONFLICT (token_index, account_index)
                     DO UPDATE SET balance = account_tokens.balance + EXCLUDED.balance",
-                    owner.to_string(),
+                    canonical_address.0.as_slice(),
                     token_address,
                     tokens_minted,
                 )
@@ -3454,6 +3461,7 @@ async fn process_cis2_token_event(
             .context("Failed inserting or updating token from burn event")?;
 
             if let Address::Account(owner) = owner {
+                let canonical_address = owner.get_canonical_address();
                 sqlx::query!(
                     "
                     INSERT INTO account_tokens (index, account_index, token_index, balance)
@@ -3463,11 +3471,11 @@ async fn process_cis2_token_event(
                         tokens.index,
                         $3
                     FROM accounts, tokens
-                    WHERE accounts.address = $1
+                    WHERE accounts.canonical_address = $1
                         AND tokens.token_address = $2
                     ON CONFLICT (token_index, account_index)
                     DO UPDATE SET balance = account_tokens.balance + EXCLUDED.balance",
-                    owner.to_string(),
+                    canonical_address.0.as_slice(),
                     token_address.to_string(),
                     -tokens_burned
                 )
@@ -3528,6 +3536,7 @@ async fn process_cis2_token_event(
             // by decrementing the owner's balance by `tokens_transferred`.
             // Note: CCDScan currently only tracks token balances of accounts (issue #357).
             if let Address::Account(from) = from {
+                let canonical_address = from.get_canonical_address();
                 sqlx::query!(
                     "
                     INSERT INTO account_tokens (index, account_index, token_index, balance)
@@ -3537,11 +3546,11 @@ async fn process_cis2_token_event(
                         tokens.index,
                         $3
                     FROM accounts, tokens
-                    WHERE accounts.address = $1
+                    WHERE accounts.canonical_address = $1
                         AND tokens.token_address = $2
                     ON CONFLICT (token_index, account_index)
                     DO UPDATE SET balance = account_tokens.balance + EXCLUDED.balance",
-                    from.to_string(),
+                    canonical_address.0.as_slice(),
                     token_address,
                     -tokens_transferred.clone(),
                 )
@@ -3557,6 +3566,7 @@ async fn process_cis2_token_event(
             // incrementing the owner's balance by `tokens_transferred`.
             // Note: CCDScan currently only tracks token balances of accounts (issue #357).
             if let Address::Account(to) = to {
+                let canonical_address = to.get_canonical_address();
                 sqlx::query!(
                     "
                     INSERT INTO account_tokens (index, account_index, token_index, balance)
@@ -3566,11 +3576,11 @@ async fn process_cis2_token_event(
                         tokens.index,
                         $3
                     FROM accounts, tokens
-                    WHERE accounts.address = $1
+                    WHERE accounts.canonical_address = $1
                         AND tokens.token_address = $2
                     ON CONFLICT (token_index, account_index)
                         DO UPDATE SET balance = account_tokens.balance + EXCLUDED.balance",
-                    to.to_string(),
+                    canonical_address.0.as_slice(),
                     token_address,
                     tokens_transferred
                 )
@@ -3682,7 +3692,7 @@ async fn process_cis2_token_event(
 }
 
 struct PreparedScheduledReleases {
-    account_address: Arc<String>,
+    canonical_address: CanonicalAccountAddress,
     release_times: Vec<DateTime<Utc>>,
     amounts: Vec<i64>,
     target_account_balance_update: PreparedUpdateAccountBalance,
@@ -3691,8 +3701,8 @@ struct PreparedScheduledReleases {
 
 impl PreparedScheduledReleases {
     fn prepare(
-        target_address: Arc<String>,
-        source_address: Arc<String>,
+        target_address: &AccountAddress,
+        source_address: &AccountAddress,
         scheduled_releases: &[(Timestamp, Amount)],
         block_height: AbsoluteBlockHeight,
     ) -> anyhow::Result<Self> {
@@ -3707,7 +3717,7 @@ impl PreparedScheduledReleases {
             total_amount += micro_ccd;
         }
         let target_account_balance_update = PreparedUpdateAccountBalance::prepare(
-            target_address.clone(),
+            target_address,
             total_amount,
             block_height,
             AccountStatementEntryType::TransferIn,
@@ -3720,7 +3730,7 @@ impl PreparedScheduledReleases {
             AccountStatementEntryType::TransferOut,
         )?;
         Ok(Self {
-            account_address: target_address,
+            canonical_address: target_address.get_canonical_address(),
             release_times,
             amounts,
             target_account_balance_update,
@@ -3742,12 +3752,12 @@ impl PreparedScheduledReleases {
             )
             SELECT
                 $1,
-                (SELECT index FROM accounts WHERE address = $2),
+                (SELECT index FROM accounts WHERE canonical_address = $2),
                 UNNEST($3::TIMESTAMPTZ[]),
                 UNNEST($4::BIGINT[])
             ",
             transaction_index,
-            self.account_address.as_ref(),
+            &self.canonical_address.0.as_slice(),
             &self.release_times,
             &self.amounts
         )
@@ -3768,7 +3778,7 @@ struct PreparedUpdateEncryptedBalance {
 
 impl PreparedUpdateEncryptedBalance {
     fn prepare(
-        sender: Arc<String>,
+        sender: &AccountAddress,
         amount: Amount,
         block_height: AbsoluteBlockHeight,
         operation: CryptoOperation,
@@ -3799,7 +3809,7 @@ impl PreparedUpdateEncryptedBalance {
 /// Represents change in the balance of some account.
 struct PreparedUpdateAccountBalance {
     /// Address of the account.
-    account_address:   Arc<String>,
+    canonical_address: CanonicalAccountAddress,
     /// Difference in the balance.
     change:            i64,
     /// Tracking the account statement causing the change in balance.
@@ -3808,19 +3818,20 @@ struct PreparedUpdateAccountBalance {
 
 impl PreparedUpdateAccountBalance {
     fn prepare(
-        sender: Arc<String>,
+        sender: &AccountAddress,
         amount: i64,
         block_height: AbsoluteBlockHeight,
         transaction_type: AccountStatementEntryType,
     ) -> anyhow::Result<Self> {
+        let canonical_address = sender.get_canonical_address();
         let account_statement = PreparedAccountStatement {
             block_height: block_height.height.try_into()?,
             amount,
-            account_address: sender.clone(),
+            canonical_address,
             transaction_type,
         };
         Ok(Self {
-            account_address: sender,
+            canonical_address,
             change: amount,
             account_statement,
         })
@@ -3836,9 +3847,9 @@ impl PreparedUpdateAccountBalance {
             return Ok(());
         }
         sqlx::query!(
-            "UPDATE accounts SET amount = amount + $1 WHERE address = $2",
+            "UPDATE accounts SET amount = amount + $1 WHERE canonical_address = $2",
             self.change,
-            self.account_address.as_ref(),
+            self.canonical_address.0.as_slice(),
         )
         .execute(tx.as_mut())
         .await?
@@ -3860,20 +3871,20 @@ struct PreparedCcdTransferEvent {
 
 impl PreparedCcdTransferEvent {
     fn prepare(
-        sender_address: Arc<String>,
-        receiver_address: Arc<String>,
+        sender_address: &AccountAddress,
+        receiver_address: &AccountAddress,
         amount: Amount,
         block_height: AbsoluteBlockHeight,
     ) -> anyhow::Result<Self> {
         let amount: i64 = amount.micro_ccd().try_into()?;
         let update_sender = PreparedUpdateAccountBalance::prepare(
-            sender_address.clone(),
+            sender_address,
             -amount,
             block_height,
             AccountStatementEntryType::TransferOut,
         )?;
         let update_receiver = PreparedUpdateAccountBalance::prepare(
-            receiver_address.clone(),
+            receiver_address,
             amount,
             block_height,
             AccountStatementEntryType::TransferIn,
@@ -4057,7 +4068,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                     .iter()
                     .map(|(account_address, amount)| {
                         AccountReceivedReward::prepare(
-                            Arc::new(account_address.to_string()),
+                            account_address,
                             amount.micro_ccd.try_into()?,
                             block_height,
                             AccountStatementEntryType::BakerReward,
@@ -4072,7 +4083,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 ..
             } => {
                 let rewards = vec![AccountReceivedReward::prepare(
-                    Arc::new(foundation_account.to_string()),
+                    foundation_account,
                     mint_platform_development_charge.micro_ccd.try_into()?,
                     block_height,
                     AccountStatementEntryType::FoundationReward,
@@ -4087,7 +4098,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                     .iter()
                     .map(|(account_address, amount)| {
                         AccountReceivedReward::prepare(
-                            Arc::new(account_address.to_string()),
+                            account_address,
                             amount.micro_ccd.try_into()?,
                             block_height,
                             AccountStatementEntryType::FinalizationReward,
@@ -4104,13 +4115,13 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 ..
             } => Self::Rewards(vec![
                 AccountReceivedReward::prepare(
-                    Arc::new(foundation_account.to_string()),
+                    foundation_account,
                     foundation_charge.micro_ccd.try_into()?,
                     block_height,
                     AccountStatementEntryType::FoundationReward,
                 )?,
                 AccountReceivedReward::prepare(
-                    Arc::new(baker.to_string()),
+                    baker,
                     baker_reward.micro_ccd.try_into()?,
                     block_height,
                     AccountStatementEntryType::BakerReward,
@@ -4120,7 +4131,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 foundation_account,
                 development_charge,
             } => Self::Rewards(vec![AccountReceivedReward::prepare(
-                Arc::new(foundation_account.to_string()),
+                foundation_account,
                 development_charge.micro_ccd.try_into()?,
                 block_height,
                 AccountStatementEntryType::FoundationReward,
@@ -4130,29 +4141,26 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 transaction_fees,
                 baker_reward,
                 finalization_reward,
-            } => {
-                let account_address = Arc::new(account.to_string());
-                Self::Rewards(vec![
-                    AccountReceivedReward::prepare(
-                        account_address.clone(),
-                        transaction_fees.micro_ccd.try_into()?,
-                        block_height,
-                        AccountStatementEntryType::TransactionFeeReward,
-                    )?,
-                    AccountReceivedReward::prepare(
-                        account_address.clone(),
-                        baker_reward.micro_ccd.try_into()?,
-                        block_height,
-                        AccountStatementEntryType::BakerReward,
-                    )?,
-                    AccountReceivedReward::prepare(
-                        account_address,
-                        finalization_reward.micro_ccd.try_into()?,
-                        block_height,
-                        AccountStatementEntryType::FinalizationReward,
-                    )?,
-                ])
-            }
+            } => Self::Rewards(vec![
+                AccountReceivedReward::prepare(
+                    account,
+                    transaction_fees.micro_ccd.try_into()?,
+                    block_height,
+                    AccountStatementEntryType::TransactionFeeReward,
+                )?,
+                AccountReceivedReward::prepare(
+                    account,
+                    baker_reward.micro_ccd.try_into()?,
+                    block_height,
+                    AccountStatementEntryType::BakerReward,
+                )?,
+                AccountReceivedReward::prepare(
+                    account,
+                    finalization_reward.micro_ccd.try_into()?,
+                    block_height,
+                    AccountStatementEntryType::FinalizationReward,
+                )?,
+            ]),
             // TODO: Support these two types. (Deviates from Old CCDScan)
             SpecialTransactionOutcome::BlockAccrueReward {
                 ..
@@ -4205,14 +4213,14 @@ struct AccountReceivedReward {
 
 impl AccountReceivedReward {
     fn prepare(
-        account_address: Arc<String>,
+        account_address: &AccountAddress,
         amount: i64,
         block_height: AbsoluteBlockHeight,
         transaction_type: AccountStatementEntryType,
     ) -> anyhow::Result<Self> {
         Ok(Self {
             update_account_balance: PreparedUpdateAccountBalance::prepare(
-                account_address.clone(),
+                account_address,
                 amount,
                 block_height,
                 transaction_type,
@@ -4235,15 +4243,15 @@ impl AccountReceivedReward {
 /// earnings are enabled.
 struct RestakeEarnings {
     /// The account address of the receiver of the reward.
-    account_address: Arc<String>,
+    canonical_account_address: CanonicalAccountAddress,
     /// Amount of CCD received as reward.
-    amount:          i64,
+    amount:                    i64,
 }
 
 impl RestakeEarnings {
-    fn prepare(account_address: Arc<String>, amount: i64) -> Self {
+    fn prepare(account_address: &AccountAddress, amount: i64) -> Self {
         Self {
-            account_address,
+            canonical_account_address: account_address.get_canonical_address(),
             amount,
         }
     }
@@ -4261,9 +4269,9 @@ impl RestakeEarnings {
                             WHEN delegated_restake_earnings THEN delegated_stake + $2
                             ELSE delegated_stake
                         END
-                WHERE address = $1
+                WHERE canonical_address = $1
                 RETURNING index, delegated_restake_earnings, delegated_target_baker_id",
-            self.account_address.as_ref(),
+            self.canonical_account_address.0.as_slice(),
             self.amount
         )
         .fetch_one(tx.as_mut())

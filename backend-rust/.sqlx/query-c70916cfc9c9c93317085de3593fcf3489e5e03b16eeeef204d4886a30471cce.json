@@ -5,7 +5,7 @@
     "columns": [],
     "parameters": {
       "Left": [
-        "Bpchar",
+        "Varchar",
         "Timestamptz",
         "Int8",
         "Int8"

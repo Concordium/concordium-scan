@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE accounts\n                SET\n                    delegated_stake = CASE\n                            WHEN delegated_restake_earnings THEN delegated_stake + $2\n                            ELSE delegated_stake\n                        END\n                WHERE address = $1\n                RETURNING index, delegated_restake_earnings, delegated_target_baker_id",
+  "query": "UPDATE accounts\n                SET\n                    delegated_stake = CASE\n                            WHEN delegated_restake_earnings THEN delegated_stake + $2\n                            ELSE delegated_stake\n                        END\n                WHERE canonical_address = $1\n                RETURNING index, delegated_restake_earnings, delegated_target_baker_id",
   "describe": {
     "columns": [
       {
@@ -21,7 +21,7 @@
     ],
     "parameters": {
       "Left": [
-        "Text",
+        "Bytea",
         "Int8"
       ]
     },
@@ -31,5 +31,5 @@
       true
     ]
   },
-  "hash": "25ec2547f7c36d39a307d620bfb32aa57ed0857bcf08e9d67e396c160cb13899"
+  "hash": "27401f13b2a789cb34f27718bb5b83180ba975a0d215a2c2fc9b2979794f82d0"
 }

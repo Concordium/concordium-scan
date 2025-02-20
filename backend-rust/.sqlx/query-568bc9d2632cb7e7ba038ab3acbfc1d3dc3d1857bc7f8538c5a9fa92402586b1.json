@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO accounts (index, address, amount, canonical_address, num_txs)\n            VALUES ($1, $2, $3, $4, 0)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Varchar",
+        "Int8",
+        "Bytea"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "568bc9d2632cb7e7ba038ab3acbfc1d3dc3d1857bc7f8538c5a9fa92402586b1"
+}

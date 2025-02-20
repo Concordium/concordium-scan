@@ -422,7 +422,7 @@ impl Baker {
             Transaction,
             r#"
             SELECT * FROM (
-                SELECT 
+                SELECT
                     index,
                     block_height,
                     hash,
@@ -480,7 +480,7 @@ impl Baker {
         if let (Some(page_min_id), Some(page_max_id)) = (page_min_index, page_max_index) {
             let result = sqlx::query!(
                 "
-                    SELECT MAX(index) as max_id, MIN(index) as min_id 
+                    SELECT MAX(index) as max_id, MIN(index) as min_id
                     FROM transactions
                     WHERE transactions.sender_index = $1
                     AND type_account = ANY($2)
@@ -639,7 +639,7 @@ struct BakerPool<'a> {
     /// - `BakerSetBakingRewardCommission`
     /// - `BakerSetTransactionFeeCommission`
     /// - `BakerSetFinalizationRewardCommission`
-    ///  
+    ///
     /// Both `commission_rates` and `payday_commission_rates` are optional and
     /// usually return the same value. But at the following edge cases, they
     /// return different values:
@@ -654,9 +654,9 @@ struct BakerPool<'a> {
     commission_rates: CommissionRates,
     /// The `payday_commission_rates` represent the commission settings at the
     /// last payday block. These values are retrieved from the
-    /// `get_bakers_reward_period(BlockIdentifier::AbsoluteHeight(payday_block_height))`  
-    /// endpoint at each payday.  
-    ///  
+    /// `get_bakers_reward_period(BlockIdentifier::AbsoluteHeight(payday_block_height))`
+    /// endpoint at each payday.
+    ///
     /// Both `commission_rates` and `payday_commission_rates` are optional and
     /// usually return the same value. But at the following edge cases, they
     /// return different values:

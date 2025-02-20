@@ -16,7 +16,7 @@
       {
         "ordinal": 2,
         "name": "hash",
-        "type_info": "Bpchar"
+        "type_info": "Varchar"
       },
       {
         "ordinal": 3,

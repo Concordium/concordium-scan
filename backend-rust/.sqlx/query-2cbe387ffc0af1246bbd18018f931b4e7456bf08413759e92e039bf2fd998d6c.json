@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE accounts SET amount = amount + $1 WHERE canonical_address = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Bytea"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2cbe387ffc0af1246bbd18018f931b4e7456bf08413759e92e039bf2fd998d6c"
+}
