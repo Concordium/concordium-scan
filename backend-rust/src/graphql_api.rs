@@ -95,8 +95,12 @@ pub struct ApiServiceConfig {
         default_value = "100"
     )]
     account_schedule_connection_limit: u64,
+    #[arg(long, env = "CCDSCAN_API_CONFIG_BAKER_CONNECTION_LIMIT", default_value = "100")]
+    baker_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_CONTRACT_CONNECTION_LIMIT", default_value = "100")]
     contract_connection_limit: u64,
+    #[arg(long, env = "CCDSCAN_API_CONFIG_DELEGATORS_CONNECTION_LIMIT", default_value = "100")]
+    delegators_connection_limit: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
@@ -151,8 +155,6 @@ pub struct ApiServiceConfig {
     token_holder_addresses_collection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_TOKEN_EVENTS_COLLECTION_LIMIT", default_value = "100")]
     token_events_collection_limit: u64,
-    #[arg(long, env = "CCDSCAN_API_CONFIG_BAKER_CONNECTION_LIMIT", default_value = "100")]
-    baker_connection_limit: u64,
 }
 
 #[derive(MergedObject, Default)]
@@ -517,18 +519,19 @@ impl BaseQuery {
     }
 
     // bakerMetrics(period: MetricsPeriod!): BakerMetrics!
+
     // rewardMetrics(period: MetricsPeriod!): RewardMetrics!
+
     // rewardMetricsForAccount(accountId: ID! period: MetricsPeriod!):
-    // RewardMetrics! poolRewardMetricsForPassiveDelegation(period:
-    // MetricsPeriod!): PoolRewardMetrics!
+    // RewardMetrics!
+
+    // poolRewardMetricsForPassiveDelegation(period: MetricsPeriod!):
+    // PoolRewardMetrics!
+
     // poolRewardMetricsForBakerPool(bakerId: ID! period: MetricsPeriod!):
-    // PoolRewardMetrics! passiveDelegation: PassiveDelegation
-    // nodeStatuses(sortField: NodeSortField! sortDirection: NodeSortDirection!
-    // "Returns the first _n_ elements from the list." first: Int "Returns the
-    // elements in the list that come after the specified cursor." after: String
-    // "Returns the last _n_ elements from the list." last: Int "Returns the
-    // elements in the list that come before the specified cursor." before: String):
-    // NodeStatusesConnection nodeStatus(id: ID!): NodeStatus
+    // PoolRewardMetrics!
+
+    // passiveDelegation: PassiveDelegation
 }
 
 pub struct Subscription {
@@ -837,4 +840,11 @@ pub enum AccountStatementEntryType {
     FoundationReward,
     BakerReward,
     TransactionFeeReward,
+}
+
+/// A sort direction, either ascending or descending.
+#[derive(Debug, Clone, Copy)]
+enum OrderDir {
+    Asc,
+    Desc,
 }
