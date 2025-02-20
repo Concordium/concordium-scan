@@ -1868,7 +1868,10 @@ impl PreparedAccountDelegationEvent {
                 account_id,
                 staked,
             } => {
-                // Update total stake of the pool first (if not the passive pool).
+                // Update total stake of the pool first.
+                // Note that `DelegationEvent::Added` event is always accommodated by a
+                // `DelegationEvent::StakeIncrease` event, in this case the current
+                // `delegated_stake` will be zero.
                 sqlx::query!(
                     "UPDATE bakers
                      SET pool_total_staked = pool_total_staked + $1 - accounts.delegated_stake
@@ -1899,8 +1902,10 @@ impl PreparedAccountDelegationEvent {
                 account_id,
             } => {
                 // Update the total pool stake when removed.
-                // Note that `Added` event is accommodated by a `StakeIncrease` event and
-                // `SetDelegationTarget` event, meaning we don't have to handle pool state here.
+                // Note that `DelegationEvent::Added` event is always accommodated by a
+                // `DelegationEvent::StakeIncrease` event and
+                // `DelegationEvent::SetDelegationTarget` event, meaning we don't have to handle
+                // updating the pool state here.
                 if let PreparedAccountDelegationEvent::Removed {
                     ..
                 } = self
@@ -1949,7 +1954,7 @@ impl PreparedAccountDelegationEvent {
                 target_id,
             } => {
                 // Update total pool stake and delegator count for the old target (if old pool
-                // was the passive pool nothing happens).
+                // was the passive pool or the account just started delegating nothing happens).
                 sqlx::query!(
                     "UPDATE bakers
                      SET
@@ -2418,7 +2423,8 @@ impl PreparedBakerEvent {
                 // Update total pool stake of old pool (if not the passive pool).
                 sqlx::query!(
                     "UPDATE bakers
-                     SET pool_total_staked = pool_total_staked - accounts.delegated_stake
+                     SET pool_total_staked = pool_total_staked - accounts.delegated_stake,
+                         pool_delegator_count = pool_delegator_count - 1
                      FROM accounts
                      WHERE bakers.id = accounts.delegated_target_baker_id AND accounts.index = $1",
                     delegator_id
@@ -4284,21 +4290,18 @@ impl RestakeEarnings {
         .await?;
         if let Some(restake) = account_row.delegated_restake_earnings {
             // Account is delegating.
-            if restake {
-                // Restake is enabled.
-                if let Some(pool) = account_row.delegated_target_baker_id {
-                    // delegating to a pool (and not the passive pool).
-                    sqlx::query!(
-                        "UPDATE bakers
-                             SET pool_total_staked = pool_total_staked + $2
+            if let (true, Some(pool)) = (restake, account_row.delegated_target_baker_id) {
+                // If restake is enabled and the target is a validator pool (not the passive
+                // pool) and we update the pool stake.
+                sqlx::query!(
+                    "UPDATE bakers
+                         SET pool_total_staked = pool_total_staked + $2
                          WHERE id = $1",
-                        pool,
-                        self.amount,
-                    )
-                    .execute(tx.as_mut())
-                    .await?
-                    .ensure_affected_one_row()?;
-                }
+                    pool,
+                    self.amount,
+                )
+                .execute(tx.as_mut())
+                .await?;
             }
         } else {
             // When delegated_restake_earnings is None the account is not delegating, so it
