@@ -4,8 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-Database schema version: 8
+## [0.1.26] - 2025-02-20
 
+Database schema version: 8
 
 ### Changed
 
