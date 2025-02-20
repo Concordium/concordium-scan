@@ -8,6 +8,7 @@ Database schema version: 7
 
 ### Added
 
+- Add validation of the affected rows for most mutating queries in the indexer. This allow the indexer to fail faster for these unexpected conditions.
 - Add query `Query::bakers` to the API, but without support for filtering removed bakers and sorting by APY and block commissions, this is to be added soon.
 - Add database migration 7 adding accumulated pool state to bakers table, for faster filtering based on these values.
 
