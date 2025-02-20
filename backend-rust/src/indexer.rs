@@ -51,7 +51,8 @@ use prometheus_client::{
     registry::Registry,
 };
 use sqlx::PgPool;
-use std::{convert::TryInto, str::FromStr, sync::Arc};
+use std::{convert::TryInto};
+use concordium_rust_sdk::base::contracts_common::AccountAddress;
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
@@ -1353,15 +1354,14 @@ impl PreparedBlockItemEvent {
                 PreparedBlockItemEvent::AccountCreation(PreparedAccountCreation::prepare(details)?),
             ),
             BlockItemSummaryDetails::AccountTransaction(details) => {
-                let sender = Arc::new(details.sender.to_string());
                 let fee = PreparedUpdateAccountBalance::prepare(
-                    sender.clone(),
+                    &details.sender,
                     -i64::try_from(details.cost.micro_ccd())?,
                     data.block_info.block_height,
                     AccountStatementEntryType::TransactionFee,
                 )?;
                 let event =
-                    PreparedEvent::prepare(node_client, data, details, item, sender).await?;
+                    PreparedEvent::prepare(node_client, data, details, item, &details.sender).await?;
                 Ok(PreparedBlockItemEvent::AccountTransaction(Box::new(
                     PreparedAccountTransaction {
                         fee,
@@ -1427,7 +1427,7 @@ impl PreparedEvent {
         data: &BlockData,
         details: &AccountTransactionDetails,
         item: &BlockItem<EncodedPayload>,
-        sender: Arc<String>,
+        sender: &AccountAddress,
     ) -> anyhow::Result<Self> {
         let height = data.block_info.block_height;
         let prepared_event = match &details.effects {
@@ -1551,7 +1551,7 @@ impl PreparedEvent {
                 ..
             } => PreparedEvent::CcdTransfer(PreparedCcdTransferEvent::prepare(
                 sender,
-                Arc::new(to.to_string()),
+                &to,
                 *amount,
                 height,
             )?),
@@ -1661,7 +1661,7 @@ impl PreparedEvent {
                 amount: scheduled_releases,
                 ..
             } => PreparedEvent::ScheduledTransfer(PreparedScheduledReleases::prepare(
-                Arc::new(to.to_string()),
+                to,
                 sender,
                 scheduled_releases,
                 height,
@@ -2603,7 +2603,7 @@ impl PreparedContractInitialized {
         node_client: &mut v2::Client,
         data: &BlockData,
         event: &ContractInitializedEvent,
-        sender_account: Arc<String>,
+        sender_account: &AccountAddress,
     ) -> anyhow::Result<Self> {
         let contract_address = event.address;
         let index = i64::try_from(event.address.index)?;
@@ -2870,7 +2870,7 @@ impl PreparedTraceElement {
                 to,
             } => PreparedContractTraceEvent::Transfer(PreparedTraceEventTransfer::prepare(
                 *from,
-                Arc::new(to.to_string()),
+                to,
                 *amount,
                 data.finalized_block_info.height,
             )?),
@@ -3122,7 +3122,7 @@ struct PreparedTraceEventTransfer {
 impl PreparedTraceEventTransfer {
     fn prepare(
         sender_contract: ContractAddress,
-        receiving_account: Arc<String>,
+        receiving_account: &AccountAddress,
         amount: Amount,
         block_height: AbsoluteBlockHeight,
     ) -> anyhow::Result<Self> {
@@ -3175,7 +3175,7 @@ impl PreparedTraceEventUpdate {
         let sender = match sender {
             Address::Account(address) => {
                 PreparedTraceEventUpdateSender::Account(PreparedUpdateAccountBalance::prepare(
-                    Arc::new(address.to_string()),
+                    &address,
                     -amount,
                     block_height,
                     AccountStatementEntryType::TransferOut,
@@ -3704,8 +3704,8 @@ struct PreparedScheduledReleases {
 
 impl PreparedScheduledReleases {
     fn prepare(
-        target_address: Arc<String>,
-        source_address: Arc<String>,
+        target_address: &AccountAddress,
+        source_address: &AccountAddress,
         scheduled_releases: &[(Timestamp, Amount)],
         block_height: AbsoluteBlockHeight,
     ) -> anyhow::Result<Self> {
@@ -3720,7 +3720,7 @@ impl PreparedScheduledReleases {
             total_amount += micro_ccd;
         }
         let target_account_balance_update = PreparedUpdateAccountBalance::prepare(
-            target_address.clone(),
+            target_address,
             total_amount,
             block_height,
             AccountStatementEntryType::TransferIn,
@@ -3732,12 +3732,8 @@ impl PreparedScheduledReleases {
             block_height,
             AccountStatementEntryType::TransferOut,
         )?;
-        let account_address =
-            concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(
-                target_address.as_str(),
-            )?;
         Ok(Self {
-            canonical_address: account_address.get_canonical_address(),
+            canonical_address: target_address.get_canonical_address(),
             release_times,
             amounts,
             target_account_balance_update,
@@ -3785,7 +3781,7 @@ struct PreparedUpdateEncryptedBalance {
 
 impl PreparedUpdateEncryptedBalance {
     fn prepare(
-        sender: Arc<String>,
+        sender: &AccountAddress,
         amount: Amount,
         block_height: AbsoluteBlockHeight,
         operation: CryptoOperation,
@@ -3825,14 +3821,12 @@ struct PreparedUpdateAccountBalance {
 
 impl PreparedUpdateAccountBalance {
     fn prepare(
-        sender: Arc<String>,
+        sender: &AccountAddress,
         amount: i64,
         block_height: AbsoluteBlockHeight,
         transaction_type: AccountStatementEntryType,
     ) -> anyhow::Result<Self> {
-        let canonical_address =
-            concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(sender.as_str())?
-                .get_canonical_address();
+        let canonical_address = sender.get_canonical_address();
         let account_statement = PreparedAccountStatement {
             block_height: block_height.height.try_into()?,
             amount,
@@ -3880,20 +3874,20 @@ struct PreparedCcdTransferEvent {
 
 impl PreparedCcdTransferEvent {
     fn prepare(
-        sender_address: Arc<String>,
-        receiver_address: Arc<String>,
+        sender_address: &AccountAddress,
+        receiver_address: &AccountAddress,
         amount: Amount,
         block_height: AbsoluteBlockHeight,
     ) -> anyhow::Result<Self> {
         let amount: i64 = amount.micro_ccd().try_into()?;
         let update_sender = PreparedUpdateAccountBalance::prepare(
-            sender_address.clone(),
+            sender_address,
             -amount,
             block_height,
             AccountStatementEntryType::TransferOut,
         )?;
         let update_receiver = PreparedUpdateAccountBalance::prepare(
-            receiver_address.clone(),
+            receiver_address,
             amount,
             block_height,
             AccountStatementEntryType::TransferIn,
@@ -4077,7 +4071,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                     .iter()
                     .map(|(account_address, amount)| {
                         AccountReceivedReward::prepare(
-                            Arc::new(account_address.to_string()),
+                            account_address,
                             amount.micro_ccd.try_into()?,
                             block_height,
                             AccountStatementEntryType::BakerReward,
@@ -4092,7 +4086,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 ..
             } => {
                 let rewards = vec![AccountReceivedReward::prepare(
-                    Arc::new(foundation_account.to_string()),
+                    foundation_account,
                     mint_platform_development_charge.micro_ccd.try_into()?,
                     block_height,
                     AccountStatementEntryType::FoundationReward,
@@ -4107,7 +4101,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                     .iter()
                     .map(|(account_address, amount)| {
                         AccountReceivedReward::prepare(
-                            Arc::new(account_address.to_string()),
+                            account_address,
                             amount.micro_ccd.try_into()?,
                             block_height,
                             AccountStatementEntryType::FinalizationReward,
@@ -4124,13 +4118,13 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 ..
             } => Self::Rewards(vec![
                 AccountReceivedReward::prepare(
-                    Arc::new(foundation_account.to_string()),
+                    foundation_account,
                     foundation_charge.micro_ccd.try_into()?,
                     block_height,
                     AccountStatementEntryType::FoundationReward,
                 )?,
                 AccountReceivedReward::prepare(
-                    Arc::new(baker.to_string()),
+                    baker,
                     baker_reward.micro_ccd.try_into()?,
                     block_height,
                     AccountStatementEntryType::BakerReward,
@@ -4140,7 +4134,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 foundation_account,
                 development_charge,
             } => Self::Rewards(vec![AccountReceivedReward::prepare(
-                Arc::new(foundation_account.to_string()),
+                foundation_account,
                 development_charge.micro_ccd.try_into()?,
                 block_height,
                 AccountStatementEntryType::FoundationReward,
@@ -4151,22 +4145,21 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 baker_reward,
                 finalization_reward,
             } => {
-                let account_address = Arc::new(account.to_string());
                 Self::Rewards(vec![
                     AccountReceivedReward::prepare(
-                        account_address.clone(),
+                        account,
                         transaction_fees.micro_ccd.try_into()?,
                         block_height,
                         AccountStatementEntryType::TransactionFeeReward,
                     )?,
                     AccountReceivedReward::prepare(
-                        account_address.clone(),
+                        account,
                         baker_reward.micro_ccd.try_into()?,
                         block_height,
                         AccountStatementEntryType::BakerReward,
                     )?,
                     AccountReceivedReward::prepare(
-                        account_address,
+                        account,
                         finalization_reward.micro_ccd.try_into()?,
                         block_height,
                         AccountStatementEntryType::FinalizationReward,
@@ -4225,14 +4218,14 @@ struct AccountReceivedReward {
 
 impl AccountReceivedReward {
     fn prepare(
-        account_address: Arc<String>,
+        account_address: &AccountAddress,
         amount: i64,
         block_height: AbsoluteBlockHeight,
         transaction_type: AccountStatementEntryType,
     ) -> anyhow::Result<Self> {
         Ok(Self {
             update_account_balance: PreparedUpdateAccountBalance::prepare(
-                account_address.clone(),
+                account_address,
                 amount,
                 block_height,
                 transaction_type,
@@ -4255,15 +4248,15 @@ impl AccountReceivedReward {
 /// earnings are enabled.
 struct RestakeEarnings {
     /// The account address of the receiver of the reward.
-    account_address: Arc<String>,
+    canonical_account_address: CanonicalAccountAddress,
     /// Amount of CCD received as reward.
     amount:          i64,
 }
 
 impl RestakeEarnings {
-    fn prepare(account_address: Arc<String>, amount: i64) -> Self {
+    fn prepare(account_address: &AccountAddress, amount: i64) -> Self {
         Self {
-            account_address,
+            canonical_account_address: account_address.get_canonical_address(),
             amount,
         }
     }
@@ -4281,9 +4274,9 @@ impl RestakeEarnings {
                             WHEN delegated_restake_earnings THEN delegated_stake + $2
                             ELSE delegated_stake
                         END
-                WHERE address = $1
+                WHERE canonical_address = $1
                 RETURNING index, delegated_restake_earnings, delegated_target_baker_id",
-            self.account_address.as_ref(),
+            self.canonical_account_address.0.as_slice(),
             self.amount
         )
         .fetch_one(tx.as_mut())
