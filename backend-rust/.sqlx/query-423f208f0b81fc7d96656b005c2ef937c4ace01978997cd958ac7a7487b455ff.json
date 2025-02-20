@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                    SELECT MAX(index) as max_id, MIN(index) as min_id \n                    FROM transactions\n                    WHERE transactions.sender_index = $1\n                    AND type_account = ANY($2)\n                ",
+  "query": "\n                    SELECT MAX(index) as max_id, MIN(index) as min_id\n                    FROM transactions\n                    WHERE transactions.sender_index = $1\n                    AND type_account = ANY($2)\n                ",
   "describe": {
     "columns": [
       {
@@ -61,5 +61,5 @@
       null
     ]
   },
-  "hash": "e1c447033ddb5070048693a7f99642d90dae30fd506c4ccb92648104ba636ae4"
+  "hash": "423f208f0b81fc7d96656b005c2ef937c4ace01978997cd958ac7a7487b455ff"
 }
