@@ -4,21 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-Database schema version: 7
+Database schema version: 8
+
+
+### Changed
+
+- Use canonical address instead of account address while referring to accounts
 
 ### Added
 
 - Add validation of the affected rows for most mutating queries in the indexer. This allow the indexer to fail faster for these unexpected conditions.
 - Add query `Query::bakers` to the API, but without support for filtering removed bakers and sorting by APY and block commissions, this is to be added soon.
 - Add database migration 7 adding accumulated pool state to bakers table, for faster filtering based on these values.
-
-### Changed
-
-- Store canonical address as a column on the account
-
-### Added
-
 - Add query `BakerPool::delegators` which returns the delegators of a baker pool.
+- Store canonical address as a column on the account
 
 ### Fixed
 
