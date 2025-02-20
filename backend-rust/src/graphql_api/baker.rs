@@ -350,6 +350,27 @@ impl Baker {
         .ok_or_else(|| ApiError::InternalError("Division by zero".to_string()))?
         .into();
 
+        // The code is re-implemented from the node code so that the node and the
+        // CCDScan report the same values.
+        // https://github.com/Concordium/concordium-node/blob/3cb759e4607f20a9df94ace017f0e3c775d4cdb3/concordium-consensus/src/Concordium/Kontrol/Bakers.hs#L53
+
+        // The delegated capital cap is defined to be the minimum of the capital
+        // bound cap and the leverage bound cap:
+
+        // capital bound cap for pool p: Bₚ = floor( (κ * (T - Dₚ) - Cₚ) / (1 - K) )
+        // leverage bound cap for pool p: Lₚ = λ * Cₚ - Cₚ = (λ - 1) * Cₚ
+
+        // Where
+        // κ is the capital bound
+        // λ is the leverage bound
+        // T is the total staked capital, including passive delegation
+        // Dₚ is the delegated capital of pool p
+        // Cₚ is the equity capital (staked by the pool owner) of pool p
+
+        // let  capital_bound_cap_for_pool =
+        // let leverage_bound_cap_for_pool =
+        // let delegated_capital_cap =
+
         let out = BakerState::ActiveBakerState(Box::new(ActiveBakerState {
             staked_amount:    Amount::try_from(self.staked)?,
             restake_earnings: self.restake_earnings,
@@ -372,6 +393,7 @@ impl Baker {
                 total_stake_percentage,
                 total_stake: Amount::try_from(self.pool_total_staked)?,
                 delegated_stake: Amount::try_from(self.pool_total_staked - self.staked)?,
+                // delegated_stake_cap: delegated_capital_cap,
                 delegator_count: self.pool_delegator_count,
             },
             pending_change:   None, // This is not used starting from P7.
@@ -676,9 +698,9 @@ struct BakerPool<'a> {
     // /// brand new bakers where statistics have not been calculated yet. This
     // /// should be rare and only a temporary condition.
     // ranking_by_total_stake:  Ranking,
-    // /// The maximum amount that may be delegated to the pool, accounting for
-    // /// leverage and stake limits.
-    // delegated_stake_cap:     Amount,
+    /// The maximum amount that may be delegated to the pool, accounting for
+    /// leverage and stake limits.
+    // delegated_stake_cap: Amount,
     open_status: Option<BakerPoolOpenStatus>,
     metadata_url: Option<&'a str>,
     // TODO: apy(period: ApyPeriod!): PoolApy!
