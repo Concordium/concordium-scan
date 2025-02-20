@@ -17,7 +17,7 @@ use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
     base::{
-        contracts_common::{to_bytes, CanonicalAccountAddress},
+        contracts_common::{to_bytes, AccountAddress, CanonicalAccountAddress},
         smart_contracts::WasmVersion,
         transactions::{BlockItem, EncodedPayload, Payload},
     },
@@ -51,8 +51,7 @@ use prometheus_client::{
     registry::Registry,
 };
 use sqlx::PgPool;
-use std::{convert::TryInto};
-use concordium_rust_sdk::base::contracts_common::AccountAddress;
+use std::convert::TryInto;
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
@@ -1361,7 +1360,8 @@ impl PreparedBlockItemEvent {
                     AccountStatementEntryType::TransactionFee,
                 )?;
                 let event =
-                    PreparedEvent::prepare(node_client, data, details, item, &details.sender).await?;
+                    PreparedEvent::prepare(node_client, data, details, item, &details.sender)
+                        .await?;
                 Ok(PreparedBlockItemEvent::AccountTransaction(Box::new(
                     PreparedAccountTransaction {
                         fee,
@@ -1550,10 +1550,7 @@ impl PreparedEvent {
                 to,
                 ..
             } => PreparedEvent::CcdTransfer(PreparedCcdTransferEvent::prepare(
-                sender,
-                &to,
-                *amount,
-                height,
+                sender, &to, *amount, height,
             )?),
 
             AccountTransactionEffects::BakerAdded {
@@ -4144,28 +4141,26 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 transaction_fees,
                 baker_reward,
                 finalization_reward,
-            } => {
-                Self::Rewards(vec![
-                    AccountReceivedReward::prepare(
-                        account,
-                        transaction_fees.micro_ccd.try_into()?,
-                        block_height,
-                        AccountStatementEntryType::TransactionFeeReward,
-                    )?,
-                    AccountReceivedReward::prepare(
-                        account,
-                        baker_reward.micro_ccd.try_into()?,
-                        block_height,
-                        AccountStatementEntryType::BakerReward,
-                    )?,
-                    AccountReceivedReward::prepare(
-                        account,
-                        finalization_reward.micro_ccd.try_into()?,
-                        block_height,
-                        AccountStatementEntryType::FinalizationReward,
-                    )?,
-                ])
-            }
+            } => Self::Rewards(vec![
+                AccountReceivedReward::prepare(
+                    account,
+                    transaction_fees.micro_ccd.try_into()?,
+                    block_height,
+                    AccountStatementEntryType::TransactionFeeReward,
+                )?,
+                AccountReceivedReward::prepare(
+                    account,
+                    baker_reward.micro_ccd.try_into()?,
+                    block_height,
+                    AccountStatementEntryType::BakerReward,
+                )?,
+                AccountReceivedReward::prepare(
+                    account,
+                    finalization_reward.micro_ccd.try_into()?,
+                    block_height,
+                    AccountStatementEntryType::FinalizationReward,
+                )?,
+            ]),
             // TODO: Support these two types. (Deviates from Old CCDScan)
             SpecialTransactionOutcome::BlockAccrueReward {
                 ..
@@ -4250,7 +4245,7 @@ struct RestakeEarnings {
     /// The account address of the receiver of the reward.
     canonical_account_address: CanonicalAccountAddress,
     /// Amount of CCD received as reward.
-    amount:          i64,
+    amount:                    i64,
 }
 
 impl RestakeEarnings {
