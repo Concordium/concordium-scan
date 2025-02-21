@@ -3,6 +3,7 @@ ALTER TABLE current_chain_parameters
     -- The maximum leverage bound (also called leverage factor in the node API) that a baker can have as a ratio of the total stake in the protocol (from all bakers) 
     -- to the equity capital of one baker (only the baker's own stake, but not including delegated stake to the baker). 
     -- The value is 1 or greater (1 <= leverage_bound).
+    -- The value's numerator and denominator is stored.
     -- The `leverage_bound` helps maintain network decentralization by preventing a single baker from gaining excessive power in the consensus protocol.
     ADD COLUMN leverage_bound_numerator
         BIGINT

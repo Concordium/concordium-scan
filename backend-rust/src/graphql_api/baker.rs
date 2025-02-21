@@ -342,6 +342,8 @@ impl Baker {
                 .fetch_one(pool)
                 .await?;
 
+        let delegated_stake_of_pool = self.pool_total_staked - self.staked;
+
         // Division by 0 is not possible because `pool_total_staked` is always a
         // positive number.
         let total_stake_percentage = (rust_decimal::Decimal::from(self.pool_total_staked)
@@ -369,7 +371,7 @@ impl Baker {
         // Cₚ is the equity capital (staked by the pool owner) of pool p
 
         let current_chain_parameters = sqlx::query_as!(
-            StakeBounds,
+            DelegatedStakeBounds,
             "
             SELECT 
                 leverage_bound_numerator,
@@ -382,15 +384,37 @@ impl Baker {
         .fetch_one(pool)
         .await?;
 
-        let leverage_bound: f64 = (current_chain_parameters.leverage_bound_numerator
-            / current_chain_parameters.leverage_bound_denominator)
-            as f64;
-
+        let leverage_bound: f64 = current_chain_parameters.leverage_bound_numerator as f64
+            / current_chain_parameters.leverage_bound_denominator as f64;
         let leverage_bound_cap_for_pool: Amount = ((leverage_bound - 1f64) * self.staked as f64)
             .try_into()
             .map_err(|e: anyhow::Error| ApiError::InternalError(e.to_string()))?;
-        // TODO
-        let capital_bound_cap_for_pool = leverage_bound_cap_for_pool;
+
+        // The value is stored as a fraction with precision of `1/100_000` in the
+        // database.
+        let capital_bound: f64 = current_chain_parameters.capital_bound as f64 / 100000f64;
+
+        let capital_bound_cap_for_pool: Amount = if capital_bound == 1f64 {
+            // To avoid dividing by 0 in the `capital bound cap` formula,
+            // we only apply the `leverage_bound_cap_for_pool` in that case.
+            leverage_bound_cap_for_pool
+        } else {
+            let capital_bound_cap_for_pool_numerator: f64 = capital_bound
+                * ((total_stake - delegated_stake_of_pool) as f64)
+                - self.staked as f64;
+
+            // Denominator is not zero since we checked that `capital_bound != 1`.
+            let capital_bound_cap_for_pool_denominator: f64 = 1f64 - capital_bound;
+
+            let capital_bound_cap_for_pool: f64 =
+                capital_bound_cap_for_pool_numerator / capital_bound_cap_for_pool_denominator;
+
+            capital_bound_cap_for_pool
+                .floor()
+                .try_into()
+                .map_err(|e: anyhow::Error| ApiError::InternalError(e.to_string()))?
+        };
+
         let delegated_stake_cap = min(leverage_bound_cap_for_pool, capital_bound_cap_for_pool);
 
         let out = BakerState::ActiveBakerState(Box::new(ActiveBakerState {
@@ -414,7 +438,7 @@ impl Baker {
                 metadata_url: self.metadata_url.as_deref(),
                 total_stake_percentage,
                 total_stake: Amount::try_from(self.pool_total_staked)?,
-                delegated_stake: Amount::try_from(self.pool_total_staked - self.staked)?,
+                delegated_stake: Amount::try_from(delegated_stake_of_pool)?,
                 delegated_stake_cap,
                 delegator_count: self.pool_delegator_count,
             },
@@ -721,7 +745,7 @@ struct BakerPool<'a> {
     // /// should be rare and only a temporary condition.
     // ranking_by_total_stake:  Ranking,
     /// The maximum amount that may be delegated to the pool, accounting for
-    /// leverage and stake limits.
+    /// leverage and capital bounds.
     delegated_stake_cap: Amount,
     open_status: Option<BakerPoolOpenStatus>,
     metadata_url: Option<&'a str>,
@@ -853,8 +877,26 @@ struct CommissionRates {
     baking_commission:       Option<Decimal>,
 }
 
-struct StakeBounds {
+struct DelegatedStakeBounds {
+    /// The maximum leverage bound (also called leverage factor in the node API)
+    /// that a baker can have as a ratio of the total stake in the protocol
+    /// (from all bakers) to the equity capital of one baker (only the
+    /// baker's own stake, but not including delegated stake to the baker).
+    /// The value is 1 or greater (1 <= leverage_bound).
+    /// The value's numerator and denominator is stored.
+    /// The `leverage_bound` helps maintain network decentralization by
+    /// preventing a single baker from gaining excessive power in the consensus
+    /// protocol.
     leverage_bound_numerator:   i64,
     leverage_bound_denominator: i64,
+    /// A maximum capital bound that a baker can have as a ratio of the baker's
+    /// own stake (only the baker's own stake, not including the delegated
+    /// stake to the baker) to the total staked capital of that baker (including
+    /// the baker's own stake and the delegated stake to the baker).
+    /// This value is always greater than 0  (capital_bound > 0).
+    /// The value is stored as a fraction with precision of `1/100_000`. For
+    /// example, a capital bound of 0.05 is stored as 50000.
+    /// The `capital_bound` ensures that each baker has skin in the game by
+    /// providing some of the CCD staked from its own funds.
     capital_bound:              i64,
 }
