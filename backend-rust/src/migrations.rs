@@ -7,10 +7,10 @@ use tracing::info;
 
 type Transaction = sqlx::Transaction<'static, sqlx::Postgres>;
 
+mod m00010_fill_capital_bound_and_leverage_bound;
 mod m0005_fix_dangling_delegators;
 mod m0006_fix_stake;
 mod m0008_canonical_address_and_transaction_search_index;
-mod m00010_fill_capital_bound_and_leverage_bound;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.
@@ -195,16 +195,16 @@ pub enum SchemaVersion {
     AccountBaseAddress,
     #[display("0009:StakedPoolSizeConstraint")]
     StakedPoolSizeConstraint,
-    #[display("00010:Fix staked amounts")]
-    DelegatedCapitalCap
+    #[display("00010:Add delegated stake cap")]
+    DelegatedStakeCap,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking database schema versions have been
     /// introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::DelegatedCapitalCap;
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::DelegatedStakeCap;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::DelegatedCapitalCap;
+    const LATEST: SchemaVersion = SchemaVersion::DelegatedStakeCap;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -229,7 +229,7 @@ impl SchemaVersion {
             SchemaVersion::AddAccumulatedPoolState => false,
             SchemaVersion::AccountBaseAddress => false,
             SchemaVersion::StakedPoolSizeConstraint => false,
-            SchemaVersion::DelegatedCapitalCap => false,
+            SchemaVersion::DelegatedStakeCap => false,
         }
     }
 
@@ -289,12 +289,17 @@ impl SchemaVersion {
                     )))
                     .await?;
                 SchemaVersion::StakedPoolSizeConstraint
-            } 
-            SchemaVersion::StakedPoolSizeConstraint => {
-                let next_schema_version = SchemaVersion::DelegatedCapitalCap;
-                m00010_fill_capital_bound_and_leverage_bound::run(&mut tx, endpoints, next_schema_version).await?
             }
-            SchemaVersion::DelegatedCapitalCap => unimplemented!(
+            SchemaVersion::StakedPoolSizeConstraint => {
+                let next_schema_version = SchemaVersion::DelegatedStakeCap;
+                m00010_fill_capital_bound_and_leverage_bound::run(
+                    &mut tx,
+                    endpoints,
+                    next_schema_version,
+                )
+                .await?
+            }
+            SchemaVersion::DelegatedStakeCap => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
