@@ -728,24 +728,35 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
         let current_epoch_duration =
             client.get_consensus_info().await?.epoch_duration.num_milliseconds();
 
-        // Get the current `reward_period_length` value.
+        // Get the current `reward_period_length, `capital_bound` and `leverage_bound`
+        // value.
         let current_chain_parmeters =
             client.get_block_chain_parameters(BlockIdentifier::LastFinal).await?.response;
-        let current_reward_period_length = match current_chain_parmeters {
-            ChainParameters::V3(chain_parameters_v3) => {
-                chain_parameters_v3.time_parameters.reward_period_length
-            }
-            ChainParameters::V2(chain_parameters_v2) => {
-                chain_parameters_v2.time_parameters.reward_period_length
-            }
-            ChainParameters::V1(chain_parameters_v1) => {
-                chain_parameters_v1.time_parameters.reward_period_length
-            }
-            ChainParameters::V0(_) => unimplemented!(
-                "Expect the node to have caught up enought for the `reward_period_length` value \
-                 being available."
-            ),
-        };
+        let (current_reward_period_length, capital_bound, leverage_bound) =
+            match current_chain_parmeters {
+                ChainParameters::V3(chain_parameters_v3) => (
+                    chain_parameters_v3.time_parameters.reward_period_length,
+                    chain_parameters_v3.pool_parameters.capital_bound,
+                    chain_parameters_v3.pool_parameters.leverage_bound,
+                ),
+                ChainParameters::V2(chain_parameters_v2) => (
+                    chain_parameters_v2.time_parameters.reward_period_length,
+                    chain_parameters_v2.pool_parameters.capital_bound,
+                    chain_parameters_v2.pool_parameters.leverage_bound,
+                ),
+                ChainParameters::V1(chain_parameters_v1) => (
+                    chain_parameters_v1.time_parameters.reward_period_length,
+                    chain_parameters_v1.pool_parameters.capital_bound,
+                    chain_parameters_v1.pool_parameters.leverage_bound,
+                ),
+                ChainParameters::V0(_) => unimplemented!(
+                    "Expect the node to have caught up enought for the `reward_period_length`, \
+                     `capital_bound` and `leverage_bound` values being available."
+                ),
+            };
+
+        let capital_bound =
+            i64::from(u32::from(PartsPerHundredThousands::from(capital_bound.bound)));
 
         let genesis_block_info = client.get_block_info(genesis_height).await?.response;
         let block_hash = genesis_block_info.block_hash.to_string();
@@ -786,11 +797,28 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
         .await?;
 
         sqlx::query!(
-            "INSERT INTO current_chain_parameters (
-                epoch_duration, reward_period_length
-            ) VALUES ($1, $2);",
+            "
+            INSERT INTO current_chain_parameters (
+                id, 
+                epoch_duration, 
+                reward_period_length, 
+                capital_bound, 
+                leverage_bound_numerator, 
+                leverage_bound_denominator
+            ) VALUES (true, $1, $2, $3, $4, $5)
+            ON CONFLICT (id) 
+            DO UPDATE SET 
+                epoch_duration = EXCLUDED.epoch_duration,
+                reward_period_length = EXCLUDED.reward_period_length,
+                capital_bound = EXCLUDED.capital_bound,
+                leverage_bound_numerator = EXCLUDED.leverage_bound_numerator,
+                leverage_bound_denominator = EXCLUDED.leverage_bound_denominator;
+            ",
             current_epoch_duration,
-            current_reward_period_length.reward_period_epochs().epoch as i64,
+            i64::try_from(current_reward_period_length.reward_period_epochs().epoch)?,
+            capital_bound,
+            i64::try_from(leverage_bound.numerator)?,
+            i64::try_from(leverage_bound.denominator)?
         )
         .execute(&mut *tx)
         .await?;

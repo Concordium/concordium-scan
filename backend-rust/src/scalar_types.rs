@@ -28,6 +28,10 @@ pub type MetadataUrl = String;
     serde::Deserialize,
     derive_more::From,
     derive_more::FromStr,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
 )]
 #[repr(transparent)]
 #[serde(transparent)]
@@ -67,6 +71,30 @@ impl TryFrom<UnsignedLong> for i64 {
 
 impl From<concordium_rust_sdk::common::types::Amount> for UnsignedLong {
     fn from(value: concordium_rust_sdk::common::types::Amount) -> Self { Self(value.micro_ccd()) }
+}
+
+impl TryFrom<f64> for UnsignedLong {
+    type Error = anyhow::Error;
+
+    fn try_from(value: f64) -> Result<Self, Self::Error> {
+        if value < 0.0 {
+            return Err(anyhow::anyhow!(
+                "Failed to convert f64 to `UnsignedLong` scalar type. Actual value is negative: \
+                 {:?}.",
+                value
+            ));
+        }
+
+        if value <= u64::MAX as f64 {
+            Ok((value as u64).into())
+        } else {
+            Err(anyhow::anyhow!(
+                "Failed to convert f64 to `UnsignedLong` scalar type. Actual value `{:?}` is too \
+                 large.",
+                value
+            ))
+        }
+    }
 }
 
 /// The `Long` scalar type represents non-fractional signed whole 64-bit numeric

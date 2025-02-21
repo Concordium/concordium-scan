@@ -68,6 +68,8 @@ pub async fn run(
             ) VALUES (true, $1, $2, $3, $4, $5)
             ON CONFLICT (id) 
             DO UPDATE SET 
+                epoch_duration = EXCLUDED.epoch_duration,
+                reward_period_length = EXCLUDED.reward_period_length,
                 capital_bound = EXCLUDED.capital_bound,
                 leverage_bound_numerator = EXCLUDED.leverage_bound_numerator,
                 leverage_bound_denominator = EXCLUDED.leverage_bound_denominator;
