@@ -367,7 +367,7 @@ impl Baker {
         // Dₚ is the delegated capital of pool p
         // Cₚ is the equity capital (staked by the pool owner) of pool p
 
-        // let  capital_bound_cap_for_pool =
+        // let capital_bound_cap_for_pool =
         // let leverage_bound_cap_for_pool =
         // let delegated_capital_cap =
 
