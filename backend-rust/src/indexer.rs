@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use crate::{
     block_special_event::{SpecialEvent, SpecialEventTypeFilter},
     graphql_api::AccountStatementEntryType,
@@ -52,7 +51,7 @@ use prometheus_client::{
     registry::Registry,
 };
 use sqlx::PgPool;
-use std::convert::TryInto;
+use std::{collections::HashSet, convert::TryInto};
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
@@ -1219,7 +1218,12 @@ impl PreparedBlockItem {
             (None, Some(reject))
         };
         let affected_accounts = item_summary
-            .affected_addresses().iter().map(|acc| acc.get_canonical_address().0.to_vec()).collect::<HashSet<Vec<u8>>>().into_iter().collect();
+            .affected_addresses()
+            .iter()
+            .map(|acc| acc.get_canonical_address().0.to_vec())
+            .collect::<HashSet<Vec<u8>>>()
+            .into_iter()
+            .collect();
 
         let prepared_event =
             PreparedBlockItemEvent::prepare(node_client, data, item_summary, item).await?;

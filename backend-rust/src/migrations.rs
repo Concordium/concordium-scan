@@ -279,13 +279,17 @@ impl SchemaVersion {
                 m0008_canonical_address_and_transaction_search_index::run(&mut tx).await?
             }
             SchemaVersion::AccountBaseAddress => {
-                tx.as_mut().execute(sqlx::raw_sql(include_str!("./migrations/m0009_pool_info_constraint.sql"))).await?;
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0009_pool_info_constraint.sql"
+                    )))
+                    .await?;
                 SchemaVersion::StakedPoolSizeConstraint
-            },
+            }
             SchemaVersion::StakedPoolSizeConstraint => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
-            )
+            ),
         };
         let end_time = chrono::Utc::now();
         insert_migration(&mut tx, &new_version.into(), start_time, end_time).await?;
