@@ -621,6 +621,8 @@ impl ProcessEvent for BlockProcessor {
             }
             block.special_transaction_outcomes.save(&mut tx).await?;
             block.baker_unmark_suspended.save(&mut tx).await?;
+            block.bakers_lottery_powers.save(&mut tx).await?;
+
             out.push_str(format!("\n- {}:{}", block.height, block.hash).as_str());
         }
         process_release_schedules(new_context.last_block_slot_time, &mut tx)
@@ -842,6 +844,9 @@ struct PreparedBlock {
     /// Unmark the baker and signers of the Quorum Certificate from being primed
     /// for suspension.
     baker_unmark_suspended: PreparedUnmarkPrimedForSuspension,
+    /// Represents the lottery power updates for bakers captured from
+    /// the `get_election_info` node endpoint.
+    bakers_lottery_powers: PreparedLotteryPowers,
 }
 
 impl PreparedBlock {
@@ -871,6 +876,11 @@ impl PreparedBlock {
         )
         .await?;
         let baker_unmark_suspended = PreparedUnmarkPrimedForSuspension::prepare(data)?;
+
+        let election_info =
+            node_client.get_election_info(data.finalized_block_info.height).await?.response;
+        let bakers_lottery_powers = PreparedLotteryPowers::prepare(election_info.bakers)?;
+
         Ok(Self {
             hash,
             height,
@@ -882,6 +892,7 @@ impl PreparedBlock {
             prepared_block_items,
             special_transaction_outcomes,
             baker_unmark_suspended,
+            bakers_lottery_powers,
         })
     }
 
@@ -933,18 +944,26 @@ impl PreparedBlock {
         }
 
         sqlx::query!(
-            "INSERT INTO blocks
-  (height, hash, slot_time, block_time, baker_id, total_amount, total_staked, cumulative_num_txs)
-SELECT * FROM UNNEST(
-  $1::BIGINT[],
-  $2::TEXT[],
-  $3::TIMESTAMPTZ[],
-  $4::BIGINT[],
-  $5::BIGINT[],
-  $6::BIGINT[],
-  $7::BIGINT[],
-  $8::BIGINT[]
-);",
+            "INSERT INTO blocks (
+                height, 
+                hash, 
+                slot_time, 
+                block_time, 
+                baker_id, 
+                total_amount, 
+                total_staked, 
+                cumulative_num_txs
+            )
+            SELECT * FROM UNNEST(
+                $1::BIGINT[],
+                $2::TEXT[],
+                $3::TIMESTAMPTZ[],
+                $4::BIGINT[],
+                $5::BIGINT[],
+                $6::BIGINT[],
+                $7::BIGINT[],
+                $8::BIGINT[]
+            );",
             &heights,
             &hashes,
             &slot_times,
@@ -4467,9 +4486,6 @@ struct PreparedPayDayBlock {
     /// Represents the payday baker pool commission rates captured from
     /// the `get_bakers_reward_period` node endpoint.
     payday_commission_rates: PreparedPaydayCommissionRates,
-    /// Represents the payday lottery power updates for bakers captured from
-    /// the `get_election_info` node endpoint.
-    bakers_lottery_powers:   PreparedPaydayLotteryPowers,
 }
 
 impl PreparedPayDayBlock {
@@ -4495,16 +4511,9 @@ impl PreparedPayDayBlock {
         let payday_commission_rates =
             PreparedPaydayCommissionRates::prepare(baker_reward_period_infos)?;
 
-        let election_info = node_client
-            .get_election_info(BlockIdentifier::AbsoluteHeight(block_height))
-            .await?
-            .response;
-        let bakers_lottery_powers = PreparedPaydayLotteryPowers::prepare(election_info.bakers)?;
-
         Ok(Self {
             block_height: block_height.height.try_into()?,
             payday_commission_rates,
-            bakers_lottery_powers,
         })
     }
 
@@ -4514,9 +4523,6 @@ impl PreparedPayDayBlock {
     ) -> anyhow::Result<()> {
         // Save the commission rates to the database.
         self.payday_commission_rates.save(tx).await?;
-
-        // Save the lottery_powers to the database.
-        self.bakers_lottery_powers.save(tx).await?;
 
         sqlx::query!(
             "UPDATE current_chain_parameters
@@ -4603,20 +4609,29 @@ impl PreparedPaydayCommissionRates {
     }
 }
 
-/// Represents the payday lottery power updates for bakers captured from
+/// Represents the lottery power updates for bakers captured from
 /// the `get_election_info` node endpoint.
-struct PreparedPaydayLotteryPowers {
+struct PreparedLotteryPowers {
     baker_ids:             Vec<i64>,
     bakers_lottery_powers: Vec<BigDecimal>,
+    ranks:                 Vec<i64>,
 }
 
-impl PreparedPaydayLotteryPowers {
+impl PreparedLotteryPowers {
     fn prepare(bakers: Vec<BirkBaker>) -> anyhow::Result<Self> {
         let capacity = bakers.len();
         let mut baker_ids: Vec<i64> = Vec::with_capacity(capacity);
         let mut bakers_lottery_powers: Vec<BigDecimal> = Vec::with_capacity(capacity);
+        let mut ranks: Vec<i64> = Vec::with_capacity(capacity);
 
-        for baker in bakers.iter() {
+        // Sort bakers by lottery power. The baker with the highest lottery power comes
+        // first in the vector and gets rank 1.
+        let mut sorted_bakers: Vec<&BirkBaker> = bakers.iter().collect();
+        sorted_bakers.sort_by(|self_baker, other_baker| {
+            self_baker.baker_lottery_power.total_cmp(&other_baker.baker_lottery_power)
+        });
+
+        for (rank, baker) in sorted_bakers.iter().enumerate() {
             baker_ids.push(i64::try_from(baker.baker_id.id.index)?);
             bakers_lottery_powers.push(
                 BigDecimal::from_f64(baker.baker_lottery_power)
@@ -4626,11 +4641,13 @@ impl PreparedPaydayLotteryPowers {
                     )
                     .map_err(RPCError::ParseError)?,
             );
+            ranks.push(rank as i64 + 1);
         }
 
         Ok(Self {
             baker_ids,
             bakers_lottery_powers,
+            ranks,
         })
     }
 
@@ -4640,21 +4657,24 @@ impl PreparedPaydayLotteryPowers {
     ) -> anyhow::Result<()> {
         sqlx::query!(
             "DELETE FROM
-                bakers_payday_lottery_powers"
+                bakers_lottery_powers"
         )
         .execute(tx.as_mut())
         .await?;
 
         sqlx::query!(
-            "INSERT INTO bakers_payday_lottery_powers (
+            "INSERT INTO bakers_lottery_powers (
                 id,
-                payday_lottery_power
+                lottery_power,
+                ranking_by_lottery_powers
             )
             SELECT
                 UNNEST($1::BIGINT[]) AS id,
-                UNNEST($2::NUMERIC[]) AS payday_lottery_power",
+                UNNEST($2::NUMERIC[]) AS lottery_power,
+                UNNEST($3::BIGINT[]) AS ranking_by_lottery_powers",
             &self.baker_ids,
-            &self.bakers_lottery_powers
+            &self.bakers_lottery_powers,
+            &self.ranks
         )
         .execute(tx.as_mut())
         .await?;
