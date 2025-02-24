@@ -80,7 +80,7 @@ impl QueryBaker {
                     payday_finalization_commission as "payday_finalization_commission?",
                     lottery_power as "lottery_power?",
                     ranking_by_lottery_powers as "ranking_by_lottery_powers?",
-                    MAX(ranking_by_lottery_powers) as "total_ranking_by_lottery_powers?",
+                    (SELECT MAX(ranking_by_lottery_powers) FROM bakers_lottery_powers) as "total_ranking_by_lottery_powers?",
                     pool_total_staked,
                     pool_delegator_count
                 FROM bakers
@@ -279,7 +279,7 @@ impl Baker {
                 payday_finalization_commission as "payday_finalization_commission?",
                 lottery_power as "lottery_power?",
                 ranking_by_lottery_powers as "ranking_by_lottery_powers?",
-                MAX(ranking_by_lottery_powers) as "total_ranking_by_lottery_powers?",
+                (SELECT MAX(ranking_by_lottery_powers) FROM bakers_lottery_powers) as "total_ranking_by_lottery_powers?",
                 pool_total_staked,
                 pool_delegator_count
             FROM bakers

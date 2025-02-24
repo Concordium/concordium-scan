@@ -4641,7 +4641,7 @@ impl PreparedLotteryPowers {
                     )
                     .map_err(RPCError::ParseError)?,
             );
-            ranks.push(rank as i64 + 1);
+            ranks.push((capacity - rank) as i64);
         }
 
         Ok(Self {
