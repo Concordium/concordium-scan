@@ -197,14 +197,17 @@ pub enum SchemaVersion {
     StakedPoolSizeConstraint,
     #[display("0010:Add delegated stake cap")]
     DelegatedStakeCap,
+    #[display("0011:RankingByTotalStake")]
+    RankingByTotalStake,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking database schema versions have been
     /// introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::DelegatedStakeCap;
+
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::RankingByTotalStake;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::DelegatedStakeCap;
+    const LATEST: SchemaVersion = SchemaVersion::RankingByTotalStake;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -230,6 +233,7 @@ impl SchemaVersion {
             SchemaVersion::AccountBaseAddress => false,
             SchemaVersion::StakedPoolSizeConstraint => false,
             SchemaVersion::DelegatedStakeCap => false,
+            SchemaVersion::RankingByTotalStake => false,  
         }
     }
 
@@ -299,7 +303,11 @@ impl SchemaVersion {
                 )
                 .await?
             }
-            SchemaVersion::DelegatedStakeCap => unimplemented!(
+            SchemaVersion::DelegatedStakeCap => {
+                tx.as_mut().execute(sqlx::raw_sql(include_str!("./migrations/m0011-ranking-by-total-stake.sql"))).await?;
+                SchemaVersion::RankingByTotalStake
+            }
+            SchemaVersion::RankingByTotalStake => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
