@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.27] - 2025-02-24
+
+### Fixed
+
+- Removal of duplication on affected accounts in transactions
+- Altering constraint in the database on the stacked amount in the pool to be allowing zero value
+
 ## [0.1.26] - 2025-02-20
 
 Database schema version: 8

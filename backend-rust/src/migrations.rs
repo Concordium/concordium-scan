@@ -192,6 +192,8 @@ pub enum SchemaVersion {
     AddAccumulatedPoolState,
     #[display("0008:AccountBaseAddress")]
     AccountBaseAddress,
+    #[display("0009:StakedPoolSizeConstraint")]
+    StakedPoolSizeConstraint,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -199,7 +201,7 @@ impl SchemaVersion {
     /// introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::AddAccumulatedPoolState;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::AccountBaseAddress;
+    const LATEST: SchemaVersion = SchemaVersion::StakedPoolSizeConstraint;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -223,6 +225,7 @@ impl SchemaVersion {
             SchemaVersion::FixStakedAmounts => false,
             SchemaVersion::AddAccumulatedPoolState => false,
             SchemaVersion::AccountBaseAddress => false,
+            SchemaVersion::StakedPoolSizeConstraint => false,
         }
     }
 
@@ -275,10 +278,14 @@ impl SchemaVersion {
             SchemaVersion::AddAccumulatedPoolState => {
                 m0008_canonical_address_and_transaction_search_index::run(&mut tx).await?
             }
-            SchemaVersion::AccountBaseAddress => unimplemented!(
+            SchemaVersion::AccountBaseAddress => {
+                tx.as_mut().execute(sqlx::raw_sql(include_str!("./migrations/m0009_pool_info_constraint.sql"))).await?;
+                SchemaVersion::StakedPoolSizeConstraint
+            },
+            SchemaVersion::StakedPoolSizeConstraint => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
-            ),
+            )
         };
         let end_time = chrono::Utc::now();
         insert_migration(&mut tx, &new_version.into(), start_time, end_time).await?;
