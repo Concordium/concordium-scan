@@ -1160,7 +1160,7 @@ struct PreparedBlockItem {
     events:            Option<serde_json::Value>,
     /// Reject reason the block item. Is none for successful block items.
     reject:            Option<PreparedTransactionRejectReason>,
-    /// All affected accounts for this transaction. Each entry is the `String`
+    /// All affected accounts for this transaction. Each entry is the binary
     /// representation of an account address.
     affected_accounts: Vec<Vec<u8>>,
     /// Block item events prepared for inserting into the database.
