@@ -401,11 +401,14 @@ impl Baker {
                 "`leverage_bound_numerator` is negative in the database".to_string(),
             ));
         }
-        if current_chain_parameters.leverage_bound_denominator < 0 {
+        if current_chain_parameters.leverage_bound_denominator <= 0 {
             return Err(ApiError::InternalError(
-                "`leverage_bound_denominator` is negative in the database".to_string(),
+                "`leverage_bound_denominator` is not greater than 0 in the database".to_string(),
             ));
         }
+        // Equality checks on floating point numbers should be avoided in general,
+        // although this seems to be within the safe zone since the the leverage bound
+        // as set in the chain parameter is not close to 1 at all.
         if (current_chain_parameters.leverage_bound_numerator as f64)
             / (current_chain_parameters.leverage_bound_denominator as f64)
             < 1f64
@@ -420,19 +423,28 @@ impl Baker {
             ));
         }
 
+        // Calculating the `leverage_bound_cap`
+
         // To reduce loss of precision, the value is computed in u128.
-        let leverage_bound_cap_for_pool: u64 = (((current_chain_parameters.leverage_bound_numerator
-            - current_chain_parameters.leverage_bound_denominator)
-            as u128
-            * self.staked as u128)
-            / (current_chain_parameters.leverage_bound_denominator as u128))
+        let leverage_bound_cap_for_pool_numerator: u128 =
+            (current_chain_parameters.leverage_bound_numerator
+                - current_chain_parameters.leverage_bound_denominator) as u128
+                * self.staked as u128;
+        // Denominator is not zero since we checked that before.
+        let leverage_bound_cap_for_pool_denominator: u128 =
+            current_chain_parameters.leverage_bound_denominator as u128;
+
+        let leverage_bound_cap_for_pool: u64 = (leverage_bound_cap_for_pool_numerator
+            / leverage_bound_cap_for_pool_denominator)
             .try_into()
             .unwrap_or(u64::MAX);
         let leverage_bound_cap_for_pool: Amount = leverage_bound_cap_for_pool.into();
 
+        // Calculating the `capital_bound_cap`
+
         let capital_bound: u128 = current_chain_parameters.capital_bound as u128;
 
-        let capital_bound_cap_for_pool: Amount = if capital_bound == 1u128 {
+        let capital_bound_cap_for_pool: Amount = if capital_bound == 100_000u128 {
             // To avoid dividing by 0 in the `capital bound cap` formula,
             // we only apply the `leverage_bound_cap_for_pool` in that case.
             leverage_bound_cap_for_pool
@@ -445,7 +457,7 @@ impl Baker {
                 * ((total_stake - delegated_stake_of_pool) as u128)
                 - (100_000 * (self.staked as u128));
 
-            // Denominator is not zero since we checked that `capital_bound != 1`.
+            // Denominator is not zero since we checked that `capital_bound != 100_000`.
             let capital_bound_cap_for_pool_denominator: u128 = 100_000u128 - capital_bound;
 
             let capital_bound_cap_for_pool: u64 = (capital_bound_cap_for_pool_numerator

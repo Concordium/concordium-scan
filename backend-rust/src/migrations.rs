@@ -7,10 +7,10 @@ use tracing::info;
 
 type Transaction = sqlx::Transaction<'static, sqlx::Postgres>;
 
-mod m00010_fill_capital_bound_and_leverage_bound;
 mod m0005_fix_dangling_delegators;
 mod m0006_fix_stake;
 mod m0008_canonical_address_and_transaction_search_index;
+mod m0010_fill_capital_bound_and_leverage_bound;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.
@@ -292,7 +292,7 @@ impl SchemaVersion {
             }
             SchemaVersion::StakedPoolSizeConstraint => {
                 let next_schema_version = SchemaVersion::DelegatedStakeCap;
-                m00010_fill_capital_bound_and_leverage_bound::run(
+                m0010_fill_capital_bound_and_leverage_bound::run(
                     &mut tx,
                     endpoints,
                     next_schema_version,

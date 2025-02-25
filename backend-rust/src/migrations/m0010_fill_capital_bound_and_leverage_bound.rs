@@ -1,5 +1,9 @@
-//! Migration filling the newly added values `capital_bound` and
-//! `leverage_bound` to the database.
+//! Migration adding (or updating) the values to the database:
+//! - `epoch_duration`
+//! - `reward_period_length`
+//! - `capital_bound`
+//! - `leverage_bound_numerator`
+//! - `leverage_bound_denominator`
 
 use super::{SchemaVersion, Transaction};
 use anyhow::Context;
@@ -18,7 +22,7 @@ pub async fn run(
 ) -> anyhow::Result<SchemaVersion> {
     // Run database migration first to add the new columns.
     tx.as_mut()
-        .execute(sqlx::raw_sql(include_str!("./m00010_fill_capital_bound_and_leverage_bound.sql")))
+        .execute(sqlx::raw_sql(include_str!("./m0010_fill_capital_bound_and_leverage_bound.sql")))
         .await?;
 
     let endpoint = endpoints.first().context(format!(
