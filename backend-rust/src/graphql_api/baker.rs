@@ -406,12 +406,9 @@ impl Baker {
                 "`leverage_bound_denominator` is not greater than 0 in the database".to_string(),
             ));
         }
-        // Equality checks on floating point numbers should be avoided in general,
-        // although this seems to be within the safe zone since the leverage bound
-        // as set in the chain parameter is not close to 1 at all.
-        if (current_chain_parameters.leverage_bound_numerator as f64)
-            / (current_chain_parameters.leverage_bound_denominator as f64)
-            < 1f64
+
+        if current_chain_parameters.leverage_bound_numerator
+            < current_chain_parameters.leverage_bound_denominator
         {
             return Err(ApiError::InternalError(
                 "`leverage_bound` is smaller than 1 in the database".to_string(),
@@ -447,7 +444,7 @@ impl Baker {
         let capital_bound_cap_for_pool: Amount = if capital_bound == 100_000u128 {
             // To avoid dividing by 0 in the `capital bound cap` formula,
             // we only apply the `leverage_bound_cap_for_pool` in that case.
-            leverage_bound_cap_for_pool
+            u64::MAX.into()
         } else {
             // Since the `capital_bound` is stored as a fraction with precision of
             // `1/100_000` in the database, we multiply the numerator and
