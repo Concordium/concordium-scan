@@ -407,7 +407,7 @@ impl Baker {
             ));
         }
         // Equality checks on floating point numbers should be avoided in general,
-        // although this seems to be within the safe zone since the the leverage bound
+        // although this seems to be within the safe zone since the leverage bound
         // as set in the chain parameter is not close to 1 at all.
         if (current_chain_parameters.leverage_bound_numerator as f64)
             / (current_chain_parameters.leverage_bound_denominator as f64)

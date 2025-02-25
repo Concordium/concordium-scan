@@ -195,7 +195,7 @@ pub enum SchemaVersion {
     AccountBaseAddress,
     #[display("0009:StakedPoolSizeConstraint")]
     StakedPoolSizeConstraint,
-    #[display("00010:Add delegated stake cap")]
+    #[display("0010:Add delegated stake cap")]
     DelegatedStakeCap,
 }
 impl SchemaVersion {
