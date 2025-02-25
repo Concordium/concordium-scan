@@ -392,35 +392,68 @@ impl Baker {
         .fetch_one(pool)
         .await?;
 
-        let leverage_bound: f64 = current_chain_parameters.leverage_bound_numerator as f64
-            / current_chain_parameters.leverage_bound_denominator as f64;
-        let leverage_bound_cap_for_pool: Amount = ((leverage_bound - 1f64) * self.staked as f64)
+        // The `leverage_bound` and `capital_bound` are Concordium chain parameters that
+        // were set adhering to the below constraints to ensure the consensus
+        // algorithm works. We check these constraints here to ensure the values
+        // have been saved in this format to the database.
+        if current_chain_parameters.leverage_bound_numerator < 0 {
+            return Err(ApiError::InternalError(
+                "`leverage_bound_numerator` is negative in the database".to_string(),
+            ));
+        }
+        if current_chain_parameters.leverage_bound_denominator < 0 {
+            return Err(ApiError::InternalError(
+                "`leverage_bound_denominator` is negative in the database".to_string(),
+            ));
+        }
+        if (current_chain_parameters.leverage_bound_numerator as f64)
+            / (current_chain_parameters.leverage_bound_denominator as f64)
+            < 1f64
+        {
+            return Err(ApiError::InternalError(
+                "`leverage_bound` is smaller than 1 in the database".to_string(),
+            ));
+        }
+        if current_chain_parameters.capital_bound <= 0 {
+            return Err(ApiError::InternalError(
+                "`capital_bound` is not greater than 0 in the database".to_string(),
+            ));
+        }
+
+        // To reduce loss of precision, the value is computed in u128.
+        let leverage_bound_cap_for_pool: u64 = (((current_chain_parameters.leverage_bound_numerator
+            - current_chain_parameters.leverage_bound_denominator)
+            as u128
+            * self.staked as u128)
+            / (current_chain_parameters.leverage_bound_denominator as u128))
             .try_into()
-            .map_err(|e: anyhow::Error| ApiError::InternalError(e.to_string()))?;
+            .unwrap_or(u64::MAX);
+        let leverage_bound_cap_for_pool: Amount = leverage_bound_cap_for_pool.into();
 
-        // The value is stored as a fraction with precision of `1/100_000` in the
-        // database.
-        let capital_bound: f64 = current_chain_parameters.capital_bound as f64 / 100000f64;
+        let capital_bound: u128 = current_chain_parameters.capital_bound as u128;
 
-        let capital_bound_cap_for_pool: Amount = if capital_bound == 1f64 {
+        let capital_bound_cap_for_pool: Amount = if capital_bound == 1u128 {
             // To avoid dividing by 0 in the `capital bound cap` formula,
             // we only apply the `leverage_bound_cap_for_pool` in that case.
             leverage_bound_cap_for_pool
         } else {
-            let capital_bound_cap_for_pool_numerator: f64 = capital_bound
-                * ((total_stake - delegated_stake_of_pool) as f64)
-                - self.staked as f64;
+            // Since the `capital_bound` is stored as a fraction with precision of
+            // `1/100_000` in the database, we multiply the numerator and
+            // denominator by 100_000. To reduce loss of precision, the value is computed in
+            // u128.
+            let capital_bound_cap_for_pool_numerator = capital_bound as u128
+                * ((total_stake - delegated_stake_of_pool) as u128)
+                - (100_000 * (self.staked as u128));
 
             // Denominator is not zero since we checked that `capital_bound != 1`.
-            let capital_bound_cap_for_pool_denominator: f64 = 1f64 - capital_bound;
+            let capital_bound_cap_for_pool_denominator: u128 = 100_000u128 - capital_bound;
 
-            let capital_bound_cap_for_pool: f64 =
-                capital_bound_cap_for_pool_numerator / capital_bound_cap_for_pool_denominator;
-
-            capital_bound_cap_for_pool
-                .floor()
+            let capital_bound_cap_for_pool: u64 = (capital_bound_cap_for_pool_numerator
+                / capital_bound_cap_for_pool_denominator)
                 .try_into()
-                .map_err(|e: anyhow::Error| ApiError::InternalError(e.to_string()))?
+                .unwrap_or(u64::MAX);
+
+            capital_bound_cap_for_pool.into()
         };
 
         let delegated_stake_cap = min(leverage_bound_cap_for_pool, capital_bound_cap_for_pool);
@@ -918,7 +951,7 @@ struct DelegatedStakeBounds {
     ///
     /// The capital bound is always greater than 0 (capital_bound > 0). The
     /// value is stored as a fraction with precision of `1/100_000`. For
-    /// example, a capital bound of 0.05 is stored as 50000.
+    /// example, a capital bound of 0.05 is stored as 5000.
     ///
     /// The `capital_bound` helps maintain network
     /// decentralization by preventing a single baker from gaining excessive

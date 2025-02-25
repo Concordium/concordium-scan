@@ -53,8 +53,8 @@ pub async fn run(
                 chain_parameters_v1.pool_parameters.leverage_bound,
             ),
             ChainParameters::V0(_) => unimplemented!(
-                "Expect the node to have caught up enought for the `reward_period_length`, \
-                 `capital_bound` and `leverage_bound` values being available."
+                "Expect the node to have caught up enough for the `reward_period_length`, \
+                 `capital_bound` and `leverage_bound` values to be available."
             ),
         };
 

@@ -26,7 +26,7 @@ ALTER TABLE current_chain_parameters
     -- to lottery power or finalizer weight in the consensus algorithm, meaning that part of the baker's total stake will
     -- no longer be considered as effective stake.
     -- The capital bound is always greater than 0 (capital_bound > 0).
-    -- The value is stored as a fraction with precision of `1/100_000`. For example, a capital bound of 0.05 is stored as 50000.
+    -- The value is stored as a fraction with precision of `1/100_000`. For example, a capital bound of 0.05 is stored as 5000.
     -- The `capital_bound` helps maintain network decentralization by preventing a single baker from gaining excessive power in the consensus protocol.
     ADD COLUMN capital_bound 
         BIGINT
