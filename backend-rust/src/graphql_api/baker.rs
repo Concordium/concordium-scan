@@ -422,6 +422,23 @@ impl Baker {
 
         // Calculating the `leverage_bound_cap`
 
+        #[rustfmt::skip]
+        // Transformation applied to the `leverage_bound_cap_for_pool` formula:
+        //
+        // `leverage_bound_cap_for_pool`
+        // = (λ – 1) * Cₚ
+        // = (leverage_bound_numerator / leverage_bound_denominator – 1) * Cₚ
+        // = (leverage_bound_numerator / leverage_bound_denominator – (leverage_bound_denominator / leverage_bound_denominator)) * Cₚ
+        // = (leverage_bound_numerator – leverage_bound_denominator) / leverage_bound_denominator) * Cₚ
+        // = (leverage_bound_numerator – leverage_bound_denominator) * Cₚ / leverage_bound_denominator
+        //
+        // WHERE
+        // λ is the leverage bound
+        // Cₚ is the equity capital (staked by the pool owner excluding delegated stake
+        // to the pool) of pool p
+        // `leverage_bound_numerator` is the value as stored in the database
+        // `leverage_bound_denominator` is the value as stored in the database
+
         // To reduce loss of precision, the value is computed in u128.
         let leverage_bound_cap_for_pool_numerator: u128 =
             (current_chain_parameters.leverage_bound_numerator
@@ -439,6 +456,29 @@ impl Baker {
 
         // Calculating the `capital_bound_cap`
 
+        #[rustfmt::skip]
+        // Transformation applied to the `capital_bound_cap_for_pool` formula:
+        //
+        // `capital_bound_cap_for_pool`
+        // = floor( (κ * (T - Dₚ) - Cₚ) / (1 - K) )
+        // = floor( (capital_bound/100_000 * (T - Dₚ) - Cₚ) / (1 - capital_bound/100_000) )
+        // (Explanation: Since the `capital_bound (from the database)` is stored as a fraction with
+        // precision of `1/100_000` in the database)
+        //
+        // = floor( ((capital_bound / 100_000 * (T - Dₚ) - Cₚ)  / (1 - capital_bound / 100_000)) * 1 )
+        // = floor( ((capital_bound / 100_000 * (T - Dₚ) - Cₚ)  / (1 - capital_bound / 100_000)) * (100_000 / 100_000) )
+        // = floor( (capital_bound / 100_000 * (T - Dₚ) - Cₚ) * 100_000 / (1 - capital_bound / 100_000) * 100_000) )
+        // = floor( (capital_bound * (T - Dₚ) - 100_000 * Cₚ) / (100_000 - capital_bound) )
+
+        // WHERE
+        // κ is the capital bound
+        // T is the total staked capital on the whole chain (including passive
+        // delegation)
+        // Dₚ is the delegated capital of pool p
+        // Cₚ is the equity capital (staked by the pool owner excluding delegated stake
+        // to the pool) of pool p
+        // `capital_bound` is the value as stored in the database
+
         let capital_bound: u128 = current_chain_parameters.capital_bound as u128;
 
         let capital_bound_cap_for_pool: Amount = if capital_bound == 100_000u128 {
@@ -450,7 +490,7 @@ impl Baker {
             // `1/100_000` in the database, we multiply the numerator and
             // denominator by 100_000. To reduce loss of precision, the value is computed in
             // u128.
-            let capital_bound_cap_for_pool_numerator = capital_bound as u128
+            let capital_bound_cap_for_pool_numerator = capital_bound
                 * ((total_stake - delegated_stake_of_pool) as u128)
                 - (100_000 * (self.staked as u128));
 
