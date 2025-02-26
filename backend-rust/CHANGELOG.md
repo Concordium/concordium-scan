@@ -4,7 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.28] - 2025-02-26
+
 Database schema version: 10
+
+### Fixed
+
+- Make validation of rows changed to account tokens accept the zero value changed
 
 ### Added
 
