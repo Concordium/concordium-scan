@@ -10,7 +10,7 @@ Database schema version: 10
 
 ### Fixed
 
-- Make validation of rows changed to account tokens accept the zero value changed
+- Make validation of rows changed to account tokens accept the zero rows modified
 
 ### Added
 
