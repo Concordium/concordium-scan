@@ -6,8 +6,6 @@ All notable changes to this project will be documented in this file.
 
 Database schema version: 10
 
-### Fixed
-
 - Validation on rows affected on bakers only occurs after protocol version 7 is in effect. 
 
 ### Added
