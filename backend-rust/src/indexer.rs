@@ -3436,7 +3436,7 @@ async fn process_cis2_token_event(
                 .execute(tx.as_mut())
                 .await
                 .context("Failed inserting or updating account balance from burn event")?
-                .ensure_affected_one_row()?;
+                .ensure_affected_rows_in_range(0..=1)?;
             }
 
             // Insert the token event into the table.
@@ -3541,7 +3541,7 @@ async fn process_cis2_token_event(
                 .execute(tx.as_mut())
                 .await
                 .context("Failed inserting or updating account balance from transfer event (to)")?
-                .ensure_affected_one_row()?;
+                .ensure_affected_rows_in_range(0..=1)?;
             }
 
             // Insert the token event into the table.
