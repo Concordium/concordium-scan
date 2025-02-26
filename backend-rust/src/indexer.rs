@@ -4625,7 +4625,7 @@ impl PreparedLotteryPowers {
         let mut ranks: Vec<i64> = Vec::with_capacity(capacity);
 
         // Sort bakers by lottery power. The baker with the highest lottery power comes
-        // first in the vector and gets rank 1.
+        // last in the vector and gets rank 1.
         let mut sorted_bakers: Vec<&BirkBaker> = bakers.iter().collect();
         sorted_bakers.sort_by(|self_baker, other_baker| {
             self_baker.baker_lottery_power.total_cmp(&other_baker.baker_lottery_power)
