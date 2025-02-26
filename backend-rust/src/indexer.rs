@@ -1515,7 +1515,8 @@ impl PreparedEvent {
                 };
                 let prepared = PreparedBakerEvent::prepare(&event)?;
                 PreparedEvent::BakerEvents(PreparedBakerEvents {
-                    events: vec![prepared],
+                    events:           vec![prepared],
+                    protocol_version: data.block_info.protocol_version,
                 })
             }
             AccountTransactionEffects::BakerRemoved {
@@ -1526,7 +1527,8 @@ impl PreparedEvent {
                 };
                 let prepared = PreparedBakerEvent::prepare(&event)?;
                 PreparedEvent::BakerEvents(PreparedBakerEvents {
-                    events: vec![prepared],
+                    events:           vec![prepared],
+                    protocol_version: data.block_info.protocol_version,
                 })
             }
             AccountTransactionEffects::BakerStakeUpdated {
@@ -1551,7 +1553,8 @@ impl PreparedEvent {
                 let prepared = PreparedBakerEvent::prepare(&event)?;
 
                 PreparedEvent::BakerEvents(PreparedBakerEvents {
-                    events: vec![prepared],
+                    events:           vec![prepared],
+                    protocol_version: data.block_info.protocol_version,
                 })
             }
             AccountTransactionEffects::BakerRestakeEarningsUpdated {
@@ -1566,6 +1569,7 @@ impl PreparedEvent {
                 )?];
                 PreparedEvent::BakerEvents(PreparedBakerEvents {
                     events,
+                    protocol_version: data.block_info.protocol_version,
                 })
             }
             AccountTransactionEffects::BakerKeysUpdated {
@@ -1574,10 +1578,11 @@ impl PreparedEvent {
             AccountTransactionEffects::BakerConfigured {
                 data: events,
             } => PreparedEvent::BakerEvents(PreparedBakerEvents {
-                events: events
+                events:           events
                     .iter()
                     .map(PreparedBakerEvent::prepare)
                     .collect::<anyhow::Result<Vec<_>>>()?,
+                protocol_version: data.block_info.protocol_version,
             }),
 
             AccountTransactionEffects::EncryptedAmountTransferred {
@@ -2034,7 +2039,8 @@ impl MovePoolDelegatorsToPassivePool {
 /// Represent the events from configuring a baker.
 struct PreparedBakerEvents {
     /// Update the status of the baker.
-    events: Vec<PreparedBakerEvent>,
+    events:           Vec<PreparedBakerEvent>,
+    protocol_version: ProtocolVersion,
 }
 
 impl PreparedBakerEvents {
@@ -2044,7 +2050,7 @@ impl PreparedBakerEvents {
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         for event in &self.events {
-            event.save(tx, transaction_index).await?;
+            event.save(tx, transaction_index, self.protocol_version).await?;
         }
         Ok(())
     }
@@ -2213,7 +2219,17 @@ impl PreparedBakerEvent {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         transaction_index: i64,
+        protocol_version: ProtocolVersion,
     ) -> anyhow::Result<()> {
+        let bakers_expected_affected_range = if protocol_version > ProtocolVersion::P6 {
+            1..=1
+        } else {
+            // Prior to protocol version 7, removing a baker was effective after a cooldown
+            // period which was still allowing transactions updating other
+            // information on the baker, since we still remove the baker
+            // immediately for these blocks there might not be any row affected.
+            0..=1
+        };
         match self {
             PreparedBakerEvent::Add {
                 baker_id,
@@ -2249,7 +2265,7 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()
+                .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed increasing validator stake")?;
             }
             PreparedBakerEvent::StakeDecrease {
@@ -2266,7 +2282,7 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()
+                .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed decreasing validator stake")?;
             }
             PreparedBakerEvent::SetRestakeEarnings {
@@ -2280,7 +2296,7 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()
+                .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed updating validator restake earnings")?;
             }
             PreparedBakerEvent::SetOpenStatus {
@@ -2295,7 +2311,7 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()
+                .ensure_affected_rows_in_range(bakers_expected_affected_range.clone())
                 .context("Failed updating open_status of validator")?;
                 if let Some(move_operation) = move_delegators {
                     sqlx::query!(
@@ -2307,7 +2323,7 @@ impl PreparedBakerEvent {
                     )
                     .execute(tx.as_mut())
                     .await?
-                    .ensure_affected_one_row()
+                    .ensure_affected_rows_in_range(bakers_expected_affected_range)
                     .context("Failed updating pool stake when closing for all")?;
                     move_operation.save(tx).await?;
                 }
@@ -2323,7 +2339,7 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()
+                .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed updating validator metadata url")?;
             }
             PreparedBakerEvent::SetTransactionFeeCommission {
@@ -2337,7 +2353,7 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()
+                .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed updating validator transaction fee commission")?;
             }
             PreparedBakerEvent::SetBakingRewardCommission {
@@ -2351,7 +2367,7 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()
+                .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed updating validator transaction fee commission")?;
             }
             PreparedBakerEvent::SetFinalizationRewardCommission {
@@ -2365,7 +2381,7 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()
+                .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed updating validator transaction fee commission")?;
             }
             PreparedBakerEvent::RemoveDelegation {
@@ -2412,7 +2428,7 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()
+                .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed update validator state to self-suspended")?;
             }
             PreparedBakerEvent::Resumed {
@@ -2428,7 +2444,7 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()
+                .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed update validator state to resumed from suspension")?;
             }
             PreparedBakerEvent::NoOperation => (),
