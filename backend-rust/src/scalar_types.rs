@@ -28,6 +28,10 @@ pub type MetadataUrl = String;
     serde::Deserialize,
     derive_more::From,
     derive_more::FromStr,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
 )]
 #[repr(transparent)]
 #[serde(transparent)]

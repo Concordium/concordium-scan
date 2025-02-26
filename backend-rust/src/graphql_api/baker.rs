@@ -342,6 +342,8 @@ impl Baker {
                 .fetch_one(pool)
                 .await?;
 
+        let delegated_stake_of_pool = self.pool_total_staked - self.staked;
+
         // Division by 0 is not possible because `pool_total_staked` is always a
         // positive number.
         let total_stake_percentage = (rust_decimal::Decimal::from(self.pool_total_staked)
@@ -349,6 +351,161 @@ impl Baker {
         .checked_div(rust_decimal::Decimal::from(total_stake))
         .ok_or_else(|| ApiError::InternalError("Division by zero".to_string()))?
         .into();
+
+        // The code is re-implemented from the node code so that the node and the
+        // CCDScan report the same values:
+        // https://github.com/Concordium/concordium-node/blob/3cb759e4607f20a9df94ace017f0e3c775d4cdb3/concordium-consensus/src/Concordium/Kontrol/Bakers.hs#L53
+
+        // The delegated capital cap in the node (called delegated stake cap in CCDScan)
+        // is defined to be the minimum of the capital bound cap and the
+        // leverage bound cap:
+
+        // leverage bound cap for pool p: Lₚ = λ * Cₚ - Cₚ = (λ - 1) * Cₚ
+        // capital bound cap for pool p: Bₚ = floor( (κ * (T - Dₚ) - Cₚ) / (1 - K) )
+
+        // Where
+        // κ is the capital bound
+        // λ is the leverage bound
+        // T is the total staked capital on the whole chain (including passive
+        // delegation)
+        // Dₚ is the delegated capital of pool p
+        // Cₚ is the equity capital (staked by the pool owner excluding delegated stake
+        // to the pool) of pool p
+
+        // The `leverage bound cap` ensures that each baker has skin
+        // in the game with respect to its delegators by providing some of the CCD
+        // staked from its own funds. The `capital bound cap` helps maintain
+        // network decentralization by preventing a single baker from gaining
+        // excessive power in the consensus protocol.
+
+        let current_chain_parameters = sqlx::query_as!(
+            DelegatedStakeBounds,
+            "
+            SELECT 
+                leverage_bound_numerator,
+                leverage_bound_denominator,
+                capital_bound 
+            FROM current_chain_parameters 
+            WHERE id = true
+            "
+        )
+        .fetch_one(pool)
+        .await?;
+
+        // The `leverage_bound` and `capital_bound` are Concordium chain parameters that
+        // were set adhering to the below constraints to ensure the consensus
+        // algorithm works. We check these constraints here to ensure the values
+        // have been saved in this format to the database.
+        if current_chain_parameters.leverage_bound_numerator < 0 {
+            return Err(ApiError::InternalError(
+                "`leverage_bound_numerator` is negative in the database".to_string(),
+            ));
+        }
+        if current_chain_parameters.leverage_bound_denominator <= 0 {
+            return Err(ApiError::InternalError(
+                "`leverage_bound_denominator` is not greater than 0 in the database".to_string(),
+            ));
+        }
+
+        if current_chain_parameters.leverage_bound_numerator
+            < current_chain_parameters.leverage_bound_denominator
+        {
+            return Err(ApiError::InternalError(
+                "`leverage_bound` is smaller than 1 in the database".to_string(),
+            ));
+        }
+        if current_chain_parameters.capital_bound <= 0 {
+            return Err(ApiError::InternalError(
+                "`capital_bound` is not greater than 0 in the database".to_string(),
+            ));
+        }
+
+        // Calculating the `leverage_bound_cap`
+
+        #[rustfmt::skip]
+        // Transformation applied to the `leverage_bound_cap_for_pool` formula:
+        //
+        // `leverage_bound_cap_for_pool`
+        // = (λ – 1) * Cₚ
+        // = (leverage_bound_numerator / leverage_bound_denominator – 1) * Cₚ
+        // = (leverage_bound_numerator / leverage_bound_denominator – (leverage_bound_denominator / leverage_bound_denominator)) * Cₚ
+        // = (leverage_bound_numerator – leverage_bound_denominator) / leverage_bound_denominator) * Cₚ
+        // = (leverage_bound_numerator – leverage_bound_denominator) * Cₚ / leverage_bound_denominator
+        //
+        // WHERE
+        // λ is the leverage bound
+        // Cₚ is the equity capital (staked by the pool owner excluding delegated stake
+        // to the pool) of pool p
+        // `leverage_bound_numerator` is the value as stored in the database
+        // `leverage_bound_denominator` is the value as stored in the database
+
+        // To reduce loss of precision, the value is computed in u128.
+        let leverage_bound_cap_for_pool_numerator: u128 =
+            (current_chain_parameters.leverage_bound_numerator
+                - current_chain_parameters.leverage_bound_denominator) as u128
+                * self.staked as u128;
+        // Denominator is not zero since we checked that before.
+        let leverage_bound_cap_for_pool_denominator: u128 =
+            current_chain_parameters.leverage_bound_denominator as u128;
+
+        let leverage_bound_cap_for_pool: u64 = (leverage_bound_cap_for_pool_numerator
+            / leverage_bound_cap_for_pool_denominator)
+            .try_into()
+            .unwrap_or(u64::MAX);
+        let leverage_bound_cap_for_pool: Amount = leverage_bound_cap_for_pool.into();
+
+        // Calculating the `capital_bound_cap`
+
+        #[rustfmt::skip]
+        // Transformation applied to the `capital_bound_cap_for_pool` formula:
+        //
+        // `capital_bound_cap_for_pool`
+        // = floor( (κ * (T - Dₚ) - Cₚ) / (1 - K) )
+        // = floor( (capital_bound/100_000 * (T - Dₚ) - Cₚ) / (1 - capital_bound/100_000) )
+        // (Explanation: Since the `capital_bound (from the database)` is stored as a fraction with
+        // precision of `1/100_000` in the database)
+        //
+        // = floor( ((capital_bound / 100_000 * (T - Dₚ) - Cₚ)  / (1 - capital_bound / 100_000)) * 1 )
+        // = floor( ((capital_bound / 100_000 * (T - Dₚ) - Cₚ)  / (1 - capital_bound / 100_000)) * (100_000 / 100_000) )
+        // = floor( (capital_bound / 100_000 * (T - Dₚ) - Cₚ) * 100_000 / (1 - capital_bound / 100_000) * 100_000) )
+        // = floor( (capital_bound * (T - Dₚ) - 100_000 * Cₚ) / (100_000 - capital_bound) )
+
+        // WHERE
+        // κ is the capital bound
+        // T is the total staked capital on the whole chain (including passive
+        // delegation)
+        // Dₚ is the delegated capital of pool p
+        // Cₚ is the equity capital (staked by the pool owner excluding delegated stake
+        // to the pool) of pool p
+        // `capital_bound` is the value as stored in the database
+
+        let capital_bound: u128 = current_chain_parameters.capital_bound as u128;
+
+        let capital_bound_cap_for_pool: Amount = if capital_bound == 100_000u128 {
+            // To avoid dividing by 0 in the `capital bound cap` formula,
+            // we only apply the `leverage_bound_cap_for_pool` in that case.
+            u64::MAX.into()
+        } else {
+            // Since the `capital_bound` is stored as a fraction with precision of
+            // `1/100_000` in the database, we multiply the numerator and
+            // denominator by 100_000. To reduce loss of precision, the value is computed in
+            // u128.
+            let capital_bound_cap_for_pool_numerator = capital_bound
+                * ((total_stake - delegated_stake_of_pool) as u128)
+                - (100_000 * (self.staked as u128));
+
+            // Denominator is not zero since we checked that `capital_bound != 100_000`.
+            let capital_bound_cap_for_pool_denominator: u128 = 100_000u128 - capital_bound;
+
+            let capital_bound_cap_for_pool: u64 = (capital_bound_cap_for_pool_numerator
+                / capital_bound_cap_for_pool_denominator)
+                .try_into()
+                .unwrap_or(u64::MAX);
+
+            capital_bound_cap_for_pool.into()
+        };
+
+        let delegated_stake_cap = min(leverage_bound_cap_for_pool, capital_bound_cap_for_pool);
 
         let out = BakerState::ActiveBakerState(Box::new(ActiveBakerState {
             staked_amount:    Amount::try_from(self.staked)?,
@@ -371,7 +528,8 @@ impl Baker {
                 metadata_url: self.metadata_url.as_deref(),
                 total_stake_percentage,
                 total_stake: Amount::try_from(self.pool_total_staked)?,
-                delegated_stake: Amount::try_from(self.pool_total_staked - self.staked)?,
+                delegated_stake: Amount::try_from(delegated_stake_of_pool)?,
+                delegated_stake_cap,
                 delegator_count: self.pool_delegator_count,
             },
             pending_change:   None, // This is not used starting from P7.
@@ -676,9 +834,9 @@ struct BakerPool<'a> {
     // /// brand new bakers where statistics have not been calculated yet. This
     // /// should be rare and only a temporary condition.
     // ranking_by_total_stake:  Ranking,
-    // /// The maximum amount that may be delegated to the pool, accounting for
-    // /// leverage and stake limits.
-    // delegated_stake_cap:     Amount,
+    /// The maximum amount that may be delegated to the pool, accounting for
+    /// leverage and capital bounds.
+    delegated_stake_cap: Amount,
     open_status: Option<BakerPoolOpenStatus>,
     metadata_url: Option<&'a str>,
     // TODO: apy(period: ApyPeriod!): PoolApy!
@@ -695,6 +853,8 @@ impl<'a> BakerPool<'a> {
     async fn total_stake(&self) -> Amount { self.total_stake }
 
     async fn delegated_stake(&self) -> Amount { self.delegated_stake }
+
+    async fn delegated_stake_cap(&self) -> Amount { self.delegated_stake_cap }
 
     async fn delegator_count(&self) -> i64 { self.delegator_count }
 
@@ -805,4 +965,45 @@ struct CommissionRates {
     transaction_commission:  Option<Decimal>,
     finalization_commission: Option<Decimal>,
     baking_commission:       Option<Decimal>,
+}
+
+struct DelegatedStakeBounds {
+    /// The leverage bound (also called leverage factor in the node API) is the
+    /// maximum proportion of total stake of a baker (including the baker's
+    /// own stake and the delegated stake to the baker) to the baker's own stake
+    /// (excluding delegated stake to the baker) that a baker can achieve where
+    /// the total stake of the baker is considered for calculating the
+    /// lottery power or finalizer weight in the consensus (effective
+    /// stake). Once this bound is passed, some of the baker's total stake
+    /// no longer contribute to lottery power or finalizer weight in the
+    /// consensus algorithm, meaning that part of the baker's total stake
+    /// will no longer be considered as effective stake.
+    ///
+    /// The value is 1 or greater (1 <= leverage_bound).
+    /// The value's numerator and denominator is stored here.
+    ///
+    /// The `leverage bound` ensures that each baker has skin in the game with
+    /// respect to its delegators by providing some of the CCD staked from
+    /// its own funds.
+    leverage_bound_numerator:   i64,
+    leverage_bound_denominator: i64,
+    /// The capital bound is the maximum proportion of the total stake in the
+    /// protocol (from all bakers including passive delegation) to the total
+    /// stake of a baker (including the baker's own stake and the delegated
+    /// stake to the baker) that a baker can achieve where the total
+    /// stake of the baker is considered for calculating the lottery power or
+    /// finalizer weight in the consensus (effective stake).
+    /// Once this bound is passed, some of the baker's total stake no longer
+    /// contribute to lottery power or finalizer weight in the consensus
+    /// algorithm, meaning that part of the baker's total stake will no longer
+    /// be considered as effective stake.
+    ///
+    /// The capital bound is always greater than 0 (capital_bound > 0). The
+    /// value is stored as a fraction with precision of `1/100_000`. For
+    /// example, a capital bound of 0.05 is stored as 5000.
+    ///
+    /// The `capital_bound` helps maintain network
+    /// decentralization by preventing a single baker from gaining excessive
+    /// power in the consensus protocol.
+    capital_bound:              i64,
 }
