@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+Database schema version: 10
+
+### Added
+
+- Add database migration 10 to store the `leverage_bound` and the `capital_bound` values of the chain.
+- Add query `BakerPool::delegatedStakeCap` that considers the leverage and capital bounds to report the delegate stake cap for baker pools.
+
 ## [0.1.27] - 2025-02-24
 
 ### Fixed

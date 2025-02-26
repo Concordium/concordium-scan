@@ -710,91 +710,44 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
         .context("Failed to establish connection to Concordium Node")?;
     let mut tx = pool.begin().await.context("Failed to create SQL transaction")?;
     let genesis_height = v2::BlockIdentifier::AbsoluteHeight(0.into());
-    {
-        // Get the current block.
-        let current_block = client.get_block_info(BlockIdentifier::LastFinal).await?.response;
-        // We ensure that the connected node has caught up with the protocol
-        // version 7 or above. This ensures that the parameters `current_epoch_duration`
-        // and `current_reward_period_length` are available.
-        if current_block.protocol_version < ProtocolVersion::P7 {
-            anyhow::bail!(
-                "Ensure the connected node has caught up with the current protocol version 7 or \
-                 above. This ensures that the `current_epoch_duration` and \
-                 `current_reward_period_length` are from the latest consensus algorithm."
-            );
+
+    let genesis_block_info = client.get_block_info(genesis_height).await?.response;
+    let block_hash = genesis_block_info.block_hash.to_string();
+    let slot_time = genesis_block_info.block_slot_time;
+    let genesis_tokenomics = client.get_tokenomics_info(genesis_height).await?.response;
+    let total_staked = match genesis_tokenomics {
+        RewardsOverview::V0 {
+            ..
+        } => {
+            let total_staked_capital =
+                compute_total_stake_capital(&mut client, genesis_height).await?;
+            i64::try_from(total_staked_capital.micro_ccd())?
         }
-
-        // Get the current `epoch_duration` value.
-        let current_epoch_duration =
-            client.get_consensus_info().await?.epoch_duration.num_milliseconds();
-
-        // Get the current `reward_period_length` value.
-        let current_chain_parmeters =
-            client.get_block_chain_parameters(BlockIdentifier::LastFinal).await?.response;
-        let current_reward_period_length = match current_chain_parmeters {
-            ChainParameters::V3(chain_parameters_v3) => {
-                chain_parameters_v3.time_parameters.reward_period_length
-            }
-            ChainParameters::V2(chain_parameters_v2) => {
-                chain_parameters_v2.time_parameters.reward_period_length
-            }
-            ChainParameters::V1(chain_parameters_v1) => {
-                chain_parameters_v1.time_parameters.reward_period_length
-            }
-            ChainParameters::V0(_) => unimplemented!(
-                "Expect the node to have caught up enought for the `reward_period_length` value \
-                 being available."
-            ),
-        };
-
-        let genesis_block_info = client.get_block_info(genesis_height).await?.response;
-        let block_hash = genesis_block_info.block_hash.to_string();
-        let slot_time = genesis_block_info.block_slot_time;
-        let genesis_tokenomics = client.get_tokenomics_info(genesis_height).await?.response;
-        let total_staked = match genesis_tokenomics {
-            RewardsOverview::V0 {
-                ..
-            } => {
-                let total_staked_capital =
-                    compute_total_stake_capital(&mut client, genesis_height).await?;
-                i64::try_from(total_staked_capital.micro_ccd())?
-            }
-            RewardsOverview::V1 {
-                total_staked_capital,
-                ..
-            } => i64::try_from(total_staked_capital.micro_ccd())?,
-        };
-        let total_amount =
-            i64::try_from(genesis_tokenomics.common_reward_data().total_amount.micro_ccd())?;
-        sqlx::query!(
-            "INSERT INTO blocks (
-                height,
-                hash,
-                slot_time,
-                block_time,
-                finalization_time,
-                total_amount,
-                total_staked,
-                cumulative_num_txs
-            ) VALUES (0, $1, $2, 0, 0, $3, $4, 0);",
-            block_hash,
+        RewardsOverview::V1 {
+            total_staked_capital,
+            ..
+        } => i64::try_from(total_staked_capital.micro_ccd())?,
+    };
+    let total_amount =
+        i64::try_from(genesis_tokenomics.common_reward_data().total_amount.micro_ccd())?;
+    sqlx::query!(
+        "INSERT INTO blocks (
+            height,
+            hash,
             slot_time,
+            block_time,
+            finalization_time,
             total_amount,
             total_staked,
-        )
-        .execute(&mut *tx)
-        .await?;
-
-        sqlx::query!(
-            "INSERT INTO current_chain_parameters (
-                epoch_duration, reward_period_length
-            ) VALUES ($1, $2);",
-            current_epoch_duration,
-            current_reward_period_length.reward_period_epochs().epoch as i64,
-        )
-        .execute(&mut *tx)
-        .await?;
-    }
+            cumulative_num_txs
+        ) VALUES (0, $1, $2, 0, 0, $3, $4, 0);",
+        block_hash,
+        slot_time,
+        total_amount,
+        total_staked,
+    )
+    .execute(&mut *tx)
+    .await?;
 
     let mut genesis_accounts = client.get_account_list(genesis_height).await?.response;
     while let Some(account) = genesis_accounts.try_next().await? {
