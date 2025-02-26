@@ -4,9 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.29] - 2025-02-26
+
+### Fixed
+
+- Relaxing validation constraint on database rows affecting bakers prior to protocol version 7.
+
+## [0.1.28] - 2025-02-26
+
 Database schema version: 10
 
-- Validation on rows affected on bakers only occurs after protocol version 7 is in effect. 
+### Fixed
+
+- Make validation of rows changed to account tokens accept the zero rows modified
 
 ### Added
 
