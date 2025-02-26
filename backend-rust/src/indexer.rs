@@ -2324,7 +2324,6 @@ impl PreparedBakerEvent {
                     .execute(tx.as_mut())
                     .await?
                     .ensure_affected_rows_in_range(bakers_expected_affected_range)
-                    .await
                     .context("Failed updating pool stake when closing for all")?;
                     move_operation.save(tx).await?;
                 }
