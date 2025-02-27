@@ -307,10 +307,18 @@ type BakerIdCursor = i64;
 /// pool amount.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 struct TotalStakedDescCursor {
-    /// The baker id representing the pool of the cursor.
-    baker_id: i64,
     /// The total staked amount of pool.
     staked:   i64,
+    /// The baker id representing the pool of the cursor.
+    baker_id: i64,
+}
+impl From<&CurrentBaker> for TotalStakedDescCursor {
+    fn from(row: &CurrentBaker) -> Self {
+        TotalStakedDescCursor {
+            staked:   row.pool_total_staked,
+            baker_id: i64::from(row.id),
+        }
+    }
 }
 
 impl connection::CursorType for TotalStakedDescCursor {
@@ -318,15 +326,16 @@ impl connection::CursorType for TotalStakedDescCursor {
 
     fn decode_cursor(s: &str) -> Result<Self, Self::Error> {
         let (before, after) = s.split_once(':').ok_or(DecodeTotalStakedCursorError::NoSemicolon)?;
-        let baker_id: i64 = before.parse().map_err(DecodeTotalStakedCursorError::ParseBakerId)?;
-        let staked: i64 = after.parse().map_err(DecodeTotalStakedCursorError::ParseStakedAmount)?;
+        let staked: i64 =
+            before.parse().map_err(DecodeTotalStakedCursorError::ParseStakedAmount)?;
+        let baker_id: i64 = after.parse().map_err(DecodeTotalStakedCursorError::ParseBakerId)?;
         Ok(Self {
-            baker_id,
             staked,
+            baker_id,
         })
     }
 
-    fn encode_cursor(&self) -> String { format!("{}:{}", self.baker_id, self.staked) }
+    fn encode_cursor(&self) -> String { format!("{}:{}", self.staked, self.baker_id) }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -471,6 +480,7 @@ impl TryFrom<types::ID> for IdBaker {
     fn try_from(value: types::ID) -> Result<Self, Self::Error> { value.0.parse() }
 }
 
+#[derive(Debug)]
 pub enum Baker {
     Current(CurrentBaker),
     Previously(PreviouslyBaker),
@@ -798,7 +808,6 @@ impl Baker {
     ) -> ApiResult<connection::Connection<String, Baker>> {
         type RemovedBakerCursor = Reversed<BakerIdCursor>;
         type Cursor = ConcatCursor<TotalStakedDescCursor, RemovedBakerCursor>;
-
         let query = ConnectionQuery::<Cursor>::new(
             first,
             after,
@@ -844,10 +853,12 @@ impl Baker {
                     -- filter if provided
                     AND ($7::pool_open_status IS NULL OR open_status = $7::pool_open_status)
                 ORDER BY
-                    (CASE WHEN $5     THEN bakers.id END) DESC,
-                    (CASE WHEN NOT $5 THEN bakers.id END) ASC
+                    (CASE WHEN $5     THEN pool_total_staked END) ASC,
+                    (CASE WHEN $5     THEN bakers.id         END) ASC,
+                    (CASE WHEN NOT $5 THEN pool_total_staked END) DESC,
+                    (CASE WHEN NOT $5 THEN bakers.id         END) DESC
                 LIMIT $6
-            ) ORDER BY id DESC"#,
+            ) ORDER BY pool_total_staked DESC, id DESC"#,
                 current_baker_from.staked,                         // $1
                 current_baker_to.staked,                           // $2
                 current_baker_from.baker_id,                       // $3
@@ -858,10 +869,7 @@ impl Baker {
             )
             .fetch(pool);
             while let Some(row) = row_stream.try_next().await? {
-                let cursor = Cursor::First(TotalStakedDescCursor {
-                    baker_id: i64::from(row.id),
-                    staked:   row.staked,
-                });
+                let cursor = Cursor::First(TotalStakedDescCursor::from(&row));
                 connection
                     .edges
                     .push(connection::Edge::new(cursor.encode_cursor(), Baker::Current(row)));
@@ -895,7 +903,6 @@ impl Baker {
                 remains_to_limit,
             )
             .fetch(pool);
-
             while let Some(row) = row_stream.try_next().await? {
                 let cursor: Cursor = Cursor::Second(Reversed::new(i64::from(row.id)));
                 connection
@@ -914,31 +921,45 @@ impl Baker {
             let collection_ends = sqlx::query!(
                 "WITH
                     starting_baker as (
-                        SELECT id FROM bakers
+                        SELECT id, pool_total_staked FROM bakers
                         WHERE $1::pool_open_status IS NULL OR open_status = $1::pool_open_status
-                        ORDER BY pool_total_staked DESC, id DESC LIMIT 1
+                        ORDER BY pool_total_staked DESC, id DESC
+                        LIMIT 1
                     ),
                     ending_baker as (
-                        SELECT id FROM bakers WHERE
-                        $1::pool_open_status IS NULL OR open_status = $1::pool_open_status
-                        ORDER BY pool_total_staked ASC, id ASC LIMIT 1
+                        SELECT id, pool_total_staked FROM bakers
+                        WHERE $1::pool_open_status IS NULL OR open_status = $1::pool_open_status
+                        ORDER BY pool_total_staked ASC, id ASC
+                        LIMIT 1
                     )
                 SELECT
                     starting_baker.id AS start_id,
-                    ending_baker.id AS end_id
+                    starting_baker.pool_total_staked AS start_pool_total_staked,
+                    ending_baker.id AS end_id,
+                    ending_baker.pool_total_staked AS end_pool_total_staked
                 FROM starting_baker, ending_baker",
                 open_status_filter as Option<BakerPoolOpenStatus>
             )
             .fetch_optional(pool)
             .await?;
             if let Some(collection_ends) = collection_ends {
-                connection.has_previous_page = if let Baker::Current(baker) = &first_item.node {
-                    collection_ends.start_id > i64::from(baker.id)
+                connection.has_previous_page = if let Baker::Current(first_baker) = &first_item.node
+                {
+                    let collection_start_cursor = TotalStakedDescCursor {
+                        baker_id: collection_ends.start_id,
+                        staked:   collection_ends.start_pool_total_staked,
+                    };
+                    collection_start_cursor < TotalStakedDescCursor::from(first_baker)
                 } else {
                     true
                 };
-                if let Baker::Current(baker) = &last_item.node {
-                    connection.has_next_page = collection_ends.end_id < i64::from(baker.id)
+                if let Baker::Current(last_item) = &last_item.node {
+                    let collection_end_cursor = TotalStakedDescCursor {
+                        baker_id: collection_ends.end_id,
+                        staked:   collection_ends.end_pool_total_staked,
+                    };
+                    connection.has_next_page =
+                        collection_end_cursor > TotalStakedDescCursor::from(last_item);
                 }
             }
         }
@@ -955,6 +976,7 @@ impl Baker {
     }
 }
 
+#[derive(Debug)]
 pub struct PreviouslyBaker {
     id:         BakerId,
     removed_at: DateTime,
@@ -987,6 +1009,7 @@ impl PreviouslyBaker {
 }
 
 /// Database information for a current baker.
+#[derive(Debug)]
 pub struct CurrentBaker {
     id: BakerId,
     staked: i64,
@@ -1766,4 +1789,66 @@ struct DelegatedStakeBounds {
     /// decentralization by preventing a single baker from gaining excessive
     /// power in the consensus protocol.
     capital_bound:              i64,
+}
+
+#[cfg(test)]
+mod test {
+    use std::cmp::Ordering;
+
+    use async_graphql::connection::CursorType;
+
+    use crate::connection::ConnectionBounds;
+
+    use super::TotalStakedDescCursor;
+
+    #[test]
+    fn test_total_staked_desc_cursor_ordering() {
+        {
+            let cmp_start_end =
+                TotalStakedDescCursor::START_BOUND.cmp(&TotalStakedDescCursor::END_BOUND);
+            assert_eq!(cmp_start_end, Ordering::Less);
+        }
+
+        {
+            let first = TotalStakedDescCursor {
+                staked:   10,
+                baker_id: 3,
+            };
+            let second = TotalStakedDescCursor {
+                staked:   5,
+                baker_id: 5,
+            };
+            assert!(first < second);
+            assert_eq!(first.cmp(&second), Ordering::Less);
+            assert_eq!(second.cmp(&first), Ordering::Greater);
+            assert_eq!(first.cmp(&first), Ordering::Equal);
+            assert_eq!(second.cmp(&second), Ordering::Equal);
+        }
+
+        {
+            let second = TotalStakedDescCursor {
+                staked:   11000000000,
+                baker_id: 149,
+            };
+            let first = TotalStakedDescCursor {
+                staked:   1000000000000000,
+                baker_id: 3,
+            };
+            assert!(first < second);
+            assert_eq!(second.cmp(&first), Ordering::Greater);
+            assert_eq!(second.cmp(&second), Ordering::Equal);
+            assert_eq!(first.cmp(&first), Ordering::Equal);
+        }
+    }
+
+    #[test]
+    fn test_total_staked_desc_cursor_encode_decode() {
+        let cursor = TotalStakedDescCursor {
+            staked:   10,
+            baker_id: 3,
+        };
+        let encode_decode = TotalStakedDescCursor::decode_cursor(cursor.encode_cursor().as_str())
+            .expect("Failed decoding cursor");
+        assert_eq!(cursor, encode_decode);
+    }
 }
