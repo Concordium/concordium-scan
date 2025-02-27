@@ -1670,10 +1670,12 @@ struct EventMetadata {
     protocol_version: ProtocolVersion,
 }
 
-/// Metadata is present because prior to protocol version 7, removing a
-/// baker was effective after a cooldown period which was still allowing
-/// transactions updating other information on the baker, since we still remove
-/// the baker immediately for these blocks there might not be any row affected.
+/// Wraps a prepared event together with metadata needed for its processing.
+///
+/// Prior to protocol version 7, baker removal was delayed by a cooldown period during which
+/// other baker-related transactions could still occur, potentially resulting in no affected rows.
+/// This envelope provides the necessary context (e.g. protocol version) to correctly validate
+/// the processing of events.
 struct PreparedEventEnvelope {
     metadata: EventMetadata,
     event:    PreparedEvent,
@@ -1857,7 +1859,13 @@ impl PreparedAccountDelegationEvent {
     async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        protocol_version: ProtocolVersion
     ) -> anyhow::Result<()> {
+        let bakers_expected_affected_range = if protocol_version > ProtocolVersion::P6 {
+            1..=1
+        } else {
+            0..=1
+        };
         match self {
             PreparedAccountDelegationEvent::StakeIncrease {
                 account_id,
@@ -1980,7 +1988,7 @@ impl PreparedAccountDelegationEvent {
                     )
                     .execute(tx.as_mut())
                     .await?
-                    .ensure_affected_one_row()
+                    .ensure_affected_rows_in_range(bakers_expected_affected_range)
                     .context("Failed update pool stake adding delegator")?;
                 }
                 // Set the new target on the delegator.
@@ -4268,7 +4276,13 @@ impl RestakeEarnings {
     async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        protocol_version: ProtocolVersion
     ) -> anyhow::Result<()> {
+        let bakers_expected_affected_range = if protocol_version > ProtocolVersion::P6 {
+            1..=1
+        } else {
+            0..=1
+        };
         // Update the account if delegated_restake_earnings is set and is true, meaning
         // the account is delegating.
         let account_row = sqlx::query!(
@@ -4299,7 +4313,7 @@ impl RestakeEarnings {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()?;
+                .ensure_affected_rows_in_range(bakers_expected_affected_range)?;
             }
         } else {
             // When delegated_restake_earnings is None the account is not delegating, so it
