@@ -1,0 +1,39 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                    MAX(id),\n                    MIN(id)\n                FROM bakers\n                WHERE\n                    $1::pool_open_status IS NULL\n                    OR open_status = $1::pool_open_status",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "max",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "min",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "pool_open_status",
+            "kind": {
+              "Enum": [
+                "OpenForAll",
+                "ClosedForNew",
+                "ClosedForAll"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "0c3678388908b9230af690d8bc9e873544b00fde73390fe092c12084703e0d5c"
+}
