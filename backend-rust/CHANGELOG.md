@@ -9,7 +9,7 @@ Database schema version: 11
 ### Added
 
 - Add database migration 11 adding columns to store the ranking of bakers.
-- Add query `BakerPool::rankingByTotalStake` which returns a ranking of the bakers by their lottery power. The ranking is re-computed for each block.
+- Add query `BakerPool::rankingByTotalStake` which returns a ranking of the bakers by their lottery power. The ranking is re-computed for each payday block.
 
 ## [0.1.32] - 2025-02-28
 
@@ -45,8 +45,8 @@ Database schema version: 10
 
 ### Added
 
-- Add database migration 10 to store the leverage_bound and the capital_bound values of the chain.
-- Add query BakerPool::delegatedStakeCap that considers the leverage and capital bounds to report the delegate stake cap for baker pools.
+- Add database migration 10 to store the `leverage_bound` and the `capital_bound` values of the chain.
+- Add query `BakerPool::delegatedStakeCap` that considers the leverage and capital bounds to report the delegate stake cap for baker pools.
 
 ## [0.1.27] - 2025-02-24
 

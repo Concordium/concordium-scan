@@ -621,7 +621,6 @@ impl ProcessEvent for BlockProcessor {
             }
             block.special_transaction_outcomes.save(&mut tx).await?;
             block.baker_unmark_suspended.save(&mut tx).await?;
-            block.bakers_lottery_powers.save(&mut tx).await?;
 
             out.push_str(format!("\n- {}:{}", block.height, block.hash).as_str());
         }
@@ -844,9 +843,6 @@ struct PreparedBlock {
     /// Unmark the baker and signers of the Quorum Certificate from being primed
     /// for suspension.
     baker_unmark_suspended: PreparedUnmarkPrimedForSuspension,
-    /// Represents the lottery power updates for bakers captured from
-    /// the `get_election_info` node endpoint.
-    bakers_lottery_powers: PreparedLotteryPowers,
 }
 
 impl PreparedBlock {
@@ -877,10 +873,6 @@ impl PreparedBlock {
         .await?;
         let baker_unmark_suspended = PreparedUnmarkPrimedForSuspension::prepare(data)?;
 
-        let election_info =
-            node_client.get_election_info(data.finalized_block_info.height).await?.response;
-        let bakers_lottery_powers = PreparedLotteryPowers::prepare(election_info.bakers)?;
-
         Ok(Self {
             hash,
             height,
@@ -892,7 +884,6 @@ impl PreparedBlock {
             prepared_block_items,
             special_transaction_outcomes,
             baker_unmark_suspended,
-            bakers_lottery_powers,
         })
     }
 
@@ -4482,10 +4473,13 @@ struct PreparedValidatorSuspension {
 /// Represents a payday block, its payday commission
 /// rates, and the associated block height.
 struct PreparedPayDayBlock {
-    block_height:            i64,
+    block_height:                 i64,
     /// Represents the payday baker pool commission rates captured from
     /// the `get_bakers_reward_period` node endpoint.
-    payday_commission_rates: PreparedPaydayCommissionRates,
+    payday_commission_rates:      PreparedPaydayCommissionRates,
+    /// Represents the payday lottery power updates for bakers captured from
+    /// the `get_election_info` node endpoint.
+    payday_bakers_lottery_powers: PreparedPaydayLotteryPowers,
 }
 
 impl PreparedPayDayBlock {
@@ -4511,9 +4505,17 @@ impl PreparedPayDayBlock {
         let payday_commission_rates =
             PreparedPaydayCommissionRates::prepare(baker_reward_period_infos)?;
 
+        let election_info = node_client
+            .get_election_info(BlockIdentifier::AbsoluteHeight(block_height))
+            .await?
+            .response;
+        let payday_bakers_lottery_powers =
+            PreparedPaydayLotteryPowers::prepare(election_info.bakers)?;
+
         Ok(Self {
             block_height: block_height.height.try_into()?,
             payday_commission_rates,
+            payday_bakers_lottery_powers,
         })
     }
 
@@ -4523,6 +4525,9 @@ impl PreparedPayDayBlock {
     ) -> anyhow::Result<()> {
         // Save the commission rates to the database.
         self.payday_commission_rates.save(tx).await?;
+
+        // Save the lottery_powers to the database.
+        self.payday_bakers_lottery_powers.save(tx).await?;
 
         sqlx::query!(
             "UPDATE current_chain_parameters
@@ -4609,29 +4614,28 @@ impl PreparedPaydayCommissionRates {
     }
 }
 
-/// Represents the lottery power updates for bakers captured from
+/// Represents the payday lottery power updates for bakers captured from
 /// the `get_election_info` node endpoint.
-struct PreparedLotteryPowers {
+struct PreparedPaydayLotteryPowers {
     baker_ids:             Vec<i64>,
     bakers_lottery_powers: Vec<BigDecimal>,
     ranks:                 Vec<i64>,
 }
 
-impl PreparedLotteryPowers {
-    fn prepare(bakers: Vec<BirkBaker>) -> anyhow::Result<Self> {
+impl PreparedPaydayLotteryPowers {
+    fn prepare(mut bakers: Vec<BirkBaker>) -> anyhow::Result<Self> {
         let capacity = bakers.len();
         let mut baker_ids: Vec<i64> = Vec::with_capacity(capacity);
         let mut bakers_lottery_powers: Vec<BigDecimal> = Vec::with_capacity(capacity);
         let mut ranks: Vec<i64> = Vec::with_capacity(capacity);
 
         // Sort bakers by lottery power. The baker with the highest lottery power comes
-        // last in the vector and gets rank 1.
-        let mut sorted_bakers: Vec<&BirkBaker> = bakers.iter().collect();
-        sorted_bakers.sort_by(|self_baker, other_baker| {
-            self_baker.baker_lottery_power.total_cmp(&other_baker.baker_lottery_power)
+        // first in the vector and gets rank 1.
+        bakers.sort_by(|self_baker, other_baker| {
+            self_baker.baker_lottery_power.total_cmp(&other_baker.baker_lottery_power).reverse()
         });
 
-        for (rank, baker) in sorted_bakers.iter().enumerate() {
+        for (rank, baker) in bakers.iter().enumerate() {
             baker_ids.push(i64::try_from(baker.baker_id.id.index)?);
             bakers_lottery_powers.push(
                 BigDecimal::from_f64(baker.baker_lottery_power)
@@ -4641,7 +4645,7 @@ impl PreparedLotteryPowers {
                     )
                     .map_err(RPCError::ParseError)?,
             );
-            ranks.push((capacity - rank) as i64);
+            ranks.push((rank + 1) as i64);
         }
 
         Ok(Self {
@@ -4657,21 +4661,21 @@ impl PreparedLotteryPowers {
     ) -> anyhow::Result<()> {
         sqlx::query!(
             "DELETE FROM
-                bakers_lottery_powers"
+                bakers_payday_lottery_powers"
         )
         .execute(tx.as_mut())
         .await?;
 
         sqlx::query!(
-            "INSERT INTO bakers_lottery_powers (
+            "INSERT INTO bakers_payday_lottery_powers (
                 id,
-                lottery_power,
-                ranking_by_lottery_powers
+                payday_lottery_power,
+                payday_ranking_by_lottery_powers
             )
             SELECT
                 UNNEST($1::BIGINT[]) AS id,
-                UNNEST($2::NUMERIC[]) AS lottery_power,
-                UNNEST($3::BIGINT[]) AS ranking_by_lottery_powers",
+                UNNEST($2::NUMERIC[]) AS payday_lottery_power,
+                UNNEST($3::BIGINT[]) AS payday_ranking_by_lottery_powers",
             &self.baker_ids,
             &self.bakers_lottery_powers,
             &self.ranks
