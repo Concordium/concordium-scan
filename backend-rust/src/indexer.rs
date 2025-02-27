@@ -1313,9 +1313,14 @@ impl PreparedBlockItemEvent {
                     data.block_info.block_height,
                     AccountStatementEntryType::TransactionFee,
                 )?;
-                let event =
-                    PreparedEvent::prepare(node_client, data, details, item, &details.sender)
-                        .await?;
+                let event = PreparedEventEnvelope::prepare(
+                    node_client,
+                    data,
+                    details,
+                    item,
+                    &details.sender,
+                )
+                .await?;
                 Ok(PreparedBlockItemEvent::AccountTransaction(Box::new(
                     PreparedAccountTransaction {
                         fee,
@@ -1350,7 +1355,7 @@ struct PreparedAccountTransaction {
     /// fee).
     fee:   PreparedUpdateAccountBalance,
     /// Updates based on the events of the account transaction.
-    event: PreparedEvent,
+    event: PreparedEventEnvelope,
 }
 
 enum PreparedEvent {
@@ -1515,8 +1520,7 @@ impl PreparedEvent {
                 };
                 let prepared = PreparedBakerEvent::prepare(&event)?;
                 PreparedEvent::BakerEvents(PreparedBakerEvents {
-                    events:           vec![prepared],
-                    protocol_version: data.block_info.protocol_version,
+                    events: vec![prepared],
                 })
             }
             AccountTransactionEffects::BakerRemoved {
@@ -1527,8 +1531,7 @@ impl PreparedEvent {
                 };
                 let prepared = PreparedBakerEvent::prepare(&event)?;
                 PreparedEvent::BakerEvents(PreparedBakerEvents {
-                    events:           vec![prepared],
-                    protocol_version: data.block_info.protocol_version,
+                    events: vec![prepared],
                 })
             }
             AccountTransactionEffects::BakerStakeUpdated {
@@ -1553,8 +1556,7 @@ impl PreparedEvent {
                 let prepared = PreparedBakerEvent::prepare(&event)?;
 
                 PreparedEvent::BakerEvents(PreparedBakerEvents {
-                    events:           vec![prepared],
-                    protocol_version: data.block_info.protocol_version,
+                    events: vec![prepared],
                 })
             }
             AccountTransactionEffects::BakerRestakeEarningsUpdated {
@@ -1569,7 +1571,6 @@ impl PreparedEvent {
                 )?];
                 PreparedEvent::BakerEvents(PreparedBakerEvents {
                     events,
-                    protocol_version: data.block_info.protocol_version,
                 })
             }
             AccountTransactionEffects::BakerKeysUpdated {
@@ -1578,11 +1579,10 @@ impl PreparedEvent {
             AccountTransactionEffects::BakerConfigured {
                 data: events,
             } => PreparedEvent::BakerEvents(PreparedBakerEvents {
-                events:           events
+                events: events
                     .iter()
                     .map(PreparedBakerEvent::prepare)
                     .collect::<anyhow::Result<Vec<_>>>()?,
-                protocol_version: data.block_info.protocol_version,
             }),
 
             AccountTransactionEffects::EncryptedAmountTransferred {
@@ -1647,11 +1647,12 @@ impl PreparedEvent {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         tx_idx: i64,
+        protocol_version: ProtocolVersion,
     ) -> anyhow::Result<()> {
         match self {
             PreparedEvent::CcdTransfer(event) => event.save(tx, tx_idx).await,
             PreparedEvent::EncryptedBalance(event) => event.save(tx, tx_idx).await,
-            PreparedEvent::BakerEvents(event) => event.save(tx, tx_idx).await,
+            PreparedEvent::BakerEvents(event) => event.save(tx, tx_idx, protocol_version).await,
             PreparedEvent::ModuleDeployed(event) => event.save(tx, tx_idx).await,
             PreparedEvent::ContractInitialized(event) => event.save(tx, tx_idx).await,
             PreparedEvent::ContractUpdate(event) => event.save(tx, tx_idx).await,
@@ -1660,6 +1661,48 @@ impl PreparedEvent {
             PreparedEvent::RejectedTransaction(event) => event.save(tx, tx_idx).await,
             PreparedEvent::NoOperation => Ok(()),
         }
+    }
+}
+
+/// Contains metadata required for event processing that is not directly tied to
+/// individual events.
+struct EventMetadata {
+    protocol_version: ProtocolVersion,
+}
+
+/// Metadata is present because prior to protocol version 7, removing a
+/// baker was effective after a cooldown period which was still allowing
+/// transactions updating other information on the baker, since we still remove
+/// the baker immediately for these blocks there might not be any row affected.
+struct PreparedEventEnvelope {
+    metadata: EventMetadata,
+    event:    PreparedEvent,
+}
+
+impl PreparedEventEnvelope {
+    pub async fn prepare(
+        node_client: &mut v2::Client,
+        data: &BlockData,
+        details: &AccountTransactionDetails,
+        item: &BlockItem<EncodedPayload>,
+        sender: &AccountAddress,
+    ) -> anyhow::Result<Self> {
+        let event = PreparedEvent::prepare(node_client, data, details, item, sender).await?;
+        let metadata = EventMetadata {
+            protocol_version: data.block_info.protocol_version,
+        };
+        Ok(PreparedEventEnvelope {
+            metadata,
+            event,
+        })
+    }
+
+    pub async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx_idx: i64,
+    ) -> anyhow::Result<()> {
+        self.event.save(tx, tx_idx, self.metadata.protocol_version).await
     }
 }
 
@@ -2039,8 +2082,7 @@ impl MovePoolDelegatorsToPassivePool {
 /// Represent the events from configuring a baker.
 struct PreparedBakerEvents {
     /// Update the status of the baker.
-    events:           Vec<PreparedBakerEvent>,
-    protocol_version: ProtocolVersion,
+    events: Vec<PreparedBakerEvent>,
 }
 
 impl PreparedBakerEvents {
@@ -2048,9 +2090,10 @@ impl PreparedBakerEvents {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         transaction_index: i64,
+        protocol_version: ProtocolVersion,
     ) -> anyhow::Result<()> {
         for event in &self.events {
-            event.save(tx, transaction_index, self.protocol_version).await?;
+            event.save(tx, transaction_index, protocol_version).await?;
         }
         Ok(())
     }
@@ -2224,10 +2267,6 @@ impl PreparedBakerEvent {
         let bakers_expected_affected_range = if protocol_version > ProtocolVersion::P6 {
             1..=1
         } else {
-            // Prior to protocol version 7, removing a baker was effective after a cooldown
-            // period which was still allowing transactions updating other
-            // information on the baker, since we still remove the baker
-            // immediately for these blocks there might not be any row affected.
             0..=1
         };
         match self {
