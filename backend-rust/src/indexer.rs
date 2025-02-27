@@ -56,6 +56,7 @@ use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
 
+mod db;
 mod ensure_affected_rows;
 
 use ensure_affected_rows::EnsureAffectedRows;
@@ -1650,7 +1651,7 @@ impl PreparedEvent {
             PreparedEvent::ModuleDeployed(event) => event.save(tx, tx_idx).await,
             PreparedEvent::ContractInitialized(event) => event.save(tx, tx_idx).await,
             PreparedEvent::ContractUpdate(event) => event.save(tx, tx_idx).await,
-            PreparedEvent::AccountDelegationEvents(event) => event.save(tx).await,
+            PreparedEvent::AccountDelegationEvents(event) => event.save(tx, tx_idx).await,
             PreparedEvent::ScheduledTransfer(event) => event.save(tx, tx_idx).await,
             PreparedEvent::RejectedTransaction(event) => event.save(tx, tx_idx).await,
             PreparedEvent::NoOperation => Ok(()),
@@ -1716,9 +1717,10 @@ impl PreparedAccountDelegationEvents {
     async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        transaction_index: i64,
     ) -> anyhow::Result<()> {
         for event in &self.events {
-            event.save(tx).await?;
+            event.save(tx, transaction_index).await?;
         }
         Ok(())
     }
@@ -1809,6 +1811,7 @@ impl PreparedAccountDelegationEvent {
     async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        transaction_index: i64,
     ) -> anyhow::Result<()> {
         match self {
             PreparedAccountDelegationEvent::StakeIncrease {
@@ -1947,7 +1950,7 @@ impl PreparedAccountDelegationEvent {
                 .context("Failed update delegator target")?;
             }
             PreparedAccountDelegationEvent::RemoveBaker(baker_removed) => {
-                baker_removed.save(tx).await?;
+                baker_removed.save(tx, transaction_index).await?;
             }
         }
         Ok(())
@@ -1957,23 +1960,39 @@ impl PreparedAccountDelegationEvent {
 /// Represents the event of a baker being removed, resulting in the delegators
 /// targeting the pool are moved to the passive pool.
 struct BakerRemoved {
+    /// Move delegators to the passive pool.
     move_delegators: MovePoolDelegatorsToPassivePool,
+    /// Remove the baker from the bakers table.
     remove_baker:    RemoveBaker,
+    /// Add the baker to the bakers_removed table.
+    insert_removed:  db::baker::InsertRemovedBaker,
 }
 impl BakerRemoved {
     fn prepare(baker_id: &sdk_types::BakerId) -> anyhow::Result<Self> {
         Ok(Self {
             move_delegators: MovePoolDelegatorsToPassivePool::prepare(baker_id)?,
             remove_baker:    RemoveBaker::prepare(baker_id)?,
+            insert_removed:  db::baker::InsertRemovedBaker::prepare(baker_id)?,
         })
     }
 
     async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        transaction_index: i64,
     ) -> anyhow::Result<()> {
-        self.move_delegators.save(tx).await?;
-        self.remove_baker.save(tx).await?;
+        self.move_delegators
+            .save(tx)
+            .await
+            .context("Failed moving delegators to the passive pool")?;
+        self.remove_baker
+            .save(tx)
+            .await
+            .context("Failed removing the validator/baker from the bakers table")?;
+        self.insert_removed
+            .save(tx, transaction_index)
+            .await
+            .context("Failed inserting validator/baker to removed bakers table")?;
         Ok(())
     }
 }
@@ -2053,9 +2072,10 @@ impl PreparedBakerEvents {
 /// Event changing state related to validators (bakers).
 enum PreparedBakerEvent {
     Add {
-        baker_id:         i64,
-        staked:           i64,
-        restake_earnings: bool,
+        baker_id:             i64,
+        staked:               i64,
+        restake_earnings:     bool,
+        delete_removed_baker: db::baker::DeleteRemovedBakerWhenPresent,
     },
     Remove(BakerRemoved),
     StakeIncrease {
@@ -2110,9 +2130,12 @@ impl PreparedBakerEvent {
             BakerEvent::BakerAdded {
                 data: details,
             } => PreparedBakerEvent::Add {
-                baker_id:         details.keys_event.baker_id.id.index.try_into()?,
-                staked:           details.stake.micro_ccd().try_into()?,
-                restake_earnings: details.restake_earnings,
+                baker_id:             details.keys_event.baker_id.id.index.try_into()?,
+                staked:               details.stake.micro_ccd().try_into()?,
+                restake_earnings:     details.restake_earnings,
+                delete_removed_baker: db::baker::DeleteRemovedBakerWhenPresent::prepare(
+                    &details.keys_event.baker_id,
+                )?,
             },
             BakerEvent::BakerRemoved {
                 baker_id,
@@ -2219,6 +2242,7 @@ impl PreparedBakerEvent {
                 baker_id,
                 staked,
                 restake_earnings,
+                delete_removed_baker,
             } => {
                 sqlx::query!(
                     "INSERT INTO bakers (id, staked, restake_earnings, pool_total_staked, \
@@ -2231,9 +2255,10 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?;
+                delete_removed_baker.save(tx).await?
             }
             PreparedBakerEvent::Remove(baker_removed) => {
-                baker_removed.save(tx).await?;
+                baker_removed.save(tx, transaction_index).await?;
             }
             PreparedBakerEvent::StakeIncrease {
                 baker_id,

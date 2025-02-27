@@ -1,4 +1,4 @@
-use async_graphql::connection;
+use async_graphql::connection::{self, CursorType};
 use std::cmp::min;
 
 use crate::graphql_api::{ApiError, ApiResult};
@@ -21,14 +21,14 @@ pub fn connection_from_slice<T: AsRef<[A]>, A: async_graphql::OutputType + Clone
         return Ok(connection::Connection::new(false, false));
     }
     let after_cursor_index = if let Some(after_cursor) = after {
-        let index = after_cursor.parse::<usize>()?;
+        let index = usize::decode_cursor(after_cursor.as_str())?;
         min(index + 1, length)
     } else {
         0
     };
 
     let before_cursor_index = if let Some(before_cursor) = before {
-        min(before_cursor.parse::<usize>()?, length)
+        min(usize::decode_cursor(before_cursor.as_str())?, length)
     } else {
         length
     };
@@ -50,14 +50,14 @@ pub fn connection_from_slice<T: AsRef<[A]>, A: async_graphql::OutputType + Clone
     let slice = &collection[range.clone()];
     let mut connection = connection::Connection::new(start > 0, end < collection.len());
     for (i, item) in range.zip(slice.iter().cloned()) {
-        connection.edges.push(connection::Edge::new(i.to_string(), item))
+        connection.edges.push(connection::Edge::new(i.encode_cursor(), item))
     }
     Ok(connection)
 }
 
 /// Bounds for the Cursor in a GraphQL Cursor Connection, used as the fallback
 /// when no explicit range is provided as `after`/`before`.
-pub trait ConnectionCursor {
+pub trait ConnectionBounds {
     /// A non-inclusive bound for the start of the collection provided as the
     /// connection.
     const START_BOUND: Self;
@@ -65,20 +65,144 @@ pub trait ConnectionCursor {
     /// connection.
     const END_BOUND: Self;
 }
-impl ConnectionCursor for i64 {
+impl ConnectionBounds for i64 {
     const END_BOUND: i64 = i64::MAX;
     const START_BOUND: i64 = i64::MIN;
 }
 
 /// GraphQL Connection Cursor representing a collection where the pages are
 /// descending order using i64 as the cursor.
-#[derive(Debug, derive_more::From, derive_more::Into, derive_more::FromStr)]
-#[repr(transparent)]
-pub struct DescendingI64(i64);
+pub type DescendingI64 = Reversed<i64>;
 
-impl ConnectionCursor for DescendingI64 {
-    const END_BOUND: Self = Self(i64::MIN);
-    const START_BOUND: Self = Self(i64::MAX);
+impl From<DescendingI64> for i64 {
+    fn from(value: DescendingI64) -> Self { value.into_inner() }
+}
+
+impl From<i64> for DescendingI64 {
+    fn from(value: i64) -> Self { Reversed::new(value) }
+}
+
+/// GraphQL Connection Cursor representing a collection where the pages are
+/// reversed order.
+#[derive(Debug)]
+#[repr(transparent)]
+pub struct Reversed<Cursor> {
+    pub inner: Cursor,
+}
+impl<C> Reversed<C> {
+    pub const fn new(inner: C) -> Self {
+        Self {
+            inner,
+        }
+    }
+
+    pub fn into_inner(self) -> C { self.inner }
+}
+
+impl<C> ConnectionBounds for Reversed<C>
+where
+    C: ConnectionBounds,
+{
+    const END_BOUND: Self = Self::new(C::START_BOUND);
+    const START_BOUND: Self = Self::new(C::END_BOUND);
+}
+impl<C> CursorType for Reversed<C>
+where
+    C: CursorType,
+{
+    type Error = C::Error;
+
+    fn decode_cursor(s: &str) -> Result<Self, Self::Error> {
+        C::decode_cursor(s).map(Reversed::new)
+    }
+
+    fn encode_cursor(&self) -> String { self.inner.encode_cursor() }
+}
+
+/// Construct for combining two connection cursors into one, where the two
+/// connections are considered concatenated into one.
+pub(crate) enum ConcatCursor<Fst, Snd> {
+    First(Fst),
+    Second(Snd),
+}
+impl<Fst, Snd> ConcatCursor<Fst, Snd> {
+    /// Get the cursor for the inner connection considered first.
+    pub fn first(&self) -> Option<&Fst> {
+        match self {
+            ConcatCursor::First(fst) => Some(fst),
+            ConcatCursor::Second(_) => None,
+        }
+    }
+
+    /// Get the cursor for the inner connection considered second.
+    pub fn second(&self) -> Option<&Snd> {
+        match self {
+            ConcatCursor::First(_) => None,
+            ConcatCursor::Second(snd) => Some(snd),
+        }
+    }
+}
+
+impl<Fst, Snd> ConnectionBounds for ConcatCursor<Fst, Snd>
+where
+    Fst: ConnectionBounds,
+    Snd: ConnectionBounds,
+{
+    const END_BOUND: Self = ConcatCursor::Second(Snd::END_BOUND);
+    const START_BOUND: Self = ConcatCursor::First(Fst::START_BOUND);
+}
+
+impl<Fst, Snd> connection::CursorType for ConcatCursor<Fst, Snd>
+where
+    Fst: connection::CursorType,
+    Snd: connection::CursorType,
+{
+    type Error = ConcatCursorDecodeError<Fst::Error, Snd::Error>;
+
+    fn decode_cursor(value: &str) -> Result<Self, Self::Error> {
+        let (first_str, second_str) =
+            value.split_once(':').ok_or(ConcatCursorDecodeError::NoSemicolon)?;
+        match first_str {
+            "fst" => {
+                let cursor =
+                    Fst::decode_cursor(second_str).map_err(ConcatCursorDecodeError::FirstError)?;
+                Ok(ConcatCursor::First(cursor))
+            }
+            "snd" => {
+                let cursor =
+                    Snd::decode_cursor(second_str).map_err(ConcatCursorDecodeError::SecondError)?;
+                Ok(ConcatCursor::Second(cursor))
+            }
+            otherwise => Err(ConcatCursorDecodeError::UnexpectedPrefix(otherwise.to_string())),
+        }
+    }
+
+    fn encode_cursor(&self) -> String {
+        match self {
+            ConcatCursor::First(fst) => format!("fst:{}", fst.encode_cursor()),
+            ConcatCursor::Second(snd) => format!("snd:{}", snd.encode_cursor()),
+        }
+    }
+}
+
+#[derive(Debug, thiserror::Error, Clone)]
+pub enum ConcatCursorDecodeError<F, S> {
+    #[error("Must contain a semicolon")]
+    NoSemicolon,
+    #[error("Unexpected prefix for cursor: {0}")]
+    UnexpectedPrefix(String),
+    #[error("First error: {0}")]
+    FirstError(F),
+    #[error("Second error: {0}")]
+    SecondError(S),
+}
+
+impl<F, S> Into<ApiError> for ConcatCursorDecodeError<F, S>
+where
+    F: std::fmt::Display,
+    S: std::fmt::Display,
+{
+    fn into(self) -> ApiError { ApiError::InvalidCursorFormat(self.to_string()) }
 }
 
 /// Prepared query arguments for SQL query, based on arguments from a GraphQL
@@ -98,10 +222,10 @@ pub struct ConnectionQuery<A> {
     /// keep the page ordering consistent.
     pub is_last: bool,
 }
-impl<A> ConnectionQuery<A> {
+impl<Cursor> ConnectionQuery<Cursor> {
     /// Validate and prepare GraphQL Cursor Connection arguments to be used for
     /// a querying a collection stored in the database.
-    pub fn new<E>(
+    pub fn new<Error>(
         first: Option<u64>,
         after: Option<String>,
         last: Option<u64>,
@@ -109,22 +233,22 @@ impl<A> ConnectionQuery<A> {
         connection_limit: u64,
     ) -> ApiResult<Self>
     where
-        A: std::str::FromStr<Err = E> + ConnectionCursor,
-        E: Into<ApiError>, {
+        Cursor: connection::CursorType<Error = Error> + ConnectionBounds,
+        Error: Into<ApiError>, {
         if first.is_some() && last.is_some() {
             return Err(ApiError::QueryConnectionFirstLast);
         }
 
         let from = if let Some(a) = after {
-            a.parse::<A>().map_err(|e| e.into())?
+            Cursor::decode_cursor(a.as_str()).map_err(|e| e.into())?
         } else {
-            A::START_BOUND
+            Cursor::START_BOUND
         };
 
         let to = if let Some(b) = before {
-            b.parse::<A>().map_err(|e| e.into())?
+            Cursor::decode_cursor(b.as_str()).map_err(|e| e.into())?
         } else {
-            A::END_BOUND
+            Cursor::END_BOUND
         };
 
         let limit =
