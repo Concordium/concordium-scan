@@ -4294,11 +4294,6 @@ impl RestakeEarnings {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
-        let bakers_expected_affected_range = if self.protocol_version > ProtocolVersion::P6 {
-            1..=1
-        } else {
-            0..=1
-        };
         // Update the account if delegated_restake_earnings is set and is true, meaning
         // the account is delegating.
         let account_row = sqlx::query!(
@@ -4316,6 +4311,11 @@ impl RestakeEarnings {
         .fetch_one(tx.as_mut())
         .await?;
         if let Some(restake) = account_row.delegated_restake_earnings {
+            let bakers_expected_affected_range = if self.protocol_version > ProtocolVersion::P6 {
+                1..=1
+            } else {
+                0..=1
+            };
             // Account is delegating.
             if let (true, Some(pool)) = (restake, account_row.delegated_target_baker_id) {
                 // If restake is enabled and the target is a validator pool (not the passive
