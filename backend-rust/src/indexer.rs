@@ -1656,7 +1656,7 @@ impl PreparedEvent {
             PreparedEvent::ModuleDeployed(event) => event.save(tx, tx_idx).await,
             PreparedEvent::ContractInitialized(event) => event.save(tx, tx_idx).await,
             PreparedEvent::ContractUpdate(event) => event.save(tx, tx_idx).await,
-            PreparedEvent::AccountDelegationEvents(event) => event.save(tx).await,
+            PreparedEvent::AccountDelegationEvents(event) => event.save(tx, protocol_version).await,
             PreparedEvent::ScheduledTransfer(event) => event.save(tx, tx_idx).await,
             PreparedEvent::RejectedTransaction(event) => event.save(tx, tx_idx).await,
             PreparedEvent::NoOperation => Ok(()),
@@ -1672,10 +1672,10 @@ struct EventMetadata {
 
 /// Wraps a prepared event together with metadata needed for its processing.
 ///
-/// Prior to protocol version 7, baker removal was delayed by a cooldown period during which
-/// other baker-related transactions could still occur, potentially resulting in no affected rows.
-/// This envelope provides the necessary context (e.g. protocol version) to correctly validate
-/// the processing of events.
+/// Prior to protocol version 7, baker removal was delayed by a cooldown period
+/// during which other baker-related transactions could still occur, potentially
+/// resulting in no affected rows. This envelope provides the necessary context
+/// (e.g. protocol version) to correctly validate the processing of events.
 struct PreparedEventEnvelope {
     metadata: EventMetadata,
     event:    PreparedEvent,
@@ -1766,9 +1766,10 @@ impl PreparedAccountDelegationEvents {
     async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        protocol_version: ProtocolVersion,
     ) -> anyhow::Result<()> {
         for event in &self.events {
-            event.save(tx).await?;
+            event.save(tx, protocol_version).await?;
         }
         Ok(())
     }
@@ -1859,7 +1860,7 @@ impl PreparedAccountDelegationEvent {
     async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-        protocol_version: ProtocolVersion
+        protocol_version: ProtocolVersion,
     ) -> anyhow::Result<()> {
         let bakers_expected_affected_range = if protocol_version > ProtocolVersion::P6 {
             1..=1
@@ -3964,9 +3965,7 @@ impl PreparedSpecialTransactionOutcomes {
                 )?,
             updates: events
                 .iter()
-                .map(|event| {
-                    PreparedSpecialTransactionOutcomeUpdate::prepare(event, block_info.block_height)
-                })
+                .map(|event| PreparedSpecialTransactionOutcomeUpdate::prepare(event, block_info))
                 .collect::<Result<_, _>>()?,
             payday_updates,
         })
@@ -4072,10 +4071,7 @@ enum PreparedSpecialTransactionOutcomeUpdate {
 }
 
 impl PreparedSpecialTransactionOutcomeUpdate {
-    fn prepare(
-        event: &SpecialTransactionOutcome,
-        block_height: AbsoluteBlockHeight,
-    ) -> anyhow::Result<Self> {
+    fn prepare(event: &SpecialTransactionOutcome, block_info: &BlockInfo) -> anyhow::Result<Self> {
         let results = match &event {
             SpecialTransactionOutcome::BakingRewards {
                 baker_rewards,
@@ -4087,8 +4083,9 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                         AccountReceivedReward::prepare(
                             account_address,
                             amount.micro_ccd.try_into()?,
-                            block_height,
+                            block_info.block_height,
                             AccountStatementEntryType::BakerReward,
+                            block_info.protocol_version,
                         )
                     })
                     .collect::<Result<Vec<_>, _>>()?;
@@ -4102,8 +4099,9 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 let rewards = vec![AccountReceivedReward::prepare(
                     foundation_account,
                     mint_platform_development_charge.micro_ccd.try_into()?,
-                    block_height,
+                    block_info.block_height,
                     AccountStatementEntryType::FoundationReward,
+                    block_info.protocol_version,
                 )?];
                 Self::Rewards(rewards)
             }
@@ -4117,8 +4115,9 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                         AccountReceivedReward::prepare(
                             account_address,
                             amount.micro_ccd.try_into()?,
-                            block_height,
+                            block_info.block_height,
                             AccountStatementEntryType::FinalizationReward,
+                            block_info.protocol_version,
                         )
                     })
                     .collect::<Result<Vec<_>, _>>()?;
@@ -4134,14 +4133,16 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 AccountReceivedReward::prepare(
                     foundation_account,
                     foundation_charge.micro_ccd.try_into()?,
-                    block_height,
+                    block_info.block_height,
                     AccountStatementEntryType::FoundationReward,
+                    block_info.protocol_version,
                 )?,
                 AccountReceivedReward::prepare(
                     baker,
                     baker_reward.micro_ccd.try_into()?,
-                    block_height,
+                    block_info.block_height,
                     AccountStatementEntryType::BakerReward,
+                    block_info.protocol_version,
                 )?,
             ]),
             SpecialTransactionOutcome::PaydayFoundationReward {
@@ -4150,8 +4151,9 @@ impl PreparedSpecialTransactionOutcomeUpdate {
             } => Self::Rewards(vec![AccountReceivedReward::prepare(
                 foundation_account,
                 development_charge.micro_ccd.try_into()?,
-                block_height,
+                block_info.block_height,
                 AccountStatementEntryType::FoundationReward,
+                block_info.protocol_version,
             )?]),
             SpecialTransactionOutcome::PaydayAccountReward {
                 account,
@@ -4162,20 +4164,23 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 AccountReceivedReward::prepare(
                     account,
                     transaction_fees.micro_ccd.try_into()?,
-                    block_height,
+                    block_info.block_height,
                     AccountStatementEntryType::TransactionFeeReward,
+                    block_info.protocol_version,
                 )?,
                 AccountReceivedReward::prepare(
                     account,
                     baker_reward.micro_ccd.try_into()?,
-                    block_height,
+                    block_info.block_height,
                     AccountStatementEntryType::BakerReward,
+                    block_info.protocol_version,
                 )?,
                 AccountReceivedReward::prepare(
                     account,
                     finalization_reward.micro_ccd.try_into()?,
-                    block_height,
+                    block_info.block_height,
                     AccountStatementEntryType::FinalizationReward,
+                    block_info.protocol_version,
                 )?,
             ]),
             // TODO: Support these two types. (Deviates from Old CCDScan)
@@ -4190,14 +4195,14 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 ..
             } => Self::ValidatorSuspended(PreparedValidatorSuspension::prepare(
                 baker_id,
-                block_height,
+                block_info.block_height,
             )?),
             SpecialTransactionOutcome::ValidatorPrimedForSuspension {
                 baker_id,
                 ..
             } => Self::ValidatorPrimedForSuspension(PreparedValidatorPrimedForSuspension::prepare(
                 baker_id,
-                block_height,
+                block_info.block_height,
             )?),
         };
         Ok(results)
@@ -4234,6 +4239,7 @@ impl AccountReceivedReward {
         amount: i64,
         block_height: AbsoluteBlockHeight,
         transaction_type: AccountStatementEntryType,
+        protocol_version: ProtocolVersion,
     ) -> anyhow::Result<Self> {
         Ok(Self {
             update_account_balance: PreparedUpdateAccountBalance::prepare(
@@ -4242,7 +4248,11 @@ impl AccountReceivedReward {
                 block_height,
                 transaction_type,
             )?,
-            update_stake:           RestakeEarnings::prepare(account_address, amount),
+            update_stake:           RestakeEarnings::prepare(
+                account_address,
+                amount,
+                protocol_version,
+            ),
         })
     }
 
@@ -4263,22 +4273,28 @@ struct RestakeEarnings {
     canonical_account_address: CanonicalAccountAddress,
     /// Amount of CCD received as reward.
     amount:                    i64,
+    /// Protocol version belonging to the block being processed
+    protocol_version:          ProtocolVersion,
 }
 
 impl RestakeEarnings {
-    fn prepare(account_address: &AccountAddress, amount: i64) -> Self {
+    fn prepare(
+        account_address: &AccountAddress,
+        amount: i64,
+        protocol_version: ProtocolVersion,
+    ) -> Self {
         Self {
             canonical_account_address: account_address.get_canonical_address(),
             amount,
+            protocol_version,
         }
     }
 
     async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-        protocol_version: ProtocolVersion
     ) -> anyhow::Result<()> {
-        let bakers_expected_affected_range = if protocol_version > ProtocolVersion::P6 {
+        let bakers_expected_affected_range = if self.protocol_version > ProtocolVersion::P6 {
             1..=1
         } else {
             0..=1
