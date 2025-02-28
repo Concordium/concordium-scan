@@ -1997,12 +1997,12 @@ impl PreparedAccountDelegationEvent {
                 // some cooldown period, allowing delegators to still target the pool after
                 // removal. Since we remove the baker immediate even for older blocks there
                 // might not be a baker to target, so we check for existence as part of the
-                // query.
+                // query, unless the new target is the passive delegation pool.
                 sqlx::query!(
                     "UPDATE accounts
                         SET delegated_target_baker_id = $1
                     WHERE
-                        EXISTS(SELECT TRUE FROM bakers WHERE id = $1)
+                        ($1::BIGINT IS NULL OR EXISTS(SELECT TRUE FROM bakers WHERE id = $1))
                         AND index = $2",
                     *target_id,
                     account_id
