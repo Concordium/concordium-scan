@@ -11,6 +11,35 @@ Database schema version: 11
 - Support `include_removed` flag for `Query::bakers` query.
 - Add database migration 11 adding table tracking the removed bakers and populate the table.
 - Indexer now maintain the removed bakers table.
+
+## [0.1.31] - 2025-02-28
+
+### Fixed
+
+- Only update delegation target when baker/validator is not removed. This is only relevant for blocks in protocol versions prior to P7 as there it was still possible to target removed bakers/validators during the cooldown period.
+
+## [0.1.30] - 2025-02-27
+
+### Fixed
+
+- Relaxing validation constraint on all database rows affecting bakers requiring a single row update prior to protocol version 7.
+
+## [0.1.29] - 2025-02-26
+
+### Fixed
+
+- Relaxing validation constraint on database rows related to prepared bakers events when protocol 7.
+
+## [0.1.28] - 2025-02-26
+
+Database schema version: 10
+
+### Fixed
+
+- Make validation of rows changed to account tokens accept the zero rows modified
+
+### Added
+
 - Add database migration 10 to store the `leverage_bound` and the `capital_bound` values of the chain.
 - Add query `BakerPool::delegatedStakeCap` that considers the leverage and capital bounds to report the delegate stake cap for baker pools.
 

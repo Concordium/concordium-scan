@@ -1314,9 +1314,14 @@ impl PreparedBlockItemEvent {
                     data.block_info.block_height,
                     AccountStatementEntryType::TransactionFee,
                 )?;
-                let event =
-                    PreparedEvent::prepare(node_client, data, details, item, &details.sender)
-                        .await?;
+                let event = PreparedEventEnvelope::prepare(
+                    node_client,
+                    data,
+                    details,
+                    item,
+                    &details.sender,
+                )
+                .await?;
                 Ok(PreparedBlockItemEvent::AccountTransaction(Box::new(
                     PreparedAccountTransaction {
                         fee,
@@ -1351,7 +1356,7 @@ struct PreparedAccountTransaction {
     /// fee).
     fee:   PreparedUpdateAccountBalance,
     /// Updates based on the events of the account transaction.
-    event: PreparedEvent,
+    event: PreparedEventEnvelope,
 }
 
 enum PreparedEvent {
@@ -1643,19 +1648,66 @@ impl PreparedEvent {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         tx_idx: i64,
+        protocol_version: ProtocolVersion,
     ) -> anyhow::Result<()> {
         match self {
             PreparedEvent::CcdTransfer(event) => event.save(tx, tx_idx).await,
             PreparedEvent::EncryptedBalance(event) => event.save(tx, tx_idx).await,
-            PreparedEvent::BakerEvents(event) => event.save(tx, tx_idx).await,
+            PreparedEvent::BakerEvents(event) => event.save(tx, tx_idx, protocol_version).await,
             PreparedEvent::ModuleDeployed(event) => event.save(tx, tx_idx).await,
             PreparedEvent::ContractInitialized(event) => event.save(tx, tx_idx).await,
             PreparedEvent::ContractUpdate(event) => event.save(tx, tx_idx).await,
-            PreparedEvent::AccountDelegationEvents(event) => event.save(tx, tx_idx).await,
+            PreparedEvent::AccountDelegationEvents(event) => {
+                event.save(tx, tx_idx, protocol_version).await
+            }
             PreparedEvent::ScheduledTransfer(event) => event.save(tx, tx_idx).await,
             PreparedEvent::RejectedTransaction(event) => event.save(tx, tx_idx).await,
             PreparedEvent::NoOperation => Ok(()),
         }
+    }
+}
+
+/// Contains metadata required for event processing that is not directly tied to
+/// individual events.
+struct EventMetadata {
+    protocol_version: ProtocolVersion,
+}
+
+/// Wraps a prepared event together with metadata needed for its processing.
+///
+/// Prior to protocol version 7, baker removal was delayed by a cooldown period
+/// during which other baker-related transactions could still occur, potentially
+/// resulting in no affected rows. This envelope provides the necessary context
+/// (e.g. protocol version) to correctly validate the processing of events.
+struct PreparedEventEnvelope {
+    metadata: EventMetadata,
+    event:    PreparedEvent,
+}
+
+impl PreparedEventEnvelope {
+    pub async fn prepare(
+        node_client: &mut v2::Client,
+        data: &BlockData,
+        details: &AccountTransactionDetails,
+        item: &BlockItem<EncodedPayload>,
+        sender: &AccountAddress,
+    ) -> anyhow::Result<Self> {
+        let event = PreparedEvent::prepare(node_client, data, details, item, sender).await?;
+        let metadata = EventMetadata {
+            protocol_version: data.block_info.protocol_version,
+        };
+        Ok(PreparedEventEnvelope {
+            metadata,
+            event,
+        })
+    }
+
+    pub async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx_idx: i64,
+    ) -> anyhow::Result<()> {
+        self.event.save(tx, tx_idx, self.metadata.protocol_version).await
     }
 }
 
@@ -1718,9 +1770,10 @@ impl PreparedAccountDelegationEvents {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         transaction_index: i64,
+        protocol_version: ProtocolVersion,
     ) -> anyhow::Result<()> {
         for event in &self.events {
-            event.save(tx, transaction_index).await?;
+            event.save(tx, transaction_index, protocol_version).await?;
         }
         Ok(())
     }
@@ -1812,7 +1865,13 @@ impl PreparedAccountDelegationEvent {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         transaction_index: i64,
+        protocol_version: ProtocolVersion,
     ) -> anyhow::Result<()> {
+        let bakers_expected_affected_range = if protocol_version > ProtocolVersion::P6 {
+            1..=1
+        } else {
+            0..=1
+        };
         match self {
             PreparedAccountDelegationEvent::StakeIncrease {
                 account_id,
@@ -1935,18 +1994,27 @@ impl PreparedAccountDelegationEvent {
                     )
                     .execute(tx.as_mut())
                     .await?
-                    .ensure_affected_one_row()
+                    .ensure_affected_rows_in_range(bakers_expected_affected_range.clone())
                     .context("Failed update pool stake adding delegator")?;
                 }
                 // Set the new target on the delegator.
+                // Prior to Protocol version 7, removing a baker was not immediate, but after
+                // some cooldown period, allowing delegators to still target the pool after
+                // removal. Since we remove the baker immediate even for older blocks there
+                // might not be a baker to target, so we check for existence as part of the
+                // query.
                 sqlx::query!(
-                    "UPDATE accounts SET delegated_target_baker_id = $1 WHERE index = $2",
+                    "UPDATE accounts
+                        SET delegated_target_baker_id = $1
+                    WHERE
+                        EXISTS(SELECT TRUE FROM bakers WHERE id = $1)
+                        AND index = $2",
                     *target_id,
                     account_id
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()
+                .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed update delegator target")?;
             }
             PreparedAccountDelegationEvent::RemoveBaker(baker_removed) => {
@@ -2061,9 +2129,10 @@ impl PreparedBakerEvents {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         transaction_index: i64,
+        protocol_version: ProtocolVersion,
     ) -> anyhow::Result<()> {
         for event in &self.events {
-            event.save(tx, transaction_index).await?;
+            event.save(tx, transaction_index, protocol_version).await?;
         }
         Ok(())
     }
@@ -2236,7 +2305,13 @@ impl PreparedBakerEvent {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         transaction_index: i64,
+        protocol_version: ProtocolVersion,
     ) -> anyhow::Result<()> {
+        let bakers_expected_affected_range = if protocol_version > ProtocolVersion::P6 {
+            1..=1
+        } else {
+            0..=1
+        };
         match self {
             PreparedBakerEvent::Add {
                 baker_id,
@@ -2274,7 +2349,7 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()
+                .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed increasing validator stake")?;
             }
             PreparedBakerEvent::StakeDecrease {
@@ -2291,7 +2366,7 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()
+                .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed decreasing validator stake")?;
             }
             PreparedBakerEvent::SetRestakeEarnings {
@@ -2305,7 +2380,7 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()
+                .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed updating validator restake earnings")?;
             }
             PreparedBakerEvent::SetOpenStatus {
@@ -2320,7 +2395,7 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()
+                .ensure_affected_rows_in_range(bakers_expected_affected_range.clone())
                 .context("Failed updating open_status of validator")?;
                 if let Some(move_operation) = move_delegators {
                     sqlx::query!(
@@ -2332,7 +2407,7 @@ impl PreparedBakerEvent {
                     )
                     .execute(tx.as_mut())
                     .await?
-                    .ensure_affected_one_row()
+                    .ensure_affected_rows_in_range(bakers_expected_affected_range)
                     .context("Failed updating pool stake when closing for all")?;
                     move_operation.save(tx).await?;
                 }
@@ -2348,7 +2423,7 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()
+                .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed updating validator metadata url")?;
             }
             PreparedBakerEvent::SetTransactionFeeCommission {
@@ -2362,7 +2437,7 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()
+                .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed updating validator transaction fee commission")?;
             }
             PreparedBakerEvent::SetBakingRewardCommission {
@@ -2376,7 +2451,7 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()
+                .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed updating validator transaction fee commission")?;
             }
             PreparedBakerEvent::SetFinalizationRewardCommission {
@@ -2390,7 +2465,7 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()
+                .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed updating validator transaction fee commission")?;
             }
             PreparedBakerEvent::RemoveDelegation {
@@ -2437,7 +2512,7 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()
+                .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed update validator state to self-suspended")?;
             }
             PreparedBakerEvent::Resumed {
@@ -2453,7 +2528,7 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()
+                .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed update validator state to resumed from suspension")?;
             }
             PreparedBakerEvent::NoOperation => (),
@@ -3461,7 +3536,7 @@ async fn process_cis2_token_event(
                 .execute(tx.as_mut())
                 .await
                 .context("Failed inserting or updating account balance from burn event")?
-                .ensure_affected_one_row()?;
+                .ensure_affected_rows_in_range(0..=1)?;
             }
 
             // Insert the token event into the table.
@@ -3566,7 +3641,7 @@ async fn process_cis2_token_event(
                 .execute(tx.as_mut())
                 .await
                 .context("Failed inserting or updating account balance from transfer event (to)")?
-                .ensure_affected_one_row()?;
+                .ensure_affected_rows_in_range(0..=1)?;
             }
 
             // Insert the token event into the table.
@@ -3926,9 +4001,7 @@ impl PreparedSpecialTransactionOutcomes {
                 )?,
             updates: events
                 .iter()
-                .map(|event| {
-                    PreparedSpecialTransactionOutcomeUpdate::prepare(event, block_info.block_height)
-                })
+                .map(|event| PreparedSpecialTransactionOutcomeUpdate::prepare(event, block_info))
                 .collect::<Result<_, _>>()?,
             payday_updates,
         })
@@ -4034,10 +4107,7 @@ enum PreparedSpecialTransactionOutcomeUpdate {
 }
 
 impl PreparedSpecialTransactionOutcomeUpdate {
-    fn prepare(
-        event: &SpecialTransactionOutcome,
-        block_height: AbsoluteBlockHeight,
-    ) -> anyhow::Result<Self> {
+    fn prepare(event: &SpecialTransactionOutcome, block_info: &BlockInfo) -> anyhow::Result<Self> {
         let results = match &event {
             SpecialTransactionOutcome::BakingRewards {
                 baker_rewards,
@@ -4049,8 +4119,9 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                         AccountReceivedReward::prepare(
                             account_address,
                             amount.micro_ccd.try_into()?,
-                            block_height,
+                            block_info.block_height,
                             AccountStatementEntryType::BakerReward,
+                            block_info.protocol_version,
                         )
                     })
                     .collect::<Result<Vec<_>, _>>()?;
@@ -4064,8 +4135,9 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 let rewards = vec![AccountReceivedReward::prepare(
                     foundation_account,
                     mint_platform_development_charge.micro_ccd.try_into()?,
-                    block_height,
+                    block_info.block_height,
                     AccountStatementEntryType::FoundationReward,
+                    block_info.protocol_version,
                 )?];
                 Self::Rewards(rewards)
             }
@@ -4079,8 +4151,9 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                         AccountReceivedReward::prepare(
                             account_address,
                             amount.micro_ccd.try_into()?,
-                            block_height,
+                            block_info.block_height,
                             AccountStatementEntryType::FinalizationReward,
+                            block_info.protocol_version,
                         )
                     })
                     .collect::<Result<Vec<_>, _>>()?;
@@ -4096,14 +4169,16 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 AccountReceivedReward::prepare(
                     foundation_account,
                     foundation_charge.micro_ccd.try_into()?,
-                    block_height,
+                    block_info.block_height,
                     AccountStatementEntryType::FoundationReward,
+                    block_info.protocol_version,
                 )?,
                 AccountReceivedReward::prepare(
                     baker,
                     baker_reward.micro_ccd.try_into()?,
-                    block_height,
+                    block_info.block_height,
                     AccountStatementEntryType::BakerReward,
+                    block_info.protocol_version,
                 )?,
             ]),
             SpecialTransactionOutcome::PaydayFoundationReward {
@@ -4112,8 +4187,9 @@ impl PreparedSpecialTransactionOutcomeUpdate {
             } => Self::Rewards(vec![AccountReceivedReward::prepare(
                 foundation_account,
                 development_charge.micro_ccd.try_into()?,
-                block_height,
+                block_info.block_height,
                 AccountStatementEntryType::FoundationReward,
+                block_info.protocol_version,
             )?]),
             SpecialTransactionOutcome::PaydayAccountReward {
                 account,
@@ -4124,20 +4200,23 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 AccountReceivedReward::prepare(
                     account,
                     transaction_fees.micro_ccd.try_into()?,
-                    block_height,
+                    block_info.block_height,
                     AccountStatementEntryType::TransactionFeeReward,
+                    block_info.protocol_version,
                 )?,
                 AccountReceivedReward::prepare(
                     account,
                     baker_reward.micro_ccd.try_into()?,
-                    block_height,
+                    block_info.block_height,
                     AccountStatementEntryType::BakerReward,
+                    block_info.protocol_version,
                 )?,
                 AccountReceivedReward::prepare(
                     account,
                     finalization_reward.micro_ccd.try_into()?,
-                    block_height,
+                    block_info.block_height,
                     AccountStatementEntryType::FinalizationReward,
+                    block_info.protocol_version,
                 )?,
             ]),
             // TODO: Support these two types. (Deviates from Old CCDScan)
@@ -4152,14 +4231,14 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 ..
             } => Self::ValidatorSuspended(PreparedValidatorSuspension::prepare(
                 baker_id,
-                block_height,
+                block_info.block_height,
             )?),
             SpecialTransactionOutcome::ValidatorPrimedForSuspension {
                 baker_id,
                 ..
             } => Self::ValidatorPrimedForSuspension(PreparedValidatorPrimedForSuspension::prepare(
                 baker_id,
-                block_height,
+                block_info.block_height,
             )?),
         };
         Ok(results)
@@ -4196,6 +4275,7 @@ impl AccountReceivedReward {
         amount: i64,
         block_height: AbsoluteBlockHeight,
         transaction_type: AccountStatementEntryType,
+        protocol_version: ProtocolVersion,
     ) -> anyhow::Result<Self> {
         Ok(Self {
             update_account_balance: PreparedUpdateAccountBalance::prepare(
@@ -4204,7 +4284,11 @@ impl AccountReceivedReward {
                 block_height,
                 transaction_type,
             )?,
-            update_stake:           RestakeEarnings::prepare(account_address, amount),
+            update_stake:           RestakeEarnings::prepare(
+                account_address,
+                amount,
+                protocol_version,
+            ),
         })
     }
 
@@ -4225,13 +4309,20 @@ struct RestakeEarnings {
     canonical_account_address: CanonicalAccountAddress,
     /// Amount of CCD received as reward.
     amount:                    i64,
+    /// Protocol version belonging to the block being processed
+    protocol_version:          ProtocolVersion,
 }
 
 impl RestakeEarnings {
-    fn prepare(account_address: &AccountAddress, amount: i64) -> Self {
+    fn prepare(
+        account_address: &AccountAddress,
+        amount: i64,
+        protocol_version: ProtocolVersion,
+    ) -> Self {
         Self {
             canonical_account_address: account_address.get_canonical_address(),
             amount,
+            protocol_version,
         }
     }
 
@@ -4256,6 +4347,11 @@ impl RestakeEarnings {
         .fetch_one(tx.as_mut())
         .await?;
         if let Some(restake) = account_row.delegated_restake_earnings {
+            let bakers_expected_affected_range = if self.protocol_version > ProtocolVersion::P6 {
+                1..=1
+            } else {
+                0..=1
+            };
             // Account is delegating.
             if let (true, Some(pool)) = (restake, account_row.delegated_target_baker_id) {
                 // If restake is enabled and the target is a validator pool (not the passive
@@ -4269,7 +4365,7 @@ impl RestakeEarnings {
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()?;
+                .ensure_affected_rows_in_range(bakers_expected_affected_range)?;
             }
         } else {
             // When delegated_restake_earnings is None the account is not delegating, so it
