@@ -1989,18 +1989,27 @@ impl PreparedAccountDelegationEvent {
                     )
                     .execute(tx.as_mut())
                     .await?
-                    .ensure_affected_rows_in_range(bakers_expected_affected_range)
+                    .ensure_affected_rows_in_range(bakers_expected_affected_range.clone())
                     .context("Failed update pool stake adding delegator")?;
                 }
                 // Set the new target on the delegator.
+                // Prior to Protocol version 7, removing a baker was not immediate, but after
+                // some cooldown period, allowing delegators to still target the pool after
+                // removal. Since we remove the baker immediate even for older blocks there
+                // might not be a baker to target, so we check for existence as part of the
+                // query.
                 sqlx::query!(
-                    "UPDATE accounts SET delegated_target_baker_id = $1 WHERE index = $2",
+                    "UPDATE accounts
+                        SET delegated_target_baker_id = $1
+                    WHERE
+                        EXISTS(SELECT TRUE FROM bakers WHERE id = $1)
+                        AND index = $2",
                     *target_id,
                     account_id
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()
+                .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed update delegator target")?;
             }
             PreparedAccountDelegationEvent::RemoveBaker(baker_removed) => {
