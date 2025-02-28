@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM (\n                    SELECT\n                        id,\n                        slot_time AS removed_at\n                    FROM bakers_removed\n                        JOIN transactions ON transactions.index = bakers_removed.removed_by\n                        JOIN blocks ON blocks.height = transactions.block_height\n                    WHERE id > $2 AND id < $1\n                    ORDER BY\n                        (CASE WHEN $3     THEN id END) ASC,\n                        (CASE WHEN NOT $3 THEN id END) DESC\n                    LIMIT $4\n                ) ORDER BY id DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "removed_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Bool",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "58c8f1e65e3118cd77d433489a58cc20bbbd192e27eeffae527aa2a4ec03a254"
+}

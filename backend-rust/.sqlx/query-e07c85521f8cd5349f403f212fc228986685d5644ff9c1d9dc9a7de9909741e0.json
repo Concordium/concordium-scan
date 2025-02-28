@@ -1,0 +1,51 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n                    starting_baker as (\n                        SELECT id, pool_delegator_count FROM bakers\n                        WHERE $1::pool_open_status IS NULL OR open_status = $1::pool_open_status\n                        ORDER BY pool_delegator_count DESC, id DESC\n                        LIMIT 1\n                    ),\n                    ending_baker as (\n                        SELECT id, pool_delegator_count FROM bakers\n                        WHERE $1::pool_open_status IS NULL OR open_status = $1::pool_open_status\n                        ORDER BY pool_delegator_count ASC, id ASC\n                        LIMIT 1\n                    )\n                SELECT\n                    starting_baker.id AS start_id,\n                    starting_baker.pool_delegator_count AS start_delegator_count,\n                    ending_baker.id AS end_id,\n                    ending_baker.pool_delegator_count AS end_delegator_count\n                FROM starting_baker, ending_baker",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "start_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "start_delegator_count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "end_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "end_delegator_count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "pool_open_status",
+            "kind": {
+              "Enum": [
+                "OpenForAll",
+                "ClosedForNew",
+                "ClosedForAll"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e07c85521f8cd5349f403f212fc228986685d5644ff9c1d9dc9a7de9909741e0"
+}
