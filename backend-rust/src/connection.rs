@@ -197,12 +197,14 @@ pub enum ConcatCursorDecodeError<F, S> {
     SecondError(S),
 }
 
-impl<F, S> Into<ApiError> for ConcatCursorDecodeError<F, S>
+impl<F, S> From<ConcatCursorDecodeError<F, S>> for ApiError
 where
     F: std::fmt::Display,
     S: std::fmt::Display,
 {
-    fn into(self) -> ApiError { ApiError::InvalidCursorFormat(self.to_string()) }
+    fn from(err: ConcatCursorDecodeError<F, S>) -> Self {
+        ApiError::InvalidCursorFormat(err.to_string())
+    }
 }
 
 /// Prepared query arguments for SQL query, based on arguments from a GraphQL

@@ -392,91 +392,6 @@ impl Ord for BakerFieldDescCursor {
         }
     }
 }
-// /// Cursor for the Query::bakers connection.
-// #[derive(Debug, Clone, Copy)]
-// enum BakersCursor {
-//     /// Pointing to baker currently baking.
-//     Current {
-//         /// Id of the current baker.
-//         baker_id: i64,
-//     },
-//     /// Pointing to a removed baker previously baking.
-//     Previously {
-//         /// Id of the removed baker.
-//         baker_id: i64,
-//     },
-// }
-
-// impl connection::CursorType for BakersCursor {
-//     type Error = BakerCursorFormatError;
-
-//     fn decode_cursor(value: &str) -> Result<Self, Self::Error> {
-//         let (first_str, second_str) =
-//
-// value.split_once(':').ok_or(BakerCursorFormatError::NoSemicolon)?;
-//         match first_str {
-//             "current" => {
-//                 let baker_id: i64 = second_str.parse()?;
-//                 Ok(BakersCursor::Current {
-//                     baker_id,
-//                 })
-//             }
-//             "previously" => {
-//                 let baker_id: i64 = second_str.parse()?;
-//                 Ok(BakersCursor::Previously {
-//                     baker_id,
-//                 })
-//             }
-//             otherwise =>
-// Err(BakerCursorFormatError::InvalidTag(otherwise.to_string())),         }
-//     }
-
-//     fn encode_cursor(&self) -> String {
-//         match self {
-//             BakersCursor::Current {
-//                 baker_id,
-//             } => format!("current:{}", baker_id),
-//             BakersCursor::Previously {
-//                 baker_id,
-//             } => format!("previously:{}", baker_id),
-//         }
-//     }
-// }
-
-// impl ConnectionBounds for BakersCursor {
-//     const END_BOUND: Self = BakersCursor::Previously {
-//         baker_id: i64::MAX,
-//     };
-//     const START_BOUND: Self = BakersCursor::Current {
-//         baker_id: i64::MIN,
-//     };
-// }
-
-// impl From<&CurrentBaker> for BakersCursor {
-//     fn from(value: &CurrentBaker) -> Self {
-//         Self::Current {
-//             baker_id: value.id.into(),
-//         }
-//     }
-// }
-
-// impl From<&PreviouslyBaker> for BakersCursor {
-//     fn from(value: &PreviouslyBaker) -> Self {
-//         Self::Previously {
-//             baker_id: value.id.into(),
-//         }
-//     }
-// }
-
-// #[derive(Debug, thiserror::Error, Clone)]
-// pub enum BakerCursorFormatError {
-//     #[error("Must contain a single semicolon")]
-//     NoSemicolon,
-//     #[error("Value after the semicolon must be an integer")]
-//     NotAnInteger(#[from] std::num::ParseIntError),
-//     #[error("Value before the semicolon must be either 'current' or
-// 'previously' instead got {0}")]     InvalidTag(String),
-// }
 
 #[repr(transparent)]
 struct IdBaker {
@@ -522,14 +437,13 @@ impl Baker {
     pub async fn query_by_id(pool: &PgPool, baker_id: i64) -> ApiResult<Option<Self>> {
         let baker = if let Some(baker) = CurrentBaker::query_by_id(pool, baker_id).await? {
             Some(Baker::Current(baker))
-        } else if let Some(removed) = PreviouslyBaker::query_by_id(pool, baker_id).await? {
-            Some(Baker::Previously(removed))
         } else {
-            None
+            PreviouslyBaker::query_by_id(pool, baker_id).await?.map(Baker::Previously)
         };
         Ok(baker)
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn id_asc_connection(
         config: &ApiServiceConfig,
         pool: &PgPool,
@@ -675,6 +589,7 @@ impl Baker {
         Ok(connection)
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn id_desc_connection(
         config: &ApiServiceConfig,
         pool: &PgPool,
@@ -814,6 +729,7 @@ impl Baker {
         Ok(connection)
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn total_staked_desc_connection(
         config: &ApiServiceConfig,
         pool: &PgPool,
@@ -966,7 +882,7 @@ impl Baker {
                     // Since we might already have some removed bakers in the page, we sort to make
                     // sure these are last after adding current bakers.
                     connection.edges.sort_by_key(|edge| match &edge.node {
-                        Baker::Current(current_baker) => -1 * current_baker.pool_total_staked,
+                        Baker::Current(current_baker) => -current_baker.pool_total_staked,
                         Baker::Previously(previously_baker) => {
                             i64::MAX - i64::from(previously_baker.id)
                         }
@@ -1073,6 +989,7 @@ impl Baker {
         Ok(connection)
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn delegator_count_desc_connection(
         config: &ApiServiceConfig,
         pool: &PgPool,
@@ -1225,7 +1142,7 @@ impl Baker {
                     // Since we might already have some removed bakers in the page, we sort to make
                     // sure these are last after adding current bakers.
                     connection.edges.sort_by_key(|edge| match &edge.node {
-                        Baker::Current(current_baker) => -1 * current_baker.pool_delegator_count,
+                        Baker::Current(current_baker) => -current_baker.pool_delegator_count,
                         Baker::Previously(previously_baker) => {
                             i64::MAX - i64::from(previously_baker.id)
                         }
@@ -1414,18 +1331,6 @@ impl CurrentBaker {
         .fetch_optional(pool)
         .await?)
     }
-
-    // fn sort_field(&self, order_field: BakerOrderField) -> i64 {
-    //     match order_field {
-    //         BakerOrderField::BakerId => self.id.into(),
-    //         BakerOrderField::BakerStakedAmount => self.staked,
-    //         BakerOrderField::TotalStakedAmount => self.pool_total_staked,
-    //         BakerOrderField::DelegatorCount => self.pool_delegator_count,
-    //         BakerOrderField::BakerApy30Days => todo!(),
-    //         BakerOrderField::DelegatorApy30days => todo!(),
-    //         BakerOrderField::BlockCommissions => todo!(),
-    //     }
-    // }
 
     async fn state(&self, pool: &PgPool) -> ApiResult<BakerState<'_>> {
         let transaction_commission = self
