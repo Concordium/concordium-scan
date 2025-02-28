@@ -1,6 +1,6 @@
 use super::{
     account::Account, get_config, get_pool, transaction::Transaction, ApiError, ApiResult,
-    ApiServiceConfig, ConnectionQuery, OrderDir,
+    ApiServiceConfig, ConnectionQuery,
 };
 use crate::{
     address::AccountAddress,
@@ -117,198 +117,6 @@ impl QueryBaker {
             BakerSort::BlockCommissionsAsc => todo!(),
             BakerSort::BlockCommissionsDesc => todo!(),
         }
-
-        // let query = match sort_direction {
-        //     OrderDir::Asc => ConnectionQuery::<BakersCursor>::new(
-        //         first,
-        //         after,
-        //         last,
-        //         before,
-        //         config.baker_connection_limit,
-        //     )?,
-        //     OrderDir::Desc => ConnectionQuery::<Reversed<BakersCursor>>::new(
-        //         first,
-        //         after,
-        //         last,
-        //         before,
-        //         config.baker_connection_limit,
-        //     )?,
-        // };
-
-        // let order_field = BakerOrderField::from(sort);
-
-        // let open_status_filter = filter.and_then(|input|
-        // input.open_status_filter); let include_removed_filter =
-        //     filter.and_then(|input| input.include_removed).unwrap_or(false);
-
-        // let mut row_stream = sqlx::query_as!(
-        //     CurrentBaker,
-        //     r#"SELECT * FROM (
-        //         SELECT
-        //             bakers.id AS id,
-        //             staked,
-        //             restake_earnings,
-        //             open_status as "open_status: _",
-        //             metadata_url,
-        //             transaction_commission,
-        //             baking_commission,
-        //             finalization_commission,
-        //             payday_transaction_commission as
-        // "payday_transaction_commission?",
-        // payday_baking_commission as "payday_baking_commission?",
-        // payday_finalization_commission as "payday_finalization_commission?",
-        //             payday_lottery_power as "lottery_power?",
-        //             pool_total_staked,
-        //             pool_delegator_count
-        //         FROM bakers
-        //             LEFT JOIN bakers_payday_commission_rates
-        //                 ON bakers_payday_commission_rates.id = bakers.id
-        //             LEFT JOIN bakers_payday_lottery_powers
-        //                 ON bakers_payday_lottery_powers.id = bakers.id
-        //         WHERE
-        //             (NOT $6 OR bakers.id            > $1 AND bakers.id
-        // < $2) AND             (NOT $7 OR staked               > $1
-        // AND staked < $2) AND             (NOT $8 OR pool_total_staked
-        // > $1 AND pool_total_staked    < $2) AND             (NOT $9
-        // OR pool_delegator_count > $1 AND pool_delegator_count < $2)
-        // AND             -- filters
-        //             ($10::pool_open_status IS NULL OR open_status =
-        // $10::pool_open_status)         ORDER BY
-        //             (CASE WHEN $6 AND     $3 THEN bakers.id            END)
-        // DESC,             (CASE WHEN $6 AND NOT $3 THEN bakers.id
-        // END) ASC,             (CASE WHEN $7 AND     $3 THEN staked
-        // END) DESC,             (CASE WHEN $7 AND NOT $3 THEN staked
-        // END) ASC,             (CASE WHEN $8 AND     $3 THEN
-        // pool_total_staked    END) DESC,             (CASE WHEN $8 AND
-        // NOT $3 THEN pool_total_staked    END) ASC,             (CASE
-        // WHEN $9 AND     $3 THEN pool_delegator_count END) DESC,
-        //             (CASE WHEN $9 AND NOT $3 THEN pool_delegator_count END)
-        // ASC         LIMIT $4
-        //     ) ORDER BY
-        //         (CASE WHEN $6 AND     $5 THEN id                   END) DESC,
-        //         (CASE WHEN $6 AND NOT $5 THEN id                   END) ASC,
-        //         (CASE WHEN $7 AND     $5 THEN staked               END) DESC,
-        //         (CASE WHEN $7 AND NOT $5 THEN staked               END) ASC,
-        //         (CASE WHEN $8 AND     $5 THEN pool_total_staked    END) DESC,
-        //         (CASE WHEN $8 AND NOT $5 THEN pool_total_staked    END) ASC,
-        //         (CASE WHEN $9 AND     $5 THEN pool_delegator_count END) DESC,
-        //         (CASE WHEN $9 AND NOT $5 THEN pool_delegator_count END)
-        // ASC"#,     query.from,
-        // // $1     query.to,
-        // // $2     query.is_last != matches!(sort_direction,
-        // OrderDir::Desc), // $3     query.limit,
-        // // $4     matches!(sort_direction, OrderDir::Desc),
-        // // $5     matches!(order_field, BakerOrderField::BakerId),
-        // // $6     matches!(order_field,
-        // BakerOrderField::BakerStakedAmount), // $7     matches!
-        // (order_field, BakerOrderField::TotalStakedAmount), // $8
-        //     matches!(order_field, BakerOrderField::DelegatorCount),    // $9
-        //     open_status_filter as Option<BakerPoolOpenStatus>          // $10
-        // )
-        // .fetch(pool);
-        // // TODO:
-        // // matches!(order_field, BakerOrderField::BakerApy30Days), // $10
-        // // matches!(order_field, BakerOrderField::DelegatorApy30Days), // $11
-        // // matches!(order_field, BakerOrderField::BlockCommissions), // $12
-
-        // let mut connection = connection::Connection::new(false, false);
-        // connection.edges.reserve_exact(query.limit.try_into()?);
-        // while let Some(row) = row_stream.try_next().await? {
-        //     let cursor = row.sort_field(order_field).to_string();
-        //     connection.edges.push(connection::Edge::new(cursor,
-        // Baker::Current(row))); }
-
-        // let below_limit = query.limit - connection.edges.len().try_into()?;
-        // if include_removed_filter && below_limit > 0 {
-        //     // let mut row_stream = sqlx::query_as(
-        //     //     PreviouslyBaker,
-        //     //     "SELECT
-        //     //         id,
-        //     //         slot_time AS removed_at
-        //     //     FROM bakers_removed
-        //     //         JOIN transactions ON transactions.index =
-        //     // bakers_removed.removed_by         JOIN blocks ON
-        //     // blocks.height = transactions.block_height
-        //     //     WHERE bakers_removed.id = $1",
-        //     // )
-        //     // .fetch(pool);
-        //     // while let Some(row) = row_stream.try_next().await? {
-        //     //     let cursor = row.sort_field(order_field).to_string();
-        //     //     connection.edges.push(connection::Edge::new(cursor,
-        //     // Baker::Current(row))); }
-        // }
-
-        // connection.has_previous_page = if let Some(first_item) =
-        // connection.edges.first() {     let first_item_sort_value =
-        // first_item.node.sort_field(order_field);     sqlx::query_scalar!(
-        //         "SELECT true
-        //         FROM bakers
-        //         WHERE
-        //             (NOT $3 OR NOT $2 AND id                   < $1
-        //                     OR     $2 AND id                   > $1) AND
-        //             (NOT $4 OR NOT $2 AND staked               < $1
-        //                     OR     $2 AND staked               > $1) AND
-        //             (NOT $5 OR NOT $2 AND pool_total_staked    < $1
-        //                     OR     $2 AND pool_total_staked    > $1) AND
-        //             (NOT $6 OR NOT $2 AND pool_delegator_count < $1
-        //                     OR     $2 AND pool_delegator_count > $1) AND
-        //             -- filters
-        //             ($7::pool_open_status IS NULL OR open_status =
-        // $7::pool_open_status)         LIMIT 1",
-        //         first_item_sort_value,                                     //
-        // $1         matches!(sort_direction, OrderDir::Desc),
-        // // $2         matches!(order_field,
-        // BakerOrderField::BakerId),           // $3         matches!
-        // (order_field, BakerOrderField::BakerStakedAmount), // $4
-        //         matches!(order_field, BakerOrderField::TotalStakedAmount), //
-        // $5         matches!(order_field,
-        // BakerOrderField::DelegatorCount),    // $6
-        //         open_status_filter as Option<BakerPoolOpenStatus>          //
-        // $7     )
-        //     .fetch_optional(pool)
-        //     .await?
-        //     .flatten()
-        //     .unwrap_or_default()
-        // } else {
-        //     false
-        // };
-        // connection.has_next_page = if let Some(last_item) =
-        // connection.edges.last() {     let last_item_sort_value =
-        // last_item.node.sort_field(order_field);
-        //     sqlx::query_scalar!(
-        //         "SELECT true
-        //         FROM bakers
-        //         WHERE
-        //             (NOT $3 OR NOT $2 AND id                   > $1
-        //                     OR     $2 AND id                   < $1) AND
-        //             (NOT $4 OR NOT $2 AND staked               > $1
-        //                     OR     $2 AND staked               < $1) AND
-        //             (NOT $5 OR NOT $2 AND pool_total_staked    > $1
-        //                     OR     $2 AND pool_total_staked    < $1) AND
-        //             (NOT $6 OR NOT $2 AND pool_delegator_count > $1
-        //                     OR     $2 AND pool_delegator_count < $1) AND
-        //             -- filters
-        //             ($7::pool_open_status IS NULL OR open_status =
-        // $7::pool_open_status)         LIMIT 1",
-        //         last_item_sort_value,                                      //
-        // $1         matches!(sort_direction, OrderDir::Desc),
-        // // $2         matches!(order_field,
-        // BakerOrderField::BakerId),           // $3         matches!
-        // (order_field, BakerOrderField::BakerStakedAmount), // $4
-        //         matches!(order_field, BakerOrderField::TotalStakedAmount), //
-        // $5         matches!(order_field,
-        // BakerOrderField::DelegatorCount),    // $6
-        //         open_status_filter as Option<BakerPoolOpenStatus>          //
-        // $7     )
-        //     .fetch_optional(pool)
-        //     .await?
-        //     .flatten()
-        //     .unwrap_or_default()
-        // } else {
-        //     false
-        // };
-
-        // Ok(connection)
     }
 }
 
@@ -341,13 +149,12 @@ impl BakerFieldDescCursor {
 }
 
 impl connection::CursorType for BakerFieldDescCursor {
-    type Error = DecodeTotalStakedCursorError;
+    type Error = DecodeBakerFieldCursor;
 
     fn decode_cursor(s: &str) -> Result<Self, Self::Error> {
-        let (before, after) = s.split_once(':').ok_or(DecodeTotalStakedCursorError::NoSemicolon)?;
-        let staked: i64 =
-            before.parse().map_err(DecodeTotalStakedCursorError::ParseStakedAmount)?;
-        let baker_id: i64 = after.parse().map_err(DecodeTotalStakedCursorError::ParseBakerId)?;
+        let (before, after) = s.split_once(':').ok_or(DecodeBakerFieldCursor::NoSemicolon)?;
+        let staked: i64 = before.parse().map_err(DecodeBakerFieldCursor::ParseStakedAmount)?;
+        let baker_id: i64 = after.parse().map_err(DecodeBakerFieldCursor::ParseBakerId)?;
         Ok(Self {
             field: staked,
             baker_id,
@@ -358,7 +165,7 @@ impl connection::CursorType for BakerFieldDescCursor {
 }
 
 #[derive(Debug, thiserror::Error)]
-enum DecodeTotalStakedCursorError {
+enum DecodeBakerFieldCursor {
     #[error("Cursor must contain a semicolon.")]
     NoSemicolon,
     #[error("Cursor must contain valid validator ID.")]
@@ -426,13 +233,6 @@ impl Baker {
             Baker::Previously(removed) => removed.id,
         }
     }
-
-    // fn sort_field(&self, order_field: BakerOrderField) -> i64 {
-    //     match self {
-    //         Baker::Current(baker) => baker.sort_field(order_field),
-    //         Baker::Previously(removed) => removed.sort_field(order_field),
-    //     }
-    // }
 
     pub async fn query_by_id(pool: &PgPool, baker_id: i64) -> ApiResult<Option<Self>> {
         let baker = if let Some(baker) = CurrentBaker::query_by_id(pool, baker_id).await? {
@@ -1784,46 +1584,6 @@ enum BakerSort {
     BlockCommissionsDesc,
 }
 
-impl From<BakerSort> for OrderDir {
-    fn from(value: BakerSort) -> Self {
-        match value {
-            BakerSort::BakerIdAsc => OrderDir::Asc,
-            BakerSort::BakerIdDesc => OrderDir::Desc,
-            BakerSort::TotalStakedAmountDesc => OrderDir::Desc,
-            BakerSort::DelegatorCountDesc => OrderDir::Desc,
-            BakerSort::BakerApy30DaysDesc => OrderDir::Desc,
-            BakerSort::DelegatorApy30DaysDesc => OrderDir::Desc,
-            BakerSort::BlockCommissionsAsc => OrderDir::Asc,
-            BakerSort::BlockCommissionsDesc => OrderDir::Desc,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-enum BakerOrderField {
-    BakerId,
-    TotalStakedAmount,
-    DelegatorCount,
-    BakerApy30Days,
-    DelegatorApy30days,
-    BlockCommissions,
-}
-
-impl From<BakerSort> for BakerOrderField {
-    fn from(value: BakerSort) -> Self {
-        match value {
-            BakerSort::BakerIdAsc => Self::BakerId,
-            BakerSort::BakerIdDesc => Self::BakerId,
-            BakerSort::TotalStakedAmountDesc => Self::TotalStakedAmount,
-            BakerSort::DelegatorCountDesc => Self::DelegatorCount,
-            BakerSort::BakerApy30DaysDesc => Self::BakerApy30Days,
-            BakerSort::DelegatorApy30DaysDesc => Self::DelegatorApy30days,
-            BakerSort::BlockCommissionsAsc => Self::BlockCommissions,
-            BakerSort::BlockCommissionsDesc => Self::BlockCommissions,
-        }
-    }
-}
-
 struct BakerPool<'a> {
     id: i64,
     /// Total stake of the baker pool as a percentage of all CCDs in existence.
@@ -2056,13 +1816,10 @@ struct DelegatedStakeBounds {
 
 #[cfg(test)]
 mod test {
-    use std::cmp::Ordering;
-
-    use async_graphql::connection::CursorType;
-
-    use crate::connection::ConnectionBounds;
-
     use super::BakerFieldDescCursor;
+    use crate::connection::ConnectionBounds;
+    use async_graphql::connection::CursorType;
+    use std::cmp::Ordering;
 
     #[test]
     fn test_total_staked_desc_cursor_ordering() {
