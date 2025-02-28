@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.32] - 2025-02-28
+
+### Fixed
+
+- Fix bug preventing the indexer from handling delegators targeting the passive pool.
+
 ## [0.1.31] - 2025-02-28
 
 ### Fixed
