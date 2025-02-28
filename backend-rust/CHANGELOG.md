@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.31] - 2025-02-28
+
+### Fixed
+
 - Only update delegation target when baker/validator is not removed. This is only relevant for blocks in protocol versions prior to P7 as there it was still possible to target removed bakers/validators during the cooldown period.
 
 ## [0.1.30] - 2025-02-27
