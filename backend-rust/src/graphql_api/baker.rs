@@ -99,7 +99,19 @@ impl QueryBaker {
                 )
                 .await
             }
-            BakerSort::DelegatorCountDesc => todo!(),
+            BakerSort::DelegatorCountDesc => {
+                Baker::delegator_count_desc_connection(
+                    config,
+                    pool,
+                    first,
+                    after,
+                    last,
+                    before,
+                    open_status_filter,
+                    include_removed_filter,
+                )
+                .await
+            }
             BakerSort::BakerApy30DaysDesc => todo!(),
             BakerSort::DelegatorApy30DaysDesc => todo!(),
             BakerSort::BlockCommissionsAsc => todo!(),
@@ -303,25 +315,32 @@ impl QueryBaker {
 /// Cursor for `Query::bakers` when sotring by the baker/validator id.
 type BakerIdCursor = i64;
 
-/// Cursor for `Query::bakers` when sorting by the baker/validator total staked
-/// pool amount.
+/// Cursor for `Query::bakers` when sorting by the baker/validator by some
+/// field, like the delegator count or the total staked amount.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-struct TotalStakedDescCursor {
-    /// The total staked amount of pool.
-    staked:   i64,
+struct BakerFieldDescCursor {
+    /// The cursor value of the relevant sorting field.
+    field:    i64,
     /// The baker id representing the pool of the cursor.
     baker_id: i64,
 }
-impl From<&CurrentBaker> for TotalStakedDescCursor {
-    fn from(row: &CurrentBaker) -> Self {
-        TotalStakedDescCursor {
-            staked:   row.pool_total_staked,
+impl BakerFieldDescCursor {
+    fn total_staked_cursor(row: &CurrentBaker) -> Self {
+        BakerFieldDescCursor {
+            field:    row.pool_total_staked,
+            baker_id: i64::from(row.id),
+        }
+    }
+
+    fn delegator_count_cursor(row: &CurrentBaker) -> Self {
+        BakerFieldDescCursor {
+            field:    row.pool_delegator_count,
             baker_id: i64::from(row.id),
         }
     }
 }
 
-impl connection::CursorType for TotalStakedDescCursor {
+impl connection::CursorType for BakerFieldDescCursor {
     type Error = DecodeTotalStakedCursorError;
 
     fn decode_cursor(s: &str) -> Result<Self, Self::Error> {
@@ -330,12 +349,12 @@ impl connection::CursorType for TotalStakedDescCursor {
             before.parse().map_err(DecodeTotalStakedCursorError::ParseStakedAmount)?;
         let baker_id: i64 = after.parse().map_err(DecodeTotalStakedCursorError::ParseBakerId)?;
         Ok(Self {
-            staked,
+            field: staked,
             baker_id,
         })
     }
 
-    fn encode_cursor(&self) -> String { format!("{}:{}", self.staked, self.baker_id) }
+    fn encode_cursor(&self) -> String { format!("{}:{}", self.field, self.baker_id) }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -348,24 +367,24 @@ enum DecodeTotalStakedCursorError {
     ParseStakedAmount(std::num::ParseIntError),
 }
 
-impl ConnectionBounds for TotalStakedDescCursor {
+impl ConnectionBounds for BakerFieldDescCursor {
     const END_BOUND: Self = Self {
         baker_id: i64::MIN,
-        staked:   i64::MIN,
+        field:    i64::MIN,
     };
     const START_BOUND: Self = Self {
         baker_id: i64::MAX,
-        staked:   i64::MAX,
+        field:    i64::MAX,
     };
 }
 
-impl PartialOrd for TotalStakedDescCursor {
+impl PartialOrd for BakerFieldDescCursor {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) }
 }
 
-impl Ord for TotalStakedDescCursor {
+impl Ord for BakerFieldDescCursor {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        let ordering = other.staked.cmp(&self.staked);
+        let ordering = other.field.cmp(&self.field);
         if let Ordering::Equal = ordering {
             other.baker_id.cmp(&self.baker_id)
         } else {
@@ -373,7 +392,6 @@ impl Ord for TotalStakedDescCursor {
         }
     }
 }
-
 // /// Cursor for the Query::bakers connection.
 // #[derive(Debug, Clone, Copy)]
 // enum BakersCursor {
@@ -807,22 +825,14 @@ impl Baker {
         include_removed_filter: bool,
     ) -> ApiResult<connection::Connection<String, Baker>> {
         type RemovedBakerCursor = Reversed<BakerIdCursor>;
-        type Cursor = ConcatCursor<TotalStakedDescCursor, RemovedBakerCursor>;
-        let query = ConnectionQuery::<Cursor>::new(
-            first,
-            after,
-            last,
-            before,
-            config.baker_connection_limit,
-        )?;
-        let mut connection = connection::Connection::new(false, false);
+        type Cursor = ConcatCursor<BakerFieldDescCursor, RemovedBakerCursor>;
 
-        // Only query current bakers if `from` cursor is for the first connection.
-        if let Some(current_baker_from) = query.from.first() {
-            // Get the `to` cursor if this if for the first connection otherwise use the
-            // end bound.
-            let current_baker_to = query.to.first().unwrap_or(&TotalStakedDescCursor::END_BOUND);
-
+        async fn query_current_bakers(
+            query: ConnectionQuery<&BakerFieldDescCursor>,
+            open_status_filter: Option<BakerPoolOpenStatus>,
+            connection: &mut connection::Connection<String, Baker>,
+            pool: &PgPool,
+        ) -> ApiResult<()> {
             let mut row_stream = sqlx::query_as!(
                 CurrentBaker,
                 r#"SELECT * FROM (
@@ -854,34 +864,34 @@ impl Baker {
                     AND ($7::pool_open_status IS NULL OR open_status = $7::pool_open_status)
                 ORDER BY
                     (CASE WHEN $5     THEN pool_total_staked END) ASC,
-                    (CASE WHEN $5     THEN bakers.id         END) ASC,
+                    (CASE WHEN $5     THEN bakers.id            END) ASC,
                     (CASE WHEN NOT $5 THEN pool_total_staked END) DESC,
-                    (CASE WHEN NOT $5 THEN bakers.id         END) DESC
+                    (CASE WHEN NOT $5 THEN bakers.id            END) DESC
                 LIMIT $6
             ) ORDER BY pool_total_staked DESC, id DESC"#,
-                current_baker_from.staked,                         // $1
-                current_baker_to.staked,                           // $2
-                current_baker_from.baker_id,                       // $3
-                current_baker_to.baker_id,                         // $4
+                query.from.field,                                  // $1
+                query.to.field,                                    // $2
+                query.from.baker_id,                               // $3
+                query.to.baker_id,                                 // $4
                 query.is_last,                                     // $5
                 query.limit,                                       // $6
                 open_status_filter as Option<BakerPoolOpenStatus>  // $7
             )
             .fetch(pool);
             while let Some(row) = row_stream.try_next().await? {
-                let cursor = Cursor::First(TotalStakedDescCursor::from(&row));
+                let cursor = Cursor::First(BakerFieldDescCursor::delegator_count_cursor(&row));
                 connection
                     .edges
                     .push(connection::Edge::new(cursor.encode_cursor(), Baker::Current(row)));
             }
+            Ok(())
         }
-        let remains_to_limit = query.limit - i64::try_from(connection.edges.len())?;
-        if let (Some(removed_baker_to), true, true) =
-            (query.to.second(), include_removed_filter, remains_to_limit > 0)
-        {
-            let removed_baker_from =
-                query.from.second().unwrap_or(&RemovedBakerCursor::START_BOUND);
 
+        async fn query_removed_baker(
+            query: ConnectionQuery<&Reversed<BakerIdCursor>>,
+            connection: &mut connection::Connection<String, Baker>,
+            pool: &PgPool,
+        ) -> ApiResult<()> {
             let mut row_stream = sqlx::query_as!(
                 PreviouslyBaker,
                 "SELECT * FROM (
@@ -897,10 +907,10 @@ impl Baker {
                         (CASE WHEN NOT $3 THEN id END) DESC
                     LIMIT $4
                 ) ORDER BY id DESC",
-                removed_baker_from.inner,
-                removed_baker_to.inner,
+                query.from.inner,
+                query.to.inner,
                 query.is_last,
-                remains_to_limit,
+                query.limit,
             )
             .fetch(pool);
             while let Some(row) = row_stream.try_next().await? {
@@ -908,6 +918,94 @@ impl Baker {
                 connection
                     .edges
                     .push(connection::Edge::new(cursor.encode_cursor(), Baker::Previously(row)));
+            }
+            Ok(())
+        }
+
+        let query = ConnectionQuery::<Cursor>::new(
+            first,
+            after,
+            last,
+            before,
+            config.baker_connection_limit,
+        )?;
+        let mut connection = connection::Connection::new(false, false);
+
+        if query.is_last {
+            if let (Some(removed_baker_to), true) = (query.to.second(), include_removed_filter) {
+                let removed_baker_from =
+                    query.from.second().unwrap_or(&RemovedBakerCursor::START_BOUND);
+                let removed_baker_query = ConnectionQuery {
+                    from:    removed_baker_from,
+                    to:      removed_baker_to,
+                    limit:   query.limit,
+                    is_last: query.is_last,
+                };
+                query_removed_baker(removed_baker_query, &mut connection, pool).await?;
+            }
+            let remains_to_limit = query.limit - i64::try_from(connection.edges.len())?;
+            // Only query current bakers if `from` cursor is for the first connection.
+            if let (Some(current_baker_from), true) = (query.from.first(), remains_to_limit > 0) {
+                // Get the `to` cursor if this if for the first connection otherwise use the
+                // end bound.
+                let current_baker_to = query.to.first().unwrap_or(&BakerFieldDescCursor::END_BOUND);
+                let current_baker_query = ConnectionQuery {
+                    from:    current_baker_from,
+                    to:      current_baker_to,
+                    limit:   remains_to_limit,
+                    is_last: query.is_last,
+                };
+                query_current_bakers(
+                    current_baker_query,
+                    open_status_filter,
+                    &mut connection,
+                    pool,
+                )
+                .await?;
+                if include_removed_filter {
+                    // Since we might already have some removed bakers in the page, we sort to make
+                    // sure these are last after adding current bakers.
+                    connection.edges.sort_by_key(|edge| match &edge.node {
+                        Baker::Current(current_baker) => -1 * current_baker.pool_total_staked,
+                        Baker::Previously(previously_baker) => {
+                            i64::MAX - i64::from(previously_baker.id)
+                        }
+                    });
+                }
+            }
+        } else {
+            // Only query current bakers if `from` cursor is for the first connection.
+            if let Some(current_baker_from) = query.from.first() {
+                // Get the `to` cursor if this if for the first connection otherwise use the
+                // end bound.
+                let current_baker_to = query.to.first().unwrap_or(&BakerFieldDescCursor::END_BOUND);
+                let current_baker_query = ConnectionQuery {
+                    from:    current_baker_from,
+                    to:      current_baker_to,
+                    limit:   query.limit,
+                    is_last: query.is_last,
+                };
+                query_current_bakers(
+                    current_baker_query,
+                    open_status_filter,
+                    &mut connection,
+                    pool,
+                )
+                .await?;
+            }
+            let remains_to_limit = query.limit - i64::try_from(connection.edges.len())?;
+            if let (Some(removed_baker_to), true, true) =
+                (query.to.second(), include_removed_filter, remains_to_limit > 0)
+            {
+                let removed_baker_from =
+                    query.from.second().unwrap_or(&RemovedBakerCursor::START_BOUND);
+                let removed_baker_query = ConnectionQuery {
+                    from:    removed_baker_from,
+                    to:      removed_baker_to,
+                    limit:   remains_to_limit,
+                    is_last: query.is_last,
+                };
+                query_removed_baker(removed_baker_query, &mut connection, pool).await?;
             }
         }
 
@@ -934,9 +1032,9 @@ impl Baker {
                     )
                 SELECT
                     starting_baker.id AS start_id,
-                    starting_baker.pool_total_staked AS start_pool_total_staked,
+                    starting_baker.pool_total_staked AS start_total_staked,
                     ending_baker.id AS end_id,
-                    ending_baker.pool_total_staked AS end_pool_total_staked
+                    ending_baker.pool_total_staked AS end_total_staked
                 FROM starting_baker, ending_baker",
                 open_status_filter as Option<BakerPoolOpenStatus>
             )
@@ -945,21 +1043,281 @@ impl Baker {
             if let Some(collection_ends) = collection_ends {
                 connection.has_previous_page = if let Baker::Current(first_baker) = &first_item.node
                 {
-                    let collection_start_cursor = TotalStakedDescCursor {
+                    let collection_start_cursor = BakerFieldDescCursor {
                         baker_id: collection_ends.start_id,
-                        staked:   collection_ends.start_pool_total_staked,
+                        field:    collection_ends.start_total_staked,
                     };
-                    collection_start_cursor < TotalStakedDescCursor::from(first_baker)
+                    collection_start_cursor < BakerFieldDescCursor::total_staked_cursor(first_baker)
                 } else {
                     true
                 };
                 if let Baker::Current(last_item) = &last_item.node {
-                    let collection_end_cursor = TotalStakedDescCursor {
+                    let collection_end_cursor = BakerFieldDescCursor {
                         baker_id: collection_ends.end_id,
-                        staked:   collection_ends.end_pool_total_staked,
+                        field:    collection_ends.end_total_staked,
                     };
-                    connection.has_next_page =
-                        collection_end_cursor > TotalStakedDescCursor::from(last_item);
+                    connection.has_next_page = collection_end_cursor
+                        > BakerFieldDescCursor::total_staked_cursor(last_item);
+                }
+            }
+        }
+        if include_removed_filter {
+            let min_removed_baker_id =
+                sqlx::query_scalar!("SELECT MIN(id) FROM bakers_removed",).fetch_one(pool).await?;
+            connection.has_next_page = if let Some(min_removed_baker_id) = min_removed_baker_id {
+                i64::from(last_item.node.get_id()) != min_removed_baker_id
+            } else {
+                false
+            }
+        }
+        Ok(connection)
+    }
+
+    async fn delegator_count_desc_connection(
+        config: &ApiServiceConfig,
+        pool: &PgPool,
+        first: Option<u64>,
+        after: Option<String>,
+        last: Option<u64>,
+        before: Option<String>,
+        open_status_filter: Option<BakerPoolOpenStatus>,
+        include_removed_filter: bool,
+    ) -> ApiResult<connection::Connection<String, Baker>> {
+        type RemovedBakerCursor = Reversed<BakerIdCursor>;
+        type Cursor = ConcatCursor<BakerFieldDescCursor, RemovedBakerCursor>;
+
+        async fn query_current_bakers(
+            query: ConnectionQuery<&BakerFieldDescCursor>,
+            open_status_filter: Option<BakerPoolOpenStatus>,
+            connection: &mut connection::Connection<String, Baker>,
+            pool: &PgPool,
+        ) -> ApiResult<()> {
+            let mut row_stream = sqlx::query_as!(
+                CurrentBaker,
+                r#"SELECT * FROM (
+                SELECT
+                    bakers.id AS id,
+                    staked,
+                    restake_earnings,
+                    open_status as "open_status: _",
+                    metadata_url,
+                    transaction_commission,
+                    baking_commission,
+                    finalization_commission,
+                    payday_transaction_commission as "payday_transaction_commission?",
+                    payday_baking_commission as "payday_baking_commission?",
+                    payday_finalization_commission as "payday_finalization_commission?",
+                    payday_lottery_power as "lottery_power?",
+                    pool_total_staked,
+                    pool_delegator_count
+                FROM bakers
+                    LEFT JOIN bakers_payday_commission_rates
+                        ON bakers_payday_commission_rates.id = bakers.id
+                    LEFT JOIN bakers_payday_lottery_powers
+                        ON bakers_payday_lottery_powers.id = bakers.id
+                WHERE
+                    ((pool_delegator_count > $2 AND pool_delegator_count < $1)
+                        OR (pool_delegator_count = $2 AND bakers.id > $4)
+                        OR (pool_delegator_count = $1 AND bakers.id < $3))
+                    -- filter if provided
+                    AND ($7::pool_open_status IS NULL OR open_status = $7::pool_open_status)
+                ORDER BY
+                    (CASE WHEN $5     THEN pool_delegator_count END) ASC,
+                    (CASE WHEN $5     THEN bakers.id            END) ASC,
+                    (CASE WHEN NOT $5 THEN pool_delegator_count END) DESC,
+                    (CASE WHEN NOT $5 THEN bakers.id            END) DESC
+                LIMIT $6
+            ) ORDER BY pool_delegator_count DESC, id DESC"#,
+                query.from.field,                                  // $1
+                query.to.field,                                    // $2
+                query.from.baker_id,                               // $3
+                query.to.baker_id,                                 // $4
+                query.is_last,                                     // $5
+                query.limit,                                       // $6
+                open_status_filter as Option<BakerPoolOpenStatus>  // $7
+            )
+            .fetch(pool);
+            while let Some(row) = row_stream.try_next().await? {
+                let cursor = Cursor::First(BakerFieldDescCursor::delegator_count_cursor(&row));
+                connection
+                    .edges
+                    .push(connection::Edge::new(cursor.encode_cursor(), Baker::Current(row)));
+            }
+            Ok(())
+        }
+
+        async fn query_removed_baker(
+            query: ConnectionQuery<&Reversed<BakerIdCursor>>,
+            connection: &mut connection::Connection<String, Baker>,
+            pool: &PgPool,
+        ) -> ApiResult<()> {
+            let mut row_stream = sqlx::query_as!(
+                PreviouslyBaker,
+                "SELECT * FROM (
+                    SELECT
+                        id,
+                        slot_time AS removed_at
+                    FROM bakers_removed
+                        JOIN transactions ON transactions.index = bakers_removed.removed_by
+                        JOIN blocks ON blocks.height = transactions.block_height
+                    WHERE id > $2 AND id < $1
+                    ORDER BY
+                        (CASE WHEN $3     THEN id END) ASC,
+                        (CASE WHEN NOT $3 THEN id END) DESC
+                    LIMIT $4
+                ) ORDER BY id DESC",
+                query.from.inner,
+                query.to.inner,
+                query.is_last,
+                query.limit,
+            )
+            .fetch(pool);
+            while let Some(row) = row_stream.try_next().await? {
+                let cursor: Cursor = Cursor::Second(Reversed::new(i64::from(row.id)));
+                connection
+                    .edges
+                    .push(connection::Edge::new(cursor.encode_cursor(), Baker::Previously(row)));
+            }
+            Ok(())
+        }
+
+        let query = ConnectionQuery::<Cursor>::new(
+            first,
+            after,
+            last,
+            before,
+            config.baker_connection_limit,
+        )?;
+        let mut connection = connection::Connection::new(false, false);
+
+        if query.is_last {
+            if let (Some(removed_baker_to), true) = (query.to.second(), include_removed_filter) {
+                let removed_baker_from =
+                    query.from.second().unwrap_or(&RemovedBakerCursor::START_BOUND);
+                let removed_baker_query = ConnectionQuery {
+                    from:    removed_baker_from,
+                    to:      removed_baker_to,
+                    limit:   query.limit,
+                    is_last: query.is_last,
+                };
+                query_removed_baker(removed_baker_query, &mut connection, pool).await?;
+            }
+            let remains_to_limit = query.limit - i64::try_from(connection.edges.len())?;
+            // Only query current bakers if `from` cursor is for the first connection.
+            if let Some(current_baker_from) = query.from.first() {
+                // Get the `to` cursor if this if for the first connection otherwise use the
+                // end bound.
+                let current_baker_to = query.to.first().unwrap_or(&BakerFieldDescCursor::END_BOUND);
+                let current_baker_query = ConnectionQuery {
+                    from:    current_baker_from,
+                    to:      current_baker_to,
+                    limit:   remains_to_limit,
+                    is_last: query.is_last,
+                };
+                query_current_bakers(
+                    current_baker_query,
+                    open_status_filter,
+                    &mut connection,
+                    pool,
+                )
+                .await?;
+                if include_removed_filter {
+                    // Since we might already have some removed bakers in the page, we sort to make
+                    // sure these are last after adding current bakers.
+                    connection.edges.sort_by_key(|edge| match &edge.node {
+                        Baker::Current(current_baker) => -1 * current_baker.pool_delegator_count,
+                        Baker::Previously(previously_baker) => {
+                            i64::MAX - i64::from(previously_baker.id)
+                        }
+                    });
+                }
+            }
+        } else {
+            // Only query current bakers if `from` cursor is for the first connection.
+            if let Some(current_baker_from) = query.from.first() {
+                // Get the `to` cursor if this if for the first connection otherwise use the
+                // end bound.
+                let current_baker_to = query.to.first().unwrap_or(&BakerFieldDescCursor::END_BOUND);
+                let current_baker_query = ConnectionQuery {
+                    from:    current_baker_from,
+                    to:      current_baker_to,
+                    limit:   query.limit,
+                    is_last: query.is_last,
+                };
+                query_current_bakers(
+                    current_baker_query,
+                    open_status_filter,
+                    &mut connection,
+                    pool,
+                )
+                .await?;
+            }
+            let remains_to_limit = query.limit - i64::try_from(connection.edges.len())?;
+            if let (Some(removed_baker_to), true, true) =
+                (query.to.second(), include_removed_filter, remains_to_limit > 0)
+            {
+                let removed_baker_from =
+                    query.from.second().unwrap_or(&RemovedBakerCursor::START_BOUND);
+                let removed_baker_query = ConnectionQuery {
+                    from:    removed_baker_from,
+                    to:      removed_baker_to,
+                    limit:   remains_to_limit,
+                    is_last: query.is_last,
+                };
+                query_removed_baker(removed_baker_query, &mut connection, pool).await?;
+            }
+        }
+
+        let (Some(first_item), Some(last_item)) =
+            (connection.edges.first(), connection.edges.last())
+        else {
+            // No items so we just return without updating next/prev page info.
+            return Ok(connection);
+        };
+        {
+            let collection_ends = sqlx::query!(
+                "WITH
+                    starting_baker as (
+                        SELECT id, pool_delegator_count FROM bakers
+                        WHERE $1::pool_open_status IS NULL OR open_status = $1::pool_open_status
+                        ORDER BY pool_delegator_count DESC, id DESC
+                        LIMIT 1
+                    ),
+                    ending_baker as (
+                        SELECT id, pool_delegator_count FROM bakers
+                        WHERE $1::pool_open_status IS NULL OR open_status = $1::pool_open_status
+                        ORDER BY pool_delegator_count ASC, id ASC
+                        LIMIT 1
+                    )
+                SELECT
+                    starting_baker.id AS start_id,
+                    starting_baker.pool_delegator_count AS start_delegator_count,
+                    ending_baker.id AS end_id,
+                    ending_baker.pool_delegator_count AS end_delegator_count
+                FROM starting_baker, ending_baker",
+                open_status_filter as Option<BakerPoolOpenStatus>
+            )
+            .fetch_optional(pool)
+            .await?;
+            if let Some(collection_ends) = collection_ends {
+                connection.has_previous_page = if let Baker::Current(first_baker) = &first_item.node
+                {
+                    let collection_start_cursor = BakerFieldDescCursor {
+                        baker_id: collection_ends.start_id,
+                        field:    collection_ends.start_delegator_count,
+                    };
+                    collection_start_cursor
+                        < BakerFieldDescCursor::delegator_count_cursor(first_baker)
+                } else {
+                    true
+                };
+                if let Baker::Current(last_item) = &last_item.node {
+                    let collection_end_cursor = BakerFieldDescCursor {
+                        baker_id: collection_ends.end_id,
+                        field:    collection_ends.end_delegator_count,
+                    };
+                    connection.has_next_page = collection_end_cursor
+                        > BakerFieldDescCursor::delegator_count_cursor(last_item);
                 }
             }
         }
@@ -1799,23 +2157,23 @@ mod test {
 
     use crate::connection::ConnectionBounds;
 
-    use super::TotalStakedDescCursor;
+    use super::BakerFieldDescCursor;
 
     #[test]
     fn test_total_staked_desc_cursor_ordering() {
         {
             let cmp_start_end =
-                TotalStakedDescCursor::START_BOUND.cmp(&TotalStakedDescCursor::END_BOUND);
+                BakerFieldDescCursor::START_BOUND.cmp(&BakerFieldDescCursor::END_BOUND);
             assert_eq!(cmp_start_end, Ordering::Less);
         }
 
         {
-            let first = TotalStakedDescCursor {
-                staked:   10,
+            let first = BakerFieldDescCursor {
+                field:    10,
                 baker_id: 3,
             };
-            let second = TotalStakedDescCursor {
-                staked:   5,
+            let second = BakerFieldDescCursor {
+                field:    5,
                 baker_id: 5,
             };
             assert!(first < second);
@@ -1826,12 +2184,12 @@ mod test {
         }
 
         {
-            let second = TotalStakedDescCursor {
-                staked:   11000000000,
+            let second = BakerFieldDescCursor {
+                field:    11000000000,
                 baker_id: 149,
             };
-            let first = TotalStakedDescCursor {
-                staked:   1000000000000000,
+            let first = BakerFieldDescCursor {
+                field:    1000000000000000,
                 baker_id: 3,
             };
             assert!(first < second);
@@ -1843,11 +2201,11 @@ mod test {
 
     #[test]
     fn test_total_staked_desc_cursor_encode_decode() {
-        let cursor = TotalStakedDescCursor {
-            staked:   10,
+        let cursor = BakerFieldDescCursor {
+            field:    10,
             baker_id: 3,
         };
-        let encode_decode = TotalStakedDescCursor::decode_cursor(cursor.encode_cursor().as_str())
+        let encode_decode = BakerFieldDescCursor::decode_cursor(cursor.encode_cursor().as_str())
             .expect("Failed decoding cursor");
         assert_eq!(cursor, encode_decode);
     }
