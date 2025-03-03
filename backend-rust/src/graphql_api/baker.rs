@@ -523,7 +523,6 @@ impl Baker {
                 rank,
                 total,
             }),
-            (None, Some(_)) => None,
             (None, None) => None,
             _ => {
                 return Err(ApiError::InternalError(
@@ -617,7 +616,7 @@ impl Baker {
         // range be applied starting from the last element.
         let mut row_stream = sqlx::query_as!(
             Transaction,
-            r#"
+            r#"t
             SELECT * FROM (
                 SELECT
                     index,
