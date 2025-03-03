@@ -1030,6 +1030,7 @@ SELECT * FROM UNNEST(
 /// Database operation for adding new row into the account statement table.
 /// This reads the current balance of the account and assumes the balance is
 /// already updated with the amount part of the statement.
+#[derive(Debug)]
 struct PreparedAccountStatement {
     canonical_address: CanonicalAccountAddress,
     amount:            i64,
@@ -1074,7 +1075,7 @@ impl PreparedAccountStatement {
         .execute(tx.as_mut())
         .await?
         .ensure_affected_one_row()
-        .context("Failed insert into account_statements")?;
+        .with_context(|| format!("Failed insert into account_statements: {:?}", self))?;
 
         Ok(())
     }
@@ -1280,7 +1281,12 @@ impl PreparedBlockItem {
         .ensure_affected_rows(self.affected_accounts.len().try_into()?)
         .context("Failed incrementing num_txs for account")?;
 
-        self.prepared_event.save(tx, tx_idx).await?;
+        self.prepared_event.save(tx, tx_idx).await.with_context(|| {
+            format!(
+                "Failed processing block item event for block {} transaction hash {}",
+                self.block_height, self.block_item_hash
+            )
+        })?;
         Ok(())
     }
 }
@@ -1650,15 +1656,42 @@ impl PreparedEvent {
         protocol_version: ProtocolVersion,
     ) -> anyhow::Result<()> {
         match self {
-            PreparedEvent::CcdTransfer(event) => event.save(tx, tx_idx).await,
-            PreparedEvent::EncryptedBalance(event) => event.save(tx, tx_idx).await,
-            PreparedEvent::BakerEvents(event) => event.save(tx, tx_idx, protocol_version).await,
-            PreparedEvent::ModuleDeployed(event) => event.save(tx, tx_idx).await,
-            PreparedEvent::ContractInitialized(event) => event.save(tx, tx_idx).await,
-            PreparedEvent::ContractUpdate(event) => event.save(tx, tx_idx).await,
-            PreparedEvent::AccountDelegationEvents(event) => event.save(tx, protocol_version).await,
-            PreparedEvent::ScheduledTransfer(event) => event.save(tx, tx_idx).await,
-            PreparedEvent::RejectedTransaction(event) => event.save(tx, tx_idx).await,
+            PreparedEvent::CcdTransfer(event) => event
+                .save(tx, tx_idx)
+                .await
+                .context("Failed processing block item event of CCD transfer"),
+            PreparedEvent::EncryptedBalance(event) => event
+                .save(tx, tx_idx)
+                .await
+                .context("Failed processing block item event of encrypted balance"),
+            PreparedEvent::BakerEvents(event) => event
+                .save(tx, tx_idx, protocol_version)
+                .await
+                .context("Failed processing block item event with baker event"),
+            PreparedEvent::ModuleDeployed(event) => event
+                .save(tx, tx_idx)
+                .await
+                .context("Failed processing block item event with module deploy"),
+            PreparedEvent::ContractInitialized(event) => event
+                .save(tx, tx_idx)
+                .await
+                .context("Failed processing block item event with contract initialized"),
+            PreparedEvent::ContractUpdate(event) => event
+                .save(tx, tx_idx)
+                .await
+                .context("Failed processing block item event with contract update"),
+            PreparedEvent::AccountDelegationEvents(event) => event
+                .save(tx, protocol_version)
+                .await
+                .context("Failed processing block item event with account delegation event"),
+            PreparedEvent::ScheduledTransfer(event) => event
+                .save(tx, tx_idx)
+                .await
+                .context("Failed processing block item event with scheduled transfer"),
+            PreparedEvent::RejectedTransaction(event) => event
+                .save(tx, tx_idx)
+                .await
+                .context("Failed processing block item event with rejected event"),
             PreparedEvent::NoOperation => Ok(()),
         }
     }
@@ -2561,6 +2594,7 @@ impl PreparedModuleDeployed {
     }
 }
 
+#[derive(Debug)]
 struct PreparedModuleLinkAction {
     module_reference:   String,
     contract_index:     i64,
@@ -2849,13 +2883,16 @@ impl PreparedContractUpdates {
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
-        for elm in &self.trace_elements {
-            elm.save(tx, transaction_index).await?;
+        for (i, elm) in self.trace_elements.iter().enumerate() {
+            elm.save(tx, transaction_index).await.with_context(|| {
+                format!("Failed processing contract update trace element with index {}", i)
+            })?;
         }
         Ok(())
     }
 }
 
+#[derive(Debug)]
 struct PreparedTraceElement {
     height:              i64,
     contract_index:      i64,
@@ -3022,7 +3059,10 @@ impl PreparedTraceElement {
         .execute(tx.as_mut())
         .await?;
 
-        self.trace_event.save(tx, transaction_index).await?;
+        self.trace_event
+            .save(tx, transaction_index)
+            .await
+            .context("Failed processing trace event")?;
 
         for log in self.cis2_token_events.iter() {
             process_cis2_token_event(
@@ -3032,12 +3072,14 @@ impl PreparedTraceElement {
                 transaction_index,
                 tx,
             )
-            .await?
+            .await
+            .context("Failed processing CIS-2 token event")?
         }
         Ok(())
     }
 }
 
+#[derive(Debug)]
 enum PreparedContractTraceEvent {
     /// Potential module link events from a smart contract upgrade
     Upgrade(PreparedTraceEventUpgrade),
@@ -3056,14 +3098,24 @@ impl PreparedContractTraceEvent {
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         match self {
-            PreparedContractTraceEvent::Upgrade(event) => event.save(tx, transaction_index).await,
-            PreparedContractTraceEvent::Transfer(event) => event.save(tx, transaction_index).await,
-            PreparedContractTraceEvent::Update(event) => event.save(tx, transaction_index).await,
+            PreparedContractTraceEvent::Upgrade(event) => event
+                .save(tx, transaction_index)
+                .await
+                .context("Failed processing contract upgrade trace event"),
+            PreparedContractTraceEvent::Transfer(event) => event
+                .save(tx, transaction_index)
+                .await
+                .context("Failed processing contract transfer of CCD trace even"),
+            PreparedContractTraceEvent::Update(event) => event
+                .save(tx, transaction_index)
+                .await
+                .context("Failed processing contract update trace event"),
             PreparedContractTraceEvent::NoEvent => Ok(()),
         }
     }
 }
 
+#[derive(Debug)]
 struct PreparedTraceEventUpgrade {
     module_removed:        PreparedModuleLinkAction,
     module_added:          PreparedModuleLinkAction,
@@ -3102,6 +3154,7 @@ impl PreparedTraceEventUpgrade {
     }
 }
 
+#[derive(Debug)]
 struct PreparedUpdateContractLastUpgrade {
     contract_index:     i64,
     contract_sub_index: i64,
@@ -3136,6 +3189,7 @@ impl PreparedUpdateContractLastUpgrade {
 }
 
 /// Represent a transfer from contract to an account.
+#[derive(Debug)]
 struct PreparedTraceEventTransfer {
     /// Update the contract balance with the transferred CCD.
     update_contract_balance:  PreparedUpdateContractBalance,
@@ -3176,6 +3230,7 @@ impl PreparedTraceEventTransfer {
     }
 }
 
+#[derive(Debug)]
 struct PreparedTraceEventUpdate {
     /// Update the caller balance (either an account or contract).
     sender:             PreparedTraceEventUpdateSender,
@@ -3183,6 +3238,7 @@ struct PreparedTraceEventUpdate {
     receiving_contract: PreparedUpdateContractBalance,
 }
 
+#[derive(Debug)]
 enum PreparedTraceEventUpdateSender {
     Account(PreparedUpdateAccountBalance),
     Contract(PreparedUpdateContractBalance),
@@ -3222,17 +3278,25 @@ impl PreparedTraceEventUpdate {
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         match &self.sender {
-            PreparedTraceEventUpdateSender::Account(sender) => {
-                sender.save(tx, Some(transaction_index)).await?
-            }
-            PreparedTraceEventUpdateSender::Contract(sender) => sender.save(tx).await?,
+            PreparedTraceEventUpdateSender::Account(sender) => sender
+                .save(tx, Some(transaction_index))
+                .await
+                .context("Failed updating account balance with sending of CCD")?,
+            PreparedTraceEventUpdateSender::Contract(sender) => sender
+                .save(tx)
+                .await
+                .context("Failed updating contract balance with sending of CCD")?,
         }
-        self.receiving_contract.save(tx).await?;
+        self.receiving_contract
+            .save(tx)
+            .await
+            .context("Failed updating contract balance with receiving of CCD")?;
         Ok(())
     }
 }
 
 /// Update of the balance of a contract
+#[derive(Debug)]
 struct PreparedUpdateContractBalance {
     contract_index:     i64,
     contract_sub_index: i64,
@@ -3639,7 +3703,10 @@ async fn process_cis2_token_event(
             )
             .execute(tx.as_mut())
             .await?
-            .ensure_affected_one_row()?;
+            .ensure_affected_one_row()
+            .with_context(|| {
+                format!("Failed inserting the token transfer event: {:?}", cis2_transfer_event)
+            })?;
         }
 
         // - The `metadata_url` of a token is inserted/updated in the database here.
@@ -3834,6 +3901,7 @@ impl PreparedUpdateEncryptedBalance {
 }
 
 /// Represents change in the balance of some account.
+#[derive(Debug)]
 struct PreparedUpdateAccountBalance {
     /// Address of the account.
     canonical_address: CanonicalAccountAddress,
@@ -3880,7 +3948,13 @@ impl PreparedUpdateAccountBalance {
         )
         .execute(tx.as_mut())
         .await?
-        .ensure_affected_one_row()?;
+        .ensure_affected_one_row()
+        .with_context(|| {
+            format!(
+                "Failed processing update to account balance, change: {}, canonical address: {:?}",
+                self.change, self.canonical_address
+            )
+        })?;
         // Add the account statement, note that this operation assumes the account
         // balance is already updated.
         self.account_statement.save(tx, transaction_index).await?;
