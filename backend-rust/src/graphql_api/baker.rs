@@ -20,7 +20,6 @@ use concordium_rust_sdk::types::AmountFraction;
 use futures::TryStreamExt;
 use sqlx::PgPool;
 use std::cmp::{max, min};
-use tracing::error;
 
 #[derive(Default)]
 pub struct QueryBaker;
