@@ -712,8 +712,8 @@ enum BakerState<'a> {
 
 #[derive(SimpleObject)]
 struct ActiveBakerState<'a> {
-    // /// The status of the bakers node. Will be null if no status for the node
-    // /// exists.
+    /// The status of the baker's node. Will be null if no status for the node
+    /// exists.
     node_status:      Option<NodeStatus>,
     staked_amount:    Amount,
     restake_earnings: bool,
