@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.7.5] - 2025-03-03
+
+### Fixed
+
+- Allowed queries `useNodeDetailQuery` and `useNodeQuery` to use a separate API.
+
 ## [1.7.4] - 2025-02-13
 
 ### Added
