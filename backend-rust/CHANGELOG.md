@@ -12,6 +12,12 @@ Database schema version: 11
 - Add database migration 11 adding columns to store the ranking of bakers.
 - Add query `BakerPool::rankingByTotalStake` which returns a ranking of the bakers by their lottery power. The ranking is re-computed for each payday block.
 
+### Fixed
+
+- Fixed bug in indexer where removed delegators still had the restake earnings flag stored as false instead of NULL.
+- Fixed bug in indexer where accumulated pool delegator count is update after delegator is removed (this was possible for protocol version 6 and down).
+- Fixed bug in indexer where CIS-2 transfer events was never recorded, when happening before any other token events (like a Mint), this is considered a bug in the token contract, but no the indexer still record the event.
+
 ## [0.1.32] - 2025-02-28
 
 ### Fixed
