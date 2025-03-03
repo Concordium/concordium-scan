@@ -2912,9 +2912,13 @@ impl PreparedContractUpdates {
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
-        for (i, elm) in self.trace_elements.iter().enumerate() {
+        for elm in &self.trace_elements {
             elm.save(tx, transaction_index).await.with_context(|| {
-                format!("Failed processing contract update trace element with index {}", i)
+                format!(
+                    "Failed processing contract update trace element with index {} related to \
+                     contract: <{},{}>",
+                    elm.trace_element_index, elm.contract_index, elm.contract_sub_index
+                )
             })?;
         }
         Ok(())
@@ -3732,7 +3736,10 @@ async fn process_cis2_token_event(
                 serde_json::to_value(cis2_transfer_event)?,
             )
             .execute(tx.as_mut())
-            .await?
+            .await
+            .with_context(|| {
+                format!("Failed inserting the token transfer event: {:?}", cis2_transfer_event)
+            })?
             .ensure_affected_one_row()
             .with_context(|| {
                 format!("Failed inserting the token transfer event: {:?}", cis2_transfer_event)
@@ -3979,7 +3986,13 @@ impl PreparedUpdateAccountBalance {
             self.canonical_address.0.as_slice(),
         )
         .execute(tx.as_mut())
-        .await?
+        .await
+        .with_context(|| {
+            format!(
+                "Failed processing update to account balance, change: {}, canonical address: {:?}",
+                self.change, self.canonical_address
+            )
+        })?
         .ensure_affected_one_row()
         .with_context(|| {
             format!(
