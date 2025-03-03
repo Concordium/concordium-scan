@@ -514,11 +514,12 @@ impl Baker {
         let delegated_stake_cap = min(leverage_bound_cap_for_pool, capital_bound_cap_for_pool);
 
         // Get the rank of the baker based on its lottery power.
-        // An account id that is no baker has no `payday_ranking_by_lottery_powers` in
-        // general. A new baker has as well no `payday_ranking_by_lottery_powers` until
-        // the next payday. We return `None` as ranking in both cases.
-        // A baker that got just removed has a `payday_ranking_by_lottery_powers` until
-        // the next payday. We return a ranking in that case.
+        // An account id that is not a baker has no `payday_ranking_by_lottery_powers`
+        // in general. A new baker has as well no
+        // `payday_ranking_by_lottery_powers` until the next payday. We return
+        // `None` as ranking in both cases. A baker that got just removed has a
+        // `payday_ranking_by_lottery_powers` until the next payday. We return a
+        // ranking in that case.
         let rank = match (
             self.payday_ranking_by_lottery_powers,
             self.payday_total_ranking_by_lottery_powers,
@@ -862,9 +863,9 @@ struct BakerPool<'a> {
     /// Ranking of the bakers by lottery powers staring with rank 1 for the
     /// baker with the highest lottery power and ending with the rank
     /// `total` for the baker with the lowest lottery power.
-    /// An account id that is no baker has no `payday_ranking_by_lottery_powers`
-    /// in general. A new baker has as well no
-    /// `payday_ranking_by_lottery_powers` until the next payday.
+    /// An account id that is not a baker has no
+    /// `payday_ranking_by_lottery_powers` in general. A new baker has as
+    /// well no `payday_ranking_by_lottery_powers` until the next payday.
     /// We return `None` as ranking in both cases.
     /// A baker that got just removed has a `payday_ranking_by_lottery_powers`
     /// until the next payday. We return a ranking in that case.

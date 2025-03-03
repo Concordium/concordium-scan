@@ -4088,7 +4088,7 @@ impl PreparedSpecialTransactionOutcomes {
         events: &[SpecialTransactionOutcome],
     ) -> anyhow::Result<Self> {
         // Return whether the block is a payday block. This is always false for
-        // protocol versions before P4. In protocol version 4 and up this is the
+        // protocol versions before P4. In protocol version 4 and later this is the
         // block where all the rewards are paid out.
         let is_payday_block = events.iter().any(|ev| {
             matches!(

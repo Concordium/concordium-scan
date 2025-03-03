@@ -8,7 +8,7 @@ Database schema version: 11
 
 ### Fixed
 
-- Return `None` as ranking instead of an internal error for non-bakers and bakers that just got added until the next payday.
+- Return `None` as ranking instead of an internal error for non-baker accounts and bakers that just got added until the next payday.
 
 ### Added
 
