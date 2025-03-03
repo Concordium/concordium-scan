@@ -20,6 +20,7 @@ use concordium_rust_sdk::types::AmountFraction;
 use futures::TryStreamExt;
 use sqlx::PgPool;
 use std::cmp::{max, min};
+use tracing::error;
 
 #[derive(Default)]
 pub struct QueryBaker;
@@ -540,6 +541,7 @@ impl Baker {
             ))?;
             statuses.iter().find(|x| x.consensus_baker_id == Some(baker_id as u64)).cloned()
         } else {
+            error!("A baker has a negative id: {}", baker_id);
             None
         };
 
