@@ -61,6 +61,7 @@ export const useNodeQuery = (
 	variables: Partial<QueryVariables>
 ) => {
 	const { data, fetching, error } = useQuery({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: BakerQuery,
 		requestPolicy: 'cache-and-network',
 		variables: { sortField, sortDirection, ...variables },
