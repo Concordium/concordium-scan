@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Add more context to errors during indexing, providing better error messages for debugging.
+
 ## [0.1.32] - 2025-02-28
 
 ### Fixed
