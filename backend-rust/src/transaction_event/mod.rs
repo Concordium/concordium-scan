@@ -567,7 +567,7 @@ pub fn events_from_summary(
     Ok(events)
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct CisTransferEvent {
     pub raw_token_id: cis2::TokenId,
     pub amount:       cis2::TokenAmount,
@@ -587,7 +587,7 @@ impl CisTransferEvent {
     async fn token_id(&self) -> crate::scalar_types::TokenId { self.raw_token_id.clone().into() }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct CisMintEvent {
     pub raw_token_id: cis2::TokenId,
     pub amount:       cis2::TokenAmount,
@@ -604,7 +604,7 @@ impl CisMintEvent {
     async fn token_id(&self) -> crate::scalar_types::TokenId { self.raw_token_id.clone().into() }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct CisBurnEvent {
     pub raw_token_id: cis2::TokenId,
     pub amount:       cis2::TokenAmount,
@@ -621,7 +621,7 @@ impl CisBurnEvent {
     async fn token_id(&self) -> crate::scalar_types::TokenId { self.raw_token_id.clone().into() }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct CisTokenMetadataEvent {
     pub raw_token_id: cis2::TokenId,
     pub metadata_url: concordium_rust_sdk::cis2::MetadataUrl,
@@ -637,14 +637,14 @@ impl CisTokenMetadataEvent {
     async fn token_id(&self) -> crate::scalar_types::TokenId { self.raw_token_id.clone().into() }
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct CisUnknownEvent {
     pub dummy: crate::scalar_types::UnsignedLong,
 }
 
 // Note: This enum does NOT have an `UpdateOperator` variant since this event
 // cannot be linked to a specific token.
-#[derive(Union, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Union, serde::Serialize, serde::Deserialize)]
 pub enum CisEvent {
     Transfer(CisTransferEvent),
     Mint(CisMintEvent),

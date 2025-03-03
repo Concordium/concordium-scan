@@ -828,7 +828,7 @@ impl MetricsPeriod {
     }
 }
 
-#[derive(Enum, Clone, Copy, Display, PartialEq, Eq, sqlx::Type)]
+#[derive(Debug, Enum, Clone, Copy, Display, PartialEq, Eq, sqlx::Type)]
 #[sqlx(type_name = "account_statement_entry_type")]
 pub enum AccountStatementEntryType {
     TransferIn,
