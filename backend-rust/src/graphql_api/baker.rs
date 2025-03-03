@@ -523,6 +523,7 @@ impl Baker {
                 rank,
                 total,
             }),
+            (None, Some(_)) => None,
             (None, None) => None,
             _ => {
                 return Err(ApiError::InternalError(
