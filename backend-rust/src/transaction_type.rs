@@ -2,7 +2,7 @@
 //! and the graphQL API.
 use async_graphql::{Enum, SimpleObject, Union};
 
-#[derive(sqlx::Type, Copy, Clone)]
+#[derive(Debug, sqlx::Type, Copy, Clone)]
 #[sqlx(type_name = "transaction_type")] // only for PostgreSQL to match a type definition
 pub enum DbTransactionType {
     Account,
@@ -23,7 +23,7 @@ pub struct AccountTransaction {
     pub account_transaction_type: Option<AccountTransactionType>,
 }
 
-#[derive(Enum, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[derive(Debug, Enum, Clone, Copy, PartialEq, Eq, sqlx::Type)]
 #[sqlx(type_name = "account_transaction_type")]
 pub enum AccountTransactionType {
     InitializeSmartContractInstance,
@@ -85,7 +85,7 @@ pub struct CredentialDeploymentTransaction {
     pub credential_deployment_transaction_type: CredentialDeploymentTransactionType,
 }
 
-#[derive(Enum, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[derive(Debug, Enum, Clone, Copy, PartialEq, Eq, sqlx::Type)]
 #[sqlx(type_name = "credential_deployment_transaction_type")]
 pub enum CredentialDeploymentTransactionType {
     Initial,
@@ -107,7 +107,7 @@ pub struct UpdateTransaction {
     pub update_transaction_type: UpdateTransactionType,
 }
 
-#[derive(Enum, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[derive(Debug, Enum, Clone, Copy, PartialEq, Eq, sqlx::Type)]
 #[sqlx(type_name = "update_transaction_type")]
 pub enum UpdateTransactionType {
     UpdateProtocol,

@@ -22,7 +22,7 @@ impl From<String> for AccountAddress {
 
 pub type ContractIndex = UnsignedLong; // TODO check format.
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone, Copy)]
+#[derive(Debug, SimpleObject, serde::Serialize, serde::Deserialize, Clone, Copy)]
 #[graphql(complex)]
 pub struct ContractAddress {
     pub index:     ContractIndex,

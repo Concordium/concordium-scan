@@ -569,6 +569,7 @@ pub struct PoolClosed {
 /// TransactionRejectReason being prepared for indexing.
 /// Most reject reasons can just be inserted, but a few require some processing
 /// before inserting.
+#[derive(Debug)]
 pub enum PreparedTransactionRejectReason {
     /// Reject reasons which are ready for indexing.
     Ready(serde_json::Value),
@@ -919,6 +920,7 @@ impl PreparedTransactionRejectReason {
 
 /// Reject receive which require processing the contract update message
 /// using the smart contract module schema before insertion.
+#[derive(Debug)]
 pub struct PreparedRejectedReceive {
     reject_reason:    i32,
     contract_address: ContractAddress,
