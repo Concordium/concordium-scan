@@ -19,6 +19,7 @@ use concordium_rust_sdk::types::AmountFraction;
 use futures::TryStreamExt;
 use sqlx::PgPool;
 use std::cmp::{max, min};
+use crate::graphql_api::node_status::{NodeInfoReceiver, NodeStatus};
 
 #[derive(Default)]
 pub struct QueryBaker;
@@ -530,7 +531,23 @@ impl Baker {
             }
         };
 
+        let baker_id = self.id.0;
+        let node = if baker_id >= 0 {
+            let handler = ctx.data::<NodeInfoReceiver>().map_err(ApiError::NoReceiver)?;
+            let statuses_ref = handler.borrow();
+            let statuses = statuses_ref.as_ref().ok_or(ApiError::InternalError(
+                "Node collector backend has not responded".to_string(),
+            ))?;
+            statuses
+                .iter()
+                .find(|x| x.consensus_baker_id == Some(baker_id as u64))
+                .cloned()
+        } else {
+            None
+        };
+
         let out = BakerState::ActiveBakerState(Box::new(ActiveBakerState {
+            node_status: node,
             staked_amount:    Amount::try_from(self.staked)?,
             restake_earnings: self.restake_earnings,
             pool:             BakerPool {
@@ -700,7 +717,7 @@ enum BakerState<'a> {
 struct ActiveBakerState<'a> {
     // /// The status of the bakers node. Will be null if no status for the node
     // /// exists.
-    // node_status:      NodeStatus,
+    node_status:      Option<NodeStatus>,
     staked_amount:    Amount,
     restake_earnings: bool,
     pool:             BakerPool<'a>,
