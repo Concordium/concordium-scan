@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO bakers_payday_lottery_powers (\n                id,\n                payday_lottery_power,\n                payday_ranking_by_lottery_powers\n            )\n            SELECT\n                UNNEST($1::BIGINT[]) AS id,\n                UNNEST($2::NUMERIC[]) AS payday_lottery_power,\n                UNNEST($3::BIGINT[]) AS payday_ranking_by_lottery_powers",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8Array",
+        "NumericArray",
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7f99b8208732829198d349fb288c7d1aa51ec52b769d6c8bf64dc1bb8382b96a"
+}

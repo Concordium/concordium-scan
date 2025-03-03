@@ -4,9 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+Database schema version: 11
+
 ### Added
 
 - Add more context to errors during indexing, providing better error messages for debugging.
+- Add database migration 11 adding columns to store the ranking of bakers.
+- Add query `BakerPool::rankingByTotalStake` which returns a ranking of the bakers by their lottery power. The ranking is re-computed for each payday block.
 
 ## [0.1.32] - 2025-02-28
 

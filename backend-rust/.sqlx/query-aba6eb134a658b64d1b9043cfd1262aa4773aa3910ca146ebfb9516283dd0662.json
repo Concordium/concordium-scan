@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                bakers.id as id,\n                staked,\n                restake_earnings,\n                open_status as \"open_status: BakerPoolOpenStatus\",\n                metadata_url,\n                transaction_commission,\n                baking_commission,\n                finalization_commission,\n                payday_transaction_commission as \"payday_transaction_commission?\",\n                payday_baking_commission as \"payday_baking_commission?\",\n                payday_finalization_commission as \"payday_finalization_commission?\",\n                payday_lottery_power as \"lottery_power?\",\n                pool_total_staked,\n                pool_delegator_count\n            FROM bakers\n                LEFT JOIN bakers_payday_commission_rates ON bakers_payday_commission_rates.id = bakers.id\n                LEFT JOIN bakers_payday_lottery_powers ON bakers_payday_lottery_powers.id = bakers.id\n            WHERE bakers.id = $1\n            ",
+  "query": "\n            SELECT\n                bakers.id as id,\n                staked,\n                restake_earnings,\n                open_status as \"open_status: BakerPoolOpenStatus\",\n                metadata_url,\n                transaction_commission,\n                baking_commission,\n                finalization_commission,\n                payday_transaction_commission as \"payday_transaction_commission?\",\n                payday_baking_commission as \"payday_baking_commission?\",\n                payday_finalization_commission as \"payday_finalization_commission?\",\n                payday_lottery_power as \"payday_lottery_power?\",\n                payday_ranking_by_lottery_powers as \"payday_ranking_by_lottery_powers?\",\n                (SELECT MAX(payday_ranking_by_lottery_powers) FROM bakers_payday_lottery_powers) as \"payday_total_ranking_by_lottery_powers?\",\n                pool_total_staked,\n                pool_delegator_count\n            FROM bakers\n                LEFT JOIN bakers_payday_commission_rates ON bakers_payday_commission_rates.id = bakers.id\n                LEFT JOIN bakers_payday_lottery_powers ON bakers_payday_lottery_powers.id = bakers.id\n            WHERE bakers.id = $1;\n            ",
   "describe": {
     "columns": [
       {
@@ -71,16 +71,26 @@
       },
       {
         "ordinal": 11,
-        "name": "lottery_power?",
+        "name": "payday_lottery_power?",
         "type_info": "Numeric"
       },
       {
         "ordinal": 12,
-        "name": "pool_total_staked",
+        "name": "payday_ranking_by_lottery_powers?",
         "type_info": "Int8"
       },
       {
         "ordinal": 13,
+        "name": "payday_total_ranking_by_lottery_powers?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 14,
+        "name": "pool_total_staked",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 15,
         "name": "pool_delegator_count",
         "type_info": "Int8"
       }
@@ -104,8 +114,10 @@
       false,
       false,
       false,
+      null,
+      false,
       false
     ]
   },
-  "hash": "d7ff56b797483966270b41d0739d2241d81903fc67b615001a24a7759076d292"
+  "hash": "aba6eb134a658b64d1b9043cfd1262aa4773aa3910ca146ebfb9516283dd0662"
 }
