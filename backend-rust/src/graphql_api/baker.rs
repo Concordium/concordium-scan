@@ -532,19 +532,17 @@ impl Baker {
             }
         };
 
-        let baker_id = self.id.0;
-        let node = if baker_id >= 0 {
-            let handler = ctx.data::<NodeInfoReceiver>().map_err(ApiError::NoReceiver)?;
-            let statuses_ref = handler.borrow();
-            let statuses = statuses_ref.as_ref().ok_or(ApiError::InternalError(
-                "Node collector backend has not responded".to_string(),
-            ))?;
-            statuses.iter().find(|x| x.consensus_baker_id == Some(baker_id as u64)).cloned()
-        } else {
-            error!("A baker has a negative id: {}", baker_id);
-            None
-        };
+        let baker_id: u64 = self.id.0.try_into().map_err(|_| {
+            ApiError::InternalError(format!("A baker has a negative id: {}", self.id.0))
+        })?;
 
+        let handler = ctx.data::<NodeInfoReceiver>().map_err(ApiError::NoReceiver)?;
+        let statuses_ref = handler.borrow();
+        let statuses = statuses_ref.as_ref().ok_or(ApiError::InternalError(
+            "Node collector backend has not responded".to_string(),
+        ))?;
+
+        let node = statuses.iter().find(|x| x.consensus_baker_id == Some(baker_id)).cloned();
         let out = BakerState::ActiveBakerState(Box::new(ActiveBakerState {
             node_status:      node,
             staked_amount:    Amount::try_from(self.staked)?,
