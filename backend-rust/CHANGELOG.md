@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 Database schema version: 11
 
+### Fixed
+
+- Ensure lottery power has not initialized on a given baker consider it empty
+
 ### Added
 
 - Add more context to errors during indexing, providing better error messages for debugging.

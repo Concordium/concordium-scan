@@ -522,8 +522,9 @@ impl Baker {
                 rank,
                 total,
             }),
+            (None, Some(_)) => None,
             (None, None) => None,
-            _ => {
+            (Some(_), None) => {
                 return Err(ApiError::InternalError(
                     "Invalid ranking state in database".to_string(),
                 ))
