@@ -13,6 +13,7 @@ mod search_result;
 mod token;
 mod transaction;
 mod transaction_metrics;
+mod baker_metrics;
 
 // TODO remove this macro, when done with first iteration
 /// Short hand for returning API error with the message not implemented.
@@ -56,6 +57,7 @@ use tokio_util::sync::CancellationToken;
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{error, info};
 use transaction::Transaction;
+use crate::graphql_api::baker_metrics::{BakerMetrics, BakerMetricsBuckets};
 
 const VERSION: &str = clap::crate_version!();
 
@@ -171,6 +173,7 @@ pub struct Query(
     contract::QueryContract,
     node_status::QueryNodeStatus,
     token::QueryToken,
+    baker_metrics::QueryBakerMetrics,
 );
 
 pub struct Service {
@@ -517,8 +520,6 @@ impl BaseQuery {
             query,
         }
     }
-
-    // bakerMetrics(period: MetricsPeriod!): BakerMetrics!
 
     // rewardMetrics(period: MetricsPeriod!): RewardMetrics!
 
