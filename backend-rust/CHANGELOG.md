@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 Database schema version: 11
 
+### Fixed
+
+- Return `None` as ranking instead of an internal error for non-bakers and bakers that just got added until the next payday.
+
 ### Added
 
 - Add more context to errors during indexing, providing better error messages for debugging.
