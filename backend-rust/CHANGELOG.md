@@ -8,6 +8,7 @@ Database schema version: 11
 
 ### Added
 
+- Add `Baker::node_status` to retrieve the validator's node information.
 - Add more context to errors during indexing, providing better error messages for debugging.
 - Add database migration 11 adding columns to store the ranking of bakers.
 - Add query `BakerPool::rankingByTotalStake` which returns a ranking of the bakers by their lottery power. The ranking is re-computed for each payday block.

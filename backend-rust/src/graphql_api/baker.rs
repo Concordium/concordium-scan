@@ -5,6 +5,7 @@ use super::{
 use crate::{
     address::AccountAddress,
     connection::DescendingI64,
+    graphql_api::node_status::{NodeInfoReceiver, NodeStatus},
     scalar_types::{Amount, BakerId, DateTime, Decimal, MetadataUrl},
     transaction_event::{baker::BakerPoolOpenStatus, Event},
     transaction_reject::TransactionRejectReason,
@@ -530,7 +531,19 @@ impl Baker {
             }
         };
 
+        let baker_id: u64 = self.id.0.try_into().map_err(|_| {
+            ApiError::InternalError(format!("A baker has a negative id: {}", self.id.0))
+        })?;
+
+        let handler = ctx.data::<NodeInfoReceiver>().map_err(ApiError::NoReceiver)?;
+        let statuses_ref = handler.borrow();
+        let statuses = statuses_ref.as_ref().ok_or(ApiError::InternalError(
+            "Node collector backend has not responded".to_string(),
+        ))?;
+
+        let node = statuses.iter().find(|x| x.consensus_baker_id == Some(baker_id)).cloned();
         let out = BakerState::ActiveBakerState(Box::new(ActiveBakerState {
+            node_status:      node,
             staked_amount:    Amount::try_from(self.staked)?,
             restake_earnings: self.restake_earnings,
             pool:             BakerPool {
@@ -698,9 +711,9 @@ enum BakerState<'a> {
 
 #[derive(SimpleObject)]
 struct ActiveBakerState<'a> {
-    // /// The status of the bakers node. Will be null if no status for the node
-    // /// exists.
-    // node_status:      NodeStatus,
+    /// The status of the baker's node. Will be null if no status for the node
+    /// exists.
+    node_status:      Option<NodeStatus>,
     staked_amount:    Amount,
     restake_earnings: bool,
     pool:             BakerPool<'a>,
