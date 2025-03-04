@@ -499,7 +499,7 @@ impl Baker {
             // u128.
             let capital_bound_cap_for_pool_numerator = capital_bound
                 * ((total_stake - delegated_stake_of_pool) as u128)
-                - (100_000 * (self.staked as u128));
+                    .saturating_sub(100_000 * (self.staked as u128));
 
             // Denominator is not zero since we checked that `capital_bound != 100_000`.
             let capital_bound_cap_for_pool_denominator: u128 = 100_000u128 - capital_bound;

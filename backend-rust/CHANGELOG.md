@@ -9,6 +9,7 @@ Database schema version: 11
 ### Fixed
 
 - Return `None` as ranking instead of an internal error for non-baker accounts and bakers that just got added until the next payday.
+- Fix underflow in `capital_bound` formula by saturating the value to 0.
 
 ### Added
 
