@@ -1,11 +1,12 @@
 use super::{ApiError, ApiResult};
 use crate::connection::connection_from_slice;
-use async_graphql::{connection, types, ComplexObject, Context, Enum, MergedObject, Object, SimpleObject};
+use async_graphql::{
+    connection, types, ComplexObject, Context, Enum, MergedObject, Object, SimpleObject,
+};
 use prometheus_client::{metrics::counter::Counter, registry::Registry};
 use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
-use std::{cmp::Ordering::Equal, time::Duration};
-use std::collections::HashMap;
+use std::{cmp::Ordering::Equal, collections::HashMap, sync::Arc, time::Duration};
 use tokio::sync::watch::{Receiver, Sender};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
@@ -14,8 +15,6 @@ pub type NodeInfoReceiver = Receiver<Option<Vec<NodeStatus>>>;
 
 #[derive(Default)]
 pub(crate) struct QueryNodeStatus;
-
-
 
 #[allow(clippy::too_many_arguments)]
 #[Object]
@@ -68,7 +67,7 @@ impl QueryNodeStatus {
     async fn node_status(
         &self,
         ctx: &Context<'_>,
-        #[graphql(desc = "Return node with corresponding id")] id: types::ID
+        #[graphql(desc = "Return node with corresponding id")] id: types::ID,
     ) -> ApiResult<Option<NodeStatus>> {
         let handler = ctx.data::<NodeInfoReceiver>().map_err(ApiError::NoReceiver)?;
         let statuses_ref = handler.borrow();
@@ -147,9 +146,17 @@ impl Service {
                             let map: HashMap<&str, &ExternalNodeStatus> = external_node_info.iter().map(|ns| (ns.node_id.as_str(), ns)).collect();
                             let node_info = external_node_info.iter().map(|node| {
                                 let peer_refs = PeerList {
-                                    peers: node.peers_list.iter().filter_map(|peer| {
-                                        let peer: Option<PeerReference> = map.get(peer.as_str()).map(|external| (*external).into());
-                                        peer
+                                    peers: node.peers_list.iter().map(|node_id| {
+                                        let peer: Option<Peer> = map.get(node_id.as_str()).map(|external| {
+                                            Peer {
+                                                node_id: external.node_id.to_string(),
+                                                node_name: external.node_name.to_string()
+                                            }
+                                        });
+                                        PeerReference {
+                                            node_id: Arc::new(node_id.to_string()),
+                                            node_status: peer
+                                        }
                                     }).collect()
                                 };
                                 NodeStatus(node.clone(), peer_refs)
@@ -233,43 +240,43 @@ pub struct ExternalNodeStatus {
 
 #[ComplexObject]
 impl ExternalNodeStatus {
-
     async fn id(&self) -> types::ID { types::ID::from(&self.node_id) }
 
     async fn client_version(&self) -> &str { &self.client }
-
 }
 
 #[derive(SimpleObject, Clone)]
+#[graphql(complex)]
 struct Peer {
-    pub node_name: String,
+    node_name: String,
+    node_id:   String,
 }
 
-#[derive(SimpleObject, Clone)]
+#[ComplexObject]
+impl Peer {
+    async fn id(&self) -> &str { &self.node_id }
+}
+
+#[derive(Clone)]
 struct PeerReference {
-    node_status: Peer,
-    node_id: String
+    node_status: Option<Peer>,
+    node_id:     Arc<String>,
 }
+#[Object]
+impl PeerReference {
+    async fn node_status(&self) -> &Option<Peer> { &self.node_status }
 
-impl From<&ExternalNodeStatus> for PeerReference {
-    fn from(external: &ExternalNodeStatus) -> Self {
-        PeerReference {
-            node_status: Peer {
-                node_name: external.node_name.clone()
-            },
-            node_id: external.node_id.clone(),
-        }
-    }
+    async fn node_id(&self) -> &str { &self.node_id }
 }
 
 #[derive(Clone, Default)]
 struct PeerList {
-    peers: Vec<PeerReference>
+    peers: Vec<PeerReference>,
 }
 
 #[Object]
 impl PeerList {
-    async fn peers_list(&self) -> Vec<PeerReference>  { self.peers.clone() }
+    async fn peers_list(&self) -> &Vec<PeerReference> { &self.peers }
 }
 
 #[derive(MergedObject, Default, Clone)]
@@ -386,7 +393,8 @@ mod tests {
             .expect(1)
             .create_async()
             .await;
-        let deserialized: Vec<ExternalNodeStatus> = from_str(response).expect("Failed to deserialize JSON");
+        let deserialized: Vec<ExternalNodeStatus> =
+            from_str(response).expect("Failed to deserialize JSON");
         let client = Client::new();
         let gc = NodeCollectorBackendClient::new(client, server.url().as_str(), 10000);
         let summary = gc.get_summary().await;
