@@ -6,8 +6,14 @@ All notable changes to this project will be documented in this file.
 
 Database schema version: 11
 
+### Fixed
+
+- Return `None` as ranking instead of an internal error for non-baker accounts and bakers that just got added until the next payday.
+- Fix underflow in `capital_bound` formula by saturating the value to 0.
+
 ### Added
 
+- Add `Baker::node_status` to retrieve the validator's node information.
 - Add more context to errors during indexing, providing better error messages for debugging.
 - Add database migration 11 adding columns to store the ranking of bakers.
 - Add query `BakerPool::rankingByTotalStake` which returns a ranking of the bakers by their lottery power. The ranking is re-computed for each payday block.
