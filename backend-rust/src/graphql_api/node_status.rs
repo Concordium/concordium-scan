@@ -4,7 +4,7 @@ use async_graphql::{connection, types, ComplexObject, Context, Enum, Object, Sim
 use prometheus_client::{metrics::counter::Counter, registry::Registry};
 use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
-use std::{cmp::Ordering::Equal, collections::HashMap, sync::Arc, time::Duration};
+use std::{cmp::Ordering::Equal, collections::HashMap, time::Duration};
 use tokio::sync::watch::{Receiver, Sender};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
@@ -276,8 +276,8 @@ impl PeerReference {
 #[graphql(complex)]
 pub struct NodeStatus {
     #[graphql(flatten)]
-    pub external: ExternalNodeStatus,
-    pub peers:    Vec<PeerReference>,
+    pub(crate) external: ExternalNodeStatus,
+    peers:               Vec<PeerReference>,
 }
 
 #[ComplexObject]
