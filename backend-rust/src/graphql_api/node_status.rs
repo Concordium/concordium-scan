@@ -1,8 +1,6 @@
 use super::{ApiError, ApiResult};
 use crate::connection::connection_from_slice;
-use async_graphql::{
-    connection, types, ComplexObject, Context, Enum, MergedObject, Object, SimpleObject,
-};
+use async_graphql::{connection, types, ComplexObject, Context, Enum, Object, SimpleObject};
 use prometheus_client::{metrics::counter::Counter, registry::Registry};
 use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
@@ -40,20 +38,25 @@ impl QueryNodeStatus {
 
         statuses.sort_by(|a, b| {
             let ordering = match sort_field {
-                NodeSortField::AveragePing => a.0.average_ping.partial_cmp(&b.0.average_ping),
+                NodeSortField::AveragePing => {
+                    a.external.average_ping.partial_cmp(&b.external.average_ping)
+                }
                 NodeSortField::BlocksReceivedCount => {
-                    a.0.blocks_received_count.partial_cmp(&b.0.blocks_received_count)
+                    a.external.blocks_received_count.partial_cmp(&b.external.blocks_received_count)
                 }
-                NodeSortField::ClientVersion => a.0.client.partial_cmp(&b.0.client),
+                NodeSortField::ClientVersion => a.external.client.partial_cmp(&b.external.client),
                 NodeSortField::ConsensusBakerId => {
-                    a.0.consensus_baker_id.partial_cmp(&b.0.consensus_baker_id)
+                    a.external.consensus_baker_id.partial_cmp(&b.external.consensus_baker_id)
                 }
-                NodeSortField::FinalizedBlockHeight => {
-                    a.0.finalized_block_height.partial_cmp(&b.0.finalized_block_height)
+                NodeSortField::FinalizedBlockHeight => a
+                    .external
+                    .finalized_block_height
+                    .partial_cmp(&b.external.finalized_block_height),
+                NodeSortField::NodeName => a.external.node_name.partial_cmp(&b.external.node_name),
+                NodeSortField::PeersCount => {
+                    a.external.peers_count.partial_cmp(&b.external.peers_count)
                 }
-                NodeSortField::NodeName => a.0.node_name.partial_cmp(&b.0.node_name),
-                NodeSortField::PeersCount => a.0.peers_count.partial_cmp(&b.0.peers_count),
-                NodeSortField::Uptime => a.0.uptime.partial_cmp(&b.0.uptime),
+                NodeSortField::Uptime => a.external.uptime.partial_cmp(&b.external.uptime),
             };
 
             match sort_direction {
@@ -74,7 +77,7 @@ impl QueryNodeStatus {
         let statuses = statuses_ref.as_ref().ok_or(ApiError::InternalError(
             "Node collector backend has not responded".to_string(),
         ))?;
-        let node = statuses.iter().find(|x| x.0.node_id == id.0).cloned();
+        let node = statuses.iter().find(|x| x.external.node_id == id.0).cloned();
         Ok(node)
     }
 }
@@ -145,8 +148,7 @@ impl Service {
 
                             let map: HashMap<&str, &ExternalNodeStatus> = external_node_info.iter().map(|ns| (ns.node_id.as_str(), ns)).collect();
                             let node_info = external_node_info.iter().map(|node| {
-                                let peer_refs = PeerList {
-                                    peers: node.peers_list.iter().map(|node_id| {
+                                let peers: Vec<PeerReference> = node.peers_list.iter().map(|node_id| {
                                         let peer: Option<Peer> = map.get(node_id.as_str()).map(|external| {
                                             Peer {
                                                 node_id: external.node_id.to_string(),
@@ -157,9 +159,11 @@ impl Service {
                                             node_id: Arc::new(node_id.to_string()),
                                             node_status: peer
                                         }
-                                    }).collect()
-                                };
-                                NodeStatus(node.clone(), peer_refs)
+                                    }).collect();
+                                NodeStatus {
+                                    external: node.clone(),
+                                    peers
+                                }
                             }).collect();
                             if let Err(err) = self.sender.send(Some(node_info)) {
                                 info!("Node status receiver has been closed: {:?}", err);
@@ -279,8 +283,18 @@ impl PeerList {
     async fn peers_list(&self) -> &Vec<PeerReference> { &self.peers }
 }
 
-#[derive(MergedObject, Default, Clone)]
-pub struct NodeStatus(pub(crate) ExternalNodeStatus, PeerList);
+#[derive(SimpleObject, Default, Clone)]
+#[graphql(complex)]
+pub struct NodeStatus {
+    #[graphql(flatten)]
+    pub external: ExternalNodeStatus,
+    pub peers:    Vec<PeerReference>,
+}
+
+#[ComplexObject]
+impl NodeStatus {
+    async fn peers_list(&self) -> &Vec<PeerReference> { &self.peers }
+}
 
 struct NodeCollectorBackendClient {
     client:             Client,
