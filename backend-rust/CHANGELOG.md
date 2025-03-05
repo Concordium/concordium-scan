@@ -8,6 +8,7 @@ Database schema version: 11
 
 ### Added
 
+- Add `Node::node_status` to retrieve the node status from a single node including additional data required
 - Add `Baker::node_status` to retrieve the validator's node information.
 - Add more context to errors during indexing, providing better error messages for debugging.
 - Add database migration 11 adding columns to store the ranking of bakers.
