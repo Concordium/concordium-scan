@@ -145,7 +145,6 @@ impl Service {
                     match self.node_collector_backend.get_summary().await {
 
                         Ok(external_node_info) => {
-
                             let map: HashMap<&str, &ExternalNodeStatus> = external_node_info.iter().map(|ns| (ns.node_id.as_str(), ns)).collect();
                             let node_info = external_node_info.iter().map(|node| {
                                 let peers: Vec<PeerReference> = node.peers_list.iter().map(|node_id| {
@@ -271,16 +270,6 @@ impl PeerReference {
     async fn node_status(&self) -> &Option<Peer> { &self.node_status }
 
     async fn node_id(&self) -> &str { &self.node_id }
-}
-
-#[derive(Clone, Default)]
-struct PeerList {
-    peers: Vec<PeerReference>,
-}
-
-#[Object]
-impl PeerList {
-    async fn peers_list(&self) -> &Vec<PeerReference> { &self.peers }
 }
 
 #[derive(SimpleObject, Default, Clone)]
