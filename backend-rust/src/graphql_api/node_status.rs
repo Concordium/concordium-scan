@@ -155,7 +155,7 @@ impl Service {
                                             }
                                         });
                                         PeerReference {
-                                            node_id: Arc::new(node_id.to_string()),
+                                            node_id: node_id.to_string(),
                                             node_status: peer
                                         }
                                     }).collect();
@@ -263,7 +263,7 @@ impl Peer {
 #[derive(Clone)]
 struct PeerReference {
     node_status: Option<Peer>,
-    node_id:     Arc<String>,
+    node_id:     String,
 }
 #[Object]
 impl PeerReference {
@@ -327,7 +327,7 @@ impl NodeCollectorBackendClient {
         let node_info_statuses = response
             .json::<Vec<ExternalNodeStatus>>()
             .await
-            .map_err(|err| anyhow::anyhow!("Failed to deserialize response: {:?}", err))?;
+            .map_err(|err| anyhow::anyhow!("Failed to deserialize response: {}", err))?;
 
         Ok(node_info_statuses)
     }
