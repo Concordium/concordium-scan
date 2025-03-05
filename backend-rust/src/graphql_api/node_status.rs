@@ -1,10 +1,11 @@
 use super::{ApiError, ApiResult};
 use crate::connection::connection_from_slice;
-use async_graphql::{connection, types, ComplexObject, Context, Enum, Object, SimpleObject};
+use async_graphql::{connection, types, ComplexObject, Context, Enum, MergedObject, Object, SimpleObject};
 use prometheus_client::{metrics::counter::Counter, registry::Registry};
 use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
 use std::{cmp::Ordering::Equal, time::Duration};
+use std::collections::HashMap;
 use tokio::sync::watch::{Receiver, Sender};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
@@ -13,6 +14,8 @@ pub type NodeInfoReceiver = Receiver<Option<Vec<NodeStatus>>>;
 
 #[derive(Default)]
 pub(crate) struct QueryNodeStatus;
+
+
 
 #[allow(clippy::too_many_arguments)]
 #[Object]
@@ -38,20 +41,20 @@ impl QueryNodeStatus {
 
         statuses.sort_by(|a, b| {
             let ordering = match sort_field {
-                NodeSortField::AveragePing => a.average_ping.partial_cmp(&b.average_ping),
+                NodeSortField::AveragePing => a.0.average_ping.partial_cmp(&b.0.average_ping),
                 NodeSortField::BlocksReceivedCount => {
-                    a.blocks_received_count.partial_cmp(&b.blocks_received_count)
+                    a.0.blocks_received_count.partial_cmp(&b.0.blocks_received_count)
                 }
-                NodeSortField::ClientVersion => a.client.partial_cmp(&b.client),
+                NodeSortField::ClientVersion => a.0.client.partial_cmp(&b.0.client),
                 NodeSortField::ConsensusBakerId => {
-                    a.consensus_baker_id.partial_cmp(&b.consensus_baker_id)
+                    a.0.consensus_baker_id.partial_cmp(&b.0.consensus_baker_id)
                 }
                 NodeSortField::FinalizedBlockHeight => {
-                    a.finalized_block_height.partial_cmp(&b.finalized_block_height)
+                    a.0.finalized_block_height.partial_cmp(&b.0.finalized_block_height)
                 }
-                NodeSortField::NodeName => a.node_name.partial_cmp(&b.node_name),
-                NodeSortField::PeersCount => a.peers_count.partial_cmp(&b.peers_count),
-                NodeSortField::Uptime => a.uptime.partial_cmp(&b.uptime),
+                NodeSortField::NodeName => a.0.node_name.partial_cmp(&b.0.node_name),
+                NodeSortField::PeersCount => a.0.peers_count.partial_cmp(&b.0.peers_count),
+                NodeSortField::Uptime => a.0.uptime.partial_cmp(&b.0.uptime),
             };
 
             match sort_direction {
@@ -60,6 +63,20 @@ impl QueryNodeStatus {
             }
         });
         connection_from_slice(statuses, first, after, last, before)
+    }
+
+    async fn node_status(
+        &self,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Return node with corresponding id")] id: types::ID
+    ) -> ApiResult<Option<NodeStatus>> {
+        let handler = ctx.data::<NodeInfoReceiver>().map_err(ApiError::NoReceiver)?;
+        let statuses_ref = handler.borrow();
+        let statuses = statuses_ref.as_ref().ok_or(ApiError::InternalError(
+            "Node collector backend has not responded".to_string(),
+        ))?;
+        let node = statuses.iter().find(|x| x.0.node_id == id.0).cloned();
+        Ok(node)
     }
 }
 
@@ -125,7 +142,18 @@ impl Service {
                 _ = interval.tick() => {
                     match self.node_collector_backend.get_summary().await {
 
-                        Ok(node_info) => {
+                        Ok(external_node_info) => {
+
+                            let map: HashMap<&str, &ExternalNodeStatus> = external_node_info.iter().map(|ns| (ns.node_id.as_str(), ns)).collect();
+                            let node_info = external_node_info.iter().map(|node| {
+                                let peer_refs = PeerList {
+                                    peers: node.peers_list.iter().filter_map(|peer| {
+                                        let peer: Option<PeerReference> = map.get(peer.as_str()).map(|external| (*external).into());
+                                        peer
+                                    }).collect()
+                                };
+                                NodeStatus(node.clone(), peer_refs)
+                            }).collect();
                             if let Err(err) = self.sender.send(Some(node_info)) {
                                 info!("Node status receiver has been closed: {:?}", err);
                                 break;
@@ -147,44 +175,105 @@ impl Service {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 #[derive(SimpleObject)]
 #[graphql(complex)]
-pub struct NodeStatus {
-    pub node_id: String,
-    pub node_name: Option<String>,
-    pub average_ping: Option<f64>,
-    pub uptime: u64,
-    #[graphql(skip)]
-    pub client: String,
+pub struct ExternalNodeStatus {
     pub average_bytes_per_second_in: f64,
     pub average_bytes_per_second_out: f64,
-    pub packets_sent: u64,
-    pub packets_received: u64,
+    pub average_ping: Option<f64>,
+    #[graphql(skip)]
+    pub client: String,
     pub baking_committee_member: String,
-    pub best_block: String,
-    pub best_block_height: u64,
     pub best_arrived_time: Option<String>,
+    pub best_block: String,
+    pub best_block_baker_id: Option<u64>,
+    pub best_block_central_bank_amount: Option<u64>,
+    pub best_block_execution_cost: Option<u64>,
+    pub best_block_height: u64,
+    pub best_block_total_amount: Option<u64>,
+    pub best_block_total_encrypted_amount: Option<u64>,
+    pub best_block_transaction_count: Option<u64>,
+    pub best_block_transaction_energy_cost: Option<u64>,
+    pub best_block_transactions_size: Option<u64>,
+    pub block_arrive_latency_ema: Option<f64>,
+    pub block_arrive_latency_emsd: Option<f64>,
+    pub block_arrive_period_ema: Option<f64>,
+    pub block_arrive_period_emsd: Option<f64>,
+    pub block_receive_latency_ema: Option<f64>,
+    pub block_receive_latency_emsd: Option<f64>,
     pub block_receive_period_ema: Option<f64>,
     pub block_receive_period_emsd: Option<f64>,
-    pub peers_count: u64,
-    pub peers_list: Vec<String>,
-    pub finalized_block: String,
-    pub finalized_block_height: u64,
-    pub finalized_time: Option<String>,
+    pub blocks_received_count: Option<u64>,
+    pub blocks_verified_count: Option<u64>,
+    pub consensus_baker_id: Option<u64>,
+    pub consensus_running: bool,
+    pub finalization_committee_member: bool,
+    pub finalization_count: Option<u64>,
     pub finalization_period_ema: Option<f64>,
     pub finalization_period_emsd: Option<f64>,
-    pub consensus_baker_id: Option<u64>,
-    pub blocks_received_count: Option<u64>,
+    pub finalized_block: String,
+    pub finalized_block_height: u64,
+    pub finalized_block_parent: String,
+    pub finalized_time: Option<String>,
+    pub genesis_block: String,
+    pub node_id: String,
+    pub node_name: String,
+    pub packets_received: u64,
+    pub packets_sent: u64,
+    pub peers_count: u64,
+    pub peer_type: String,
+    #[graphql(skip)]
+    pub peers_list: Vec<String>,
+    pub transactions_per_block_ema: Option<f64>,
+    pub transactions_per_block_emsd: Option<f64>,
+    pub uptime: u64,
 }
 
 #[ComplexObject]
-impl NodeStatus {
+impl ExternalNodeStatus {
+
     async fn id(&self) -> types::ID { types::ID::from(&self.node_id) }
 
     async fn client_version(&self) -> &str { &self.client }
+
 }
+
+#[derive(SimpleObject, Clone)]
+struct Peer {
+    pub node_name: String,
+}
+
+#[derive(SimpleObject, Clone)]
+struct PeerReference {
+    node_status: Peer,
+    node_id: String
+}
+
+impl From<&ExternalNodeStatus> for PeerReference {
+    fn from(external: &ExternalNodeStatus) -> Self {
+        PeerReference {
+            node_status: Peer {
+                node_name: external.node_name.clone()
+            },
+            node_id: external.node_id.clone(),
+        }
+    }
+}
+
+#[derive(Clone, Default)]
+struct PeerList {
+    peers: Vec<PeerReference>
+}
+
+#[Object]
+impl PeerList {
+    async fn peers_list(&self) -> Vec<PeerReference>  { self.peers.clone() }
+}
+
+#[derive(MergedObject, Default, Clone)]
+pub struct NodeStatus(pub(crate) ExternalNodeStatus, PeerList);
 
 struct NodeCollectorBackendClient {
     client:             Client,
@@ -201,7 +290,7 @@ impl NodeCollectorBackendClient {
         }
     }
 
-    async fn get_summary(&self) -> anyhow::Result<Vec<NodeStatus>> {
+    async fn get_summary(&self) -> anyhow::Result<Vec<ExternalNodeStatus>> {
         let response = self
             .client
             .get(&self.url)
@@ -226,9 +315,9 @@ impl NodeCollectorBackendClient {
         }
 
         let node_info_statuses = response
-            .json::<Vec<NodeStatus>>()
+            .json::<Vec<ExternalNodeStatus>>()
             .await
-            .map_err(|err| anyhow::anyhow!("Failed to deserialize response: {}", err))?;
+            .map_err(|err| anyhow::anyhow!("Failed to deserialize response: {:?}", err))?;
 
         Ok(node_info_statuses)
     }
@@ -297,7 +386,7 @@ mod tests {
             .expect(1)
             .create_async()
             .await;
-        let deserialized: Vec<NodeStatus> = from_str(response).expect("Failed to deserialize JSON");
+        let deserialized: Vec<ExternalNodeStatus> = from_str(response).expect("Failed to deserialize JSON");
         let client = Client::new();
         let gc = NodeCollectorBackendClient::new(client, server.url().as_str(), 10000);
         let summary = gc.get_summary().await;
