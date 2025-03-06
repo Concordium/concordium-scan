@@ -547,7 +547,8 @@ impl Baker {
             "Node collector backend has not responded".to_string(),
         ))?;
 
-        let node = statuses.iter().find(|x| x.consensus_baker_id == Some(baker_id)).cloned();
+        let node =
+            statuses.iter().find(|x| x.external.consensus_baker_id == Some(baker_id)).cloned();
         let out = BakerState::ActiveBakerState(Box::new(ActiveBakerState {
             node_status:      node,
             staked_amount:    Amount::try_from(self.staked)?,
