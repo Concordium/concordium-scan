@@ -52,6 +52,7 @@ use prometheus_client::{
 };
 use sqlx::PgPool;
 use std::{collections::HashSet, convert::TryInto};
+use concordium_rust_sdk::types::BlockHeight;
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
@@ -1544,7 +1545,7 @@ impl PreparedEvent {
                 let event = concordium_rust_sdk::types::BakerEvent::BakerAdded {
                     data: event_data.clone(),
                 };
-                let prepared = PreparedBakerEvent::prepare(&event)?;
+                let prepared = PreparedBakerEvent::prepare(&event, height)?;
                 PreparedEvent::BakerEvents(PreparedBakerEvents {
                     events: vec![prepared],
                 })
@@ -1555,7 +1556,7 @@ impl PreparedEvent {
                 let event = concordium_rust_sdk::types::BakerEvent::BakerRemoved {
                     baker_id: *baker_id,
                 };
-                let prepared = PreparedBakerEvent::prepare(&event)?;
+                let prepared = PreparedBakerEvent::prepare(&event, height)?;
                 PreparedEvent::BakerEvents(PreparedBakerEvents {
                     events: vec![prepared],
                 })
@@ -1579,7 +1580,7 @@ impl PreparedEvent {
                         new_stake: update.new_stake,
                     }
                 };
-                let prepared = PreparedBakerEvent::prepare(&event)?;
+                let prepared = PreparedBakerEvent::prepare(&event, height)?;
 
                 PreparedEvent::BakerEvents(PreparedBakerEvents {
                     events: vec![prepared],
@@ -1593,7 +1594,7 @@ impl PreparedEvent {
                     &concordium_rust_sdk::types::BakerEvent::BakerRestakeEarningsUpdated {
                         baker_id:         *baker_id,
                         restake_earnings: *restake_earnings,
-                    },
+                    }, height
                 )?];
                 PreparedEvent::BakerEvents(PreparedBakerEvents {
                     events,
@@ -1607,7 +1608,7 @@ impl PreparedEvent {
             } => PreparedEvent::BakerEvents(PreparedBakerEvents {
                 events: events
                     .iter()
-                    .map(PreparedBakerEvent::prepare)
+                    .map(|event|PreparedBakerEvent::prepare(event, height))
                     .collect::<anyhow::Result<Vec<_>>>()?,
             }),
 
@@ -2099,6 +2100,8 @@ impl BakerRemoved {
     ) -> anyhow::Result<()> {
         self.move_delegators.save(tx).await?;
         self.remove_baker.save(tx).await?;
+
+
         Ok(())
     }
 }
@@ -2124,6 +2127,14 @@ impl RemoveBaker {
             .await?
             .ensure_affected_one_row()
             .context("Failed removing validator")?;
+        sqlx::query!(
+            "INSERT INTO metrics_bakers (block_height, total_bakers_added, total_bakers_removed, total_bakers_resumed, total_bakers_suspended)
+                SELECT $1, total_bakers_added + 1, total_bakers_removed, total_bakers_resumed, total_bakers_suspended
+                FROM metrics_bakers
+                ORDER BY index DESC
+                LIMIT 1",
+            block_height,
+        );
         Ok(())
     }
 }
@@ -2186,9 +2197,10 @@ impl PreparedBakerEvents {
 #[derive(Debug)]
 enum PreparedBakerEvent {
     Add {
-        baker_id:         i64,
-        staked:           i64,
-        restake_earnings: bool,
+        baker_id:           i64,
+        staked:             i64,
+        restake_earnings:   bool,
+        block_height:       i64,
     },
     Remove(BakerRemoved),
     StakeIncrease {
@@ -2237,7 +2249,7 @@ enum PreparedBakerEvent {
     NoOperation,
 }
 impl PreparedBakerEvent {
-    fn prepare(event: &concordium_rust_sdk::types::BakerEvent) -> anyhow::Result<Self> {
+    fn prepare(event: &concordium_rust_sdk::types::BakerEvent, block_height: AbsoluteBlockHeight) -> anyhow::Result<Self> {
         use concordium_rust_sdk::types::BakerEvent;
         let prepared = match event {
             BakerEvent::BakerAdded {
@@ -2246,6 +2258,7 @@ impl PreparedBakerEvent {
                 baker_id:         details.keys_event.baker_id.id.index.try_into()?,
                 staked:           details.stake.micro_ccd().try_into()?,
                 restake_earnings: details.restake_earnings,
+                block_height:       block_height.height.try_into()?
             },
             BakerEvent::BakerRemoved {
                 baker_id,
@@ -2358,6 +2371,7 @@ impl PreparedBakerEvent {
                 baker_id,
                 staked,
                 restake_earnings,
+                block_height
             } => {
                 sqlx::query!(
                     "INSERT INTO bakers (id, staked, restake_earnings, pool_total_staked, \
@@ -2370,6 +2384,28 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?;
+                sqlx::query!(
+                    "WITH last_row AS (
+                        SELECT total_bakers_added, total_bakers_removed, total_bakers_resumed, total_bakers_suspended
+                        FROM metrics_bakers
+                        ORDER BY index DESC
+                        LIMIT 1
+                    )
+                    INSERT INTO metrics_bakers (
+                        block_height, total_bakers_added, total_bakers_removed, total_bakers_resumed, total_bakers_suspended
+                    )
+                    SELECT
+                        $1,
+                        total_bakers_added + 1,
+                        total_bakers_removed,
+                        total_bakers_resumed,
+                        total_bakers_suspended
+                    FROM last_row
+                    UNION ALL
+                    SELECT $1, 0, 0, 0, 0
+                    WHERE NOT EXISTS (SELECT 1 FROM last_row)",
+                    block_height,
+                )
             }
             PreparedBakerEvent::Remove(baker_removed) => {
                 baker_removed.save(tx).await?;
