@@ -2121,20 +2121,21 @@ impl RemoveBaker {
     async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+
     ) -> anyhow::Result<()> {
         sqlx::query!("DELETE FROM bakers WHERE id=$1", self.baker_id,)
             .execute(tx.as_mut())
             .await?
             .ensure_affected_one_row()
             .context("Failed removing validator")?;
-        sqlx::query!(
-            "INSERT INTO metrics_bakers (block_height, total_bakers_added, total_bakers_removed, total_bakers_resumed, total_bakers_suspended)
-                SELECT $1, total_bakers_added + 1, total_bakers_removed, total_bakers_resumed, total_bakers_suspended
-                FROM metrics_bakers
-                ORDER BY index DESC
-                LIMIT 1",
-            block_height,
-        );
+//        sqlx::query!(
+//            "INSERT INTO metrics_bakers (block_height, total_bakers_added, total_bakers_removed, total_bakers_resumed, total_bakers_suspended)
+//                SELECT $1, total_bakers_added + 1, total_bakers_removed, total_bakers_resumed, total_bakers_suspended
+//                FROM metrics_bakers
+//                ORDER BY index DESC
+//                LIMIT 1",
+//            block_height,
+//        );
         Ok(())
     }
 }
@@ -2395,17 +2396,20 @@ impl PreparedBakerEvent {
                         block_height, total_bakers_added, total_bakers_removed, total_bakers_resumed, total_bakers_suspended
                     )
                     SELECT
-                        $1,
+                        $1::BIGINT,
                         total_bakers_added + 1,
                         total_bakers_removed,
                         total_bakers_resumed,
                         total_bakers_suspended
                     FROM last_row
                     UNION ALL
-                    SELECT $1, 0, 0, 0, 0
+                    SELECT $1::BIGINT, 0, 0, 0, 0
                     WHERE NOT EXISTS (SELECT 1 FROM last_row)",
                     block_height,
                 )
+                .execute(tx.as_mut())
+                .await?;
+
             }
             PreparedBakerEvent::Remove(baker_removed) => {
                 baker_removed.save(tx).await?;
