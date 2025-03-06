@@ -199,14 +199,16 @@ pub enum SchemaVersion {
     DelegatedStakeCap,
     #[display("0011:RankingByLotteryPower")]
     RankingByLotteryPower,
+    #[display("0011:RankingByLotteryPower")]
+    BakerMetrics,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking database schema versions have been
     /// introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::RankingByLotteryPower;
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::BakerMetrics;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::RankingByLotteryPower;
+    const LATEST: SchemaVersion = SchemaVersion::BakerMetrics;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -233,6 +235,7 @@ impl SchemaVersion {
             SchemaVersion::StakedPoolSizeConstraint => false,
             SchemaVersion::DelegatedStakeCap => false,
             SchemaVersion::RankingByLotteryPower => false,
+            SchemaVersion::BakerMetrics => false,
         }
     }
 
@@ -310,7 +313,13 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::RankingByLotteryPower
             }
-            SchemaVersion::RankingByLotteryPower => unimplemented!(
+            SchemaVersion::RankingByLotteryPower => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!("./migrations/m0012-baker-metrics.sql")))
+                    .await?;
+                SchemaVersion::BakerMetrics
+            }
+            SchemaVersion::BakerMetrics => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
