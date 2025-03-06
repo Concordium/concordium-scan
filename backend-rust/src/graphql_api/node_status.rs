@@ -161,7 +161,7 @@ impl Service {
                                     }).collect();
                                 NodeStatus {
                                     external: node.clone(),
-                                    peers
+                                    peers_list: peers
                                 }
                             }).collect();
                             if let Err(err) = self.sender.send(Some(node_info)) {
@@ -185,7 +185,7 @@ impl Service {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 #[derive(SimpleObject)]
 #[graphql(complex)]
@@ -257,7 +257,7 @@ struct Peer {
 
 #[ComplexObject]
 impl Peer {
-    async fn id(&self) -> &str { &self.node_id }
+    async fn id(&self) -> types::ID { types::ID::from(&self.node_id) }
 }
 
 #[derive(Clone)]
@@ -272,17 +272,11 @@ impl PeerReference {
     async fn node_id(&self) -> &str { &self.node_id }
 }
 
-#[derive(SimpleObject, Default, Clone)]
-#[graphql(complex)]
+#[derive(SimpleObject, Clone)]
 pub struct NodeStatus {
     #[graphql(flatten)]
     pub(crate) external: ExternalNodeStatus,
-    peers:               Vec<PeerReference>,
-}
-
-#[ComplexObject]
-impl NodeStatus {
-    async fn peers_list(&self) -> &Vec<PeerReference> { &self.peers }
+    peers_list:          Vec<PeerReference>,
 }
 
 struct NodeCollectorBackendClient {
