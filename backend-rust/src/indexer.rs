@@ -52,14 +52,18 @@ use prometheus_client::{
 };
 use sqlx::PgPool;
 use std::{collections::HashSet, convert::TryInto};
+use std::os::macos::raw::stat;
 use concordium_rust_sdk::types::BlockHeight;
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
 
 mod ensure_affected_rows;
+mod statistics;
 
 use ensure_affected_rows::EnsureAffectedRows;
+use crate::indexer::statistics::{Statistics};
+use crate::indexer::statistics::Field::{Added, Removed, Resumed};
 
 /// Service traversing each block of the chain, indexing it into a database.
 ///
@@ -615,10 +619,11 @@ impl ProcessEvent for BlockProcessor {
         // Clone the context, to avoid mutating the current context until we are certain
         // nothing fails.
         let mut new_context = self.current_context.clone();
+        let mut statistics = Statistics::new();
         PreparedBlock::batch_save(batch, &mut new_context, &mut tx).await?;
         for block in batch {
             for item in block.prepared_block_items.iter() {
-                item.save(&mut tx).await.with_context(|| {
+                item.save(&mut tx, &mut statistics).await.with_context(|| {
                     format!(
                         "Failed processing block item with hash {} for block height {}",
                         item.block_item_hash, item.block_height
@@ -878,7 +883,6 @@ impl PreparedBlock {
         )
         .await?;
         let baker_unmark_suspended = PreparedUnmarkPrimedForSuspension::prepare(data)?;
-
         Ok(Self {
             hash,
             height,
@@ -1220,6 +1224,7 @@ impl PreparedBlockItem {
     async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        statistics: &mut Statistics
     ) -> anyhow::Result<()> {
         let reject = if let Some(reason) = &self.reject {
             Some(reason.process(tx).await?)
@@ -1299,7 +1304,7 @@ impl PreparedBlockItem {
         .ensure_affected_rows(self.affected_accounts.len().try_into()?)
         .context("Failed incrementing num_txs for account")?;
 
-        self.prepared_event.save(tx, tx_idx).await.with_context(|| {
+        self.prepared_event.save(tx, tx_idx, statistics).await.with_context(|| {
             format!(
                 "Failed processing block item event from {:?} transaction",
                 self.transaction_type
@@ -1361,6 +1366,7 @@ impl PreparedBlockItemEvent {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         transaction_index: i64,
+        statistics: &mut Statistics
     ) -> anyhow::Result<()> {
         match self {
             PreparedBlockItemEvent::AccountCreation(event) => {
@@ -1368,7 +1374,7 @@ impl PreparedBlockItemEvent {
             }
             PreparedBlockItemEvent::AccountTransaction(account_transaction_event) => {
                 account_transaction_event.fee.save(tx, Some(transaction_index)).await?;
-                account_transaction_event.event.save(tx, transaction_index).await
+                account_transaction_event.event.save(tx, transaction_index, statistics).await
             }
             PreparedBlockItemEvent::ChainUpdate => Ok(()),
         }
@@ -1545,7 +1551,7 @@ impl PreparedEvent {
                 let event = concordium_rust_sdk::types::BakerEvent::BakerAdded {
                     data: event_data.clone(),
                 };
-                let prepared = PreparedBakerEvent::prepare(&event, height)?;
+                let prepared = PreparedBakerEvent::prepare(&event)?;
                 PreparedEvent::BakerEvents(PreparedBakerEvents {
                     events: vec![prepared],
                 })
@@ -1556,7 +1562,7 @@ impl PreparedEvent {
                 let event = concordium_rust_sdk::types::BakerEvent::BakerRemoved {
                     baker_id: *baker_id,
                 };
-                let prepared = PreparedBakerEvent::prepare(&event, height)?;
+                let prepared = PreparedBakerEvent::prepare(&event)?;
                 PreparedEvent::BakerEvents(PreparedBakerEvents {
                     events: vec![prepared],
                 })
@@ -1580,7 +1586,7 @@ impl PreparedEvent {
                         new_stake: update.new_stake,
                     }
                 };
-                let prepared = PreparedBakerEvent::prepare(&event, height)?;
+                let prepared = PreparedBakerEvent::prepare(&event)?;
 
                 PreparedEvent::BakerEvents(PreparedBakerEvents {
                     events: vec![prepared],
@@ -1594,7 +1600,7 @@ impl PreparedEvent {
                     &concordium_rust_sdk::types::BakerEvent::BakerRestakeEarningsUpdated {
                         baker_id:         *baker_id,
                         restake_earnings: *restake_earnings,
-                    }, height
+                    },
                 )?];
                 PreparedEvent::BakerEvents(PreparedBakerEvents {
                     events,
@@ -1608,7 +1614,7 @@ impl PreparedEvent {
             } => PreparedEvent::BakerEvents(PreparedBakerEvents {
                 events: events
                     .iter()
-                    .map(|event|PreparedBakerEvent::prepare(event, height))
+                    .map(PreparedBakerEvent::prepare)
                     .collect::<anyhow::Result<Vec<_>>>()?,
             }),
 
@@ -1675,6 +1681,7 @@ impl PreparedEvent {
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         tx_idx: i64,
         protocol_version: ProtocolVersion,
+        statistics: &mut Statistics
     ) -> anyhow::Result<()> {
         match self {
             PreparedEvent::CcdTransfer(event) => event
@@ -1686,7 +1693,7 @@ impl PreparedEvent {
                 .await
                 .context("Failed processing block item event of encrypted balance"),
             PreparedEvent::BakerEvents(event) => event
-                .save(tx, tx_idx, protocol_version)
+                .save(tx, tx_idx, protocol_version, statistics)
                 .await
                 .context("Failed processing block item event with baker event"),
             PreparedEvent::ModuleDeployed(event) => event
@@ -1702,7 +1709,7 @@ impl PreparedEvent {
                 .await
                 .context("Failed processing block item event with contract update"),
             PreparedEvent::AccountDelegationEvents(event) => event
-                .save(tx, protocol_version)
+                .save(tx, protocol_version, statistics)
                 .await
                 .context("Failed processing block item event with account delegation event"),
             PreparedEvent::ScheduledTransfer(event) => event
@@ -1759,8 +1766,9 @@ impl PreparedEventEnvelope {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         tx_idx: i64,
+        statistics: &mut Statistics
     ) -> anyhow::Result<()> {
-        self.event.save(tx, tx_idx, self.metadata.protocol_version).await
+        self.event.save(tx, tx_idx, self.metadata.protocol_version, statistics).await
     }
 }
 
@@ -1825,9 +1833,10 @@ impl PreparedAccountDelegationEvents {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         protocol_version: ProtocolVersion,
+        statistics: &mut Statistics
     ) -> anyhow::Result<()> {
         for event in &self.events {
-            event.save(tx, protocol_version).await?;
+            event.save(tx, protocol_version, statistics).await?;
         }
         Ok(())
     }
@@ -1920,6 +1929,7 @@ impl PreparedAccountDelegationEvent {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         protocol_version: ProtocolVersion,
+        statistics: &mut Statistics
     ) -> anyhow::Result<()> {
         let bakers_expected_affected_range = if protocol_version > ProtocolVersion::P6 {
             1..=1
@@ -2072,7 +2082,7 @@ impl PreparedAccountDelegationEvent {
                 .context("Failed update delegator target")?;
             }
             PreparedAccountDelegationEvent::RemoveBaker(baker_removed) => {
-                baker_removed.save(tx).await?;
+                baker_removed.save(tx, statistics).await?;
             }
         }
         Ok(())
@@ -2097,11 +2107,10 @@ impl BakerRemoved {
     async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        statistics: &mut Statistics
     ) -> anyhow::Result<()> {
         self.move_delegators.save(tx).await?;
-        self.remove_baker.save(tx).await?;
-
-
+        self.remove_baker.save(tx, statistics).await?;
         Ok(())
     }
 }
@@ -2121,21 +2130,14 @@ impl RemoveBaker {
     async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-
+        statistics: &mut Statistics
     ) -> anyhow::Result<()> {
         sqlx::query!("DELETE FROM bakers WHERE id=$1", self.baker_id,)
             .execute(tx.as_mut())
             .await?
             .ensure_affected_one_row()
             .context("Failed removing validator")?;
-//        sqlx::query!(
-//            "INSERT INTO metrics_bakers (block_height, total_bakers_added, total_bakers_removed, total_bakers_resumed, total_bakers_suspended)
-//                SELECT $1, total_bakers_added + 1, total_bakers_removed, total_bakers_resumed, total_bakers_suspended
-//                FROM metrics_bakers
-//                ORDER BY index DESC
-//                LIMIT 1",
-//            block_height,
-//        );
+        statistics.increment(Removed, 1);
         Ok(())
     }
 }
@@ -2183,10 +2185,11 @@ impl PreparedBakerEvents {
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         transaction_index: i64,
         protocol_version: ProtocolVersion,
+        statistics: &mut Statistics
     ) -> anyhow::Result<()> {
         for event in &self.events {
             event
-                .save(tx, transaction_index, protocol_version)
+                .save(tx, transaction_index, protocol_version, statistics)
                 .await
                 .with_context(|| format!("Failed processing baker event {:?}", event))?;
         }
@@ -2201,7 +2204,6 @@ enum PreparedBakerEvent {
         baker_id:           i64,
         staked:             i64,
         restake_earnings:   bool,
-        block_height:       i64,
     },
     Remove(BakerRemoved),
     StakeIncrease {
@@ -2250,20 +2252,23 @@ enum PreparedBakerEvent {
     NoOperation,
 }
 impl PreparedBakerEvent {
-    fn prepare(event: &concordium_rust_sdk::types::BakerEvent, block_height: AbsoluteBlockHeight) -> anyhow::Result<Self> {
+    fn prepare(event: &concordium_rust_sdk::types::BakerEvent) -> anyhow::Result<Self> {
         use concordium_rust_sdk::types::BakerEvent;
         let prepared = match event {
             BakerEvent::BakerAdded {
                 data: details,
-            } => PreparedBakerEvent::Add {
-                baker_id:         details.keys_event.baker_id.id.index.try_into()?,
-                staked:           details.stake.micro_ccd().try_into()?,
-                restake_earnings: details.restake_earnings,
-                block_height:       block_height.height.try_into()?
+            } => {
+                PreparedBakerEvent::Add {
+                    baker_id:         details.keys_event.baker_id.id.index.try_into()?,
+                    staked:           details.stake.micro_ccd().try_into()?,
+                    restake_earnings: details.restake_earnings,
+                }
             },
             BakerEvent::BakerRemoved {
                 baker_id,
-            } => PreparedBakerEvent::Remove(BakerRemoved::prepare(baker_id)?),
+            } => {
+                PreparedBakerEvent::Remove(BakerRemoved::prepare(baker_id)?)
+            },
             BakerEvent::BakerStakeIncreased {
                 baker_id,
                 new_stake,
@@ -2339,18 +2344,25 @@ impl PreparedBakerEvent {
             },
             BakerEvent::DelegationRemoved {
                 delegator_id,
-            } => PreparedBakerEvent::RemoveDelegation {
-                delegator_id: delegator_id.id.index.try_into()?,
+            } => {
+                PreparedBakerEvent::RemoveDelegation {
+                    delegator_id: delegator_id.id.index.try_into()?,
+                }
             },
             BakerEvent::BakerSuspended {
                 baker_id,
-            } => PreparedBakerEvent::Suspended {
-                baker_id: baker_id.id.index.try_into()?,
+            } => {
+                PreparedBakerEvent::Suspended {
+                    baker_id: baker_id.id.index.try_into()?,
+                }
             },
             BakerEvent::BakerResumed {
                 baker_id,
-            } => PreparedBakerEvent::Resumed {
-                baker_id: baker_id.id.index.try_into()?,
+            } => {
+                PreparedBakerEvent::Resumed {
+                    baker_id: baker_id.id.index.try_into()?,
+
+                }
             },
         };
         Ok(prepared)
@@ -2361,6 +2373,7 @@ impl PreparedBakerEvent {
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         transaction_index: i64,
         protocol_version: ProtocolVersion,
+        statistics: &mut Statistics
     ) -> anyhow::Result<()> {
         let bakers_expected_affected_range = if protocol_version > ProtocolVersion::P6 {
             1..=1
@@ -2372,7 +2385,6 @@ impl PreparedBakerEvent {
                 baker_id,
                 staked,
                 restake_earnings,
-                block_height
             } => {
                 sqlx::query!(
                     "INSERT INTO bakers (id, staked, restake_earnings, pool_total_staked, \
@@ -2385,34 +2397,10 @@ impl PreparedBakerEvent {
                 )
                 .execute(tx.as_mut())
                 .await?;
-                sqlx::query!(
-                    "WITH last_row AS (
-                        SELECT total_bakers_added, total_bakers_removed, total_bakers_resumed, total_bakers_suspended
-                        FROM metrics_bakers
-                        ORDER BY index DESC
-                        LIMIT 1
-                    )
-                    INSERT INTO metrics_bakers (
-                        block_height, total_bakers_added, total_bakers_removed, total_bakers_resumed, total_bakers_suspended
-                    )
-                    SELECT
-                        $1::BIGINT,
-                        total_bakers_added + 1,
-                        total_bakers_removed,
-                        total_bakers_resumed,
-                        total_bakers_suspended
-                    FROM last_row
-                    UNION ALL
-                    SELECT $1::BIGINT, 0, 0, 0, 0
-                    WHERE NOT EXISTS (SELECT 1 FROM last_row)",
-                    block_height,
-                )
-                .execute(tx.as_mut())
-                .await?;
-
+                statistics.increment(Added, 1);
             }
             PreparedBakerEvent::Remove(baker_removed) => {
-                baker_removed.save(tx).await?;
+                baker_removed.save(tx, statistics).await?;
             }
             PreparedBakerEvent::StakeIncrease {
                 baker_id,
@@ -2597,7 +2585,7 @@ impl PreparedBakerEvent {
             PreparedBakerEvent::Resumed {
                 baker_id,
             } => {
-                sqlx::query!(
+                let result = sqlx::query!(
                     "UPDATE bakers
                      SET
                          self_suspended = NULL,
@@ -2609,6 +2597,7 @@ impl PreparedBakerEvent {
                 .await?
                 .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed update validator state to resumed from suspension")?;
+                statistics.increment(Resumed, result.rows_affected().try_into()?);
             }
             PreparedBakerEvent::NoOperation => (),
         }
