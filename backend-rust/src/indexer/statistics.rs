@@ -44,7 +44,6 @@ impl Statistics {
             // No increments recorded, nothing to commit.
             return Ok(());
         }
-        println!("Addedd something");
 
         // Retrieve the increment values for each counter, defaulting to 0.
         let inc_added = self.current.get(&Field::Added).copied().unwrap_or(0);
@@ -57,14 +56,20 @@ impl Statistics {
         // column.
         sqlx::query!(
             r#"
-            UPDATE metrics_bakers
-            SET total_bakers_added = total_bakers_added + $1,
-                total_bakers_removed = total_bakers_removed + $2,
-                total_bakers_resumed = total_bakers_resumed + $3,
-                total_bakers_suspended = total_bakers_suspended + $4
-            WHERE index = (
-                SELECT max(index) FROM metrics_bakers
+            INSERT INTO metrics_bakers (
+              total_bakers_added,
+              total_bakers_removed,
+              total_bakers_resumed,
+              total_bakers_suspended
             )
+            SELECT
+              COALESCE(total_bakers_added, 0) + $1,
+              COALESCE(total_bakers_removed, 0) + $2,
+              COALESCE(total_bakers_resumed, 0) + $3,
+              COALESCE(total_bakers_suspended, 0) + $4
+            FROM metrics_bakers
+            ORDER BY index DESC
+            LIMIT 1
             "#,
             inc_added,
             inc_removed,

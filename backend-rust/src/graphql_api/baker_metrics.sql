@@ -1,7 +1,7 @@
 SELECT
-    bucket_time.bucket_start as bucket_time,
-    after_bucket.total_bakers_added - before_bucket.total_bakers_added as bucket_bakers_added,
-    after_bucket.total_bakers_removed - before_bucket.total_bakers_removed as bucket_bakers_removed
+    bucket_time.bucket_start as "bucket_time!",
+    after_bucket.total_bakers_added - before_bucket.total_bakers_added as "bucket_bakers_added!",
+    after_bucket.total_bakers_removed - before_bucket.total_bakers_removed as "bucket_bakers_removed!"
 FROM
     date_bin_series(
         $3::interval,
