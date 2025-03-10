@@ -26,9 +26,7 @@ pub(crate) use todo_api;
 
 use crate::{
     connection::ConnectionQuery,
-    graphql_api::{
-        search_result::SearchResult,
-    },
+    graphql_api::search_result::SearchResult,
     migrations::{current_schema_version, SchemaVersion},
     scalar_types::{BlockHeight, DateTime, TimeSpan, UnsignedLong},
     transaction_event::smart_contracts::InvalidContractVersionError,

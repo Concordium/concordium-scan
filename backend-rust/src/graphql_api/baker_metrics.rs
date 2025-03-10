@@ -3,9 +3,9 @@ use crate::{
     scalar_types::{DateTime, TimeSpan},
 };
 use async_graphql::{Context, Object, SimpleObject};
-use chrono::{Utc};
+use chrono::Utc;
 use sqlx::postgres::types::PgInterval;
-use std::{sync::Arc};
+use std::sync::Arc;
 
 #[derive(Default)]
 pub(crate) struct QueryBakerMetrics;
