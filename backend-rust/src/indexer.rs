@@ -52,18 +52,16 @@ use prometheus_client::{
 };
 use sqlx::PgPool;
 use std::{collections::HashSet, convert::TryInto};
-use std::os::macos::raw::stat;
-use concordium_rust_sdk::types::BlockHeight;
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
-
 mod ensure_affected_rows;
 mod statistics;
-
+use crate::indexer::statistics::{
+    Field::{Added, Removed, Resumed, Suspended},
+    Statistics,
+};
 use ensure_affected_rows::EnsureAffectedRows;
-use crate::indexer::statistics::{Statistics};
-use crate::indexer::statistics::Field::{Added, Removed, Resumed};
 
 /// Service traversing each block of the chain, indexing it into a database.
 ///
@@ -619,9 +617,9 @@ impl ProcessEvent for BlockProcessor {
         // Clone the context, to avoid mutating the current context until we are certain
         // nothing fails.
         let mut new_context = self.current_context.clone();
-        let mut statistics = Statistics::new();
         PreparedBlock::batch_save(batch, &mut new_context, &mut tx).await?;
         for block in batch {
+            let mut statistics = Statistics::new();
             for item in block.prepared_block_items.iter() {
                 item.save(&mut tx, &mut statistics).await.with_context(|| {
                     format!(
@@ -632,7 +630,7 @@ impl ProcessEvent for BlockProcessor {
             }
             block.special_transaction_outcomes.save(&mut tx).await?;
             block.baker_unmark_suspended.save(&mut tx).await?;
-
+            statistics.save(&mut tx).await?;
             out.push_str(format!("\n- {}:{}", block.height, block.hash).as_str());
         }
         process_release_schedules(new_context.last_block_slot_time, &mut tx)
@@ -1224,7 +1222,7 @@ impl PreparedBlockItem {
     async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-        statistics: &mut Statistics
+        statistics: &mut Statistics,
     ) -> anyhow::Result<()> {
         let reject = if let Some(reason) = &self.reject {
             Some(reason.process(tx).await?)
@@ -1366,7 +1364,7 @@ impl PreparedBlockItemEvent {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         transaction_index: i64,
-        statistics: &mut Statistics
+        statistics: &mut Statistics,
     ) -> anyhow::Result<()> {
         match self {
             PreparedBlockItemEvent::AccountCreation(event) => {
@@ -1681,7 +1679,7 @@ impl PreparedEvent {
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         tx_idx: i64,
         protocol_version: ProtocolVersion,
-        statistics: &mut Statistics
+        statistics: &mut Statistics,
     ) -> anyhow::Result<()> {
         match self {
             PreparedEvent::CcdTransfer(event) => event
@@ -1766,7 +1764,7 @@ impl PreparedEventEnvelope {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         tx_idx: i64,
-        statistics: &mut Statistics
+        statistics: &mut Statistics,
     ) -> anyhow::Result<()> {
         self.event.save(tx, tx_idx, self.metadata.protocol_version, statistics).await
     }
@@ -1833,7 +1831,7 @@ impl PreparedAccountDelegationEvents {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         protocol_version: ProtocolVersion,
-        statistics: &mut Statistics
+        statistics: &mut Statistics,
     ) -> anyhow::Result<()> {
         for event in &self.events {
             event.save(tx, protocol_version, statistics).await?;
@@ -1929,7 +1927,7 @@ impl PreparedAccountDelegationEvent {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         protocol_version: ProtocolVersion,
-        statistics: &mut Statistics
+        statistics: &mut Statistics,
     ) -> anyhow::Result<()> {
         let bakers_expected_affected_range = if protocol_version > ProtocolVersion::P6 {
             1..=1
@@ -2107,7 +2105,7 @@ impl BakerRemoved {
     async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-        statistics: &mut Statistics
+        statistics: &mut Statistics,
     ) -> anyhow::Result<()> {
         self.move_delegators.save(tx).await?;
         self.remove_baker.save(tx, statistics).await?;
@@ -2130,7 +2128,7 @@ impl RemoveBaker {
     async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-        statistics: &mut Statistics
+        statistics: &mut Statistics,
     ) -> anyhow::Result<()> {
         sqlx::query!("DELETE FROM bakers WHERE id=$1", self.baker_id,)
             .execute(tx.as_mut())
@@ -2185,7 +2183,7 @@ impl PreparedBakerEvents {
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         transaction_index: i64,
         protocol_version: ProtocolVersion,
-        statistics: &mut Statistics
+        statistics: &mut Statistics,
     ) -> anyhow::Result<()> {
         for event in &self.events {
             event
@@ -2201,9 +2199,9 @@ impl PreparedBakerEvents {
 #[derive(Debug)]
 enum PreparedBakerEvent {
     Add {
-        baker_id:           i64,
-        staked:             i64,
-        restake_earnings:   bool,
+        baker_id:         i64,
+        staked:           i64,
+        restake_earnings: bool,
     },
     Remove(BakerRemoved),
     StakeIncrease {
@@ -2257,18 +2255,14 @@ impl PreparedBakerEvent {
         let prepared = match event {
             BakerEvent::BakerAdded {
                 data: details,
-            } => {
-                PreparedBakerEvent::Add {
-                    baker_id:         details.keys_event.baker_id.id.index.try_into()?,
-                    staked:           details.stake.micro_ccd().try_into()?,
-                    restake_earnings: details.restake_earnings,
-                }
+            } => PreparedBakerEvent::Add {
+                baker_id:         details.keys_event.baker_id.id.index.try_into()?,
+                staked:           details.stake.micro_ccd().try_into()?,
+                restake_earnings: details.restake_earnings,
             },
             BakerEvent::BakerRemoved {
                 baker_id,
-            } => {
-                PreparedBakerEvent::Remove(BakerRemoved::prepare(baker_id)?)
-            },
+            } => PreparedBakerEvent::Remove(BakerRemoved::prepare(baker_id)?),
             BakerEvent::BakerStakeIncreased {
                 baker_id,
                 new_stake,
@@ -2344,25 +2338,18 @@ impl PreparedBakerEvent {
             },
             BakerEvent::DelegationRemoved {
                 delegator_id,
-            } => {
-                PreparedBakerEvent::RemoveDelegation {
-                    delegator_id: delegator_id.id.index.try_into()?,
-                }
+            } => PreparedBakerEvent::RemoveDelegation {
+                delegator_id: delegator_id.id.index.try_into()?,
             },
             BakerEvent::BakerSuspended {
                 baker_id,
-            } => {
-                PreparedBakerEvent::Suspended {
-                    baker_id: baker_id.id.index.try_into()?,
-                }
+            } => PreparedBakerEvent::Suspended {
+                baker_id: baker_id.id.index.try_into()?,
             },
             BakerEvent::BakerResumed {
                 baker_id,
-            } => {
-                PreparedBakerEvent::Resumed {
-                    baker_id: baker_id.id.index.try_into()?,
-
-                }
+            } => PreparedBakerEvent::Resumed {
+                baker_id: baker_id.id.index.try_into()?,
             },
         };
         Ok(prepared)
@@ -2373,7 +2360,7 @@ impl PreparedBakerEvent {
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         transaction_index: i64,
         protocol_version: ProtocolVersion,
-        statistics: &mut Statistics
+        statistics: &mut Statistics,
     ) -> anyhow::Result<()> {
         let bakers_expected_affected_range = if protocol_version > ProtocolVersion::P6 {
             1..=1
@@ -2568,7 +2555,7 @@ impl PreparedBakerEvent {
             PreparedBakerEvent::Suspended {
                 baker_id,
             } => {
-                sqlx::query!(
+                let result = sqlx::query!(
                     "UPDATE bakers
                      SET
                          self_suspended = $2,
@@ -2581,6 +2568,7 @@ impl PreparedBakerEvent {
                 .await?
                 .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed update validator state to self-suspended")?;
+                statistics.increment(Suspended, result.rows_affected().try_into()?);
             }
             PreparedBakerEvent::Resumed {
                 baker_id,

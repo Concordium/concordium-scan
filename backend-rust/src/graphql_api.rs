@@ -4,6 +4,7 @@
 mod account;
 mod account_metrics;
 mod baker;
+mod baker_metrics;
 mod block;
 mod block_metrics;
 mod contract;
@@ -13,7 +14,6 @@ mod search_result;
 mod token;
 mod transaction;
 mod transaction_metrics;
-mod baker_metrics;
 
 // TODO remove this macro, when done with first iteration
 /// Short hand for returning API error with the message not implemented.
@@ -26,7 +26,9 @@ pub(crate) use todo_api;
 
 use crate::{
     connection::ConnectionQuery,
-    graphql_api::search_result::SearchResult,
+    graphql_api::{
+        search_result::SearchResult,
+    },
     migrations::{current_schema_version, SchemaVersion},
     scalar_types::{BlockHeight, DateTime, TimeSpan, UnsignedLong},
     transaction_event::smart_contracts::InvalidContractVersionError,
@@ -57,7 +59,6 @@ use tokio_util::sync::CancellationToken;
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{error, info};
 use transaction::Transaction;
-use crate::graphql_api::baker_metrics::{BakerMetrics, BakerMetricsBuckets};
 
 const VERSION: &str = clap::crate_version!();
 

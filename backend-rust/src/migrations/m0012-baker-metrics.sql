@@ -9,5 +9,3 @@ CREATE TABLE metrics_bakers
     total_bakers_resumed    BIGINT            NOT NULL,
     total_bakers_suspended  BIGINT            NOT NULL
 );
-
-

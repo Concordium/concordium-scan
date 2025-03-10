@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-use sqlx::{Transaction, Postgres};
 use anyhow::Result;
+use sqlx::{Postgres, Transaction};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum Field {
@@ -16,7 +16,8 @@ pub(crate) struct Statistics {
 }
 
 impl Statistics {
-    /// Creates an empty BakerStatistics where no counters have been incremented.
+    /// Creates an empty BakerStatistics where no counters have been
+    /// incremented.
     pub(crate) fn new() -> Self {
         Statistics {
             current: HashMap::new(),
@@ -29,13 +30,16 @@ impl Statistics {
         *self.current.entry(field).or_insert(0) += count;
     }
 
-    /// If any counter has been incremented, updates the latest row in metrics_bakers by adding the increments.
+    /// If any counter has been incremented, updates the latest row in
+    /// metrics_bakers by adding the increments.
     ///
-    /// The SQL query adds the current counter values to the corresponding columns:
-    /// total_bakers_added, total_bakers_removed, total_bakers_resumed, total_bakers_suspended.
+    /// The SQL query adds the current counter values to the corresponding
+    /// columns: total_bakers_added, total_bakers_removed,
+    /// total_bakers_resumed, total_bakers_suspended.
     ///
-    /// If no increments were recorded (i.e. current is empty), no update is performed.
-    pub(crate) async fn commit(&self, tx: &mut Transaction<'static, Postgres>) -> Result<()> {
+    /// If no increments were recorded (i.e. current is empty), no update is
+    /// performed.
+    pub(crate) async fn save(&self, tx: &mut Transaction<'static, Postgres>) -> Result<()> {
         if self.current.is_empty() {
             // No increments recorded, nothing to commit.
             return Ok(());
@@ -47,8 +51,9 @@ impl Statistics {
         let inc_resumed = self.current.get(&Field::Resumed).copied().unwrap_or(0);
         let inc_suspended = self.current.get(&Field::Suspended).copied().unwrap_or(0);
 
-        // Update the latest row in metrics_bakers, adding the increments to the current totals.
-        // This assumes that the table has a unique, increasing `index` column.
+        // Update the latest row in metrics_bakers, adding the increments to the current
+        // totals. This assumes that the table has a unique, increasing `index`
+        // column.
         sqlx::query!(
             r#"
             UPDATE metrics_bakers
