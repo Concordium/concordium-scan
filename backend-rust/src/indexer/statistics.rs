@@ -13,14 +13,16 @@ pub(crate) enum Field {
 pub(crate) struct Statistics {
     /// The counters as updated via increments.
     current: HashMap<Field, i64>,
+    block_height: i64,
 }
 
 impl Statistics {
     /// Creates an empty BakerStatistics where no counters have been
     /// incremented.
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(block_height: i64) -> Self {
         Statistics {
             current: HashMap::new(),
+            block_height
         }
     }
 
@@ -64,19 +66,19 @@ impl Statistics {
               total_bakers_suspended
             )
             SELECT
-              $1
-              sub.total_bakers_added + $2,
-              sub.total_bakers_removed + $3,
-              sub.total_bakers_resumed + $4,
-              sub.total_bakers_suspended + $5
+              $1,
+              total_bakers_added + $2,
+              total_bakers_removed + $3,
+              total_bakers_resumed + $4,
+              total_bakers_suspended + $5
             FROM (
               SELECT *
               FROM metrics_bakers
               ORDER BY block_height DESC
               LIMIT 1
-            ) AS sub
+            )
             "#,
-            block_height
+            self.block_height,
             inc_added,
             inc_removed,
             inc_resumed,
@@ -84,7 +86,7 @@ impl Statistics {
         )
         .execute(tx.as_mut())
         .await?;
-        if result.affected_rows() == 0 {
+        if result.rows_affected() == 0 {
             sqlx::query!(
                 r#"
             INSERT INTO metrics_bakers (
@@ -94,14 +96,14 @@ impl Statistics {
               total_bakers_resumed,
               total_bakers_suspended
             ) VALUES (
-              $1
+              $1,
               $2,
               $3,
               $4,
               $5
             )
             "#,
-                block_height
+                self.block_height,
                 inc_added,
                 inc_removed,
                 inc_resumed,

@@ -619,7 +619,7 @@ impl ProcessEvent for BlockProcessor {
         let mut new_context = self.current_context.clone();
         PreparedBlock::batch_save(batch, &mut new_context, &mut tx).await?;
         for block in batch {
-            let mut statistics = Statistics::new();
+            let mut statistics = Statistics::new(block.height);
             for item in block.prepared_block_items.iter() {
                 item.save(&mut tx, &mut statistics).await.with_context(|| {
                     format!(

@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO metrics_bakers (\n              block_height,\n              total_bakers_added,\n              total_bakers_removed,\n              total_bakers_resumed,\n              total_bakers_suspended\n            )\n            SELECT\n              $1,\n              total_bakers_added + $2,\n              total_bakers_removed + $3,\n              total_bakers_resumed + $4,\n              total_bakers_suspended + $5\n            FROM (\n              SELECT *\n              FROM metrics_bakers\n              ORDER BY block_height DESC\n              LIMIT 1\n            )\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "af4d5eba1a5b7a131e7ae05435adabb7c8c1533569539e1146f0751fe554aa39"
+}
