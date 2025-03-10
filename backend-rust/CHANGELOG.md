@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+Database schema version: 12
+
+### Added
+
+- Support `include_removed` flag for `Query::bakers` query.
+- Add database migration 12 adding table tracking the removed bakers and populate the table.
+- Indexer now maintains the removed bakers table.
+
 ### Fixed
 
 - Fixed bug in indexer where removed delegators still had the restake earnings flag stored as false instead of NULL.
@@ -68,8 +76,8 @@ Database schema version: 10
 
 ### Fixed
 
-- Removal of duplication on affected accounts in transactions
-- Altering constraint in the database on the stacked amount in the pool to be allowing zero value
+- Removal of duplication on affected accounts in transactions.
+- Altering constraint in the database on the stacked amount in the pool to be allowing zero value.
 
 ## [0.1.26] - 2025-02-20
 
@@ -77,7 +85,7 @@ Database schema version: 8
 
 ### Changed
 
-- Use canonical address instead of account address while referring to accounts
+- Use canonical address instead of account address while referring to accounts.
 
 ### Added
 
@@ -85,7 +93,7 @@ Database schema version: 8
 - Add query `Query::bakers` to the API, but without support for filtering removed bakers and sorting by APY and block commissions, this is to be added soon.
 - Add database migration 7 adding accumulated pool state to bakers table, for faster filtering based on these values.
 - Add query `BakerPool::delegators` which returns the delegators of a baker pool.
-- Store canonical address as a column on the account
+- Store canonical address as a column on the account.
 
 ### Fixed
 
