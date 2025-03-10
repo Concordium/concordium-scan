@@ -410,11 +410,12 @@ fn decode_value_with_schema(
         // Note: There could be something better displayed than this string if no schema
         // is available for decoding at the frontend long-term.
         return serde_json::to_string(&SchemaDecodingError {
-                     error: format!(
-                          "No embedded {} schema in smart contract available for decoding",
-                     schema_name.kind()
-                    ),
-                   }).map_err(|_| ApiError::InternalError("Should be valid error string".to_string()));     
+            error: format!(
+                "No embedded {} schema in smart contract available for decoding",
+                schema_name.kind()
+            ),
+        })
+        .map_err(|_| ApiError::InternalError("Should be valid error string".to_string()));
     };
 
     let mut cursor = Cursor::new(&value);
@@ -466,7 +467,7 @@ fn decode_value_with_schema(
     }
 }
 
-#[derive(Enum, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[derive(Debug, Enum, Clone, Copy, PartialEq, Eq, sqlx::Type)]
 #[sqlx(type_name = "module_reference_contract_link_action")]
 pub enum ModuleReferenceContractLinkAction {
     Added,

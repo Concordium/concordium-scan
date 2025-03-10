@@ -5,6 +5,7 @@ use concordium_rust_sdk::types as sdk_types;
 
 /// Represents the database operation of adding a removed baker to the
 /// bakers_removed table.
+#[derive(Debug)]
 pub struct InsertRemovedBaker {
     baker_id: i64,
 }
@@ -34,6 +35,7 @@ impl InsertRemovedBaker {
 
 /// Represents the database operation of deleting a baker from the
 /// bakers_removed table when present.
+#[derive(Debug)]
 pub struct DeleteRemovedBakerWhenPresent {
     baker_id: i64,
 }

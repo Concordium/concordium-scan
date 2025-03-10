@@ -5,6 +5,7 @@ use super::{
 use crate::{
     address::AccountAddress,
     connection::{ConcatCursor, ConnectionBounds, DescendingI64, Reversed},
+    graphql_api::node_status::{NodeInfoReceiver, NodeStatus},
     scalar_types::{Amount, BakerId, DateTime, Decimal, MetadataUrl},
     transaction_event::{baker::BakerPoolOpenStatus, Event},
     transaction_reject::TransactionRejectReason,
@@ -298,7 +299,9 @@ impl Baker {
                     payday_transaction_commission as "payday_transaction_commission?",
                     payday_baking_commission as "payday_baking_commission?",
                     payday_finalization_commission as "payday_finalization_commission?",
-                    payday_lottery_power as "lottery_power?",
+                    payday_lottery_power as "payday_lottery_power?",
+                    payday_ranking_by_lottery_powers as "payday_ranking_by_lottery_powers?",
+                    (SELECT MAX(payday_ranking_by_lottery_powers) FROM bakers_payday_lottery_powers) as "payday_total_ranking_by_lottery_powers?",
                     pool_total_staked,
                     pool_delegator_count
                 FROM bakers
@@ -445,7 +448,9 @@ impl Baker {
                     payday_transaction_commission as "payday_transaction_commission?",
                     payday_baking_commission as "payday_baking_commission?",
                     payday_finalization_commission as "payday_finalization_commission?",
-                    payday_lottery_power as "lottery_power?",
+                    payday_lottery_power as "payday_lottery_power?",
+                    payday_ranking_by_lottery_powers as "payday_ranking_by_lottery_powers?",
+                    (SELECT MAX(payday_ranking_by_lottery_powers) FROM bakers_payday_lottery_powers) as "payday_total_ranking_by_lottery_powers?",
                     pool_total_staked,
                     pool_delegator_count
                 FROM bakers
@@ -589,7 +594,9 @@ impl Baker {
                     payday_transaction_commission as "payday_transaction_commission?",
                     payday_baking_commission as "payday_baking_commission?",
                     payday_finalization_commission as "payday_finalization_commission?",
-                    payday_lottery_power as "lottery_power?",
+                    payday_lottery_power as "payday_lottery_power?",
+                    payday_ranking_by_lottery_powers as "payday_ranking_by_lottery_powers?",
+                    (SELECT MAX(payday_ranking_by_lottery_powers) FROM bakers_payday_lottery_powers) as "payday_total_ranking_by_lottery_powers?",
                     pool_total_staked,
                     pool_delegator_count
                 FROM bakers
@@ -830,7 +837,9 @@ impl Baker {
                     payday_transaction_commission as "payday_transaction_commission?",
                     payday_baking_commission as "payday_baking_commission?",
                     payday_finalization_commission as "payday_finalization_commission?",
-                    payday_lottery_power as "lottery_power?",
+                    payday_lottery_power as "payday_lottery_power?",
+                    payday_ranking_by_lottery_powers as "payday_ranking_by_lottery_powers?",
+                    (SELECT MAX(payday_ranking_by_lottery_powers) FROM bakers_payday_lottery_powers) as "payday_total_ranking_by_lottery_powers?",
                     pool_total_staked,
                     pool_delegator_count
                 FROM bakers
@@ -1082,7 +1091,9 @@ pub struct CurrentBaker {
     payday_transaction_commission: Option<i64>,
     payday_baking_commission: Option<i64>,
     payday_finalization_commission: Option<i64>,
-    lottery_power: Option<BigDecimal>,
+    payday_lottery_power: Option<BigDecimal>,
+    payday_ranking_by_lottery_powers: Option<i64>,
+    payday_total_ranking_by_lottery_powers: Option<i64>,
     pool_total_staked: i64,
     pool_delegator_count: i64,
 }
@@ -1103,13 +1114,15 @@ impl CurrentBaker {
                 payday_transaction_commission as "payday_transaction_commission?",
                 payday_baking_commission as "payday_baking_commission?",
                 payday_finalization_commission as "payday_finalization_commission?",
-                payday_lottery_power as "lottery_power?",
+                payday_lottery_power as "payday_lottery_power?",
+                payday_ranking_by_lottery_powers as "payday_ranking_by_lottery_powers?",
+                (SELECT MAX(payday_ranking_by_lottery_powers) FROM bakers_payday_lottery_powers) as "payday_total_ranking_by_lottery_powers?",
                 pool_total_staked,
                 pool_delegator_count
             FROM bakers
                 LEFT JOIN bakers_payday_commission_rates ON bakers_payday_commission_rates.id = bakers.id
                 LEFT JOIN bakers_payday_lottery_powers ON bakers_payday_lottery_powers.id = bakers.id
-            WHERE bakers.id = $1
+            WHERE bakers.id = $1;
             "#,
             baker_id
         )
@@ -1117,7 +1130,9 @@ impl CurrentBaker {
         .await?)
     }
 
-    async fn state(&self, pool: &PgPool) -> ApiResult<BakerState<'_>> {
+    async fn state(&self, ctx: &Context<'_>) -> ApiResult<BakerState<'_>> {
+        let pool = get_pool(ctx)?;
+
         let transaction_commission = self
             .transaction_commission
             .map(u32::try_from)
@@ -1318,7 +1333,7 @@ impl CurrentBaker {
             // u128.
             let capital_bound_cap_for_pool_numerator = capital_bound
                 * ((total_stake - delegated_stake_of_pool) as u128)
-                - (100_000 * (self.staked as u128));
+                    .saturating_sub(100_000 * (self.staked as u128));
 
             // Denominator is not zero since we checked that `capital_bound != 100_000`.
             let capital_bound_cap_for_pool_denominator: u128 = 100_000u128 - capital_bound;
@@ -1333,7 +1348,43 @@ impl CurrentBaker {
 
         let delegated_stake_cap = min(leverage_bound_cap_for_pool, capital_bound_cap_for_pool);
 
+        // Get the rank of the baker based on its lottery power.
+        // An account id that is not a baker has no `payday_ranking_by_lottery_powers`
+        // in general. A new baker has as well no
+        // `payday_ranking_by_lottery_powers` until the next payday. We return
+        // `None` as ranking in both cases. A baker that got just removed has a
+        // `payday_ranking_by_lottery_powers` until the next payday. We return a
+        // ranking in that case.
+        let rank = match (
+            self.payday_ranking_by_lottery_powers,
+            self.payday_total_ranking_by_lottery_powers,
+        ) {
+            (Some(rank), Some(total)) => Some(Ranking {
+                rank,
+                total,
+            }),
+            (None, _) => None,
+            (Some(_), None) => {
+                return Err(ApiError::InternalError(
+                    "Invalid ranking state in database".to_string(),
+                ))
+            }
+        };
+
+        let baker_id: u64 = self.id.try_into().map_err(|_| {
+            ApiError::InternalError(format!("A baker has a negative id: {}", self.id))
+        })?;
+
+        let handler = ctx.data::<NodeInfoReceiver>().map_err(ApiError::NoReceiver)?;
+        let statuses_ref = handler.borrow();
+        let statuses = statuses_ref.as_ref().ok_or(ApiError::InternalError(
+            "Node collector backend has not responded".to_string(),
+        ))?;
+
+        let node =
+            statuses.iter().find(|x| x.external.consensus_baker_id == Some(baker_id)).cloned();
         let out = BakerState::ActiveBakerState(Box::new(ActiveBakerState {
+            node_status:      node,
             staked_amount:    Amount::try_from(self.staked)?,
             restake_earnings: self.restake_earnings,
             pool:             BakerPool {
@@ -1344,9 +1395,10 @@ impl CurrentBaker {
                     baking_commission,
                     finalization_commission,
                 },
+                rank,
                 payday_commission_rates,
-                lottery_power: self
-                    .lottery_power
+                payday_lottery_power: self
+                    .payday_lottery_power
                     .as_ref()
                     .unwrap_or(&BigDecimal::default())
                     .try_into()
@@ -1369,15 +1421,14 @@ impl Baker {
 
     async fn baker_id(&self) -> BakerId { self.get_id().into() }
 
-    async fn state<'a>(&'a self, ctx: &Context<'a>) -> ApiResult<BakerState<'a>> {
-        let pool = get_pool(ctx)?;
+    async fn state(&self, ctx: &Context<'_>) -> ApiResult<BakerState<'_>> {
         match self {
-            Baker::Current(baker) => baker.state(pool).await,
+            Baker::Current(baker) => baker.state(ctx).await,
             Baker::Previously(removed) => removed.state(),
         }
     }
 
-    async fn account<'a>(&self, ctx: &Context<'a>) -> ApiResult<Account> {
+    async fn account(&self, ctx: &Context<'_>) -> ApiResult<Account> {
         Account::query_by_index(get_pool(ctx)?, self.get_id()).await?.ok_or(ApiError::NotFound)
     }
 
@@ -1516,9 +1567,9 @@ enum BakerState<'a> {
 
 #[derive(SimpleObject)]
 struct ActiveBakerState<'a> {
-    // /// The status of the bakers node. Will be null if no status for the node
-    // /// exists.
-    // node_status:      NodeStatus,
+    /// The status of the baker's node. Will be null if no status for the node
+    /// exists.
+    node_status:      Option<NodeStatus>,
     staked_amount:    Amount,
     restake_earnings: bool,
     pool:             BakerPool<'a>,
@@ -1618,11 +1669,17 @@ struct BakerPool<'a> {
     payday_commission_rates: Option<CommissionRates>,
     /// The lottery power of the baker pool during the last payday period
     /// captured from the `get_election_info` node endpoint.`
-    lottery_power: Decimal,
-    // /// Ranking of the baker pool by total staked amount. Value may be null for
-    // /// brand new bakers where statistics have not been calculated yet. This
-    // /// should be rare and only a temporary condition.
-    // ranking_by_total_stake:  Ranking,
+    payday_lottery_power: Decimal,
+    /// Ranking of the bakers by lottery powers staring with rank 1 for the
+    /// baker with the highest lottery power and ending with the rank
+    /// `total` for the baker with the lowest lottery power.
+    /// An account id that is not a baker has no
+    /// `payday_ranking_by_lottery_powers` in general. A new baker has as
+    /// well no `payday_ranking_by_lottery_powers` until the next payday.
+    /// We return `None` as ranking in both cases.
+    /// A baker that got just removed has a `payday_ranking_by_lottery_powers`
+    /// until the next payday. We return a ranking in that case.
+    rank: Option<Ranking>,
     /// The maximum amount that may be delegated to the pool, accounting for
     /// leverage and capital bounds.
     delegated_stake_cap: Amount,
@@ -1641,6 +1698,12 @@ impl<'a> BakerPool<'a> {
 
     async fn total_stake(&self) -> Amount { self.total_stake }
 
+    // Future improvement (API breaking changes): The front end queries
+    // `ranking_by_total_stake` which was renamed and updated to
+    // `ranking_by_lottery_power` in the backend. Migrate the name change to the
+    // front-end and make this field not optional anymore.
+    async fn ranking_by_total_stake(&self) -> Option<Ranking> { self.rank }
+
     async fn delegated_stake(&self) -> Amount { self.delegated_stake }
 
     async fn delegated_stake_cap(&self) -> Amount { self.delegated_stake_cap }
@@ -1653,7 +1716,7 @@ impl<'a> BakerPool<'a> {
         &self.payday_commission_rates
     }
 
-    async fn lottery_power(&self) -> &Decimal { &self.lottery_power }
+    async fn lottery_power(&self) -> &Decimal { &self.payday_lottery_power }
 
     async fn open_status(&self) -> Option<BakerPoolOpenStatus> { self.open_status }
 
@@ -1795,6 +1858,15 @@ struct DelegatedStakeBounds {
     /// decentralization by preventing a single baker from gaining excessive
     /// power in the consensus protocol.
     capital_bound:              i64,
+}
+
+/// Ranking of the bakers by lottery powers from the last payday block staring
+/// with rank 1 for the baker with the highest lottery power and ending with the
+/// rank `total` for the baker with the lowest lottery power.
+#[derive(SimpleObject, Clone, Copy)]
+struct Ranking {
+    rank:  i64,
+    total: i64,
 }
 
 #[cfg(test)]

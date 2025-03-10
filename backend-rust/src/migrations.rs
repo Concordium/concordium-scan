@@ -197,7 +197,9 @@ pub enum SchemaVersion {
     StakedPoolSizeConstraint,
     #[display("0010:Add delegated stake cap")]
     DelegatedStakeCap,
-    #[display("0011:Add removed bakers table")]
+    #[display("0011:RankingByLotteryPower")]
+    RankingByLotteryPower,
+    #[display("0012:Add removed bakers table")]
     TrackRemovedBakers,
 }
 impl SchemaVersion {
@@ -232,6 +234,7 @@ impl SchemaVersion {
             SchemaVersion::AccountBaseAddress => false,
             SchemaVersion::StakedPoolSizeConstraint => false,
             SchemaVersion::DelegatedStakeCap => false,
+            SchemaVersion::RankingByLotteryPower => false,
             SchemaVersion::TrackRemovedBakers => false,
         }
     }
@@ -304,7 +307,15 @@ impl SchemaVersion {
             }
             SchemaVersion::DelegatedStakeCap => {
                 tx.as_mut()
-                    .execute(sqlx::raw_sql(include_str!("./migrations/m0011-removed-bakers.sql")))
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0011-ranking-by-lottery-power.sql"
+                    )))
+                    .await?;
+                SchemaVersion::RankingByLotteryPower
+            }
+            SchemaVersion::RankingByLotteryPower => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!("./migrations/m0012-removed-bakers.sql")))
                     .await?;
                 SchemaVersion::TrackRemovedBakers
             }

@@ -71,6 +71,7 @@ const NodeDetailQuery = gql<NodeDetailResponse>`
 
 export const useNodeDetailQuery = (id: NodeStatus['id']) => {
 	const { data, fetching, error } = useQuery({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: NodeDetailQuery,
 		requestPolicy: 'cache-and-network',
 		variables: { id },

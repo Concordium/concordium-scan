@@ -4,13 +4,36 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-Database schema version: 11
+Database schema version: 12
 
 ### Added
 
 - Support `include_removed` flag for `Query::bakers` query.
-- Add database migration 11 adding table tracking the removed bakers and populate the table.
+- Add database migration 12 adding table tracking the removed bakers and populate the table.
 - Indexer now maintains the removed bakers table.
+
+## [0.1.33] - 2025-03-06
+
+Database schema version: 11
+
+### Fixed
+
+- Return `None` as ranking instead of an internal error for non-baker accounts and bakers that just got added until the next payday.
+- Fix underflow in `capital_bound` formula by saturating the value to 0.
+
+### Added
+
+- Add `Node::node_status` to retrieve the node status from a single node including additional data required
+- Add `Baker::node_status` to retrieve the validator's node information.
+- Add more context to errors during indexing, providing better error messages for debugging.
+- Add database migration 11 adding columns to store the ranking of bakers.
+- Add query `BakerPool::rankingByTotalStake` which returns a ranking of the bakers by their lottery power. The ranking is re-computed for each payday block.
+
+## [0.1.32] - 2025-02-28
+
+### Fixed
+
+- Fix bug preventing the indexer from handling delegators targeting the passive pool.
 
 ## [0.1.31] - 2025-02-28
 

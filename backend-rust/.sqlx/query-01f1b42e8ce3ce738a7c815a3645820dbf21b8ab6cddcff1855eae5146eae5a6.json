@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM (\n                SELECT\n                    bakers.id AS id,\n                    staked,\n                    restake_earnings,\n                    open_status as \"open_status: _\",\n                    metadata_url,\n                    transaction_commission,\n                    baking_commission,\n                    finalization_commission,\n                    payday_transaction_commission as \"payday_transaction_commission?\",\n                    payday_baking_commission as \"payday_baking_commission?\",\n                    payday_finalization_commission as \"payday_finalization_commission?\",\n                    payday_lottery_power as \"lottery_power?\",\n                    pool_total_staked,\n                    pool_delegator_count\n                FROM bakers\n                    LEFT JOIN bakers_payday_commission_rates\n                        ON bakers_payday_commission_rates.id = bakers.id\n                    LEFT JOIN bakers_payday_lottery_powers\n                        ON bakers_payday_lottery_powers.id = bakers.id\n                WHERE\n                    ((pool_total_staked > $2 AND pool_total_staked < $1)\n                        OR (pool_total_staked = $2 AND bakers.id > $4)\n                        OR (pool_total_staked = $1 AND bakers.id < $3))\n                    -- filter if provided\n                    AND ($7::pool_open_status IS NULL OR open_status = $7::pool_open_status)\n                ORDER BY\n                    (CASE WHEN $5     THEN pool_total_staked END) ASC,\n                    (CASE WHEN $5     THEN bakers.id            END) ASC,\n                    (CASE WHEN NOT $5 THEN pool_total_staked END) DESC,\n                    (CASE WHEN NOT $5 THEN bakers.id            END) DESC\n                LIMIT $6\n            ) ORDER BY pool_total_staked DESC, id DESC",
+  "query": "SELECT * FROM (\n                SELECT\n                    bakers.id AS id,\n                    staked,\n                    restake_earnings,\n                    open_status as \"open_status: _\",\n                    metadata_url,\n                    transaction_commission,\n                    baking_commission,\n                    finalization_commission,\n                    payday_transaction_commission as \"payday_transaction_commission?\",\n                    payday_baking_commission as \"payday_baking_commission?\",\n                    payday_finalization_commission as \"payday_finalization_commission?\",\n                    payday_lottery_power as \"payday_lottery_power?\",\n                    payday_ranking_by_lottery_powers as \"payday_ranking_by_lottery_powers?\",\n                    (SELECT MAX(payday_ranking_by_lottery_powers) FROM bakers_payday_lottery_powers) as \"payday_total_ranking_by_lottery_powers?\",\n                    pool_total_staked,\n                    pool_delegator_count\n                FROM bakers\n                    LEFT JOIN bakers_payday_commission_rates\n                        ON bakers_payday_commission_rates.id = bakers.id\n                    LEFT JOIN bakers_payday_lottery_powers\n                        ON bakers_payday_lottery_powers.id = bakers.id\n                WHERE\n                    (bakers.id > $1 AND bakers.id < $2)\n                    -- filter if provided\n                    AND ($5::pool_open_status IS NULL OR open_status = $5::pool_open_status)\n                ORDER BY\n                    (CASE WHEN $3     THEN bakers.id END) DESC,\n                    (CASE WHEN NOT $3 THEN bakers.id END) ASC\n                LIMIT $4\n            ) ORDER BY id ASC",
   "describe": {
     "columns": [
       {
@@ -71,24 +71,32 @@
       },
       {
         "ordinal": 11,
-        "name": "lottery_power?",
+        "name": "payday_lottery_power?",
         "type_info": "Numeric"
       },
       {
         "ordinal": 12,
-        "name": "pool_total_staked",
+        "name": "payday_ranking_by_lottery_powers?",
         "type_info": "Int8"
       },
       {
         "ordinal": 13,
+        "name": "payday_total_ranking_by_lottery_powers?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 14,
+        "name": "pool_total_staked",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 15,
         "name": "pool_delegator_count",
         "type_info": "Int8"
       }
     ],
     "parameters": {
       "Left": [
-        "Int8",
-        "Int8",
         "Int8",
         "Int8",
         "Bool",
@@ -121,8 +129,10 @@
       false,
       false,
       false,
+      null,
+      false,
       false
     ]
   },
-  "hash": "611530b3c99ad262854d9ff7300df57a1d3b0d7ebfb6186f3681bacf619cda6e"
+  "hash": "01f1b42e8ce3ce738a7c815a3645820dbf21b8ab6cddcff1855eae5146eae5a6"
 }
