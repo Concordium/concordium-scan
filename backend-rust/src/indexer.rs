@@ -59,7 +59,7 @@ mod db;
 mod ensure_affected_rows;
 mod statistics;
 use crate::indexer::statistics::{
-    Field::{Added, Removed, Resumed, Suspended},
+    Field::{Added, Removed},
     Statistics,
 };
 use ensure_affected_rows::EnsureAffectedRows;
@@ -2580,7 +2580,7 @@ impl PreparedBakerEvent {
             PreparedBakerEvent::Suspended {
                 baker_id,
             } => {
-                let result = sqlx::query!(
+                sqlx::query!(
                     "UPDATE bakers
                      SET
                          self_suspended = $2,
@@ -2593,12 +2593,11 @@ impl PreparedBakerEvent {
                 .await?
                 .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed update validator state to self-suspended")?;
-                statistics.increment(Suspended, result.rows_affected().try_into()?);
             }
             PreparedBakerEvent::Resumed {
                 baker_id,
             } => {
-                let result = sqlx::query!(
+                sqlx::query!(
                     "UPDATE bakers
                      SET
                          self_suspended = NULL,
@@ -2610,7 +2609,6 @@ impl PreparedBakerEvent {
                 .await?
                 .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed update validator state to resumed from suspension")?;
-                statistics.increment(Resumed, result.rows_affected().try_into()?);
             }
             PreparedBakerEvent::NoOperation => (),
         }

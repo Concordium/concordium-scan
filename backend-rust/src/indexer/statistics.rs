@@ -6,8 +6,6 @@ use std::collections::HashMap;
 pub(crate) enum Field {
     Added,
     Removed,
-    Suspended,
-    Resumed,
 }
 
 pub(crate) struct Statistics {
@@ -48,8 +46,6 @@ impl Statistics {
         // Retrieve the increment values for each counter, defaulting to 0.
         let inc_added = self.current.get(&Field::Added).copied().unwrap_or(0);
         let inc_removed = self.current.get(&Field::Removed).copied().unwrap_or(0);
-        let inc_resumed = self.current.get(&Field::Resumed).copied().unwrap_or(0);
-        let inc_suspended = self.current.get(&Field::Suspended).copied().unwrap_or(0);
 
         // Update the latest row in metrics_bakers, adding the increments to the current
         // totals. This assumes that the table has a unique, increasing `index`
@@ -59,16 +55,12 @@ impl Statistics {
             INSERT INTO metrics_bakers (
               block_height,
               total_bakers_added,
-              total_bakers_removed,
-              total_bakers_resumed,
-              total_bakers_suspended
+              total_bakers_removed
             )
             SELECT
               $1,
               total_bakers_added + $2,
-              total_bakers_removed + $3,
-              total_bakers_resumed + $4,
-              total_bakers_suspended + $5
+              total_bakers_removed + $3
             FROM (
               SELECT *
               FROM metrics_bakers
@@ -78,9 +70,7 @@ impl Statistics {
             "#,
             self.block_height,
             inc_added,
-            inc_removed,
-            inc_resumed,
-            inc_suspended,
+            inc_removed
         )
         .execute(tx.as_mut())
         .await?;
@@ -90,22 +80,16 @@ impl Statistics {
             INSERT INTO metrics_bakers (
               block_height,
               total_bakers_added,
-              total_bakers_removed,
-              total_bakers_resumed,
-              total_bakers_suspended
+              total_bakers_removed
             ) VALUES (
               $1,
               $2,
-              $3,
-              $4,
-              $5
+              $3
             )
             "#,
                 self.block_height,
                 inc_added,
                 inc_removed,
-                inc_resumed,
-                inc_suspended,
             )
             .execute(tx.as_mut())
             .await?;
