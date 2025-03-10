@@ -331,7 +331,7 @@ impl SchemaVersion {
             SchemaVersion::BakerMetrics => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
-            )
+            ),
         };
         let end_time = chrono::Utc::now();
         insert_migration(&mut tx, &new_version.into(), start_time, end_time).await?;
