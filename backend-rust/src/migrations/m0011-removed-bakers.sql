@@ -8,8 +8,8 @@ CREATE TABLE bakers_removed (
         BIGINT
         PRIMARY KEY
         REFERENCES accounts,
-    -- Transaction configuring the validator/baker to be removed.
-    removed_by
+    -- Transaction index configuring the validator/baker to be removed.
+    removed_by_tx_index
         BIGINT
         NOT NULL
         REFERENCES transactions

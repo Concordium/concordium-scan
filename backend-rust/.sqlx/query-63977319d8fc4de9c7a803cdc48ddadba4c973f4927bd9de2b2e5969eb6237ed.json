@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO bakers_removed (id, removed_by) VALUES ($1, $2)",
+  "query": "INSERT INTO bakers_removed (id, removed_by_tx_index) VALUES ($1, $2)",
   "describe": {
     "columns": [],
     "parameters": {
@@ -11,5 +11,5 @@
     },
     "nullable": []
   },
-  "hash": "6a668150660c81f7880162af77e1baeced8c9d078274a697859718a29638f988"
+  "hash": "63977319d8fc4de9c7a803cdc48ddadba4c973f4927bd9de2b2e5969eb6237ed"
 }

@@ -10,7 +10,7 @@ Database schema version: 11
 
 - Support `include_removed` flag for `Query::bakers` query.
 - Add database migration 11 adding table tracking the removed bakers and populate the table.
-- Indexer now maintain the removed bakers table.
+- Indexer now maintains the removed bakers table.
 
 ## [0.1.31] - 2025-02-28
 

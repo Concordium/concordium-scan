@@ -21,7 +21,7 @@ impl InsertRemovedBaker {
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         sqlx::query!(
-            "INSERT INTO bakers_removed (id, removed_by) VALUES ($1, $2)",
+            "INSERT INTO bakers_removed (id, removed_by_tx_index) VALUES ($1, $2)",
             self.baker_id,
             transaction_index
         )

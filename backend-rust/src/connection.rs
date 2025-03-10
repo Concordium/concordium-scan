@@ -84,7 +84,7 @@ impl From<i64> for DescendingI64 {
 
 /// GraphQL Connection Cursor representing a collection where the pages are
 /// reversed order.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[repr(transparent)]
 pub struct Reversed<Cursor> {
     pub inner: Cursor,
@@ -160,17 +160,17 @@ where
     type Error = ConcatCursorDecodeError<Fst::Error, Snd::Error>;
 
     fn decode_cursor(value: &str) -> Result<Self, Self::Error> {
-        let (first_str, second_str) =
+        let (before, after): (&str, &str) =
             value.split_once(':').ok_or(ConcatCursorDecodeError::NoSemicolon)?;
-        match first_str {
+        match before {
             "fst" => {
                 let cursor =
-                    Fst::decode_cursor(second_str).map_err(ConcatCursorDecodeError::FirstError)?;
+                    Fst::decode_cursor(after).map_err(ConcatCursorDecodeError::FirstError)?;
                 Ok(ConcatCursor::First(cursor))
             }
             "snd" => {
                 let cursor =
-                    Snd::decode_cursor(second_str).map_err(ConcatCursorDecodeError::SecondError)?;
+                    Snd::decode_cursor(after).map_err(ConcatCursorDecodeError::SecondError)?;
                 Ok(ConcatCursor::Second(cursor))
             }
             otherwise => Err(ConcatCursorDecodeError::UnexpectedPrefix(otherwise.to_string())),
@@ -261,6 +261,53 @@ impl<Cursor> ConnectionQuery<Cursor> {
             to,
             limit,
             is_last: last.is_some(),
+        })
+    }
+}
+
+impl<Fst, Snd> ConnectionQuery<ConcatCursor<Fst, Snd>> {
+    /// Construct query for the first collection using the limit from the top
+    /// level query.
+    pub fn subquery_first(&self) -> Option<ConnectionQuery<Fst>>
+    where
+        Fst: ConnectionBounds + Clone, {
+        self.subquery_first_with_limit(self.limit)
+    }
+
+    /// Construct query for the second collection using the limit from the top
+    /// level query.
+    pub fn subquery_second(&self) -> Option<ConnectionQuery<Snd>>
+    where
+        Snd: ConnectionBounds + Clone, {
+        self.subquery_second_with_limit(self.limit)
+    }
+
+    /// Construct query for the first collection using the provided limit.
+    pub fn subquery_first_with_limit(&self, limit: i64) -> Option<ConnectionQuery<Fst>>
+    where
+        Fst: ConnectionBounds + Clone, {
+        let from = self.from.first()?.clone();
+        let to = self.to.first().cloned().unwrap_or(Fst::END_BOUND);
+        Some(ConnectionQuery {
+            from,
+            to,
+            limit,
+            is_last: self.is_last,
+        })
+    }
+
+    /// Construct query for the second collection using the provided limit.
+    pub fn subquery_second_with_limit(&self, limit: i64) -> Option<ConnectionQuery<Snd>>
+    where
+        Snd: ConnectionBounds + Clone, {
+        let second = self.to.second()?.clone();
+        let to = second;
+        let from = self.from.second().cloned().unwrap_or(Snd::START_BOUND);
+        Some(ConnectionQuery {
+            from,
+            to,
+            limit,
+            is_last: self.is_last,
         })
     }
 }
