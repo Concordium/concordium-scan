@@ -397,6 +397,8 @@ pub enum ApiError {
     FailedDatabaseQuery(Arc<sqlx::Error>),
     #[error("Invalid ID format: {0}")]
     InvalidIdInt(std::num::ParseIntError),
+    #[error("Invalid cursor format: {0}")]
+    InvalidCursorFormat(String),
     #[error("The period cannot be converted")]
     DurationOutOfRange(Arc<Box<dyn Error + Send + Sync>>),
     #[error("The \"first\" and \"last\" parameters cannot exist at the same time")]

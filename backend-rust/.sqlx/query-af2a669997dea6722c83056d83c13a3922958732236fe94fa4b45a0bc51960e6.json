@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                id,\n                slot_time AS removed_at\n            FROM bakers_removed\n                JOIN transactions ON transactions.index = bakers_removed.removed_by_tx_index\n                JOIN blocks ON blocks.height = transactions.block_height\n            WHERE bakers_removed.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "removed_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "af2a669997dea6722c83056d83c13a3922958732236fe94fa4b45a0bc51960e6"
+}
