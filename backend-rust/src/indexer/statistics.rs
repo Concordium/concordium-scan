@@ -44,6 +44,7 @@ impl Statistics {
             // No increments recorded, nothing to commit.
             return Ok(());
         }
+        println!("Addedd something");
 
         // Retrieve the increment values for each counter, defaulting to 0.
         let inc_added = self.current.get(&Field::Added).copied().unwrap_or(0);
