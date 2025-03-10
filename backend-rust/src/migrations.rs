@@ -199,7 +199,9 @@ pub enum SchemaVersion {
     DelegatedStakeCap,
     #[display("0011:RankingByLotteryPower")]
     RankingByLotteryPower,
-    #[display("0011:RankingByLotteryPower")]
+    #[display("0012:Add removed bakers table")]
+    TrackRemovedBakers,
+    #[display("0013:RankingByLotteryPower")]
     BakerMetrics,
 }
 impl SchemaVersion {
@@ -235,6 +237,7 @@ impl SchemaVersion {
             SchemaVersion::StakedPoolSizeConstraint => false,
             SchemaVersion::DelegatedStakeCap => false,
             SchemaVersion::RankingByLotteryPower => false,
+            SchemaVersion::TrackRemovedBakers => false,
             SchemaVersion::BakerMetrics => false,
         }
     }
@@ -315,14 +318,20 @@ impl SchemaVersion {
             }
             SchemaVersion::RankingByLotteryPower => {
                 tx.as_mut()
-                    .execute(sqlx::raw_sql(include_str!("./migrations/m0012-baker-metrics.sql")))
+                    .execute(sqlx::raw_sql(include_str!("./migrations/m0012-removed-bakers.sql")))
+                    .await?;
+                SchemaVersion::TrackRemovedBakers
+            }
+            SchemaVersion::TrackRemovedBakers => {
+                tx.as_mut()
+                .execute(sqlx::raw_sql(include_str!("migrations/m0013-baker-metrics.sql")))
                     .await?;
                 SchemaVersion::BakerMetrics
             }
             SchemaVersion::BakerMetrics => unimplemented!(
                 "No migration implemented for database schema version {}",
-                self.as_i64()
-            ),
+                SchemaVersion::BakerMetrics
+            )
         };
         let end_time = chrono::Utc::now();
         insert_migration(&mut tx, &new_version.into(), start_time, end_time).await?;

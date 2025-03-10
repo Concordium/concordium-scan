@@ -17,8 +17,6 @@ pub(crate) struct Statistics {
 }
 
 impl Statistics {
-    /// Creates an empty BakerStatistics where no counters have been
-    /// incremented.
     pub(crate) fn new(block_height: i64) -> Self {
         Statistics {
             current: HashMap::new(),

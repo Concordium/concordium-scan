@@ -1,0 +1,138 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM (\n                SELECT\n                    bakers.id AS id,\n                    staked,\n                    restake_earnings,\n                    open_status as \"open_status: _\",\n                    metadata_url,\n                    transaction_commission,\n                    baking_commission,\n                    finalization_commission,\n                    payday_transaction_commission as \"payday_transaction_commission?\",\n                    payday_baking_commission as \"payday_baking_commission?\",\n                    payday_finalization_commission as \"payday_finalization_commission?\",\n                    payday_lottery_power as \"payday_lottery_power?\",\n                    payday_ranking_by_lottery_powers as \"payday_ranking_by_lottery_powers?\",\n                    (SELECT MAX(payday_ranking_by_lottery_powers) FROM bakers_payday_lottery_powers) as \"payday_total_ranking_by_lottery_powers?\",\n                    pool_total_staked,\n                    pool_delegator_count\n                FROM bakers\n                    LEFT JOIN bakers_payday_commission_rates\n                        ON bakers_payday_commission_rates.id = bakers.id\n                    LEFT JOIN bakers_payday_lottery_powers\n                        ON bakers_payday_lottery_powers.id = bakers.id\n                WHERE\n                    (bakers.id > $2 AND bakers.id < $1) AND\n                    -- filter if provided\n                    ($5::pool_open_status IS NULL OR open_status = $5::pool_open_status)\n                ORDER BY\n                    (CASE WHEN $3     THEN bakers.id END) ASC,\n                    (CASE WHEN NOT $3 THEN bakers.id END) DESC\n                LIMIT $4\n            ) ORDER BY id DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "staked",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "restake_earnings",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "open_status: _",
+        "type_info": {
+          "Custom": {
+            "name": "pool_open_status",
+            "kind": {
+              "Enum": [
+                "OpenForAll",
+                "ClosedForNew",
+                "ClosedForAll"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "metadata_url",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "transaction_commission",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "baking_commission",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "finalization_commission",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "payday_transaction_commission?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "payday_baking_commission?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "payday_finalization_commission?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "payday_lottery_power?",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 12,
+        "name": "payday_ranking_by_lottery_powers?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "payday_total_ranking_by_lottery_powers?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 14,
+        "name": "pool_total_staked",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 15,
+        "name": "pool_delegator_count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Bool",
+        "Int8",
+        {
+          "Custom": {
+            "name": "pool_open_status",
+            "kind": {
+              "Enum": [
+                "OpenForAll",
+                "ClosedForNew",
+                "ClosedForAll"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "9204f97a78dd6bd5a4de862748a9fe25ff8f5611e0a460d2629d5afb2208a3df"
+}
