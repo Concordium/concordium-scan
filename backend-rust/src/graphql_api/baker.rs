@@ -223,7 +223,7 @@ impl TryFrom<types::ID> for IdBaker {
 
 #[derive(Debug)]
 pub enum Baker {
-    Current(CurrentBaker),
+    Current(Box<CurrentBaker>),
     Previously(PreviouslyBaker),
 }
 
@@ -258,7 +258,7 @@ impl Baker {
 
     pub async fn query_by_id(pool: &PgPool, baker_id: i64) -> ApiResult<Option<Self>> {
         let baker = if let Some(baker) = CurrentBaker::query_by_id(pool, baker_id).await? {
-            Some(Baker::Current(baker))
+            Some(Baker::Current(Box::new(baker)))
         } else {
             PreviouslyBaker::query_by_id(pool, baker_id).await?.map(Baker::Previously)
         };
@@ -327,7 +327,7 @@ impl Baker {
         .fetch(pool);
         while let Some(row) = row_stream.try_next().await? {
             let cursor = row.id.encode_cursor();
-            connection.edges.push(connection::Edge::new(cursor, Baker::Current(row)));
+            connection.edges.push(connection::Edge::new(cursor, Baker::Current(Box::new(row))));
         }
 
         if include_removed_filter {
@@ -476,7 +476,7 @@ impl Baker {
         .fetch(pool);
         while let Some(row) = row_stream.try_next().await? {
             let cursor = row.id.encode_cursor();
-            connection.edges.push(connection::Edge::new(cursor, Baker::Current(row)));
+            connection.edges.push(connection::Edge::new(cursor, Baker::Current(Box::new(row))));
         }
         if include_removed_filter {
             let mut row_stream = sqlx::query_as!(
@@ -628,9 +628,10 @@ impl Baker {
             .fetch(pool);
             while let Some(row) = row_stream.try_next().await? {
                 let cursor = Cursor::First(BakerFieldDescCursor::total_staked_cursor(&row));
-                connection
-                    .edges
-                    .push(connection::Edge::new(cursor.encode_cursor(), Baker::Current(row)));
+                connection.edges.push(connection::Edge::new(
+                    cursor.encode_cursor(),
+                    Baker::Current(Box::new(row)),
+                ));
             }
             Ok(())
         }
@@ -871,9 +872,10 @@ impl Baker {
             .fetch(pool);
             while let Some(row) = row_stream.try_next().await? {
                 let cursor = Cursor::First(BakerFieldDescCursor::delegator_count_cursor(&row));
-                connection
-                    .edges
-                    .push(connection::Edge::new(cursor.encode_cursor(), Baker::Current(row)));
+                connection.edges.push(connection::Edge::new(
+                    cursor.encode_cursor(),
+                    Baker::Current(Box::new(row)),
+                ));
             }
             Ok(())
         }

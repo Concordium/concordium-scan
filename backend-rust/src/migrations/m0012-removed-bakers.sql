@@ -19,7 +19,7 @@ CREATE TABLE bakers_removed (
 INSERT INTO bakers_removed
 SELECT
     sender_index as id,
-    MAX(index) as removed_by
+    MAX(index) as removed_by_tx_index
 FROM transactions
 WHERE
     -- Ensure the sender is not currently baking.
