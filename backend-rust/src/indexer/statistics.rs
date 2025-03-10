@@ -54,30 +54,62 @@ impl Statistics {
         // Update the latest row in metrics_bakers, adding the increments to the current
         // totals. This assumes that the table has a unique, increasing `index`
         // column.
-        sqlx::query!(
+        let result = sqlx::query!(
             r#"
             INSERT INTO metrics_bakers (
+              block_height,
               total_bakers_added,
               total_bakers_removed,
               total_bakers_resumed,
               total_bakers_suspended
             )
             SELECT
-              COALESCE(total_bakers_added, 0) + $1,
-              COALESCE(total_bakers_removed, 0) + $2,
-              COALESCE(total_bakers_resumed, 0) + $3,
-              COALESCE(total_bakers_suspended, 0) + $4
-            FROM metrics_bakers
-            ORDER BY index DESC
-            LIMIT 1
+              $1
+              sub.total_bakers_added + $2,
+              sub.total_bakers_removed + $3,
+              sub.total_bakers_resumed + $4,
+              sub.total_bakers_suspended + $5
+            FROM (
+              SELECT *
+              FROM metrics_bakers
+              ORDER BY block_height DESC
+              LIMIT 1
+            ) AS sub
             "#,
+            block_height
             inc_added,
             inc_removed,
             inc_resumed,
-            inc_suspended
+            inc_suspended,
         )
         .execute(tx.as_mut())
         .await?;
+        if result.affected_rows() == 0 {
+            sqlx::query!(
+                r#"
+            INSERT INTO metrics_bakers (
+              block_height,
+              total_bakers_added,
+              total_bakers_removed,
+              total_bakers_resumed,
+              total_bakers_suspended
+            ) VALUES (
+              $1
+              $2,
+              $3,
+              $4,
+              $5
+            )
+            "#,
+                block_height
+                inc_added,
+                inc_removed,
+                inc_resumed,
+                inc_suspended,
+            )
+            .execute(tx.as_mut())
+            .await?;
+        }
 
         Ok(())
     }
