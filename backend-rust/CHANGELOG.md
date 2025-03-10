@@ -4,19 +4,28 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-Database schema version: 11
-
-### Added
-
-- Add more context to errors during indexing, providing better error messages for debugging.
-- Add database migration 11 adding columns to store the ranking of bakers.
-- Add query `BakerPool::rankingByTotalStake` which returns a ranking of the bakers by their lottery power. The ranking is re-computed for each payday block.
-
 ### Fixed
 
 - Fixed bug in indexer where removed delegators still had the restake earnings flag stored as false instead of NULL.
 - Fixed bug in indexer where accumulated pool delegator count is update after delegator is removed (this was possible for protocol version 6 and down).
 - Fixed bug in indexer where CIS-2 transfer events was never recorded, when happening before any other token events (like a Mint), this is considered a bug in the token contract, but no the indexer still record the event.
+
+## [0.1.33] - 2025-03-06
+
+Database schema version: 11
+
+### Fixed
+
+- Return `None` as ranking instead of an internal error for non-baker accounts and bakers that just got added until the next payday.
+- Fix underflow in `capital_bound` formula by saturating the value to 0.
+
+### Added
+
+- Add `Node::node_status` to retrieve the node status from a single node including additional data required
+- Add `Baker::node_status` to retrieve the validator's node information.
+- Add more context to errors during indexing, providing better error messages for debugging.
+- Add database migration 11 adding columns to store the ranking of bakers.
+- Add query `BakerPool::rankingByTotalStake` which returns a ranking of the bakers by their lottery power. The ranking is re-computed for each payday block.
 
 ## [0.1.32] - 2025-02-28
 

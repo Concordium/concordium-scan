@@ -5,6 +5,7 @@ use super::{
 use crate::{
     address::AccountAddress,
     connection::DescendingI64,
+    graphql_api::node_status::{NodeInfoReceiver, NodeStatus},
     scalar_types::{Amount, BakerId, DateTime, Decimal, MetadataUrl},
     transaction_event::{baker::BakerPoolOpenStatus, Event},
     transaction_reject::TransactionRejectReason,
@@ -498,7 +499,7 @@ impl Baker {
             // u128.
             let capital_bound_cap_for_pool_numerator = capital_bound
                 * ((total_stake - delegated_stake_of_pool) as u128)
-                - (100_000 * (self.staked as u128));
+                    .saturating_sub(100_000 * (self.staked as u128));
 
             // Denominator is not zero since we checked that `capital_bound != 100_000`.
             let capital_bound_cap_for_pool_denominator: u128 = 100_000u128 - capital_bound;
@@ -514,6 +515,12 @@ impl Baker {
         let delegated_stake_cap = min(leverage_bound_cap_for_pool, capital_bound_cap_for_pool);
 
         // Get the rank of the baker based on its lottery power.
+        // An account id that is not a baker has no `payday_ranking_by_lottery_powers`
+        // in general. A new baker has as well no
+        // `payday_ranking_by_lottery_powers` until the next payday. We return
+        // `None` as ranking in both cases. A baker that got just removed has a
+        // `payday_ranking_by_lottery_powers` until the next payday. We return a
+        // ranking in that case.
         let rank = match (
             self.payday_ranking_by_lottery_powers,
             self.payday_total_ranking_by_lottery_powers,
@@ -522,15 +529,28 @@ impl Baker {
                 rank,
                 total,
             }),
-            (None, None) => None,
-            _ => {
+            (None, _) => None,
+            (Some(_), None) => {
                 return Err(ApiError::InternalError(
                     "Invalid ranking state in database".to_string(),
                 ))
             }
         };
 
+        let baker_id: u64 = self.id.0.try_into().map_err(|_| {
+            ApiError::InternalError(format!("A baker has a negative id: {}", self.id.0))
+        })?;
+
+        let handler = ctx.data::<NodeInfoReceiver>().map_err(ApiError::NoReceiver)?;
+        let statuses_ref = handler.borrow();
+        let statuses = statuses_ref.as_ref().ok_or(ApiError::InternalError(
+            "Node collector backend has not responded".to_string(),
+        ))?;
+
+        let node =
+            statuses.iter().find(|x| x.external.consensus_baker_id == Some(baker_id)).cloned();
         let out = BakerState::ActiveBakerState(Box::new(ActiveBakerState {
+            node_status:      node,
             staked_amount:    Amount::try_from(self.staked)?,
             restake_earnings: self.restake_earnings,
             pool:             BakerPool {
@@ -698,9 +718,9 @@ enum BakerState<'a> {
 
 #[derive(SimpleObject)]
 struct ActiveBakerState<'a> {
-    // /// The status of the bakers node. Will be null if no status for the node
-    // /// exists.
-    // node_status:      NodeStatus,
+    /// The status of the baker's node. Will be null if no status for the node
+    /// exists.
+    node_status:      Option<NodeStatus>,
     staked_amount:    Amount,
     restake_earnings: bool,
     pool:             BakerPool<'a>,
@@ -857,6 +877,12 @@ struct BakerPool<'a> {
     /// Ranking of the bakers by lottery powers staring with rank 1 for the
     /// baker with the highest lottery power and ending with the rank
     /// `total` for the baker with the lowest lottery power.
+    /// An account id that is not a baker has no
+    /// `payday_ranking_by_lottery_powers` in general. A new baker has as
+    /// well no `payday_ranking_by_lottery_powers` until the next payday.
+    /// We return `None` as ranking in both cases.
+    /// A baker that got just removed has a `payday_ranking_by_lottery_powers`
+    /// until the next payday. We return a ranking in that case.
     rank: Option<Ranking>,
     /// The maximum amount that may be delegated to the pool, accounting for
     /// leverage and capital bounds.
