@@ -324,7 +324,7 @@ impl SchemaVersion {
             }
             SchemaVersion::TrackRemovedBakers => {
                 tx.as_mut()
-                .execute(sqlx::raw_sql(include_str!("migrations/m0013-baker-metrics.sql")))
+                    .execute(sqlx::raw_sql(include_str!("migrations/m0013-baker-metrics.sql")))
                     .await?;
                 SchemaVersion::BakerMetrics
             }

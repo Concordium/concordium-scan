@@ -10,7 +10,7 @@ pub(crate) enum Field {
 
 pub(crate) struct Statistics {
     /// The counters as updated via increments.
-    current: HashMap<Field, i64>,
+    current:      HashMap<Field, i64>,
     block_height: i64,
 }
 
@@ -18,7 +18,7 @@ impl Statistics {
     pub(crate) fn new(block_height: i64) -> Self {
         Statistics {
             current: HashMap::new(),
-            block_height
+            block_height,
         }
     }
 
