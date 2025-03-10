@@ -2,11 +2,11 @@ CREATE TABLE metrics_bakers
 (
     block_height            BIGINT            PRIMARY KEY REFERENCES blocks(height),
     total_bakers_added      BIGINT            NOT NULL,
-    total_bakers_removed    BIGINT            NOT NULL,
-    total_bakers_resumed    BIGINT            NOT NULL,
-    total_bakers_suspended  BIGINT            NOT NULL
+    total_bakers_removed    BIGINT            NOT NULL
 );
 
+-- Find BakerAdded and BakerRemoved events and fill up metrics_bakers correspondingly
+INSERT INTO metrics_bakers (block_height, total_bakers_added, total_bakers_removed)
 WITH block_events AS (
   SELECT
     t.block_height,
@@ -22,5 +22,4 @@ SELECT
   block_height,
   SUM(baker_removed_count) OVER (ORDER BY block_height ASC) AS cumulative_baker_removed,
   SUM(baker_added_count) OVER (ORDER BY block_height ASC) AS cumulative_baker_added
-FROM block_events
-ORDER BY block_height ASC;
+FROM block_events;
