@@ -68,7 +68,7 @@ impl QueryBakerMetrics {
             .map(|r| (r.total_bakers_added, r.total_bakers_removed))
             .unwrap_or((0, 0));
 
-        let last_baker_count = before_added - before_removed;
+        let last_baker_count = after_added - after_removed;
         let bakers_added = after_added - before_added;
         let bakers_removed = after_removed - before_removed;
 
