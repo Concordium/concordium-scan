@@ -578,7 +578,7 @@ CREATE TABLE scheduled_releases (
 CREATE INDEX scheduled_releases_idx ON scheduled_releases (account_index, release_time);
 
 -- All CIS2 tokens. A token is added to this table whenever a CIS2 `MintEvent`, `BurnEvent`
--- or `TokenMetadataEvent` is logged for the first time by a contract claiming
+-- `TransferEvent` or `TokenMetadataEvent` is logged for the first time by a contract claiming
 -- to follow the `CIS2 standard`.
 CREATE TABLE tokens (
     -- An index/id for the token (row number).
@@ -625,7 +625,7 @@ CREATE TABLE tokens (
         NUMERIC
         NOT NULL
         DEFAULT 0,
-    -- Index of the transaction with the first CIS2 `MintEvent`, `BurnEvent` or `TokenMetadataEvent` logged for the token.
+    -- Index of the transaction with the first CIS2 `MintEvent`, `BurnEvent`, `TransferEvent` or `TokenMetadataEvent` logged for the token.
     init_transaction_index
        BIGINT
        NOT NULL

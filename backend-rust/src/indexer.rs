@@ -2049,7 +2049,7 @@ impl PreparedAccountDelegationEvent {
                          pool_delegator_count = pool_delegator_count - 1
                      FROM accounts
                      WHERE
-                         -- Only consider delegators which is not removed,
+                         -- Only consider delegators which are not removed,
                          -- prior to P7 this was not immediate.
                          accounts.delegated_restake_earnings IS NOT NULL
                          AND bakers.id = accounts.delegated_target_baker_id
@@ -2068,7 +2068,7 @@ impl PreparedAccountDelegationEvent {
                              pool_delegator_count = pool_delegator_count + 1
                          FROM accounts
                          WHERE
-                             -- Only consider delegators which is not removed,
+                             -- Only consider delegators which are not removed,
                              -- prior to P7 this was not immediate.
                              accounts.delegated_restake_earnings IS NOT NULL
                              AND bakers.id = $2
@@ -3719,7 +3719,7 @@ async fn process_cis2_token_event(
 
             let tokens_transferred = BigDecimal::from_biguint(amount.0.clone(), 0);
 
-            // If the `token_address` does not exist (likely a `buggy` CIS2 token contract),
+            // If the `token_address` does not exist (a `buggy` CIS2 token contract),
             // insert the new token with its `total_supply` set to `0`.
             sqlx::query!(
                 "

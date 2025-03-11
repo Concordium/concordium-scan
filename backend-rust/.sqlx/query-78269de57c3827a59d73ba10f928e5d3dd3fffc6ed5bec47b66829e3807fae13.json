@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE accounts\n                     SET delegated_stake = 0,\n                         delegated_restake_earnings = FALSE,\n                         delegated_target_baker_id = NULL\n                     WHERE index = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "78269de57c3827a59d73ba10f928e5d3dd3fffc6ed5bec47b66829e3807fae13"
+}
