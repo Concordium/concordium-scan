@@ -56,7 +56,7 @@ impl QueryBakerMetrics {
             ORDER BY metrics_bakers.block_height DESC
             LIMIT 1
             "#,
-            end_time
+            end_time,
         )
         .fetch_optional(pool)
         .await?;
@@ -81,7 +81,7 @@ impl QueryBakerMetrics {
             "src/graphql_api/baker_metrics.sql",
             end_time,
             before_time,
-            bucket_interval,
+            bucket_interval
         )
         .fetch_all(pool)
         .await?;
@@ -89,11 +89,18 @@ impl QueryBakerMetrics {
         let mut x_time = Vec::with_capacity(rows.len());
         let mut y_bakers_added: Vec<u64> = Vec::with_capacity(rows.len());
         let mut y_bakers_removed: Vec<u64> = Vec::with_capacity(rows.len());
+        let mut y_last_baker_count: Vec<u64> = Vec::with_capacity(rows.len());
 
         for r in rows.iter() {
             x_time.push(r.bucket_time);
-            y_bakers_added.push(r.bucket_bakers_added.try_into()?);
-            y_bakers_removed.push(r.bucket_bakers_removed.try_into()?);
+            let added_during_period: u64 = r.bucket_bakers_added.try_into()?;
+            y_bakers_added.push(added_during_period);
+            let removed_during_period: u64 = r.bucket_bakers_removed.try_into()?;
+            y_bakers_removed.push(removed_during_period);
+            y_last_baker_count.push(
+                added_during_period - removed_during_period
+                    + TryInto::<u64>::try_into(last_baker_count)?,
+            );
         }
 
         Ok(BakerMetrics {
@@ -102,7 +109,7 @@ impl QueryBakerMetrics {
             last_baker_count: last_baker_count.try_into()?,
             buckets: BakerMetricsBuckets {
                 bucket_width: TimeSpan(bucket_width),
-                y_last_baker_count: last_baker_count.try_into()?,
+                y_last_baker_count,
                 x_time,
                 y_bakers_removed,
                 y_bakers_added,
@@ -127,9 +134,9 @@ pub struct BakerMetricsBuckets {
     /// values.
     #[graphql(name = "y_BakersRemoved")]
     y_bakers_removed:   Vec<u64>,
-    /// Total bakers before the start of the period.
+    /// Total bakers during each period
     #[graphql(name = "y_LastBakerCount")]
-    y_last_baker_count: u64,
+    y_last_baker_count: Vec<u64>,
 }
 
 #[derive(SimpleObject)]
