@@ -6,7 +6,7 @@ CREATE TABLE metrics_bakers
 );
 
 -- Find BakerAdded and BakerRemoved events and fill up metrics_bakers correspondingly
-INSERT INTO metrics_bakers (block_height, total_bakers_added, total_bakers_removed)
+INSERT INTO metrics_bakers (block_height, total_bakers_removed, total_bakers_added)
 WITH block_events AS (
   SELECT
     t.block_height,
