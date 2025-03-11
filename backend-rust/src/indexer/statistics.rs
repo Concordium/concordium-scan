@@ -47,9 +47,7 @@ impl Statistics {
         let inc_added = self.current.get(&Field::Added).copied().unwrap_or(0);
         let inc_removed = self.current.get(&Field::Removed).copied().unwrap_or(0);
 
-        // Update the latest row in metrics_bakers, adding the increments to the current
-        // totals. This assumes that the table has a unique, increasing `index`
-        // column.
+        // Creates a new row reflecting the newest state of statistics
         let result = sqlx::query!(
             r#"
             INSERT INTO metrics_bakers (
