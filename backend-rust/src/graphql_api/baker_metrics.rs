@@ -55,15 +55,16 @@ impl QueryBakerMetrics {
         .fetch_optional(pool)
         .await?;
 
-        let (before_added, before_removed) = before_period_row.map(|r| (r.total_bakers_added, r.total_bakers_removed)).unwrap_or((0, 0));
-        let (after_added, after_removed) = last_in_period_row.map(|r| (r.total_bakers_added, r.total_bakers_removed)).unwrap_or((0, 0));
+        let (before_added, before_removed) = before_period_row
+            .map(|r| (r.total_bakers_added, r.total_bakers_removed))
+            .unwrap_or((0, 0));
+        let (after_added, after_removed) = last_in_period_row
+            .map(|r| (r.total_bakers_added, r.total_bakers_removed))
+            .unwrap_or((0, 0));
 
-        let last_baker_count =
-            before_added - before_removed;
-        let bakers_added =
-            after_added - before_added;
-        let bakers_removed =
-            after_removed - before_removed;
+        let last_baker_count = before_added - before_removed;
+        let bakers_added = after_added - before_added;
+        let bakers_removed = after_removed - before_removed;
 
         let bucket_width = period.bucket_width();
 
