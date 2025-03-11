@@ -26,10 +26,8 @@ impl QueryBakerMetrics {
         let before_period_row = sqlx::query!(
             r#"
             SELECT
-                COALESCE(total_bakers_added, 0)::BIGINT AS "total_bakers_added!",
-                COALESCE(total_bakers_removed, 0)::BIGINT AS "total_bakers_removed!",
-                COALESCE(total_bakers_resumed, 0)::BIGINT AS "total_bakers_resumed!",
-                COALESCE(total_bakers_suspended, 0)::BIGINT AS "total_bakers_suspended!"
+                total_bakers_added,
+                total_bakers_removed
             FROM metrics_bakers
             LEFT JOIN blocks ON metrics_bakers.block_height = blocks.height
             WHERE blocks.slot_time < $1
@@ -38,30 +36,34 @@ impl QueryBakerMetrics {
             "#,
             before_time,
         )
-        .fetch_one(pool)
+        .fetch_optional(pool)
         .await?;
 
         let last_in_period_row = sqlx::query!(
             r#"
             SELECT
-                COALESCE(total_bakers_added, 0)::BIGINT AS "total_bakers_added!",
-                COALESCE(total_bakers_removed, 0)::BIGINT AS "total_bakers_removed!",
-                COALESCE(total_bakers_resumed, 0)::BIGINT AS "total_bakers_resumed!",
-                COALESCE(total_bakers_suspended, 0)::BIGINT AS "total_bakers_suspended!"
+                total_bakers_added,
+                total_bakers_removed
             FROM metrics_bakers
+            LEFT JOIN blocks ON metrics_bakers.block_height = blocks.height
+            WHERE blocks.slot_time < $1
             ORDER BY metrics_bakers.block_height DESC
             LIMIT 1
             "#,
+            end_time
         )
-        .fetch_one(pool)
+        .fetch_optional(pool)
         .await?;
 
+        let (before_added, before_removed) = before_period_row.map(|r| (r.total_bakers_added, r.total_bakers_removed)).unwrap_or((0, 0));
+        let (after_added, after_removed) = last_in_period_row.map(|r| (r.total_bakers_added, r.total_bakers_removed)).unwrap_or((0, 0));
+
         let last_baker_count =
-            before_period_row.total_bakers_added - before_period_row.total_bakers_removed;
+            before_added - before_removed;
         let bakers_added =
-            last_in_period_row.total_bakers_added - before_period_row.total_bakers_added;
+            after_added - before_added;
         let bakers_removed =
-            last_in_period_row.total_bakers_removed - before_period_row.total_bakers_removed;
+            after_removed - before_removed;
 
         let bucket_width = period.bucket_width();
 
