@@ -149,3 +149,38 @@ impl From<concordium_rust_sdk::types::OpenStatus> for BakerPoolOpenStatus {
         }
     }
 }
+
+pub struct PaydayPoolRewardAmounts {
+    // The total amount in microCCD (baker + delegators).
+    pub total_amount:      u64,
+    // The bakers share of the above total reward in microCCD.
+    pub baker_amount:      u64,
+    // The delegators share of the above total reward in microCCD.
+    pub delegators_amount: u64,
+}
+
+impl PaydayPoolRewardAmounts {
+    pub fn new() -> Self {
+        PaydayPoolRewardAmounts {
+            total_amount:      0u64,
+            baker_amount:      0u64,
+            delegators_amount: 0u64,
+        }
+    }
+}
+
+pub struct PaydayPoolRewards {
+    pub transaction_fees:   PaydayPoolRewardAmounts,
+    pub block_finalization: PaydayPoolRewardAmounts,
+    pub block_baking:       PaydayPoolRewardAmounts,
+}
+
+impl PaydayPoolRewards {
+    pub fn new() -> Self {
+        PaydayPoolRewards {
+            transaction_fees:   PaydayPoolRewardAmounts::new(),
+            block_finalization: PaydayPoolRewardAmounts::new(),
+            block_baking:       PaydayPoolRewardAmounts::new(),
+        }
+    }
+}

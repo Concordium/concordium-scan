@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO bakers_payday_pool_rewards (\n                payday_block_height,\n                pool_owner,\n                payday_total_transaction_rewards,\n                payday_delegators_transaction_rewards,\n                payday_total_baking_rewards,\n                payday_delegators_baking_rewards,\n                payday_total_finalization_rewards,\n                payday_delegators_finalization_rewards\n            )\n            SELECT\n                $1 AS payday_block_height,\n                UNNEST($2::BIGINT[]) AS pool_owner,\n                UNNEST($3::BIGINT[]) AS payday_total_transaction_rewards,\n                UNNEST($4::BIGINT[]) AS payday_delegators_transaction_rewards,\n                UNNEST($5::BIGINT[]) AS payday_total_baking_rewards,\n                UNNEST($6::BIGINT[]) AS payday_delegators_baking_rewards,\n                UNNEST($7::BIGINT[]) AS payday_total_finalization_rewards,\n                UNNEST($8::BIGINT[]) AS payday_delegators_finalization_rewards",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8Array",
+        "Int8Array",
+        "Int8Array",
+        "Int8Array",
+        "Int8Array",
+        "Int8Array",
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3cf504f956a37d1384d8348f0b243023ed9530077a84d8b21391336531009b9e"
+}

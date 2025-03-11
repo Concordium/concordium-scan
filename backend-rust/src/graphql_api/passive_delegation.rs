@@ -63,7 +63,9 @@ pub struct PassiveDelegation {
     //     __typename
     //   }
     // Schema:
-    // poolRewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the
+    // poolRewards("Returns the first _n_ elements from the list." first: Int "Returns the elements
+    // in the list that come after the specified cursor." after: String "Returns the last _n_
+    // elements from the list." last: Int "Returns the elements in the list that come before the
     // specified cursor." before: String): PaydayPoolRewardConnection
     //
     // Query:
@@ -122,9 +124,7 @@ impl PassiveDelegation {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         _after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<u64>,
-        #[graphql(
-            desc = "Returns the elements in the list that come before the specified cursor."
-        )]
+        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         _before: Option<String>,
     ) -> ApiResult<connection::Connection<String, DelegationSummary>> {
         todo!()
@@ -133,7 +133,7 @@ impl PassiveDelegation {
 
 #[derive(SimpleObject)]
 struct DelegationSummary {
-    account_address: Account,
-    staked_amount: Amount,
+    account_address:  Account,
+    staked_amount:    Amount,
     restake_earnings: bool,
 }
