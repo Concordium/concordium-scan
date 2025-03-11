@@ -2000,7 +2000,7 @@ impl PreparedAccountDelegationEvent {
                     .execute(tx.as_mut())
                     .await?
                     .ensure_affected_rows_in_range(0..=1) // No row affected when target was the passive pool.
-                        .context("Failed updating pool state with removed delegator")?;
+                    .context("Failed updating pool state with removed delegator")?;
 
                 sqlx::query!(
                     "UPDATE accounts
@@ -2089,16 +2089,20 @@ impl PreparedAccountDelegationEvent {
                 // query, unless the new target is the passive delegation pool.
                 sqlx::query!(
                     "UPDATE accounts
-                        SET delegated_target_baker_id = $1
-                    WHERE
-                        ($1::BIGINT IS NULL OR EXISTS(SELECT TRUE FROM bakers WHERE id = $1))
-                        AND index = $2",
+                        SET delegated_target_baker_id = CASE
+                                WHEN
+                                    $1::BIGINT IS NOT NULL
+                                    AND EXISTS(SELECT TRUE FROM bakers WHERE id = $1)
+                                THEN $1
+                                ELSE NULL
+                            END
+                    WHERE index = $2",
                     *target_id,
                     account_id
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_rows_in_range(bakers_expected_affected_range)
+                .ensure_affected_one_row()
                 .context("Failed update delegator target")?;
             }
             PreparedAccountDelegationEvent::RemoveBaker(baker_removed) => {

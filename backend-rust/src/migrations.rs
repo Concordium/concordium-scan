@@ -201,6 +201,8 @@ pub enum SchemaVersion {
     RankingByLotteryPower,
     #[display("0012:Add removed bakers table")]
     TrackRemovedBakers,
+    #[display("0013:Fix delegated_restake_earnings data in accounts")]
+    FixDelegatedStakeEarnings,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -208,7 +210,7 @@ impl SchemaVersion {
     /// introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::TrackRemovedBakers;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::TrackRemovedBakers;
+    const LATEST: SchemaVersion = SchemaVersion::FixDelegatedStakeEarnings;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -236,6 +238,7 @@ impl SchemaVersion {
             SchemaVersion::DelegatedStakeCap => false,
             SchemaVersion::RankingByLotteryPower => false,
             SchemaVersion::TrackRemovedBakers => false,
+            SchemaVersion::FixDelegatedStakeEarnings => false,
         }
     }
 
@@ -319,7 +322,15 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::TrackRemovedBakers
             }
-            SchemaVersion::TrackRemovedBakers => unimplemented!(
+            SchemaVersion::TrackRemovedBakers => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0013-fix-removed-delegators-restake.sql"
+                    )))
+                    .await?;
+                SchemaVersion::FixDelegatedStakeEarnings
+            }
+            SchemaVersion::FixDelegatedStakeEarnings => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
