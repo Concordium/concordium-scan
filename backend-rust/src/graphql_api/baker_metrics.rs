@@ -14,9 +14,10 @@ pub(crate) struct QueryBakerMetrics;
 impl QueryBakerMetrics {
     /// Fetches baker metrics for the specified period.
     ///
-    /// This function queries the database for baker metrics such as the number of bakers added,
-    /// removed, and the last baker count in the specified time period. It returns the results as a
-    /// structured `BakerMetrics` object.
+    /// This function queries the database for baker metrics such as the number
+    /// of bakers added, removed, and the last baker count in the specified
+    /// time period. It returns the results as a structured `BakerMetrics`
+    /// object.
     async fn baker_metrics<'a>(
         &self,
         ctx: &Context<'a>,
@@ -114,13 +115,16 @@ impl QueryBakerMetrics {
 pub struct BakerMetricsBuckets {
     /// The width (time interval) of each bucket.
     bucket_width:       TimeSpan,
-    /// The time values (start of each bucket) intended for use as x-axis values.
+    /// The time values (start of each bucket) intended for use as x-axis
+    /// values.
     #[graphql(name = "x_Time")]
     x_time:             Vec<DateTime>,
-    /// The number of bakers added for each bucket, intended for use as y-axis values.
+    /// The number of bakers added for each bucket, intended for use as y-axis
+    /// values.
     #[graphql(name = "y_BakersAdded")]
     y_bakers_added:     Vec<u64>,
-    /// The number of bakers removed for each bucket, intended for use as y-axis values.
+    /// The number of bakers removed for each bucket, intended for use as y-axis
+    /// values.
     #[graphql(name = "y_BakersRemoved")]
     y_bakers_removed:   Vec<u64>,
     /// Total bakers before the start of the period.
