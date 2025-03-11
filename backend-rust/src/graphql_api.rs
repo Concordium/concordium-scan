@@ -14,6 +14,7 @@ mod search_result;
 mod token;
 mod transaction;
 mod transaction_metrics;
+mod reward_metrics;
 
 // TODO remove this macro, when done with first iteration
 /// Short hand for returning API error with the message not implemented.
@@ -173,6 +174,7 @@ pub struct Query(
     node_status::QueryNodeStatus,
     token::QueryToken,
     baker_metrics::QueryBakerMetrics,
+    reward_metrics::QueryRewardMetrics,
 );
 
 pub struct Service {
