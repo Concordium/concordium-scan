@@ -98,9 +98,7 @@ impl QueryBakerMetrics {
             y_bakers_added.push(added_during_period);
             let removed_during_period: u64 = r.bucket_bakers_removed.try_into()?;
             y_bakers_removed.push(removed_during_period);
-            println!("Added: {}; Removed: {}", added_during_period, removed_during_period);
             baker_count = baker_count + added_during_period - removed_during_period;
-            println!("Actual: {}", baker_count);
             y_last_baker_count.push(baker_count);
         }
 
