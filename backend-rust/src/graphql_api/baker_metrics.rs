@@ -2,7 +2,7 @@ use crate::{
     graphql_api::{get_pool, ApiError, ApiResult, MetricsPeriod},
     scalar_types::{DateTime, TimeSpan},
 };
-use async_graphql::{Context, Object, SimpleObject};
+use async_graphql::{Context, Object, OutputType, SimpleObject};
 use chrono::Utc;
 use sqlx::postgres::types::PgInterval;
 use std::sync::Arc;
@@ -90,16 +90,18 @@ impl QueryBakerMetrics {
         let mut y_bakers_added: Vec<u64> = Vec::with_capacity(rows.len());
         let mut y_bakers_removed: Vec<u64> = Vec::with_capacity(rows.len());
         let mut y_last_baker_count: Vec<u64> = Vec::with_capacity(rows.len());
-        let before_baker_count: u64 = TryInto::<u64>::try_into(before_added - before_removed)?;
 
+        let mut baker_count = TryInto::<u64>::try_into(before_added - before_removed)?;
         for r in rows.iter() {
             x_time.push(r.bucket_time);
             let added_during_period: u64 = r.bucket_bakers_added.try_into()?;
             y_bakers_added.push(added_during_period);
             let removed_during_period: u64 = r.bucket_bakers_removed.try_into()?;
             y_bakers_removed.push(removed_during_period);
-            y_last_baker_count
-                .push(added_during_period - removed_during_period + before_baker_count);
+            println!("Added: {}; Removed: {}", added_during_period, removed_during_period);
+            baker_count = baker_count + added_during_period - removed_during_period;
+            println!("Actual: {}", baker_count);
+            y_last_baker_count.push(baker_count);
         }
 
         Ok(BakerMetrics {
