@@ -758,6 +758,19 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
     )
     .execute(&mut *tx)
     .await?;
+    let mut genesis_bakers_count = 0;
+    while let Some(_) =
+        client.get_baker_list(genesis_height).await?.response.next().await.transpose()?
+    {
+        genesis_bakers_count += 1;
+    }
+    sqlx::query!(
+        "INSERT INTO metrics_bakers (block_height, total_bakers_added, total_bakers_removed)
+        VALUES (0, $1, 0)",
+        genesis_bakers_count,
+    )
+    .execute(&mut *tx)
+    .await?;
 
     let mut genesis_accounts = client.get_account_list(genesis_height).await?.response;
     while let Some(account) = genesis_accounts.try_next().await? {

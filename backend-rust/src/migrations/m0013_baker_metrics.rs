@@ -19,15 +19,11 @@ pub async fn run(
     ))?;
     let mut client = v2::Client::new(endpoint.clone()).await?;
     let result: Option<i64> =
-        sqlx::query_scalar("SELECT height FROM blocks ORDER BY height DESC LIMIT 1")
-            .fetch_optional(tx.as_mut())
-            .await?;
+        sqlx::query_scalar("SELECT height FROM blocks LIMIT 1").fetch_optional(tx.as_mut()).await?;
     if let Some(height) = result {
-        let block = BlockIdentifier::AbsoluteHeight(AbsoluteBlockHeight {
-            height: height.try_into()?,
-        });
+        let block_identifier = BlockIdentifier::AbsoluteHeight(height.into());
         let mut genesis_bakers_count = 0;
-        let mut stream = client.get_baker_list(block).await?.response;
+        let mut stream = client.get_baker_list(block_identifier).await?.response;
         while let Some(_) = stream.next().await.transpose()? {
             genesis_bakers_count += 1;
         }
