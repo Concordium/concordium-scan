@@ -11,6 +11,7 @@ mod m0005_fix_dangling_delegators;
 mod m0006_fix_stake;
 mod m0008_canonical_address_and_transaction_search_index;
 mod m0010_fill_capital_bound_and_leverage_bound;
+mod m0013_baker_metrics;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.
@@ -323,10 +324,8 @@ impl SchemaVersion {
                 SchemaVersion::TrackRemovedBakers
             }
             SchemaVersion::TrackRemovedBakers => {
-                tx.as_mut()
-                    .execute(sqlx::raw_sql(include_str!("migrations/m0013-baker-metrics.sql")))
-                    .await?;
-                SchemaVersion::BakerMetrics
+                let next_schema_version = SchemaVersion::BakerMetrics;
+                m0013_baker_metrics::run(&mut tx, endpoints, next_schema_version).await?
             }
             SchemaVersion::BakerMetrics => unimplemented!(
                 "No migration implemented for database schema version {}",
