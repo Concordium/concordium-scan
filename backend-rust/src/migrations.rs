@@ -11,7 +11,7 @@ mod m0005_fix_dangling_delegators;
 mod m0006_fix_stake;
 mod m0008_canonical_address_and_transaction_search_index;
 mod m0010_fill_capital_bound_and_leverage_bound;
-mod m0013_baker_metrics;
+mod m0014_baker_metrics;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.
@@ -202,7 +202,9 @@ pub enum SchemaVersion {
     RankingByLotteryPower,
     #[display("0012:Add removed bakers table")]
     TrackRemovedBakers,
-    #[display("0013:RankingByLotteryPower")]
+    #[display("0013:Fix delegated_restake_earnings data in accounts")]
+    FixDelegatedStakeEarnings,
+    #[display("0014:RankingByLotteryPower")]
     BakerMetrics,
 }
 impl SchemaVersion {
@@ -239,6 +241,7 @@ impl SchemaVersion {
             SchemaVersion::DelegatedStakeCap => false,
             SchemaVersion::RankingByLotteryPower => false,
             SchemaVersion::TrackRemovedBakers => false,
+            SchemaVersion::FixDelegatedStakeEarnings => false,
             SchemaVersion::BakerMetrics => false,
         }
     }
@@ -324,8 +327,17 @@ impl SchemaVersion {
                 SchemaVersion::TrackRemovedBakers
             }
             SchemaVersion::TrackRemovedBakers => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0013-fix-removed-delegators-restake.sql"
+                    )))
+                    .await?;
+                SchemaVersion::FixDelegatedStakeEarnings
+            }
+            SchemaVersion::FixDelegatedStakeEarnings => {
+
                 let next_schema_version = SchemaVersion::BakerMetrics;
-                m0013_baker_metrics::run(&mut tx, endpoints, next_schema_version).await?
+                m0014_baker_metrics::run(&mut tx, endpoints, next_schema_version).await?
             }
             SchemaVersion::BakerMetrics => unimplemented!(
                 "No migration implemented for database schema version {}",

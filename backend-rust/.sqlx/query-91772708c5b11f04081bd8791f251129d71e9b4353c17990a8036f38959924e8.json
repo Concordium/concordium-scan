@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE accounts\n                        SET delegated_restake_earnings = $1\n                    WHERE\n                        index = $2\n                        -- Ensure we don't update removed delegators\n                        -- (prior to P7 this was not immediate)\n                        AND delegated_restake_earnings IS NOT NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "91772708c5b11f04081bd8791f251129d71e9b4353c17990a8036f38959924e8"
+}
