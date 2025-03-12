@@ -2,7 +2,7 @@ use crate::{
     graphql_api::{get_pool, ApiError, ApiResult, MetricsPeriod},
     scalar_types::{DateTime, TimeSpan},
 };
-use async_graphql::{Context, Object, OutputType, SimpleObject};
+use async_graphql::{Context, Object, SimpleObject};
 use chrono::Utc;
 use sqlx::postgres::types::PgInterval;
 use std::sync::Arc;
