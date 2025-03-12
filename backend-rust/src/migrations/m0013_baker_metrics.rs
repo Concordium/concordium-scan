@@ -24,7 +24,7 @@ pub async fn run(
             .await?;
     if let Some(height) = result {
         let block = BlockIdentifier::AbsoluteHeight(AbsoluteBlockHeight {
-            height,
+            height: height.try_into()?,
         });
         let mut genesis_bakers_count = 0;
         let mut stream = client.get_baker_list(block).await?.response;
