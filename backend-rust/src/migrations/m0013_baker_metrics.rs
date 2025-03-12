@@ -21,7 +21,9 @@ pub async fn run(
     let result: Option<i64> =
         sqlx::query_scalar("SELECT height FROM blocks LIMIT 1").fetch_optional(tx.as_mut()).await?;
     if let Some(height) = result {
-        let block_identifier = BlockIdentifier::AbsoluteHeight(height.into());
+        let block_identifier = BlockIdentifier::AbsoluteHeight(AbsoluteBlockHeight {
+            height: height.try_into()?,
+        });
         let mut genesis_bakers_count = 0;
         let mut stream = client.get_baker_list(block_identifier).await?.response;
         while let Some(_) = stream.next().await.transpose()? {
