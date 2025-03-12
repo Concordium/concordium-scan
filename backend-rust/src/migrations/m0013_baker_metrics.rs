@@ -50,22 +50,20 @@ pub async fn run(
                     INSERT INTO metrics_bakers (block_height, total_bakers_removed, total_bakers_added)
                     WITH block_events AS (
                     SELECT
-                        t.block_height,
-                        0 AS baker_removed_count,
-                        COUNT(*) AS baker_added_count
-                    FROM transactions t
-                    CROSS JOIN LATERAL jsonb_array_elements(t.events) AS event(elem)
-                    WHERE event.elem ? 'BakerAdded'
-                    GROUP BY t.block_height
-                    UNION ALL
-                    SELECT
-                        t.block_height,
-                        COUNT(*) AS baker_removed_count,
-                        0 AS baker_added_count
-                    FROM transactions t
-                    CROSS JOIN LATERAL jsonb_array_elements(t.events) AS event(elem)
-                    WHERE event.elem ? 'BakerRemoved'
-                    GROUP BY t.block_height
+                        block_height,
+                        COUNT(*) FILTER (WHERE events @> '[{"BakerRemoved": {}}]'::JSONB) AS baker_removed_count,
+                        COUNT(*) FILTER (WHERE events @> '[{"BakerAdded": {}}]'::JSONB) AS baker_added_count
+                    FROM transactions
+                    WHERE
+                        type_account IN ('RemoveBaker', 'AddBaker')
+                        OR (
+                            type_account IN ('ConfigureBaker', 'ConfigureDelegation')
+                            AND (events @> '[{"BakerRemoved": {}}]'::JSONB
+                                OR events @> '[{"BakerAdded": {}}]'::JSONB
+                            )
+                        )
+                    GROUP BY block_height
+                    ORDER BY block_height
                     )
                     SELECT
                       block_height,
