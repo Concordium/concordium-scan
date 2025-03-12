@@ -852,7 +852,7 @@ struct PreparedBlock {
     /// Unmark the baker and signers of the Quorum Certificate from being primed
     /// for suspension.
     baker_unmark_suspended: PreparedUnmarkPrimedForSuspension,
-    /// Statistics
+    /// Statistics gathered about frequency of events
     statistics: Statistics,
 }
 
