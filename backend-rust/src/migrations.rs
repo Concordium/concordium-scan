@@ -343,8 +343,8 @@ impl SchemaVersion {
             }
             SchemaVersion::BakerMetrics => {
                 tx.as_mut()
-                .execute(sqlx::raw_sql(include_str!("./migrations/m0014-pool-rewards.sql")))
-                .await?;
+                    .execute(sqlx::raw_sql(include_str!("./migrations/m0014-pool-rewards.sql")))
+                    .await?;
                 SchemaVersion::PaydayPoolRewards
             }
             SchemaVersion::PaydayPoolRewards => unimplemented!(

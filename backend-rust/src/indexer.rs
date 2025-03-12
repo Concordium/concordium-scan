@@ -4266,21 +4266,25 @@ impl PreparedSpecialTransactionOutcomes {
 /// and associate it with the `pool_owner`.
 /// The `pool_owner` can be either a `baker_id` or `NULL`.
 /// The `pool_owner` is `NULL` if the pool rewards are for the passive
-/// delegators which can happen at most once per payday block).
+/// delegators which can happen at most once per payday block.
 struct PreparedPaydaySpecialTransacionOutcomes {
     /// Height of the payday block containing the events.
-    block_height:                    i64,
-    pool_owners:                     Vec<Option<i64>>,
-    total_transaction_rewards:       Vec<i64>,
-    delegators_transaction_rewards:  Vec<i64>,
-    total_baking_rewards:            Vec<i64>,
-    delegators_baking_rewards:       Vec<i64>,
-    total_finalization_rewards:      Vec<i64>,
-    delegators_finalization_rewards: Vec<i64>,
+    block_height: i64,
+    events:       Vec<SpecialTransactionOutcome>,
 }
 
 impl PreparedPaydaySpecialTransacionOutcomes {
     fn prepare(block_height: i64, events: &[SpecialTransactionOutcome]) -> anyhow::Result<Self> {
+        Ok(Self {
+            block_height,
+            events: events.to_vec(),
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
         // https://docs.rs/concordium-rust-sdk/6.0.0/concordium_rust_sdk/types/enum.SpecialTransactionOutcome.html#variant.PaydayAccountReward
         // The order of `SpecialEvents` in each payday block has a meaning to
         // determine which rewards go to the baker of a baker pool and which
@@ -4304,7 +4308,7 @@ impl PreparedPaydaySpecialTransacionOutcomes {
         let mut acc_payday_pool_rewards: HashMap<Option<u64>, PaydayPoolRewards> = HashMap::new();
         let mut last_pool_owner: Option<Option<u64>> = None;
 
-        for event in events {
+        for event in &self.events {
             match event {
                 SpecialTransactionOutcome::PaydayPoolReward {
                     pool_owner,
@@ -4319,17 +4323,11 @@ impl PreparedPaydaySpecialTransacionOutcomes {
 
                     let acc_payday_pool_rewards =
                         acc_payday_pool_rewards.entry(last).or_insert(PaydayPoolRewards::new());
-                    acc_payday_pool_rewards.transaction_fees.baker_amount +=
-                        transaction_fees.micro_ccd;
-                    acc_payday_pool_rewards.transaction_fees.total_amount +=
-                        transaction_fees.micro_ccd;
 
-                    acc_payday_pool_rewards.block_baking.baker_amount += baker_reward.micro_ccd;
-                    acc_payday_pool_rewards.block_baking.total_amount += baker_reward.micro_ccd;
-
-                    acc_payday_pool_rewards.block_finalization.baker_amount +=
-                        finalization_reward.micro_ccd;
-                    acc_payday_pool_rewards.block_finalization.total_amount +=
+                    acc_payday_pool_rewards.transaction_fees.total_amount =
+                        transaction_fees.micro_ccd;
+                    acc_payday_pool_rewards.block_baking.total_amount = baker_reward.micro_ccd;
+                    acc_payday_pool_rewards.block_finalization.total_amount =
                         finalization_reward.micro_ccd;
 
                     last_pool_owner = Some(last);
@@ -4338,24 +4336,37 @@ impl PreparedPaydaySpecialTransacionOutcomes {
                     transaction_fees,
                     baker_reward,
                     finalization_reward,
-                    ..
+                    account,
                 } => {
+                    // Collect all rewards from the delegators and associate the rewards to their
+                    // baker pools.
                     if let Some(pool_owner) = last_pool_owner {
+                        if let Some(baker_id) = pool_owner {
+                            let account_index = sqlx::query_scalar!(
+                                "SELECT index
+                                    FROM accounts
+                                    WHERE address = $1",
+                                account.to_string()
+                            )
+                            .fetch_one(tx.as_mut())
+                            .await?;
+
+                            // Don't record the rewards if they are associated to the baker itself
+                            // (not a delegator).
+                            if account_index == baker_id as i64 {
+                                continue;
+                            }
+                        }
+
                         let acc_payday_pool_rewards = acc_payday_pool_rewards
                             .entry(pool_owner)
                             .or_insert(PaydayPoolRewards::new());
+
                         acc_payday_pool_rewards.transaction_fees.delegators_amount +=
                             transaction_fees.micro_ccd;
-                        acc_payday_pool_rewards.transaction_fees.total_amount +=
-                            transaction_fees.micro_ccd;
-
                         acc_payday_pool_rewards.block_baking.delegators_amount +=
                             baker_reward.micro_ccd;
-                        acc_payday_pool_rewards.block_baking.total_amount += baker_reward.micro_ccd;
-
                         acc_payday_pool_rewards.block_finalization.delegators_amount +=
-                            finalization_reward.micro_ccd;
-                        acc_payday_pool_rewards.block_finalization.total_amount +=
                             finalization_reward.micro_ccd;
                     }
                 }
@@ -4397,22 +4408,6 @@ impl PreparedPaydaySpecialTransacionOutcomes {
             .map(|r| r.block_finalization.delegators_amount.try_into())
             .collect::<Result<_, _>>()?;
 
-        Ok(Self {
-            block_height,
-            pool_owners,
-            total_transaction_rewards,
-            delegators_transaction_rewards,
-            total_baking_rewards,
-            delegators_baking_rewards,
-            total_finalization_rewards,
-            delegators_finalization_rewards,
-        })
-    }
-
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
         sqlx::query!(
             "INSERT INTO bakers_payday_pool_rewards (
                 payday_block_height,
@@ -4434,13 +4429,13 @@ impl PreparedPaydaySpecialTransacionOutcomes {
                 UNNEST($7::BIGINT[]) AS payday_total_finalization_rewards,
                 UNNEST($8::BIGINT[]) AS payday_delegators_finalization_rewards",
             &self.block_height,
-            &self.pool_owners as &[Option<i64>],
-            &self.total_transaction_rewards,
-            &self.delegators_transaction_rewards,
-            &self.total_baking_rewards,
-            &self.delegators_baking_rewards,
-            &self.total_finalization_rewards,
-            &self.delegators_finalization_rewards,
+            &pool_owners as &[Option<i64>],
+            &total_transaction_rewards,
+            &delegators_transaction_rewards,
+            &total_baking_rewards,
+            &delegators_baking_rewards,
+            &total_finalization_rewards,
+            &delegators_finalization_rewards,
         )
         .execute(tx.as_mut())
         .await?;

@@ -43,8 +43,8 @@ CREATE TABLE bakers_payday_pool_rewards(
     payday_delegators_finalization_rewards
         BIGINT
         NOT NULL,
-    -- Use the pair of `payday_block_height` and `pool_owner` is primary key. 
-    -- This creates an index to efficiently query the `BakerPool::poolRewards`.
-    -- Because the `pool_owner` can be `NULL` the `pool_owner_for_primary_key` is used which replace `NULL` with `-1`.
-    PRIMARY KEY (payday_block_height, pool_owner_for_primary_key)  -- Treat NULL as -1 in the index
+    -- Use the pair of `pool_owner` and `payday_block_height` as primary key. 
+    -- This creates an index to efficiently query the `BakerPool::poolRewards` and `PassiveDelegation::poolRewards`.
+    -- Because the `pool_owner` can be `NULL` the `pool_owner_for_primary_key` is used which replaces `NULL` with `-1`.
+    PRIMARY KEY (pool_owner_for_primary_key, payday_block_height)  -- Treat NULL as -1 in the index
 );

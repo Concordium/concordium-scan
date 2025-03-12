@@ -2318,7 +2318,7 @@ impl<'a> BakerPool<'a> {
                     payday_delegators_finalization_rewards as delegators_finalization_rewards
                 FROM bakers_payday_pool_rewards
                 JOIN blocks ON blocks.height = payday_block_height
-                WHERE pool_owner = $5 
+                WHERE pool_owner_for_primary_key = $5 
                     AND payday_block_height > $2 AND payday_block_height < $1
                 ORDER BY
                     (CASE WHEN $4 THEN payday_block_height END) ASC,
@@ -2342,7 +2342,7 @@ impl<'a> BakerPool<'a> {
             if let Some(max_index) = sqlx::query_scalar!(
                 "SELECT MAX(payday_block_height) 
                     FROM bakers_payday_pool_rewards 
-                    WHERE pool_owner = $1",
+                    WHERE pool_owner_for_primary_key = $1",
                 self.id
             )
             .fetch_one(pool)
