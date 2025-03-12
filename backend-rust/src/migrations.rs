@@ -335,7 +335,6 @@ impl SchemaVersion {
                 SchemaVersion::FixDelegatedStakeEarnings
             }
             SchemaVersion::FixDelegatedStakeEarnings => {
-
                 let next_schema_version = SchemaVersion::BakerMetrics;
                 m0014_baker_metrics::run(&mut tx, endpoints, next_schema_version).await?
             }
