@@ -26,7 +26,7 @@ pub async fn run(
         });
         let mut genesis_bakers_count = 0;
         let mut stream = client.get_baker_list(block_identifier).await?.response;
-        while let Some(_) = stream.next().await.transpose()? {
+        while stream.next().await.transpose()?.is_some() {
             genesis_bakers_count += 1;
         }
         sqlx::query(

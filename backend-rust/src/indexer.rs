@@ -759,8 +759,7 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
     .execute(&mut *tx)
     .await?;
     let mut genesis_bakers_count = 0;
-    while let Some(_) =
-        client.get_baker_list(genesis_height).await?.response.next().await.transpose()?
+    while client.get_baker_list(genesis_height).await?.response.next().await.transpose()?.is_some()
     {
         genesis_bakers_count += 1;
     }
