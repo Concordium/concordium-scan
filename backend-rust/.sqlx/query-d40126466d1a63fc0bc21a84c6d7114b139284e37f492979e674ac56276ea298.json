@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE accounts\n                        SET delegated_target_baker_id = CASE\n                                WHEN\n                                    $1::BIGINT IS NOT NULL\n                                    AND EXISTS(SELECT TRUE FROM bakers WHERE id = $1)\n                                THEN $1\n                                ELSE NULL\n                            END\n                    WHERE index = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d40126466d1a63fc0bc21a84c6d7114b139284e37f492979e674ac56276ea298"
+}
