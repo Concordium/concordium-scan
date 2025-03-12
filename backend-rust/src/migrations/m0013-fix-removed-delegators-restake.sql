@@ -63,7 +63,7 @@ FROM latest_set_delegation
 WHERE
     -- Only update accounts which are delegating
     accounts.delegated_restake_earnings IS NOT NULL
-    -- Only update accounts which have a send a 'set delegation target' transaction.
+    -- Only update accounts which have sent a 'set delegation target' transaction.
     AND accounts.index = latest_set_delegation.sender_index
     -- Only update accounts where the latest target baker is not currently baking.
     AND NOT EXISTS(SELECT TRUE FROM bakers WHERE id = latest_set_delegation.target);
@@ -71,7 +71,7 @@ WHERE
 
 -- Migration recomputing the pool_delegator_count and total_delegated_stake
 
--- First reset every baker the state of having no delegators.
+-- First reset every baker to the state of having no delegators.
 UPDATE bakers
     SET pool_total_staked = bakers.staked,
         pool_delegator_count = 0;

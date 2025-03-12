@@ -15,7 +15,7 @@ Database schema version: 12
 ### Fixed
 
 - Fixed bug in indexer where removed delegators still had the restake earnings flag stored as false instead of NULL.
-- Fixed bug in indexer where accumulated pool delegator count is update after delegator is removed (this was possible for protocol version 6 and earlier).
+- Fixed bug in indexer where accumulated pool delegator count is updated after delegator is removed (only relevant for blocks prior to Protocol Version 7).
 - Fixed bug in indexer where delegators which set their target to a removed pools did not get updated, now they are moved directly to the passive pool instead (only relevant for blocks prior to Protocol Version 7).
 - Fixed bug in indexer where CIS-2 transfer events were never recorded when happening before any other token events (like a Mint). This is considered a bug in the token contract, but now the indexer still records these events.
 
