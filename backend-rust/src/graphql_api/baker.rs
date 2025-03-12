@@ -5,7 +5,10 @@ use super::{
 use crate::{
     address::AccountAddress,
     connection::{ConcatCursor, ConnectionBounds, DescendingI64, Reversed},
-    graphql_api::node_status::{NodeInfoReceiver, NodeStatus},
+    graphql_api::{
+        node_status::{NodeInfoReceiver, NodeStatus},
+        todo_api,
+    },
     scalar_types::{Amount, BakerId, BlockHeight, DateTime, Decimal, MetadataUrl},
     transaction_event::{
         baker::{BakerPoolOpenStatus, PaydayPoolRewardAmounts},
@@ -116,8 +119,8 @@ impl QueryBaker {
                 )
                 .await
             }
-            BakerSort::BakerApy30DaysDesc => todo!(),
-            BakerSort::DelegatorApy30DaysDesc => todo!(),
+            BakerSort::BakerApy30DaysDesc => todo_api!(),
+            BakerSort::DelegatorApy30DaysDesc => todo_api!(),
             BakerSort::BlockCommissionsAsc => {
                 Baker::block_commission_asc_connection(
                     config,
@@ -2249,10 +2252,6 @@ struct BakerPool<'a> {
     open_status: Option<BakerPoolOpenStatus>,
     metadata_url: Option<&'a str>,
     // TODO: apy(period: ApyPeriod!): PoolApy!
-    // TODO: poolRewards("Returns the first _n_ elements from the list." first: Int "Returns the
-    // elements in the list that come after the specified cursor." after: String "Returns the last
-    // _n_ elements from the list." last: Int "Returns the elements in the list that come before
-    // the specified cursor." before: String): PaydayPoolRewardConnection
 }
 
 #[Object]
@@ -2505,16 +2504,16 @@ struct Ranking {
     total: i64,
 }
 
-struct PaydayPoolReward {
-    block_height: BlockHeight,
-    slot_time: DateTime,
-    pool_owner: Option<i64>,
-    total_transaction_rewards: i64,
-    delegators_transaction_rewards: i64,
-    total_baking_rewards: i64,
-    delegators_baking_rewards: i64,
-    total_finalization_rewards: i64,
-    delegators_finalization_rewards: i64,
+pub struct PaydayPoolReward {
+    pub block_height: BlockHeight,
+    pub slot_time: DateTime,
+    pub pool_owner: Option<i64>,
+    pub total_transaction_rewards: i64,
+    pub delegators_transaction_rewards: i64,
+    pub total_baking_rewards: i64,
+    pub delegators_baking_rewards: i64,
+    pub total_finalization_rewards: i64,
+    pub delegators_finalization_rewards: i64,
 }
 
 #[Object]
