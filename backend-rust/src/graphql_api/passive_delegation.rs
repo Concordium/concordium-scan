@@ -1,9 +1,6 @@
-use super::ApiResult;
+use super::{baker::DelegationSummary, ApiResult};
 
-use super::account::Account;
-
-use crate::scalar_types::Amount;
-use async_graphql::{connection, Context, Object, SimpleObject};
+use async_graphql::{connection, Context, Object};
 // use futures::TryStreamExt;
 
 #[derive(Default)]
@@ -129,11 +126,4 @@ impl PassiveDelegation {
     ) -> ApiResult<connection::Connection<String, DelegationSummary>> {
         todo!()
     }
-}
-
-#[derive(SimpleObject)]
-struct DelegationSummary {
-    account_address:  Account,
-    staked_amount:    Amount,
-    restake_earnings: bool,
 }

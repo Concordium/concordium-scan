@@ -1,13 +1,16 @@
 use super::{
-    account::Account, get_config, get_pool, transaction::Transaction, ApiError, ApiResult,
-    ApiServiceConfig, ConnectionQuery,
+    account::Account, block::Block, get_config, get_pool, transaction::Transaction, ApiError,
+    ApiResult, ApiServiceConfig, ConnectionQuery,
 };
 use crate::{
     address::AccountAddress,
     connection::{ConcatCursor, ConnectionBounds, DescendingI64, Reversed},
     graphql_api::node_status::{NodeInfoReceiver, NodeStatus},
-    scalar_types::{Amount, BakerId, DateTime, Decimal, MetadataUrl},
-    transaction_event::{baker::BakerPoolOpenStatus, Event},
+    scalar_types::{Amount, BakerId, BlockHeight, DateTime, Decimal, MetadataUrl},
+    transaction_event::{
+        baker::{BakerPoolOpenStatus, PaydayPoolRewardAmounts},
+        Event,
+    },
     transaction_reject::TransactionRejectReason,
     transaction_type::{
         AccountTransactionType, CredentialDeploymentTransactionType, DbTransactionType,
@@ -2282,6 +2285,79 @@ impl<'a> BakerPool<'a> {
 
     async fn metadata_url(&self) -> Option<&'a str> { self.metadata_url }
 
+    async fn pool_rewards(
+        &self,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        before: Option<String>,
+    ) -> ApiResult<connection::Connection<String, PaydayPoolReward>> {
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+        let query = ConnectionQuery::<DescendingI64>::new(
+            first,
+            after,
+            last,
+            before,
+            config.delegators_connection_limit,
+        )?;
+        let mut row_stream = sqlx::query_as!(
+            PaydayPoolReward,
+            "SELECT * FROM (
+                SELECT
+                    payday_block_height as block_height,
+                    slot_time,
+                    pool_owner,
+                    payday_total_transaction_rewards as total_transaction_rewards,
+                    payday_delegators_transaction_rewards as delegators_transaction_rewards,
+                    payday_total_baking_rewards as total_baking_rewards,
+                    payday_delegators_baking_rewards as delegators_baking_rewards,
+                    payday_total_finalization_rewards as total_finalization_rewards,
+                    payday_delegators_finalization_rewards as delegators_finalization_rewards
+                FROM bakers_payday_pool_rewards
+                JOIN blocks ON blocks.height = payday_block_height
+                WHERE pool_owner = $5 
+                    AND payday_block_height > $2 AND payday_block_height < $1
+                ORDER BY
+                    (CASE WHEN $4 THEN payday_block_height END) ASC,
+                    (CASE WHEN NOT $4 THEN payday_block_height END) DESC
+                LIMIT $3
+                ) AS rewards
+            ORDER BY rewards.block_height DESC",
+            i64::from(query.from),
+            i64::from(query.to),
+            query.limit,
+            query.is_last,
+            self.id
+        )
+        .fetch(pool);
+
+        let mut connection = connection::Connection::new(false, false);
+        while let Some(rewards) = row_stream.try_next().await? {
+            connection.edges.push(connection::Edge::new(rewards.block_height.to_string(), rewards));
+        }
+        if let Some(page_max_index) = connection.edges.first() {
+            if let Some(max_index) = sqlx::query_scalar!(
+                "SELECT MAX(payday_block_height) 
+                    FROM bakers_payday_pool_rewards 
+                    WHERE pool_owner = $1",
+                self.id
+            )
+            .fetch_one(pool)
+            .await?
+            {
+                connection.has_previous_page = max_index > page_max_index.node.block_height;
+            }
+        }
+        if let Some(edge) = connection.edges.last() {
+            connection.has_next_page = edge.node.block_height != 0;
+        }
+        Ok(connection)
+    }
+
     async fn delegators(
         &self,
         ctx: &Context<'_>,
@@ -2347,18 +2423,18 @@ impl<'a> BakerPool<'a> {
     }
 }
 
-struct DelegationSummary {
-    index:            i64,
-    account_address:  AccountAddress,
-    staked_amount:    i64,
-    restake_earnings: Option<bool>,
+pub struct DelegationSummary {
+    pub index:            i64,
+    pub account_address:  AccountAddress,
+    pub staked_amount:    i64,
+    pub restake_earnings: Option<bool>,
 }
 
 #[Object]
 impl DelegationSummary {
-    async fn account_address(&self) -> &AccountAddress { &self.account_address }
+    pub async fn account_address(&self) -> &AccountAddress { &self.account_address }
 
-    async fn staked_amount(&self) -> ApiResult<Amount> {
+    pub async fn staked_amount(&self) -> ApiResult<Amount> {
         self.staked_amount.try_into().map_err(|_| {
             ApiError::InternalError(
                 "Staked amount in database should be a valid UnsignedLong".to_string(),
@@ -2366,7 +2442,7 @@ impl DelegationSummary {
         })
     }
 
-    async fn restake_earnings(&self) -> ApiResult<bool> {
+    pub async fn restake_earnings(&self) -> ApiResult<bool> {
         self.restake_earnings.ok_or(ApiError::InternalError(
             "Delegator should have a boolean in the `restake_earnings` variable.".to_string(),
         ))
@@ -2427,6 +2503,60 @@ struct DelegatedStakeBounds {
 struct Ranking {
     rank:  i64,
     total: i64,
+}
+
+struct PaydayPoolReward {
+    block_height: BlockHeight,
+    slot_time: DateTime,
+    pool_owner: Option<i64>,
+    total_transaction_rewards: i64,
+    delegators_transaction_rewards: i64,
+    total_baking_rewards: i64,
+    delegators_baking_rewards: i64,
+    total_finalization_rewards: i64,
+    delegators_finalization_rewards: i64,
+}
+
+#[Object]
+impl PaydayPoolReward {
+    pub async fn id(&self) -> BlockHeight { self.block_height }
+
+    async fn block<'a>(&self, ctx: &Context<'a>) -> ApiResult<Block> {
+        Block::query_by_height(get_pool(ctx)?, self.block_height).await
+    }
+
+    pub async fn pool_owner(&self) -> Option<i64> { self.pool_owner }
+
+    pub async fn timestamp(&self) -> DateTime { self.slot_time }
+
+    pub async fn transaction_fees(&self) -> ApiResult<PaydayPoolRewardAmounts> {
+        Ok(PaydayPoolRewardAmounts {
+            total_amount:      self.total_transaction_rewards.try_into()?,
+            baker_amount:      (self.total_transaction_rewards
+                - self.delegators_transaction_rewards)
+                .try_into()?,
+            delegators_amount: self.delegators_transaction_rewards.try_into()?,
+        })
+    }
+
+    pub async fn baker_reward(&self) -> ApiResult<PaydayPoolRewardAmounts> {
+        Ok(PaydayPoolRewardAmounts {
+            total_amount:      self.total_baking_rewards.try_into()?,
+            baker_amount:      (self.total_baking_rewards - self.delegators_baking_rewards)
+                .try_into()?,
+            delegators_amount: self.delegators_baking_rewards.try_into()?,
+        })
+    }
+
+    pub async fn finalization_reward(&self) -> ApiResult<PaydayPoolRewardAmounts> {
+        Ok(PaydayPoolRewardAmounts {
+            total_amount:      self.total_finalization_rewards.try_into()?,
+            baker_amount:      (self.total_finalization_rewards
+                - self.delegators_finalization_rewards)
+                .try_into()?,
+            delegators_amount: self.delegators_finalization_rewards.try_into()?,
+        })
+    }
 }
 
 #[cfg(test)]

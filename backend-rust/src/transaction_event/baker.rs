@@ -150,6 +150,7 @@ impl From<concordium_rust_sdk::types::OpenStatus> for BakerPoolOpenStatus {
     }
 }
 
+#[derive(SimpleObject, Clone)]
 pub struct PaydayPoolRewardAmounts {
     // The total amount in microCCD (baker + delegators).
     pub total_amount:      u64,
@@ -169,6 +170,7 @@ impl PaydayPoolRewardAmounts {
     }
 }
 
+#[derive(SimpleObject, Clone)]
 pub struct PaydayPoolRewards {
     pub transaction_fees:   PaydayPoolRewardAmounts,
     pub block_finalization: PaydayPoolRewardAmounts,
