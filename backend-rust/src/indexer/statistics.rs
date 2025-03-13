@@ -38,8 +38,7 @@ impl Statistics {
     /// metrics_bakers by adding the increments.
     ///
     /// The SQL query adds the current counter values to the corresponding
-    /// columns: total_bakers_added, total_bakers_removed,
-    /// total_bakers_resumed, total_bakers_suspended.
+    /// columns: total_bakers_added, total_bakers_removed
     ///
     /// If no increments were recorded (i.e. current is empty), no update is
     /// performed.
