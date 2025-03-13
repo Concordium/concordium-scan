@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file.
 - Add baker metrics endpoints
 - Gathering statistics about change in amount of bakers
 - Migrate bakers statistics
-- Ensure indexing genesis block also creates baker statistics
+- Indexing genesis block creates baker metrics
 
 ## [0.1.34] - 2025-03-06
 
