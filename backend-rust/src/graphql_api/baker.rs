@@ -2301,7 +2301,7 @@ impl<'a> BakerPool<'a> {
             after,
             last,
             before,
-            config.delegators_connection_limit,
+            config.pool_rewards_connection_limit,
         )?;
         let mut row_stream = sqlx::query_as!(
             PaydayPoolReward,
@@ -2317,7 +2317,7 @@ impl<'a> BakerPool<'a> {
                     payday_total_finalization_rewards as total_finalization_rewards,
                     payday_delegators_finalization_rewards as delegators_finalization_rewards
                 FROM bakers_payday_pool_rewards
-                JOIN blocks ON blocks.height = payday_block_height
+                    JOIN blocks ON blocks.height = payday_block_height
                 WHERE pool_owner_for_primary_key = $5 
                     AND payday_block_height > $2 AND payday_block_height < $1
                 ORDER BY

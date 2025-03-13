@@ -4262,11 +4262,8 @@ impl PreparedSpecialTransactionOutcomes {
     }
 }
 
-/// Extract the rewards from the `SpecialEvents` in each payday block
-/// and associate it with the `pool_owner`.
-/// The `pool_owner` can be either a `baker_id` or `NULL`.
-/// The `pool_owner` is `NULL` if the pool rewards are for the passive
-/// delegators which can happen at most once per payday block.
+/// The `SpecialEvents` of a payday block in the order they
+/// occur in the block.
 struct PreparedPaydaySpecialTransacionOutcomes {
     /// Height of the payday block containing the events.
     block_height: i64,
@@ -4285,6 +4282,12 @@ impl PreparedPaydaySpecialTransacionOutcomes {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
+        // Extract the rewards from the `SpecialEvents` in each payday block
+        // and associate it with the `pool_owner`.
+        // The `pool_owner` can be either a `baker_id` or `None`.
+        // The `pool_owner` is `None` if the pool rewards are for the passive
+        // delegators which can happen at most once per payday block.
+        //
         // https://docs.rs/concordium-rust-sdk/6.0.0/concordium_rust_sdk/types/enum.SpecialTransactionOutcome.html#variant.PaydayAccountReward
         // The order of `SpecialEvents` in each payday block has a meaning to
         // determine which rewards go to the baker of a baker pool and which
@@ -4294,16 +4297,22 @@ impl PreparedPaydaySpecialTransacionOutcomes {
         // PaydayPoolReward to pool 1
         // PaydayAccountReward to account 5
         // PaydayAccountReward to account 6
+        // PaydayAccountReward to account 1
         // PaydayPoolReward to pool 8
+        // PaydayAccountReward to account 8
         // PaydayAccountReward to account 2
-        // Means 5, 6 are receiving rewards from delegating to 1 and 2 receive rewards
-        // from delegating to 8
+        // PaydayPoolReward to `None`
+        // PaydayAccountReward to account 10
+        // PaydayAccountReward to account 3
+        // Means 5, 6 are receiving rewards from delegating to 1 and 2 receiving rewards
+        // from delegating to 8, and 10, 3 are receiving rewards from passive
+        // delegation.
         //
         // `PaydayPoolReward` and `PaydayAccountReward` events only occure in payday
-        // blocks starting in protocol 4 and newer protocols.
+        // blocks starting in protocol 4.
         //
         // The mapping `acc_payday_pool_rewards` associates the `pool_owner` (a
-        // `baker_id` or `None`) to its `PaydayPoolRewards`. `None` in option
+        // `baker_id` or `None`) to its `PaydayPoolRewards`. The `None` value
         // tracks passive deleagation.
         let mut acc_payday_pool_rewards: HashMap<Option<u64>, PaydayPoolRewards> = HashMap::new();
         let mut last_pool_owner: Option<Option<u64>> = None;
@@ -4316,7 +4325,7 @@ impl PreparedPaydaySpecialTransacionOutcomes {
                     baker_reward,
                     finalization_reward,
                 } => {
-                    // The pool owner is `None` only if the pool reward is for the passive
+                    // The pool owner is `None` only if the pool rewards are for the passive
                     // delegators. There is only one event per
                     // payday block that rewards the passive delegators.
                     let last = pool_owner.as_ref().map(|baker_id| baker_id.id.into());
@@ -4457,10 +4466,8 @@ struct PreparedInsertBlockSpecialTransacionOutcomes {
     /// JSON serializations of `SpecialTransactionOutcome` in the order they
     /// occur in the block.
     outcomes: Vec<serde_json::Value>,
-    /// Rewards from the `SpecialEvents` in each payday block associate with its
-    /// `pool_owner`. The `pool_owner` can be either a `baker_id` or `NULL`.
-    /// The `pool_owner` is `NULL` if the pool rewards are for the passive
-    /// delegators which can happen at most once per payday block).
+    /// The `SpecialEvents` of a payday block in the order they
+    /// occur in the block.
     prepared_payday_special_transacion_outcomes: PreparedPaydaySpecialTransacionOutcomes,
 }
 
