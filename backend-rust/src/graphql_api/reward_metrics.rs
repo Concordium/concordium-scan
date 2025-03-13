@@ -34,7 +34,7 @@ impl QueryRewardMetrics {
 async fn reward_metrics(period: MetricsPeriod, account_id: Option<types::ID>, pool: &PgPool) -> ApiResult<RewardMetrics> {
     let end_time = Utc::now();
     let before_time = end_time - period.as_duration();
-    let sum_amount = sqlx::query!(
+    let before_period_row = sqlx::query!(
         r#"
         SELECT COALESCE(SUM(amount), 0) AS sum_amount
             FROM metrics_rewards

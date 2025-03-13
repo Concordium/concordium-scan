@@ -5,4 +5,4 @@ CREATE TABLE metrics_rewards
     accumulated_amount      BIGINT    NOT NULL
 );
 
-CREATE INDEX ON metrics_rewards (account_id);
+CREATE INDEX ON metrics_rewards (account_id, block_height);
