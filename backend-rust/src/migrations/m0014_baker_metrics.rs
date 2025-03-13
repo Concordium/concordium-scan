@@ -18,17 +18,16 @@ pub async fn run(
         next_schema_version
     ))?;
     let mut client = v2::Client::new(endpoint.clone()).await?;
-    let result: Option<i64> =
-        sqlx::query_scalar("SELECT height FROM blocks LIMIT 1").fetch_optional(tx.as_mut()).await?;
-    if let Some(height) = result {
+    let is_genesis_created = sqlx::query("SELECT height FROM blocks LIMIT 1")
+        .fetch_optional(tx.as_mut())
+        .await?
+        .is_some();
+    if is_genesis_created {
         let block_identifier = BlockIdentifier::AbsoluteHeight(AbsoluteBlockHeight {
-            height: height.try_into()?,
+            height: 0,
         });
-        let mut genesis_bakers_count = 0;
-        let mut stream = client.get_baker_list(block_identifier).await?.response;
-        while stream.next().await.transpose()?.is_some() {
-            genesis_bakers_count += 1;
-        }
+        let genesis_bakers_count: i64 =
+            client.get_baker_list(block_identifier).await?.response.count().await.try_into()?;
         sqlx::query(
             r#"
             INSERT INTO metrics_bakers (

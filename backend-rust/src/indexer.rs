@@ -59,7 +59,7 @@ mod db;
 mod ensure_affected_rows;
 mod statistics;
 use crate::indexer::statistics::{
-    Field::{Added, Removed},
+    BakerField::{Added, Removed},
     Statistics,
 };
 use ensure_affected_rows::EnsureAffectedRows;

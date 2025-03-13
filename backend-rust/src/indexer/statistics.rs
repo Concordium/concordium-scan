@@ -1,31 +1,36 @@
 use anyhow::Result;
 use sqlx::{Postgres, Transaction};
-use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) enum Field {
+pub(crate) enum BakerField {
     Added,
     Removed,
 }
 
 pub(crate) struct Statistics {
-    /// The counters as updated via increments.
-    current:      HashMap<Field, i64>,
-    block_height: i64,
+    baker_is_changed:    bool,
+    baker_added_count:   i64,
+    baker_removed_count: i64,
+    block_height:        i64,
 }
 
 impl Statistics {
     pub(crate) fn new(block_height: i64) -> Self {
         Statistics {
-            current: HashMap::new(),
+            baker_is_changed: false,
+            baker_added_count: 0,
+            baker_removed_count: 0,
             block_height,
         }
     }
 
     /// Increments the counter for the given field.
-    pub(crate) fn increment(&mut self, field: Field, count: i64) {
-        // Use entry to set to 0 if not present, then increment.
-        *self.current.entry(field).or_insert(0) += count;
+    pub(crate) fn increment(&mut self, field: BakerField, count: i64) {
+        match field {
+            BakerField::Removed => self.baker_removed_count += count,
+            BakerField::Added => self.baker_added_count += count,
+        }
+        self.baker_is_changed = true;
     }
 
     /// If any counter has been incremented, updates the latest row in
@@ -38,16 +43,10 @@ impl Statistics {
     /// If no increments were recorded (i.e. current is empty), no update is
     /// performed.
     pub(crate) async fn save(&self, tx: &mut Transaction<'static, Postgres>) -> Result<()> {
-        if self.current.is_empty() {
-            // No increments recorded, nothing to commit.
+        if !&self.baker_is_changed {
             return Ok(());
         }
 
-        // Retrieve the increment values for each counter, defaulting to 0.
-        let inc_added = self.current.get(&Field::Added).copied().unwrap_or(0);
-        let inc_removed = self.current.get(&Field::Removed).copied().unwrap_or(0);
-
-        // Creates a new row reflecting the newest state of statistics
         let result = sqlx::query!(
             r#"
             INSERT INTO metrics_bakers (
@@ -67,8 +66,8 @@ impl Statistics {
             )
             "#,
             self.block_height,
-            inc_added,
-            inc_removed
+            self.baker_added_count,
+            self.baker_removed_count
         )
         .execute(tx.as_mut())
         .await?;
@@ -86,8 +85,8 @@ impl Statistics {
             )
             "#,
                 self.block_height,
-                inc_added,
-                inc_removed,
+                self.baker_added_count,
+                self.baker_removed_count,
             )
             .execute(tx.as_mut())
             .await?;
