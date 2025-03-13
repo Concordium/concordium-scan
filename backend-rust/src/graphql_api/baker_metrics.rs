@@ -37,7 +37,7 @@ impl QueryBakerMetrics {
             FROM metrics_bakers
             LEFT JOIN blocks ON metrics_bakers.block_height = blocks.height
             WHERE blocks.slot_time < $1
-            ORDER BY metrics_bakers.block_height DESC
+            ORDER BY blocks.slot_time DESC
             LIMIT 1
             "#,
             before_time,
@@ -53,7 +53,7 @@ impl QueryBakerMetrics {
             FROM metrics_bakers
             LEFT JOIN blocks ON metrics_bakers.block_height = blocks.height
             WHERE blocks.slot_time < $1
-            ORDER BY metrics_bakers.block_height DESC
+            ORDER BY blocks.slot_time DESC
             LIMIT 1
             "#,
             end_time,
