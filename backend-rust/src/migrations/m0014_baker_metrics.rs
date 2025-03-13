@@ -12,7 +12,7 @@ pub async fn run(
     endpoints: &[v2::Endpoint],
     next_schema_version: SchemaVersion,
 ) -> anyhow::Result<SchemaVersion> {
-    tx.as_mut().execute(sqlx::raw_sql(include_str!("./m0013-baker-metrics.sql"))).await?;
+    tx.as_mut().execute(sqlx::raw_sql(include_str!("m0014-baker-metrics.sql"))).await?;
     let endpoint = endpoints.first().context(format!(
         "Migration '{}' must be provided access to a Concordium node",
         next_schema_version
