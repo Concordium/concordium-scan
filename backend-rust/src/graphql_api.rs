@@ -165,14 +165,14 @@ pub struct Query(
     block::QueryBlocks,
     transaction::QueryTransactions,
     account::QueryAccounts,
-    account_metrics::QueryAccountMetrics,
-    transaction_metrics::QueryTransactionMetrics,
-    block_metrics::QueryBlockMetrics,
     module_reference_event::QueryModuleReferenceEvent,
     contract::QueryContract,
     node_status::QueryNodeStatus,
     token::QueryToken,
+    account_metrics::QueryAccountMetrics,
     baker_metrics::QueryBakerMetrics,
+    block_metrics::QueryBlockMetrics,
+    transaction_metrics::QueryTransactionMetrics,
 );
 
 pub struct Service {
