@@ -4,13 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-Database schema version: 12
+## [0.1.34] - 2025-03-06
+
+Database schema version: 13
 
 ### Added
 
 - Support `include_removed` flag for `Query::bakers` query.
 - Add database migration 12 adding table tracking the removed bakers and populate the table.
 - Indexer now maintains the removed bakers table.
+
+### Fixed
+
+- Fixed bug in indexer where removed delegators still had the restake earnings flag stored as false instead of NULL.
+- Fixed bug in indexer where accumulated pool delegator count is updated after delegator is removed (only relevant for blocks prior to Protocol Version 7).
+- Fixed bug in indexer where delegators which set their target to a removed pools did not get updated, now they are moved directly to the passive pool instead (only relevant for blocks prior to Protocol Version 7).
+- Fixed bug in indexer where CIS-2 transfer events were never recorded when happening before any other token events (like a Mint). This is considered a bug in the token contract, but now the indexer still records these events.
 
 ## [0.1.33] - 2025-03-06
 

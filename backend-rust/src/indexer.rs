@@ -1975,8 +1975,21 @@ impl PreparedAccountDelegationEvent {
             }
             PreparedAccountDelegationEvent::Added {
                 account_id,
+            } => {
+                sqlx::query!(
+                    "UPDATE accounts
+                     SET delegated_stake = 0,
+                         delegated_restake_earnings = FALSE,
+                         delegated_target_baker_id = NULL
+                     WHERE index = $1",
+                    account_id,
+                )
+                .execute(tx.as_mut())
+                .await?
+                .ensure_affected_one_row()
+                .context("Failed updating delegator state to be added")?;
             }
-            | PreparedAccountDelegationEvent::Removed {
+            PreparedAccountDelegationEvent::Removed {
                 account_id,
             } => {
                 // Update the total pool stake when removed.
@@ -1984,11 +1997,7 @@ impl PreparedAccountDelegationEvent {
                 // `DelegationEvent::StakeIncrease` event and
                 // `DelegationEvent::SetDelegationTarget` event, meaning we don't have to handle
                 // updating the pool state here.
-                if let PreparedAccountDelegationEvent::Removed {
-                    ..
-                } = self
-                {
-                    sqlx::query!(
+                sqlx::query!(
                         "UPDATE bakers
                          SET pool_total_staked = pool_total_staked - accounts.delegated_stake,
                              pool_delegator_count = pool_delegator_count - 1
@@ -2001,10 +2010,13 @@ impl PreparedAccountDelegationEvent {
                     .await?
                     .ensure_affected_rows_in_range(0..=1) // No row affected when target was the passive pool.
                     .context("Failed updating pool state with removed delegator")?;
-                }
+
                 sqlx::query!(
-                    "UPDATE accounts SET delegated_stake = 0, delegated_restake_earnings = false, \
-                     delegated_target_baker_id = NULL WHERE index = $1",
+                    "UPDATE accounts
+                     SET delegated_stake = 0,
+                         delegated_restake_earnings = NULL,
+                         delegated_target_baker_id = NULL
+                     WHERE index = $1",
                     account_id
                 )
                 .execute(tx.as_mut())
@@ -2018,13 +2030,19 @@ impl PreparedAccountDelegationEvent {
                 restake_earnings,
             } => {
                 sqlx::query!(
-                    "UPDATE accounts SET delegated_restake_earnings = $1 WHERE index = $2",
+                    "UPDATE accounts
+                        SET delegated_restake_earnings = $1
+                    WHERE
+                        index = $2
+                        -- Ensure we don't update removed delegators
+                        -- (prior to P7 this was not immediate)
+                        AND delegated_restake_earnings IS NOT NULL",
                     *restake_earnings,
                     account_id
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_one_row()
+                .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed update restake earnings for delegator")?;
             }
             PreparedAccountDelegationEvent::SetDelegationTarget {
@@ -2039,7 +2057,12 @@ impl PreparedAccountDelegationEvent {
                          pool_total_staked = pool_total_staked - accounts.delegated_stake,
                          pool_delegator_count = pool_delegator_count - 1
                      FROM accounts
-                     WHERE bakers.id = accounts.delegated_target_baker_id AND accounts.index = $1",
+                     WHERE
+                         -- Only consider delegators which are not removed,
+                         -- prior to P7 this was not immediate.
+                         accounts.delegated_restake_earnings IS NOT NULL
+                         AND bakers.id = accounts.delegated_target_baker_id
+                         AND accounts.index = $1",
                     account_id
                 )
                 .execute(tx.as_mut())
@@ -2053,7 +2076,12 @@ impl PreparedAccountDelegationEvent {
                          SET pool_total_staked = pool_total_staked + accounts.delegated_stake,
                              pool_delegator_count = pool_delegator_count + 1
                          FROM accounts
-                         WHERE bakers.id = $2 AND accounts.index = $1",
+                         WHERE
+                             -- Only consider delegators which are not removed,
+                             -- prior to P7 this was not immediate.
+                             accounts.delegated_restake_earnings IS NOT NULL
+                             AND bakers.id = $2
+                             AND accounts.index = $1",
                         account_id,
                         target
                     )
@@ -2070,16 +2098,20 @@ impl PreparedAccountDelegationEvent {
                 // query, unless the new target is the passive delegation pool.
                 sqlx::query!(
                     "UPDATE accounts
-                        SET delegated_target_baker_id = $1
-                    WHERE
-                        ($1::BIGINT IS NULL OR EXISTS(SELECT TRUE FROM bakers WHERE id = $1))
-                        AND index = $2",
+                        SET delegated_target_baker_id = CASE
+                                WHEN
+                                    $1::BIGINT IS NOT NULL
+                                    AND EXISTS(SELECT TRUE FROM bakers WHERE id = $1)
+                                THEN $1
+                                ELSE NULL
+                            END
+                    WHERE index = $2",
                     *target_id,
                     account_id
                 )
                 .execute(tx.as_mut())
                 .await?
-                .ensure_affected_rows_in_range(bakers_expected_affected_range)
+                .ensure_affected_one_row()
                 .context("Failed update delegator target")?;
             }
             PreparedAccountDelegationEvent::RemoveBaker(baker_removed) => {
@@ -3705,6 +3737,36 @@ async fn process_cis2_token_event(
             .to_string();
 
             let tokens_transferred = BigDecimal::from_biguint(amount.0.clone(), 0);
+
+            // If the `token_address` does not exist (a `buggy` CIS2 token contract),
+            // insert the new token with its `total_supply` set to `0`.
+            sqlx::query!(
+                "
+                    INSERT INTO tokens (index, token_index_per_contract, token_address, \
+                 contract_index, contract_sub_index, total_supply, token_id, \
+                 init_transaction_index)
+                    VALUES (
+                        (SELECT COALESCE(MAX(index) + 1, 0) FROM tokens),
+                        (SELECT COALESCE(MAX(token_index_per_contract) + 1, 0) FROM tokens WHERE \
+                 contract_index = $2 AND contract_sub_index = $3),
+                        $1,
+                        $2,
+                        $3,
+                        0,
+                        $4,
+                        $5
+                    )
+                    ON CONFLICT (token_address)
+                    DO NOTHING",
+                token_address,
+                contract_index,
+                contract_sub_index,
+                raw_token_id.to_string(),
+                transaction_index
+            )
+            .execute(tx.as_mut())
+            .await
+            .context("Failed inserting token from transfer event")?;
 
             // If the `from` address doesn't already hold this token, insert a new row with
             // a balance of `-tokens_transferred`. Otherwise, update the existing row
