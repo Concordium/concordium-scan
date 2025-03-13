@@ -63,7 +63,6 @@ pub async fn run(
                             )
                         )
                     GROUP BY block_height
-                    ORDER BY block_height
                     )
                     SELECT
                       block_height,
