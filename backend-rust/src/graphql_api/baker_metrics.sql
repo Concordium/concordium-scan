@@ -24,7 +24,7 @@ LEFT JOIN LATERAL (
         total_bakers_removed
     FROM metrics_bakers
     LEFT JOIN blocks ON metrics_bakers.block_height = blocks.height
-    WHERE slot_time < bucket_time.bucket_end
+    WHERE slot_time <= bucket_time.bucket_end
     ORDER BY slot_time DESC
     LIMIT 1
 ) after_bucket ON true
