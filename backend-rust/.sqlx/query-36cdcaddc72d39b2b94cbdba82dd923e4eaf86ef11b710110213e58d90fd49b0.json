@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\nSELECT\n  slot_time,\n  cumulative_num_txs\nFROM blocks\nORDER BY height DESC\nLIMIT 1\n",
+  "query": "\n            SELECT\n                slot_time,\n                cumulative_num_txs\n            FROM blocks\n            ORDER BY height DESC\n            LIMIT 1\n            ",
   "describe": {
     "columns": [
       {
@@ -22,5 +22,5 @@
       false
     ]
   },
-  "hash": "f48d38e33ebc5e0b2568a6268852c94c7266a4e9af2b7fb23759aa0d36f45d6b"
+  "hash": "36cdcaddc72d39b2b94cbdba82dd923e4eaf86ef11b710110213e58d90fd49b0"
 }

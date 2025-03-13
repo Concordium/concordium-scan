@@ -536,14 +536,14 @@ impl BlockProcessor {
     ) -> anyhow::Result<Self> {
         let last_finalized_block = sqlx::query!(
             "
-SELECT
-  hash,
-  cumulative_finalization_time
-FROM blocks
-WHERE finalization_time IS NOT NULL
-ORDER BY height DESC
-LIMIT 1
-"
+            SELECT
+                hash,
+                cumulative_finalization_time
+            FROM blocks
+            WHERE finalization_time IS NOT NULL
+            ORDER BY height DESC
+            LIMIT 1
+            "
         )
         .fetch_one(&pool)
         .await
@@ -551,13 +551,13 @@ LIMIT 1
 
         let last_block = sqlx::query!(
             "
-SELECT
-  slot_time,
-  cumulative_num_txs
-FROM blocks
-ORDER BY height DESC
-LIMIT 1
-"
+            SELECT
+                slot_time,
+                cumulative_num_txs
+            FROM blocks
+            ORDER BY height DESC
+            LIMIT 1
+            "
         )
         .fetch_one(&pool)
         .await
@@ -4468,7 +4468,7 @@ struct PreparedInsertBlockSpecialTransacionOutcomes {
     outcomes: Vec<serde_json::Value>,
     /// The `SpecialEvents` of a payday block in the order they
     /// occur in the block.
-    prepared_payday_special_transacion_outcomes: PreparedPaydaySpecialTransacionOutcomes,
+    payday_special_transacion_outcomes: PreparedPaydaySpecialTransacionOutcomes,
 }
 
 impl PreparedInsertBlockSpecialTransacionOutcomes {
@@ -4481,7 +4481,7 @@ impl PreparedInsertBlockSpecialTransacionOutcomes {
         let mut outcome_type = Vec::with_capacity(events.len());
         let mut outcomes = Vec::with_capacity(events.len());
 
-        let prepared_payday_special_transacion_outcomes =
+        let payday_special_transacion_outcomes =
             PreparedPaydaySpecialTransacionOutcomes::prepare(block_height, events)?;
 
         for (block_index, event) in events.iter().enumerate() {
@@ -4500,7 +4500,7 @@ impl PreparedInsertBlockSpecialTransacionOutcomes {
             block_outcome_index,
             outcome_type,
             outcomes,
-            prepared_payday_special_transacion_outcomes,
+            payday_special_transacion_outcomes,
         })
     }
 
@@ -4531,7 +4531,8 @@ impl PreparedInsertBlockSpecialTransacionOutcomes {
         .await?
         .ensure_affected_rows(self.outcomes.len().try_into()?)?;
 
-        self.prepared_payday_special_transacion_outcomes.save(tx).await?;
+        self.payday_special_transacion_outcomes.save(tx).await?;
+
         Ok(())
     }
 }

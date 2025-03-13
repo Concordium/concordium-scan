@@ -12,6 +12,7 @@ mod m0006_fix_stake;
 mod m0008_canonical_address_and_transaction_search_index;
 mod m0010_fill_capital_bound_and_leverage_bound;
 mod m0014_baker_metrics;
+mod m0014_pool_rewards;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.
@@ -342,10 +343,8 @@ impl SchemaVersion {
                 m0014_baker_metrics::run(&mut tx, endpoints, next_schema_version).await?
             }
             SchemaVersion::BakerMetrics => {
-                tx.as_mut()
-                    .execute(sqlx::raw_sql(include_str!("./migrations/m0014-pool-rewards.sql")))
-                    .await?;
-                SchemaVersion::PaydayPoolRewards
+                let next_schema_version = SchemaVersion::PaydayPoolRewards;
+                m0014_pool_rewards::run(&mut tx, endpoints, next_schema_version).await?
             }
             SchemaVersion::PaydayPoolRewards => unimplemented!(
                 "No migration implemented for database schema version {}",
