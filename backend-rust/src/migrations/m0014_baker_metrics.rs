@@ -7,6 +7,7 @@ use concordium_rust_sdk::{
 };
 use sqlx::Executor;
 
+/// Performs a migration that creates and populates the baker metrics table.
 pub async fn run(
     tx: &mut Transaction,
     endpoints: &[v2::Endpoint],
@@ -29,7 +30,7 @@ pub async fn run(
         let genesis_bakers_count: i64 =
             client.get_baker_list(block_identifier).await?.response.count().await.try_into()?;
         sqlx::query(
-            r#"
+            "
             INSERT INTO metrics_bakers (
               block_height,
               total_bakers_added,
@@ -39,7 +40,7 @@ pub async fn run(
               $1,
               0
             )
-            "#,
+            ",
         )
         .bind(genesis_bakers_count)
         .execute(tx.as_mut())
@@ -76,5 +77,5 @@ pub async fn run(
             .await?;
     };
 
-    Ok(SchemaVersion::BakerMetrics)
+    Ok(next_schema_version)
 }

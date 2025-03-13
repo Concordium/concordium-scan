@@ -26,10 +26,11 @@ impl Statistics {
 
     /// Increments the counter for the given field.
     pub(crate) fn increment(&mut self, field: BakerField, count: i64) {
-        match field {
-            BakerField::Removed => self.baker_removed_count += count,
-            BakerField::Added => self.baker_added_count += count,
-        }
+        let counter = match field {
+            BakerField::Removed => &mut self.baker_removed_count,
+            BakerField::Added => &mut self.baker_added_count,
+        };
+        *counter += count;
         self.baker_is_changed = true;
     }
 
@@ -48,8 +49,7 @@ impl Statistics {
         }
 
         let result = sqlx::query!(
-            r#"
-            INSERT INTO metrics_bakers (
+            "INSERT INTO metrics_bakers (
               block_height,
               total_bakers_added,
               total_bakers_removed
@@ -63,18 +63,17 @@ impl Statistics {
               FROM metrics_bakers
               ORDER BY block_height DESC
               LIMIT 1
-            )
-            "#,
+            )",
             self.block_height,
             self.baker_added_count,
             self.baker_removed_count
         )
         .execute(tx.as_mut())
         .await?;
-        if result.rows_affected() == 0 {
+        let previous_baker_metrics_exists = result.rows_affected() == 0;
+        if previous_baker_metrics_exists {
             sqlx::query!(
-                r#"
-            INSERT INTO metrics_bakers (
+                "INSERT INTO metrics_bakers (
               block_height,
               total_bakers_added,
               total_bakers_removed
@@ -82,8 +81,7 @@ impl Statistics {
               $1,
               $2,
               $3
-            )
-            "#,
+            )",
                 self.block_height,
                 self.baker_added_count,
                 self.baker_removed_count,

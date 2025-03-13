@@ -30,8 +30,7 @@ impl QueryBakerMetrics {
         let before_time = end_time - period.as_duration();
 
         let before_period_row = sqlx::query!(
-            r#"
-            SELECT
+            "SELECT
                 total_bakers_added,
                 total_bakers_removed
             FROM metrics_bakers
@@ -39,23 +38,21 @@ impl QueryBakerMetrics {
             WHERE blocks.slot_time < $1
             ORDER BY blocks.slot_time DESC
             LIMIT 1
-            "#,
+            ",
             before_time,
         )
         .fetch_optional(pool)
         .await?;
 
         let last_in_period_row = sqlx::query!(
-            r#"
-            SELECT
+            "SELECT
                 total_bakers_added,
                 total_bakers_removed
             FROM metrics_bakers
             LEFT JOIN blocks ON metrics_bakers.block_height = blocks.height
             WHERE blocks.slot_time < $1
             ORDER BY blocks.slot_time DESC
-            LIMIT 1
-            "#,
+            LIMIT 1",
             end_time,
         )
         .fetch_optional(pool)

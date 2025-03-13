@@ -4,8 +4,8 @@
 CREATE TABLE metrics_bakers
 (
     block_height            BIGINT            PRIMARY KEY REFERENCES blocks(height),
-    -- total amount of added accounts at this particular block
+    -- Total amount of occurring `bakersAdded` events at the given block.
     total_bakers_added      BIGINT            NOT NULL,
-    -- total amount of removed accounts at this particular block
+    -- Total amount of occurring `bakersRemoved` events at the given block.
     total_bakers_removed    BIGINT            NOT NULL
 );
