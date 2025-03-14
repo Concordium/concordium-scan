@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+Database schema version: 14
+
 ### Added
 
 - Add baker metrics endpoints
