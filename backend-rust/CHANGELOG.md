@@ -4,8 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+Database schema version: 15
+
 ### Added
 
+- Add database migration 15 adding a table tracking rewards paid to delegators, passive delegators, and baker accounts at past payday blocks and populate the table.
+- Add query `PassiveDelegation::poolRewards` which returns the rewards paid to passive delegators at past payday blocks.
+- Add query `BakerPool::poolRewards` which returns the rewards paid to delegators and the baker at past payday blocks.
 - Support for `Query::bakers` sorting by block commission.
 
 ## [0.1.35] - 2025-03-14

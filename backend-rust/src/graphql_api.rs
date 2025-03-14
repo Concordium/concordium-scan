@@ -4,12 +4,14 @@
 mod account;
 mod account_metrics;
 mod baker;
+mod baker_and_delegator_types;
 mod baker_metrics;
 mod block;
 mod block_metrics;
 mod contract;
 mod module_reference_event;
 pub mod node_status;
+mod passive_delegation;
 mod search_result;
 mod token;
 mod transaction;
@@ -102,6 +104,8 @@ pub struct ApiServiceConfig {
     contract_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_DELEGATORS_CONNECTION_LIMIT", default_value = "100")]
     delegators_connection_limit: u64,
+    #[arg(long, env = "CCDSCAN_API_CONFIG_POOL_REWARDS_CONNECTION_LIMIT", default_value = "100")]
+    pool_rewards_connection_limit: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
@@ -161,6 +165,7 @@ pub struct ApiServiceConfig {
 #[derive(MergedObject, Default)]
 pub struct Query(
     BaseQuery,
+    passive_delegation::QueryPassiveDelegation,
     baker::QueryBaker,
     block::QueryBlocks,
     transaction::QueryTransactions,
