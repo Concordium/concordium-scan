@@ -1567,7 +1567,6 @@ impl PreparedEvent {
                 let event = concordium_rust_sdk::types::BakerEvent::BakerAdded {
                     data: event_data.clone(),
                 };
-                statistics.increment(Added, 1);
                 let prepared = PreparedBakerEvent::prepare(&event, statistics)?;
                 PreparedEvent::BakerEvents(PreparedBakerEvents {
                     events: vec![prepared],
@@ -2329,14 +2328,17 @@ impl PreparedBakerEvent {
         let prepared = match event {
             BakerEvent::BakerAdded {
                 data: details,
-            } => PreparedBakerEvent::Add {
-                baker_id:             details.keys_event.baker_id.id.index.try_into()?,
-                staked:               details.stake.micro_ccd().try_into()?,
-                restake_earnings:     details.restake_earnings,
-                delete_removed_baker: db::baker::DeleteRemovedBakerWhenPresent::prepare(
-                    &details.keys_event.baker_id,
-                )?,
-            },
+            } => {
+                statistics.increment(Added, 1);
+                PreparedBakerEvent::Add {
+                    baker_id:             details.keys_event.baker_id.id.index.try_into()?,
+                    staked:               details.stake.micro_ccd().try_into()?,
+                    restake_earnings:     details.restake_earnings,
+                    delete_removed_baker: db::baker::DeleteRemovedBakerWhenPresent::prepare(
+                        &details.keys_event.baker_id,
+                    )?,
+                }
+            }
             BakerEvent::BakerRemoved {
                 baker_id,
             } => PreparedBakerEvent::Remove(BakerRemoved::prepare(baker_id, statistics)?),
