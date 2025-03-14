@@ -17,7 +17,7 @@ pub async fn run(
     next_schema_version: SchemaVersion,
 ) -> anyhow::Result<SchemaVersion> {
     // Run database migration first to add the new table.
-    tx.as_mut().execute(sqlx::raw_sql(include_str!("./m0014-pool-rewards.sql"))).await?;
+    tx.as_mut().execute(sqlx::raw_sql(include_str!("./m0015-pool-rewards.sql"))).await?;
 
     let endpoint = endpoints.first().context(format!(
         "Migration '{}' must be provided access to a Concordium node",

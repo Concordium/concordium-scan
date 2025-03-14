@@ -4,14 +4,14 @@
 mod account;
 mod account_metrics;
 mod baker;
-mod baker_metrics;
-mod passive_delegation;
 mod baker_and_delegator_types;
+mod baker_metrics;
 mod block;
 mod block_metrics;
 mod contract;
 mod module_reference_event;
 pub mod node_status;
+mod passive_delegation;
 mod search_result;
 mod token;
 mod transaction;
