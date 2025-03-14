@@ -55,10 +55,13 @@ use std::{collections::HashSet, convert::TryInto};
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
-
 mod db;
 mod ensure_affected_rows;
-
+mod statistics;
+use crate::indexer::statistics::{
+    BakerField::{Added, Removed},
+    Statistics,
+};
 use ensure_affected_rows::EnsureAffectedRows;
 
 /// Service traversing each block of the chain, indexing it into a database.
@@ -625,9 +628,9 @@ impl ProcessEvent for BlockProcessor {
                     )
                 })?;
             }
+            block.statistics.save(&mut tx).await?;
             block.special_transaction_outcomes.save(&mut tx).await?;
             block.baker_unmark_suspended.save(&mut tx).await?;
-
             out.push_str(format!("\n- {}:{}", block.height, block.hash).as_str());
         }
         process_release_schedules(new_context.last_block_slot_time, &mut tx)
@@ -755,6 +758,15 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
     )
     .execute(&mut *tx)
     .await?;
+    let genesis_bakers_count: i64 =
+        client.get_baker_list(genesis_height).await?.response.count().await.try_into()?;
+    sqlx::query!(
+        "INSERT INTO metrics_bakers (block_height, total_bakers_added, total_bakers_removed)
+        VALUES (0, $1, 0)",
+        genesis_bakers_count,
+    )
+    .execute(&mut *tx)
+    .await?;
 
     let mut genesis_accounts = client.get_account_list(genesis_height).await?.response;
     while let Some(account) = genesis_accounts.try_next().await? {
@@ -849,6 +861,8 @@ struct PreparedBlock {
     /// Unmark the baker and signers of the Quorum Certificate from being primed
     /// for suspension.
     baker_unmark_suspended: PreparedUnmarkPrimedForSuspension,
+    /// Statistics gathered about frequency of events
+    statistics: Statistics,
 }
 
 impl PreparedBlock {
@@ -862,13 +876,16 @@ impl PreparedBlock {
         } else {
             None
         };
+        let mut statistics = Statistics::new(height);
         let total_amount =
             i64::try_from(data.tokenomics_info.common_reward_data().total_amount.micro_ccd())?;
         let total_staked = i64::try_from(data.total_staked_capital.micro_ccd())?;
         let mut prepared_block_items = Vec::new();
         for (item_summary, item) in data.events.iter().zip(data.items.iter()) {
-            prepared_block_items
-                .push(PreparedBlockItem::prepare(node_client, data, item_summary, item).await?)
+            prepared_block_items.push(
+                PreparedBlockItem::prepare(node_client, data, item_summary, item, &mut statistics)
+                    .await?,
+            )
         }
 
         let special_transaction_outcomes = PreparedSpecialTransactionOutcomes::prepare(
@@ -878,7 +895,6 @@ impl PreparedBlock {
         )
         .await?;
         let baker_unmark_suspended = PreparedUnmarkPrimedForSuspension::prepare(data)?;
-
         Ok(Self {
             hash,
             height,
@@ -890,6 +906,7 @@ impl PreparedBlock {
             prepared_block_items,
             special_transaction_outcomes,
             baker_unmark_suspended,
+            statistics,
         })
     }
 
@@ -1143,6 +1160,7 @@ impl PreparedBlockItem {
         data: &BlockData,
         item_summary: &BlockItemSummary,
         item: &BlockItem<EncodedPayload>,
+        statistics: &mut Statistics,
     ) -> anyhow::Result<Self> {
         let block_height = i64::try_from(data.finalized_block_info.height.height)?;
         let block_item_hash = item_summary.hash.to_string();
@@ -1197,7 +1215,8 @@ impl PreparedBlockItem {
             .collect();
 
         let prepared_event =
-            PreparedBlockItemEvent::prepare(node_client, data, item_summary, item).await?;
+            PreparedBlockItemEvent::prepare(node_client, data, item_summary, item, statistics)
+                .await?;
 
         Ok(Self {
             block_item_hash,
@@ -1326,6 +1345,7 @@ impl PreparedBlockItemEvent {
         data: &BlockData,
         item_summary: &BlockItemSummary,
         item: &BlockItem<EncodedPayload>,
+        statistics: &mut Statistics,
     ) -> anyhow::Result<Self> {
         match &item_summary.details {
             BlockItemSummaryDetails::AccountCreation(details) => Ok(
@@ -1344,6 +1364,7 @@ impl PreparedBlockItemEvent {
                     details,
                     item,
                     &details.sender,
+                    statistics,
                 )
                 .await?;
                 Ok(PreparedBlockItemEvent::AccountTransaction(Box::new(
@@ -1414,6 +1435,7 @@ impl PreparedEvent {
         details: &AccountTransactionDetails,
         item: &BlockItem<EncodedPayload>,
         sender: &AccountAddress,
+        statistics: &mut Statistics,
     ) -> anyhow::Result<Self> {
         let height = data.block_info.block_height;
         let prepared_event = match &details.effects {
@@ -1545,7 +1567,7 @@ impl PreparedEvent {
                 let event = concordium_rust_sdk::types::BakerEvent::BakerAdded {
                     data: event_data.clone(),
                 };
-                let prepared = PreparedBakerEvent::prepare(&event)?;
+                let prepared = PreparedBakerEvent::prepare(&event, statistics)?;
                 PreparedEvent::BakerEvents(PreparedBakerEvents {
                     events: vec![prepared],
                 })
@@ -1556,7 +1578,7 @@ impl PreparedEvent {
                 let event = concordium_rust_sdk::types::BakerEvent::BakerRemoved {
                     baker_id: *baker_id,
                 };
-                let prepared = PreparedBakerEvent::prepare(&event)?;
+                let prepared = PreparedBakerEvent::prepare(&event, statistics)?;
                 PreparedEvent::BakerEvents(PreparedBakerEvents {
                     events: vec![prepared],
                 })
@@ -1580,7 +1602,7 @@ impl PreparedEvent {
                         new_stake: update.new_stake,
                     }
                 };
-                let prepared = PreparedBakerEvent::prepare(&event)?;
+                let prepared = PreparedBakerEvent::prepare(&event, statistics)?;
 
                 PreparedEvent::BakerEvents(PreparedBakerEvents {
                     events: vec![prepared],
@@ -1595,6 +1617,7 @@ impl PreparedEvent {
                         baker_id:         *baker_id,
                         restake_earnings: *restake_earnings,
                     },
+                    statistics,
                 )?];
                 PreparedEvent::BakerEvents(PreparedBakerEvents {
                     events,
@@ -1608,7 +1631,7 @@ impl PreparedEvent {
             } => PreparedEvent::BakerEvents(PreparedBakerEvents {
                 events: events
                     .iter()
-                    .map(PreparedBakerEvent::prepare)
+                    .map(|event| PreparedBakerEvent::prepare(event, statistics))
                     .collect::<anyhow::Result<Vec<_>>>()?,
             }),
 
@@ -1663,7 +1686,7 @@ impl PreparedEvent {
             } => PreparedEvent::AccountDelegationEvents(PreparedAccountDelegationEvents {
                 events: events
                     .iter()
-                    .map(PreparedAccountDelegationEvent::prepare)
+                    .map(|event| PreparedAccountDelegationEvent::prepare(event, statistics))
                     .collect::<anyhow::Result<Vec<_>>>()?,
             }),
         };
@@ -1744,8 +1767,10 @@ impl PreparedEventEnvelope {
         details: &AccountTransactionDetails,
         item: &BlockItem<EncodedPayload>,
         sender: &AccountAddress,
+        statistics: &mut Statistics,
     ) -> anyhow::Result<Self> {
-        let event = PreparedEvent::prepare(node_client, data, details, item, sender).await?;
+        let event =
+            PreparedEvent::prepare(node_client, data, details, item, sender, statistics).await?;
         let metadata = EventMetadata {
             protocol_version: data.block_info.protocol_version,
         };
@@ -1862,7 +1887,10 @@ enum PreparedAccountDelegationEvent {
 }
 
 impl PreparedAccountDelegationEvent {
-    fn prepare(event: &concordium_rust_sdk::types::DelegationEvent) -> anyhow::Result<Self> {
+    fn prepare(
+        event: &concordium_rust_sdk::types::DelegationEvent,
+        statistics: &mut Statistics,
+    ) -> anyhow::Result<Self> {
         use concordium_rust_sdk::types::DelegationEvent;
         let prepared = match event {
             DelegationEvent::DelegationStakeIncreased {
@@ -1912,7 +1940,9 @@ impl PreparedAccountDelegationEvent {
             },
             DelegationEvent::BakerRemoved {
                 baker_id,
-            } => PreparedAccountDelegationEvent::RemoveBaker(BakerRemoved::prepare(baker_id)?),
+            } => PreparedAccountDelegationEvent::RemoveBaker(BakerRemoved::prepare(
+                baker_id, statistics,
+            )?),
         };
         Ok(prepared)
     }
@@ -2125,7 +2155,8 @@ struct BakerRemoved {
     insert_removed:  db::baker::InsertRemovedBaker,
 }
 impl BakerRemoved {
-    fn prepare(baker_id: &sdk_types::BakerId) -> anyhow::Result<Self> {
+    fn prepare(baker_id: &sdk_types::BakerId, statistics: &mut Statistics) -> anyhow::Result<Self> {
+        statistics.increment(Removed, 1);
         Ok(Self {
             move_delegators: MovePoolDelegatorsToPassivePool::prepare(baker_id)?,
             remove_baker:    RemoveBaker::prepare(baker_id)?,
@@ -2289,22 +2320,28 @@ enum PreparedBakerEvent {
     NoOperation,
 }
 impl PreparedBakerEvent {
-    fn prepare(event: &concordium_rust_sdk::types::BakerEvent) -> anyhow::Result<Self> {
+    fn prepare(
+        event: &concordium_rust_sdk::types::BakerEvent,
+        statistics: &mut Statistics,
+    ) -> anyhow::Result<Self> {
         use concordium_rust_sdk::types::BakerEvent;
         let prepared = match event {
             BakerEvent::BakerAdded {
                 data: details,
-            } => PreparedBakerEvent::Add {
-                baker_id:             details.keys_event.baker_id.id.index.try_into()?,
-                staked:               details.stake.micro_ccd().try_into()?,
-                restake_earnings:     details.restake_earnings,
-                delete_removed_baker: db::baker::DeleteRemovedBakerWhenPresent::prepare(
-                    &details.keys_event.baker_id,
-                )?,
-            },
+            } => {
+                statistics.increment(Added, 1);
+                PreparedBakerEvent::Add {
+                    baker_id:             details.keys_event.baker_id.id.index.try_into()?,
+                    staked:               details.stake.micro_ccd().try_into()?,
+                    restake_earnings:     details.restake_earnings,
+                    delete_removed_baker: db::baker::DeleteRemovedBakerWhenPresent::prepare(
+                        &details.keys_event.baker_id,
+                    )?,
+                }
+            }
             BakerEvent::BakerRemoved {
                 baker_id,
-            } => PreparedBakerEvent::Remove(BakerRemoved::prepare(baker_id)?),
+            } => PreparedBakerEvent::Remove(BakerRemoved::prepare(baker_id, statistics)?),
             BakerEvent::BakerStakeIncreased {
                 baker_id,
                 new_stake,
