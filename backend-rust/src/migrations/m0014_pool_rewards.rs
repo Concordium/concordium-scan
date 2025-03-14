@@ -73,7 +73,7 @@ pub async fn run(
         // from delegating to 8, and 10, 3 are receiving rewards from passive
         // delegation.
         //
-        // `PaydayPoolReward` and `PaydayAccountReward` events only occure in payday
+        // `PaydayPoolReward` and `PaydayAccountReward` events only occur in payday
         // blocks starting in protocol 4.
         let mut total_rewards_pool_owners: Vec<Option<i64>> = vec![];
         let mut total_transaction_rewards: Vec<i64> = vec![];
@@ -112,7 +112,7 @@ pub async fn run(
                     finalization_reward,
                     account,
                 } => {
-                    // Collect all rewards from the delegators and associate the rewards to their
+                    // Collect all rewards from the delegators and associate the rewards with their
                     // baker pools.
                     if let Some(last_pool_owner) = last_pool_owner {
                         delegators_rewards_pool_owners.push(last_pool_owner);
@@ -133,11 +133,10 @@ pub async fn run(
             .map(|x| x.0.to_vec())
             .collect::<Vec<Vec<u8>>>();
 
-        // Calculate and insert the delegators rewards.
-        // Don't record the rewards if they are associated to the baker itself
+        // Calculate and insert the delegators' rewards.
+        // Don't record the rewards if they are associated with the baker itself
         // (not a delegator) hence we check that `pool_owner IS DISTINCT FROM
         // account_index`.
-
         sqlx::query!(
             "
             INSERT INTO bakers_payday_pool_rewards (
@@ -152,56 +151,44 @@ pub async fn run(
                 pool_owner,
                 SUM(
                     CASE WHEN 
-                        pool_owner IS DISTINCT 
-                        FROM account_index 
+                        pool_owner IS DISTINCT FROM account_index
                             THEN payday_delegators_transaction_rewards 
                             ELSE 0 
                     END
                 ) AS payday_delegators_transaction_rewards,
                 SUM(
                     CASE WHEN 
-                        pool_owner IS DISTINCT 
-                        FROM account_index 
+                        pool_owner IS DISTINCT FROM account_index 
                             THEN payday_delegators_baking_rewards 
                             ELSE 0 
                     END
                 ) AS payday_delegators_baking_rewards,
                 SUM(
                     CASE 
-                    WHEN pool_owner IS DISTINCT 
-                    FROM account_index 
+                    WHEN pool_owner IS DISTINCT FROM account_index
                         THEN payday_delegators_finalization_rewards 
                         ELSE 0 
                     END
                 ) AS payday_delegators_finalization_rewards
             FROM (
                 SELECT 
-                    pool_owner, 
-                    account_index, 
-                    payday_delegators_transaction_rewards, 
-                    payday_delegators_baking_rewards, 
-                    payday_delegators_finalization_rewards
-                FROM (
-                    SELECT 
-                        pool_owner_data.pool_owner, 
-                        accounts.index AS account_index,
-                        tx_rewards.payday_delegators_transaction_rewards,
-                        baker_rewards.payday_delegators_baking_rewards,
-                        final_rewards.payday_delegators_finalization_rewards
-                    FROM 
-                        UNNEST($2::BIGINT[]) WITH ORDINALITY AS pool_owner_data(pool_owner, idx)
-                        JOIN UNNEST($3::BYTEA[]) WITH ORDINALITY AS addresses(canonical_address, \
+                    pool_owner_data.pool_owner, 
+                    accounts.index AS account_index,
+                    tx_rewards.payday_delegators_transaction_rewards,
+                    baker_rewards.payday_delegators_baking_rewards,
+                    final_rewards.payday_delegators_finalization_rewards
+                FROM 
+                    UNNEST($2::BIGINT[]) WITH ORDINALITY AS pool_owner_data(pool_owner, idx)
+                    JOIN UNNEST($3::BYTEA[]) WITH ORDINALITY AS addresses(canonical_address, \
              idx_addr) ON idx = idx_addr
-                        LEFT JOIN accounts ON accounts.canonical_address = \
-             addresses.canonical_address
-                        JOIN UNNEST($4::BIGINT[]) WITH ORDINALITY AS \
+                    LEFT JOIN accounts ON accounts.canonical_address = addresses.canonical_address
+                    JOIN UNNEST($4::BIGINT[]) WITH ORDINALITY AS \
              tx_rewards(payday_delegators_transaction_rewards, idx_tx) ON idx = idx_tx
-                        JOIN UNNEST($5::BIGINT[]) WITH ORDINALITY AS \
+                    JOIN UNNEST($5::BIGINT[]) WITH ORDINALITY AS \
              baker_rewards(payday_delegators_baking_rewards, idx_baker) ON idx = idx_baker
-                        JOIN UNNEST($6::BIGINT[]) WITH ORDINALITY AS \
+                    JOIN UNNEST($6::BIGINT[]) WITH ORDINALITY AS \
              final_rewards(payday_delegators_finalization_rewards, idx_final) ON idx = idx_final
-                ) AS rewards_data
-            ) AS rewards
+            )
             GROUP BY pool_owner;
             ",
             payday_block_height,

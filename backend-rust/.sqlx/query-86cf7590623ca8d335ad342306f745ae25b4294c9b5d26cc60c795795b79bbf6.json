@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO bakers_payday_pool_rewards (\n                payday_block_height,\n                pool_owner,\n                payday_delegators_transaction_rewards,\n                payday_delegators_baking_rewards,\n                payday_delegators_finalization_rewards\n            )\n            SELECT\n                $1 AS payday_block_height,\n                pool_owner,\n                SUM(\n                    CASE WHEN \n                        pool_owner IS DISTINCT FROM account_index\n                            THEN payday_delegators_transaction_rewards \n                            ELSE 0 \n                    END\n                ) AS payday_delegators_transaction_rewards,\n                SUM(\n                    CASE WHEN \n                        pool_owner IS DISTINCT FROM account_index \n                            THEN payday_delegators_baking_rewards \n                            ELSE 0 \n                    END\n                ) AS payday_delegators_baking_rewards,\n                SUM(\n                    CASE \n                    WHEN pool_owner IS DISTINCT FROM account_index\n                        THEN payday_delegators_finalization_rewards \n                        ELSE 0 \n                    END\n                ) AS payday_delegators_finalization_rewards\n            FROM (\n                SELECT \n                    pool_owner_data.pool_owner, \n                    accounts.index AS account_index,\n                    tx_rewards.payday_delegators_transaction_rewards,\n                    baker_rewards.payday_delegators_baking_rewards,\n                    final_rewards.payday_delegators_finalization_rewards\n                FROM \n                    UNNEST($2::BIGINT[]) WITH ORDINALITY AS pool_owner_data(pool_owner, idx)\n                    JOIN UNNEST($3::BYTEA[]) WITH ORDINALITY AS addresses(canonical_address, idx_addr) ON idx = idx_addr\n                    LEFT JOIN accounts ON accounts.canonical_address = addresses.canonical_address\n                    JOIN UNNEST($4::BIGINT[]) WITH ORDINALITY AS tx_rewards(payday_delegators_transaction_rewards, idx_tx) ON idx = idx_tx\n                    JOIN UNNEST($5::BIGINT[]) WITH ORDINALITY AS baker_rewards(payday_delegators_baking_rewards, idx_baker) ON idx = idx_baker\n                    JOIN UNNEST($6::BIGINT[]) WITH ORDINALITY AS final_rewards(payday_delegators_finalization_rewards, idx_final) ON idx = idx_final\n            )\n            GROUP BY pool_owner;\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8Array",
+        "ByteaArray",
+        "Int8Array",
+        "Int8Array",
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "86cf7590623ca8d335ad342306f745ae25b4294c9b5d26cc60c795795b79bbf6"
+}
