@@ -172,9 +172,9 @@ impl BakerFieldDescCursor {
         }
     }
 
-    fn block_commission_rate(row: &CurrentBaker) -> Self {
+    fn payday_baking_commission_rate(row: &CurrentBaker) -> Self {
         BakerFieldDescCursor {
-            field:    row.block_commission(),
+            field:    row.payday_baking_commission_rate(),
             baker_id: row.id,
         }
     }
@@ -1092,7 +1092,7 @@ impl Baker {
         type Cursor = ConcatCursor<BakerFieldDescCursor, RemovedBakerCursor>;
 
         /// Internal helper function for querying the current bakers sorted
-        /// by the pool_delegator_count in descending order.
+        /// by the block_commission in descending order.
         async fn query_current_bakers(
             query: ConnectionQuery<BakerFieldDescCursor>,
             open_status_filter: Option<BakerPoolOpenStatus>,
@@ -1148,7 +1148,8 @@ impl Baker {
             )
             .fetch(pool);
             while let Some(row) = row_stream.try_next().await? {
-                let cursor = Cursor::First(BakerFieldDescCursor::block_commission_rate(&row));
+                let cursor =
+                    Cursor::First(BakerFieldDescCursor::payday_baking_commission_rate(&row));
                 connection.edges.push(connection::Edge::new(
                     cursor.encode_cursor(),
                     Baker::Current(Box::new(row)),
@@ -1234,7 +1235,9 @@ impl Baker {
                 // sure these are last after adding current bakers.
                 connection.edges.sort_by(|left, right| {
                     left.node.cmp_baker_field(&right.node, |left, right| {
-                        left.block_commission().cmp(&right.block_commission()).reverse()
+                        left.payday_baking_commission_rate()
+                            .cmp(&right.payday_baking_commission_rate())
+                            .reverse()
                     })
                 });
             }
@@ -1307,7 +1310,7 @@ impl Baker {
                         field:    collection_ends.start_commission.unwrap_or(0),
                     };
                     collection_start_cursor
-                        < BakerFieldDescCursor::block_commission_rate(first_baker)
+                        < BakerFieldDescCursor::payday_baking_commission_rate(first_baker)
                 } else {
                     true
                 };
@@ -1317,13 +1320,13 @@ impl Baker {
                         field:    collection_ends.end_commission.unwrap_or(0),
                     };
                     connection.has_next_page = collection_end_cursor
-                        > BakerFieldDescCursor::block_commission_rate(last_item);
+                        > BakerFieldDescCursor::payday_baking_commission_rate(last_item);
                 }
             }
         }
         if include_removed_filter {
             let min_removed_baker_id =
-                sqlx::query_scalar!("SELECT MIN(id) FROM bakers_removed",).fetch_one(pool).await?;
+                sqlx::query_scalar!("SELECT MIN(id) FROM bakers_removed").fetch_one(pool).await?;
             connection.has_next_page = if let Some(min_removed_baker_id) = min_removed_baker_id {
                 last_item.node.get_id() != min_removed_baker_id
             } else {
@@ -1348,7 +1351,7 @@ impl Baker {
         type Cursor = ConcatCursor<RemovedBakerCursor, Reversed<BakerFieldDescCursor>>;
 
         /// Internal helper function for querying the current bakers sorted
-        /// by the pool_delegator_count in descending order.
+        /// by the block_commission in ascending order.
         async fn query_current_bakers(
             query: ConnectionQuery<Reversed<BakerFieldDescCursor>>,
             open_status_filter: Option<BakerPoolOpenStatus>,
@@ -1405,7 +1408,7 @@ impl Baker {
             .fetch(pool);
             while let Some(row) = row_stream.try_next().await? {
                 let cursor = Cursor::Second(Reversed::new(
-                    BakerFieldDescCursor::block_commission_rate(&row),
+                    BakerFieldDescCursor::payday_baking_commission_rate(&row),
                 ));
                 connection.edges.push(connection::Edge::new(
                     cursor.encode_cursor(),
@@ -1486,7 +1489,9 @@ impl Baker {
                     // sure these are last after adding current bakers.
                     connection.edges.sort_by(|left, right| {
                         left.node.cmp_baker_field(&right.node, |left, right| {
-                            left.block_commission().cmp(&right.block_commission()).reverse()
+                            left.payday_baking_commission_rate()
+                                .cmp(&right.payday_baking_commission_rate())
+                                .reverse()
                         })
                     });
                 }
@@ -1563,7 +1568,9 @@ impl Baker {
                         field:    collection_ends.start_commission.unwrap_or(0),
                     });
                     connection.has_previous_page = collection_start_cursor
-                        < Reversed::new(BakerFieldDescCursor::block_commission_rate(first_baker))
+                        < Reversed::new(BakerFieldDescCursor::payday_baking_commission_rate(
+                            first_baker,
+                        ))
                 }
                 connection.has_next_page = if let Baker::Current(last_item) = &last_item.node {
                     let collection_end_cursor = Reversed::new(BakerFieldDescCursor {
@@ -1571,7 +1578,9 @@ impl Baker {
                         field:    collection_ends.end_commission.unwrap_or(0),
                     });
                     collection_end_cursor
-                        > Reversed::new(BakerFieldDescCursor::block_commission_rate(last_item))
+                        > Reversed::new(BakerFieldDescCursor::payday_baking_commission_rate(
+                            last_item,
+                        ))
                 } else {
                     true
                 }
@@ -1644,9 +1653,8 @@ pub struct CurrentBaker {
     pool_delegator_count: i64,
 }
 impl CurrentBaker {
-    /// Get the relevant block commission (either the current payday baking
-    /// commission or the active baking commission).
-    fn block_commission(&self) -> i64 { self.payday_baking_commission.unwrap_or(0) }
+    /// Get the current payday baking commission rate.
+    fn payday_baking_commission_rate(&self) -> i64 { self.payday_baking_commission.unwrap_or(0) }
 
     pub async fn query_by_id(pool: &PgPool, baker_id: i64) -> ApiResult<Option<Self>> {
         Ok(sqlx::query_as!(
@@ -2164,7 +2172,9 @@ enum BakerSort {
     DelegatorCountDesc,
     BakerApy30DaysDesc,
     DelegatorApy30DaysDesc,
+    /// Sort ascending by the current payday baking commission rate.
     BlockCommissionsAsc,
+    /// Sort descending by the current payday baking commission rate.
     BlockCommissionsDesc,
 }
 

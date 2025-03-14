@@ -4,8 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-Database schema version: 13
-
 ### Added
 
 - Support for `Query::bakers` sorting by block commission.
