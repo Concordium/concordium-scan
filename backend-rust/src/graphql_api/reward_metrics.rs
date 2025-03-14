@@ -36,15 +36,18 @@ async fn reward_metrics(period: MetricsPeriod, account_id: Option<types::ID>, po
     let before_time = end_time - period.as_duration();
     let before_period_row = sqlx::query!(
         r#"
-        SELECT COALESCE(SUM(amount), 0) AS sum_amount
-            FROM metrics_rewards
-            LEFT JOIN blocks ON metrics_rewards.block_height = blocks.height
-            WHERE blocks.slot_time BETWEEN $2 AND $3
-            AND ($1 IS NULL OR account_id = $1)
+        SELECT
+            CASE
+                WHEN $1 IS NULL THEN total_accumulated_amount
+                ELSE account_accumulated_amount
+            END AS "accumulated_amount!"
+        FROM metrics_rewards
+        LEFT JOIN blocks ON metrics_rewards.block_height = blocks.height
+        WHERE blocks.slot_time < $2
+        AND ($1 IS NULL OR account_id = $1)
         "#,
         account_id,
-        before_time,
-        end_time
+        before_time
     )
     .fetch_optional(pool)
     .await?;
