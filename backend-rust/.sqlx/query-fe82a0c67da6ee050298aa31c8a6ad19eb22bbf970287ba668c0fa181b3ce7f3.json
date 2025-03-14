@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    bucket_time.bucket_start as \"bucket_time!\",\n    COALESCE(before_bucket.total_bakers_added, 0) - COALESCE(before_bucket.total_bakers_removed, 0) as \"bucket_previous_count_total!\",\n    COALESCE(after_bucket.total_bakers_added, 0) - COALESCE(before_bucket.total_bakers_added, 0) as \"bucket_bakers_added!\",\n    COALESCE(after_bucket.total_bakers_removed, 0) - COALESCE(before_bucket.total_bakers_removed, 0) as \"bucket_bakers_removed!\"\nFROM\n    date_bin_series(\n        $3::interval,\n        $2,\n        $1\n    ) AS bucket_time\nLEFT JOIN LATERAL (\n    SELECT\n        total_bakers_added,\n        total_bakers_removed\n    FROM metrics_bakers\n    LEFT JOIN blocks ON metrics_bakers.block_height = blocks.height\n    WHERE slot_time < bucket_time.bucket_start\n    ORDER BY slot_time DESC\n    LIMIT 1\n) before_bucket ON true\nLEFT JOIN LATERAL (\n    SELECT\n        total_bakers_added,\n        total_bakers_removed\n    FROM metrics_bakers\n    LEFT JOIN blocks ON metrics_bakers.block_height = blocks.height\n    WHERE slot_time < bucket_time.bucket_end\n    ORDER BY slot_time DESC\n    LIMIT 1\n) after_bucket ON true\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "bucket_time!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 1,
+        "name": "bucket_previous_count_total!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "bucket_bakers_added!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "bucket_bakers_removed!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Timestamptz",
+        "Interval"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "fe82a0c67da6ee050298aa31c8a6ad19eb22bbf970287ba668c0fa181b3ce7f3"
+}
