@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+Database schema version: 14
+
+### Added
+
+- Add baker metrics endpoints
+- Gathering statistics about change in amount of bakers
+- Migrate bakers statistics
+- Indexing genesis block creates baker metrics
+
 ## [0.1.34] - 2025-03-06
 
 Database schema version: 13

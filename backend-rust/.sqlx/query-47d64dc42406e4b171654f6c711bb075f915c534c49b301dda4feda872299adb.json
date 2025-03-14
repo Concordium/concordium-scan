@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO metrics_bakers (\n              block_height,\n              total_bakers_added,\n              total_bakers_removed\n            ) VALUES (\n              $1,\n              $2,\n              $3\n            )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "47d64dc42406e4b171654f6c711bb075f915c534c49b301dda4feda872299adb"
+}

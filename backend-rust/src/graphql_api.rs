@@ -4,6 +4,7 @@
 mod account;
 mod account_metrics;
 mod baker;
+mod baker_metrics;
 mod block;
 mod block_metrics;
 mod contract;
@@ -164,13 +165,14 @@ pub struct Query(
     block::QueryBlocks,
     transaction::QueryTransactions,
     account::QueryAccounts,
-    account_metrics::QueryAccountMetrics,
-    transaction_metrics::QueryTransactionMetrics,
-    block_metrics::QueryBlockMetrics,
     module_reference_event::QueryModuleReferenceEvent,
     contract::QueryContract,
     node_status::QueryNodeStatus,
     token::QueryToken,
+    account_metrics::QueryAccountMetrics,
+    baker_metrics::QueryBakerMetrics,
+    block_metrics::QueryBlockMetrics,
+    transaction_metrics::QueryTransactionMetrics,
 );
 
 pub struct Service {
@@ -519,8 +521,6 @@ impl BaseQuery {
             query,
         }
     }
-
-    // bakerMetrics(period: MetricsPeriod!): BakerMetrics!
 
     // rewardMetrics(period: MetricsPeriod!): RewardMetrics!
 
