@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.35] - 2025-03-14
+
 Database schema version: 14
 
 ### Added
@@ -13,7 +15,7 @@ Database schema version: 14
 - Migrate bakers statistics
 - Indexing genesis block creates baker metrics
 
-## [0.1.34] - 2025-03-06
+## [0.1.34] - 2025-03-13
 
 Database schema version: 13
 
