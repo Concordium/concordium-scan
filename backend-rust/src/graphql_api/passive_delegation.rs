@@ -1,5 +1,5 @@
 use super::{
-    baker::{DelegationSummary, PaydayPoolReward},
+    baker_and_delegator_types::{DelegationSummary, PaydayPoolReward},
     get_config, get_pool, ApiResult,
 };
 use crate::{
@@ -48,7 +48,7 @@ impl PassiveDelegation {
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, PaydayPoolReward>> {
+    ) -> ApiResult<connection::Connection<DescendingI64, PaydayPoolReward>> {
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
         let query = ConnectionQuery::<DescendingI64>::new(
@@ -90,23 +90,30 @@ impl PassiveDelegation {
 
         let mut connection = connection::Connection::new(false, false);
         while let Some(rewards) = row_stream.try_next().await? {
-            connection.edges.push(connection::Edge::new(rewards.block_height.to_string(), rewards));
+            connection.edges.push(connection::Edge::new(rewards.block_height.into(), rewards));
         }
-        if let Some(page_max_index) = connection.edges.first() {
-            if let Some(max_index) = sqlx::query_scalar!(
-                "SELECT MAX(payday_block_height) 
-                    FROM bakers_payday_pool_rewards 
-                    WHERE pool_owner_for_primary_key = -1"
+
+        if let (Some(edge_min_index), Some(edge_max_index)) =
+            (connection.edges.last(), connection.edges.first())
+        {
+            let result = sqlx::query!(
+                "
+                    SELECT 
+                        MIN(payday_block_height) as min_index,
+                        MAX(payday_block_height) as max_index
+                    FROM bakers_payday_pool_rewards
+                    WHERE pool_owner_for_primary_key = -1
+                "
             )
             .fetch_one(pool)
-            .await?
-            {
-                connection.has_previous_page = max_index > page_max_index.node.block_height;
-            }
+            .await?;
+
+            connection.has_previous_page =
+                result.max_index.map_or(false, |db_max| db_max > edge_max_index.node.block_height);
+            connection.has_next_page =
+                result.min_index.map_or(false, |db_min| db_min < edge_min_index.node.block_height);
         }
-        if let Some(edge) = connection.edges.last() {
-            connection.has_next_page = edge.node.block_height != 0;
-        }
+
         Ok(connection)
     }
 

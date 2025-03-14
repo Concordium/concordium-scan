@@ -16,10 +16,12 @@ CREATE TABLE bakers_payday_pool_rewards(
     -- E.g. 0.05 CCDs are stored as 50000.
     payday_total_transaction_rewards
         BIGINT
+        DEFAULT 0
         NOT NULL,
     -- The part of above `payday_total_transaction_rewards` that goes to pool's delgators.
     payday_delegators_transaction_rewards
         BIGINT
+        DEFAULT 0
         NOT NULL,
     -- Total baking rewards rewarded at payday to this pool owner.
     -- Some of the total baking rewards go to the `baker` running the pool while the other part goes to its delegators.
@@ -27,10 +29,12 @@ CREATE TABLE bakers_payday_pool_rewards(
     -- E.g. 0.05 CCDs are stored as 50000.
     payday_total_baking_rewards
         BIGINT
+        DEFAULT 0
         NOT NULL,
     -- The part of above `payday_total_baking_rewards` that goes to pool's delgators.
     payday_delegators_baking_rewards
         BIGINT
+        DEFAULT 0
         NOT NULL,
     -- Total finalization rewards rewarded at payday to this pool owner.
     -- Some of the total finalization rewards go to the `baker` running the pool while the other part goes to its delegators.
@@ -38,10 +42,12 @@ CREATE TABLE bakers_payday_pool_rewards(
     -- E.g. 0.05 CCDs are stored as 50000.
     payday_total_finalization_rewards
         BIGINT
+        DEFAULT 0
         NOT NULL,
     -- The part of above `payday_total_finalization_rewards` that goes to pool's delgators.
     payday_delegators_finalization_rewards
         BIGINT
+        DEFAULT 0
         NOT NULL,
     -- Use the pair of `pool_owner` and `payday_block_height` as primary key. 
     -- This creates an index to efficiently query the `BakerPool::poolRewards` and `PassiveDelegation::poolRewards`.

@@ -6,6 +6,7 @@ mod account_metrics;
 mod baker;
 mod baker_metrics;
 mod passive_delegation;
+mod baker_and_delegator_types;
 mod block;
 mod block_metrics;
 mod contract;

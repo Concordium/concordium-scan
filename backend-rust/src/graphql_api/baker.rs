@@ -1,19 +1,18 @@
 use super::{
-    account::Account, block::Block, get_config, get_pool, transaction::Transaction, ApiError,
-    ApiResult, ApiServiceConfig, ConnectionQuery,
+    account::Account,
+    baker_and_delegator_types::{DelegationSummary, PaydayPoolReward},
+    get_config, get_pool,
+    transaction::Transaction,
+    ApiError, ApiResult, ApiServiceConfig, ConnectionQuery,
 };
 use crate::{
-    address::AccountAddress,
     connection::{ConcatCursor, ConnectionBounds, DescendingI64, Reversed},
     graphql_api::{
         node_status::{NodeInfoReceiver, NodeStatus},
         todo_api,
     },
-    scalar_types::{Amount, BakerId, BlockHeight, DateTime, Decimal, MetadataUrl},
-    transaction_event::{
-        baker::{BakerPoolOpenStatus, PaydayPoolRewardAmounts},
-        Event,
-    },
+    scalar_types::{Amount, BakerId, DateTime, Decimal, MetadataUrl},
+    transaction_event::{baker::BakerPoolOpenStatus, Event},
     transaction_reject::TransactionRejectReason,
     transaction_type::{
         AccountTransactionType, CredentialDeploymentTransactionType, DbTransactionType,
@@ -2293,7 +2292,7 @@ impl<'a> BakerPool<'a> {
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, PaydayPoolReward>> {
+    ) -> ApiResult<connection::Connection<DescendingI64, PaydayPoolReward>> {
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
         let query = ConnectionQuery::<DescendingI64>::new(
@@ -2336,24 +2335,31 @@ impl<'a> BakerPool<'a> {
 
         let mut connection = connection::Connection::new(false, false);
         while let Some(rewards) = row_stream.try_next().await? {
-            connection.edges.push(connection::Edge::new(rewards.block_height.to_string(), rewards));
+            connection.edges.push(connection::Edge::new(rewards.block_height.into(), rewards));
         }
-        if let Some(page_max_index) = connection.edges.first() {
-            if let Some(max_index) = sqlx::query_scalar!(
-                "SELECT MAX(payday_block_height) 
-                    FROM bakers_payday_pool_rewards 
-                    WHERE pool_owner_for_primary_key = $1",
+
+        if let (Some(edge_min_index), Some(edge_max_index)) =
+            (connection.edges.last(), connection.edges.first())
+        {
+            let result = sqlx::query!(
+                "
+                    SELECT 
+                        MIN(payday_block_height) as min_index,
+                        MAX(payday_block_height) as max_index
+                    FROM bakers_payday_pool_rewards
+                    WHERE pool_owner_for_primary_key = $1
+                ",
                 self.id
             )
             .fetch_one(pool)
-            .await?
-            {
-                connection.has_previous_page = max_index > page_max_index.node.block_height;
-            }
+            .await?;
+
+            connection.has_previous_page =
+                result.max_index.map_or(false, |db_max| db_max > edge_max_index.node.block_height);
+            connection.has_next_page =
+                result.min_index.map_or(false, |db_min| db_min < edge_min_index.node.block_height);
         }
-        if let Some(edge) = connection.edges.last() {
-            connection.has_next_page = edge.node.block_height != 0;
-        }
+
         Ok(connection)
     }
 
@@ -2422,31 +2428,6 @@ impl<'a> BakerPool<'a> {
     }
 }
 
-pub struct DelegationSummary {
-    pub index:            i64,
-    pub account_address:  AccountAddress,
-    pub staked_amount:    i64,
-    pub restake_earnings: Option<bool>,
-}
-
-#[Object]
-impl DelegationSummary {
-    pub async fn account_address(&self) -> &AccountAddress { &self.account_address }
-
-    pub async fn staked_amount(&self) -> ApiResult<Amount> {
-        self.staked_amount.try_into().map_err(|_| {
-            ApiError::InternalError(
-                "Staked amount in database should be a valid UnsignedLong".to_string(),
-            )
-        })
-    }
-
-    pub async fn restake_earnings(&self) -> ApiResult<bool> {
-        self.restake_earnings.ok_or(ApiError::InternalError(
-            "Delegator should have a boolean in the `restake_earnings` variable.".to_string(),
-        ))
-    }
-}
 #[derive(SimpleObject)]
 struct CommissionRates {
     transaction_commission:  Option<Decimal>,
@@ -2502,60 +2483,6 @@ struct DelegatedStakeBounds {
 struct Ranking {
     rank:  i64,
     total: i64,
-}
-
-pub struct PaydayPoolReward {
-    pub block_height: BlockHeight,
-    pub slot_time: DateTime,
-    pub pool_owner: Option<i64>,
-    pub total_transaction_rewards: i64,
-    pub delegators_transaction_rewards: i64,
-    pub total_baking_rewards: i64,
-    pub delegators_baking_rewards: i64,
-    pub total_finalization_rewards: i64,
-    pub delegators_finalization_rewards: i64,
-}
-
-#[Object]
-impl PaydayPoolReward {
-    pub async fn id(&self) -> BlockHeight { self.block_height }
-
-    async fn block<'a>(&self, ctx: &Context<'a>) -> ApiResult<Block> {
-        Block::query_by_height(get_pool(ctx)?, self.block_height).await
-    }
-
-    pub async fn pool_owner(&self) -> Option<i64> { self.pool_owner }
-
-    pub async fn timestamp(&self) -> DateTime { self.slot_time }
-
-    pub async fn transaction_fees(&self) -> ApiResult<PaydayPoolRewardAmounts> {
-        Ok(PaydayPoolRewardAmounts {
-            total_amount:      self.total_transaction_rewards.try_into()?,
-            baker_amount:      (self.total_transaction_rewards
-                - self.delegators_transaction_rewards)
-                .try_into()?,
-            delegators_amount: self.delegators_transaction_rewards.try_into()?,
-        })
-    }
-
-    pub async fn baker_reward(&self) -> ApiResult<PaydayPoolRewardAmounts> {
-        Ok(PaydayPoolRewardAmounts {
-            total_amount:      self.total_baking_rewards.try_into()?,
-            baker_amount:      (self.total_baking_rewards - self.delegators_baking_rewards)
-                .try_into()?,
-            delegators_amount: self.delegators_baking_rewards.try_into()?,
-        })
-    }
-
-    pub async fn finalization_reward(&self) -> ApiResult<PaydayPoolRewardAmounts> {
-        Ok(PaydayPoolRewardAmounts {
-            total_amount:      self.total_finalization_rewards.try_into()?,
-            baker_amount:      (self.total_finalization_rewards
-                - self.delegators_finalization_rewards)
-                .try_into()?,
-            delegators_amount: self.delegators_finalization_rewards.try_into()?,
-        })
-    }
 }
 
 #[cfg(test)]

@@ -2,10 +2,9 @@ use crate::{
     block_special_event::{SpecialEvent, SpecialEventTypeFilter},
     graphql_api::AccountStatementEntryType,
     transaction_event::{
-        baker::{BakerPoolOpenStatus, PaydayPoolRewards},
-        events_from_summary,
-        smart_contracts::ModuleReferenceContractLinkAction,
-        CisBurnEvent, CisEvent, CisMintEvent, CisTokenMetadataEvent, CisTransferEvent,
+        baker::BakerPoolOpenStatus, events_from_summary,
+        smart_contracts::ModuleReferenceContractLinkAction, CisBurnEvent, CisEvent, CisMintEvent,
+        CisTokenMetadataEvent, CisTransferEvent,
     },
     transaction_reject::PreparedTransactionRejectReason,
     transaction_type::{
@@ -52,10 +51,7 @@ use prometheus_client::{
     registry::Registry,
 };
 use sqlx::PgPool;
-use std::{
-    collections::{HashMap, HashSet},
-    convert::TryInto,
-};
+use std::{collections::HashSet, convert::TryInto};
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
@@ -137,8 +133,11 @@ impl IndexerService {
     ) -> anyhow::Result<Self> {
         let last_height_stored = sqlx::query!(
             "
-SELECT height FROM blocks ORDER BY height DESC LIMIT 1
-"
+                SELECT height 
+                FROM blocks 
+                ORDER BY height 
+                DESC LIMIT 1
+            "
         )
         .fetch_optional(&pool)
         .await?
@@ -4310,12 +4309,18 @@ impl PreparedPaydaySpecialTransacionOutcomes {
         //
         // `PaydayPoolReward` and `PaydayAccountReward` events only occure in payday
         // blocks starting in protocol 4.
-        //
-        // The mapping `acc_payday_pool_rewards` associates the `pool_owner` (a
-        // `baker_id` or `None`) to its `PaydayPoolRewards`. The `None` value
-        // tracks passive deleagation.
-        let mut acc_payday_pool_rewards: HashMap<Option<u64>, PaydayPoolRewards> = HashMap::new();
-        let mut last_pool_owner: Option<Option<u64>> = None;
+        let mut total_rewards_pool_owners: Vec<Option<i64>> = vec![];
+        let mut total_transaction_rewards: Vec<i64> = vec![];
+        let mut total_baking_rewards: Vec<i64> = vec![];
+        let mut total_finalization_rewards: Vec<i64> = vec![];
+
+        let mut delegators_rewards_pool_owners: Vec<Option<i64>> = vec![];
+        let mut delegators_rewards_canonical_addresses: Vec<CanonicalAccountAddress> = vec![];
+        let mut delegators_transaction_rewards: Vec<i64> = vec![];
+        let mut delegators_baking_rewards: Vec<i64> = vec![];
+        let mut delegators_finalization_rewards: Vec<i64> = vec![];
+
+        let mut last_pool_owner: Option<Option<i64>> = None;
 
         for event in &self.events {
             match event {
@@ -4325,21 +4330,15 @@ impl PreparedPaydaySpecialTransacionOutcomes {
                     baker_reward,
                     finalization_reward,
                 } => {
-                    // The pool owner is `None` only if the pool rewards are for the passive
-                    // delegators. There is only one event per
-                    // payday block that rewards the passive delegators.
-                    let last = pool_owner.as_ref().map(|baker_id| baker_id.id.into());
+                    let pool_owner =
+                        pool_owner.map(|baker_id| baker_id.id.index.try_into()).transpose()?;
 
-                    let acc_payday_pool_rewards =
-                        acc_payday_pool_rewards.entry(last).or_insert(PaydayPoolRewards::new());
+                    total_rewards_pool_owners.push(pool_owner);
+                    total_transaction_rewards.push(transaction_fees.micro_ccd.try_into()?);
+                    total_baking_rewards.push(baker_reward.micro_ccd.try_into()?);
+                    total_finalization_rewards.push(finalization_reward.micro_ccd.try_into()?);
 
-                    acc_payday_pool_rewards.transaction_fees.total_amount =
-                        transaction_fees.micro_ccd;
-                    acc_payday_pool_rewards.block_baking.total_amount = baker_reward.micro_ccd;
-                    acc_payday_pool_rewards.block_finalization.total_amount =
-                        finalization_reward.micro_ccd;
-
-                    last_pool_owner = Some(last);
+                    last_pool_owner = Some(pool_owner);
                 }
                 SpecialTransactionOutcome::PaydayAccountReward {
                     transaction_fees,
@@ -4349,105 +4348,134 @@ impl PreparedPaydaySpecialTransacionOutcomes {
                 } => {
                     // Collect all rewards from the delegators and associate the rewards to their
                     // baker pools.
-                    if let Some(pool_owner) = last_pool_owner {
-                        if let Some(baker_id) = pool_owner {
-                            let account_index = sqlx::query_scalar!(
-                                "SELECT index
-                                    FROM accounts
-                                    WHERE address = $1",
-                                account.to_string()
-                            )
-                            .fetch_one(tx.as_mut())
-                            .await?;
-
-                            // Don't record the rewards if they are associated to the baker itself
-                            // (not a delegator).
-                            if account_index == baker_id as i64 {
-                                continue;
-                            }
-                        }
-
-                        let acc_payday_pool_rewards = acc_payday_pool_rewards
-                            .entry(pool_owner)
-                            .or_insert(PaydayPoolRewards::new());
-
-                        acc_payday_pool_rewards.transaction_fees.delegators_amount +=
-                            transaction_fees.micro_ccd;
-                        acc_payday_pool_rewards.block_baking.delegators_amount +=
-                            baker_reward.micro_ccd;
-                        acc_payday_pool_rewards.block_finalization.delegators_amount +=
-                            finalization_reward.micro_ccd;
+                    if let Some(last_pool_owner) = last_pool_owner {
+                        delegators_rewards_pool_owners.push(last_pool_owner);
+                        delegators_rewards_canonical_addresses
+                            .push(account.get_canonical_address());
+                        delegators_transaction_rewards.push(transaction_fees.micro_ccd.try_into()?);
+                        delegators_baking_rewards.push(baker_reward.micro_ccd.try_into()?);
+                        delegators_finalization_rewards
+                            .push(finalization_reward.micro_ccd.try_into()?);
                     }
                 }
                 _ => {}
             }
         }
 
-        let pool_owners: Vec<Option<i64>> = acc_payday_pool_rewards
-            .keys()
-            .map(|&r| r.map(i64::try_from).transpose())
-            .collect::<Result<_, _>>()?;
+        let delegators_rewards_canonical_addresses = delegators_rewards_canonical_addresses
+            .iter()
+            .map(|x| x.0.to_vec())
+            .collect::<Vec<Vec<u8>>>();
 
-        let total_transaction_rewards: Vec<i64> = acc_payday_pool_rewards
-            .values()
-            .map(|r| r.transaction_fees.total_amount.try_into())
-            .collect::<Result<_, _>>()?;
-
-        let delegators_transaction_rewards: Vec<i64> = acc_payday_pool_rewards
-            .values()
-            .map(|r| r.transaction_fees.delegators_amount.try_into())
-            .collect::<Result<_, _>>()?;
-        let total_baking_rewards: Vec<i64> = acc_payday_pool_rewards
-            .values()
-            .map(|r| r.block_baking.total_amount.try_into())
-            .collect::<Result<_, _>>()?;
-
-        let delegators_baking_rewards: Vec<i64> = acc_payday_pool_rewards
-            .values()
-            .map(|r| r.block_baking.delegators_amount.try_into())
-            .collect::<Result<_, _>>()?;
-
-        let total_finalization_rewards: Vec<i64> = acc_payday_pool_rewards
-            .values()
-            .map(|r| r.block_finalization.total_amount.try_into())
-            .collect::<Result<_, _>>()?;
-
-        let delegators_finalization_rewards: Vec<i64> = acc_payday_pool_rewards
-            .values()
-            .map(|r| r.block_finalization.delegators_amount.try_into())
-            .collect::<Result<_, _>>()?;
+        // Calculate and insert the delegators rewards.
+        // Don't record the rewards if they are associated to the baker itself
+        // (not a delegator) hence we check that `pool_owner IS DISTINCT FROM
+        // account_index`.
 
         sqlx::query!(
-            "INSERT INTO bakers_payday_pool_rewards (
+            "
+            INSERT INTO bakers_payday_pool_rewards (
                 payday_block_height,
                 pool_owner,
-                payday_total_transaction_rewards,
                 payday_delegators_transaction_rewards,
-                payday_total_baking_rewards,
                 payday_delegators_baking_rewards,
-                payday_total_finalization_rewards,
                 payday_delegators_finalization_rewards
             )
             SELECT
                 $1 AS payday_block_height,
-                UNNEST($2::BIGINT[]) AS pool_owner,
-                UNNEST($3::BIGINT[]) AS payday_total_transaction_rewards,
-                UNNEST($4::BIGINT[]) AS payday_delegators_transaction_rewards,
-                UNNEST($5::BIGINT[]) AS payday_total_baking_rewards,
-                UNNEST($6::BIGINT[]) AS payday_delegators_baking_rewards,
-                UNNEST($7::BIGINT[]) AS payday_total_finalization_rewards,
-                UNNEST($8::BIGINT[]) AS payday_delegators_finalization_rewards",
+                pool_owner,
+                SUM(
+                    CASE WHEN 
+                        pool_owner IS DISTINCT 
+                        FROM account_index 
+                            THEN payday_delegators_transaction_rewards 
+                            ELSE 0 
+                    END
+                ) AS payday_delegators_transaction_rewards,
+                SUM(
+                    CASE WHEN 
+                        pool_owner IS DISTINCT 
+                        FROM account_index 
+                            THEN payday_delegators_baking_rewards 
+                            ELSE 0 
+                    END
+                ) AS payday_delegators_baking_rewards,
+                SUM(
+                    CASE 
+                    WHEN pool_owner IS DISTINCT 
+                    FROM account_index 
+                        THEN payday_delegators_finalization_rewards 
+                        ELSE 0 
+                    END
+                ) AS payday_delegators_finalization_rewards
+            FROM (
+                SELECT 
+                    pool_owner, 
+                    account_index, 
+                    payday_delegators_transaction_rewards, 
+                    payday_delegators_baking_rewards, 
+                    payday_delegators_finalization_rewards
+                FROM (
+                    SELECT 
+                        pool_owner_data.pool_owner, 
+                        accounts.index AS account_index,
+                        tx_rewards.payday_delegators_transaction_rewards,
+                        baker_rewards.payday_delegators_baking_rewards,
+                        final_rewards.payday_delegators_finalization_rewards
+                    FROM 
+                        UNNEST($2::BIGINT[]) WITH ORDINALITY AS pool_owner_data(pool_owner, idx)
+                        JOIN UNNEST($3::BYTEA[]) WITH ORDINALITY AS addresses(canonical_address, \
+             idx_addr) ON idx = idx_addr
+                        LEFT JOIN accounts ON accounts.canonical_address = \
+             addresses.canonical_address
+                        JOIN UNNEST($4::BIGINT[]) WITH ORDINALITY AS \
+             tx_rewards(payday_delegators_transaction_rewards, idx_tx) ON idx = idx_tx
+                        JOIN UNNEST($5::BIGINT[]) WITH ORDINALITY AS \
+             baker_rewards(payday_delegators_baking_rewards, idx_baker) ON idx = idx_baker
+                        JOIN UNNEST($6::BIGINT[]) WITH ORDINALITY AS \
+             final_rewards(payday_delegators_finalization_rewards, idx_final) ON idx = idx_final
+                ) AS rewards_data
+            ) AS rewards
+            GROUP BY pool_owner;
+            ",
             &self.block_height,
-            &pool_owners as &[Option<i64>],
-            &total_transaction_rewards,
+            &delegators_rewards_pool_owners as &[Option<i64>],
+            &delegators_rewards_canonical_addresses,
             &delegators_transaction_rewards,
-            &total_baking_rewards,
             &delegators_baking_rewards,
-            &total_finalization_rewards,
-            &delegators_finalization_rewards,
+            &delegators_finalization_rewards
         )
         .execute(tx.as_mut())
-        .await?;
+        .await
+        .context("Failed inserting delegator rewards at payday block")?;
+
+        // Insert the total rewards.
+        sqlx::query!(
+            "
+            UPDATE bakers_payday_pool_rewards AS rewards
+            SET 
+                payday_total_transaction_rewards = data.payday_total_transaction_rewards,
+                payday_total_baking_rewards = data.payday_total_baking_rewards,
+                payday_total_finalization_rewards = data.payday_total_finalization_rewards
+            FROM (
+                SELECT
+                    UNNEST($1::BIGINT[]) AS pool_owner,
+                    UNNEST($2::BIGINT[]) AS payday_total_transaction_rewards,
+                    UNNEST($3::BIGINT[]) AS payday_total_baking_rewards,
+                    UNNEST($4::BIGINT[]) AS payday_total_finalization_rewards
+            ) AS data
+            WHERE rewards.pool_owner IS NOT DISTINCT FROM data.pool_owner
+            AND rewards.payday_block_height = $5
+            ",
+            &total_rewards_pool_owners as &[Option<i64>],
+            &total_transaction_rewards,
+            &total_baking_rewards,
+            &total_finalization_rewards,
+            &self.block_height,
+        )
+        .execute(tx.as_mut())
+        .await
+        .context("Failed inserting total rewards at payday block")?;
 
         Ok(())
     }
