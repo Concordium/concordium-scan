@@ -4266,21 +4266,21 @@ impl PreparedSpecialTransactionOutcomes {
 struct PreparedPaydaySpecialTransacionOutcomes {
     /// Height of the payday block containing the events.
     block_height: i64,
-    events:       Vec<SpecialTransactionOutcome>,
+    // Total rewards
+    total_rewards_pool_owners: Vec<Option<i64>>,
+    total_transaction_rewards: Vec<i64>,
+    total_baking_rewards: Vec<i64>,
+    total_finalization_rewards: Vec<i64>,
+    // Delegator rewards
+    delegators_rewards_pool_owners: Vec<Option<i64>>,
+    delegators_rewards_canonical_addresses: Vec<Vec<u8>>,
+    delegators_transaction_rewards: Vec<i64>,
+    delegators_baking_rewards: Vec<i64>,
+    delegators_finalization_rewards: Vec<i64>,
 }
 
 impl PreparedPaydaySpecialTransacionOutcomes {
     fn prepare(block_height: i64, events: &[SpecialTransactionOutcome]) -> anyhow::Result<Self> {
-        Ok(Self {
-            block_height,
-            events: events.to_vec(),
-        })
-    }
-
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
         // Extract the rewards from the `SpecialEvents` in each payday block
         // and associate it with the `pool_owner`.
         // The `pool_owner` can be either a `baker_id` or `None`.
@@ -4315,14 +4315,14 @@ impl PreparedPaydaySpecialTransacionOutcomes {
         let mut total_finalization_rewards: Vec<i64> = vec![];
 
         let mut delegators_rewards_pool_owners: Vec<Option<i64>> = vec![];
-        let mut delegators_rewards_canonical_addresses: Vec<CanonicalAccountAddress> = vec![];
+        let mut delegators_rewards_canonical_addresses: Vec<Vec<u8>> = vec![];
         let mut delegators_transaction_rewards: Vec<i64> = vec![];
         let mut delegators_baking_rewards: Vec<i64> = vec![];
         let mut delegators_finalization_rewards: Vec<i64> = vec![];
 
         let mut last_pool_owner: Option<Option<i64>> = None;
 
-        for event in &self.events {
+        for event in events {
             match event {
                 SpecialTransactionOutcome::PaydayPoolReward {
                     pool_owner,
@@ -4351,7 +4351,7 @@ impl PreparedPaydaySpecialTransacionOutcomes {
                     if let Some(last_pool_owner) = last_pool_owner {
                         delegators_rewards_pool_owners.push(last_pool_owner);
                         delegators_rewards_canonical_addresses
-                            .push(account.get_canonical_address());
+                            .push(account.get_canonical_address().0.to_vec());
                         delegators_transaction_rewards.push(transaction_fees.micro_ccd.try_into()?);
                         delegators_baking_rewards.push(baker_reward.micro_ccd.try_into()?);
                         delegators_finalization_rewards
@@ -4362,11 +4362,24 @@ impl PreparedPaydaySpecialTransacionOutcomes {
             }
         }
 
-        let delegators_rewards_canonical_addresses = delegators_rewards_canonical_addresses
-            .iter()
-            .map(|x| x.0.to_vec())
-            .collect::<Vec<Vec<u8>>>();
+        Ok(Self {
+            block_height,
+            total_rewards_pool_owners,
+            total_transaction_rewards,
+            total_baking_rewards,
+            total_finalization_rewards,
+            delegators_rewards_pool_owners,
+            delegators_rewards_canonical_addresses,
+            delegators_transaction_rewards,
+            delegators_baking_rewards,
+            delegators_finalization_rewards,
+        })
+    }
 
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
         // Calculate and insert the delegators' rewards.
         // Don't record the rewards if they are associated with the baker itself
         // (not a delegator) hence we check that `pool_owner IS DISTINCT FROM
@@ -4426,11 +4439,11 @@ impl PreparedPaydaySpecialTransacionOutcomes {
             GROUP BY pool_owner;
             ",
             &self.block_height,
-            &delegators_rewards_pool_owners as &[Option<i64>],
-            &delegators_rewards_canonical_addresses,
-            &delegators_transaction_rewards,
-            &delegators_baking_rewards,
-            &delegators_finalization_rewards
+            &self.delegators_rewards_pool_owners as &[Option<i64>],
+            &self.delegators_rewards_canonical_addresses,
+            &self.delegators_transaction_rewards,
+            &self.delegators_baking_rewards,
+            &self.delegators_finalization_rewards
         )
         .execute(tx.as_mut())
         .await
@@ -4454,10 +4467,10 @@ impl PreparedPaydaySpecialTransacionOutcomes {
             WHERE rewards.pool_owner IS NOT DISTINCT FROM data.pool_owner
             AND rewards.payday_block_height = $5
             ",
-            &total_rewards_pool_owners as &[Option<i64>],
-            &total_transaction_rewards,
-            &total_baking_rewards,
-            &total_finalization_rewards,
+            &self.total_rewards_pool_owners as &[Option<i64>],
+            &self.total_transaction_rewards,
+            &self.total_baking_rewards,
+            &self.total_finalization_rewards,
             &self.block_height,
         )
         .execute(tx.as_mut())

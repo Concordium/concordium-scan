@@ -3,7 +3,6 @@
 use super::{SchemaVersion, Transaction};
 use anyhow::Context;
 use concordium_rust_sdk::{
-    base::contracts_common::CanonicalAccountAddress,
     types::{AbsoluteBlockHeight, SpecialTransactionOutcome},
     v2::{self, BlockIdentifier},
 };
@@ -81,7 +80,7 @@ pub async fn run(
         let mut total_finalization_rewards: Vec<i64> = vec![];
 
         let mut delegators_rewards_pool_owners: Vec<Option<i64>> = vec![];
-        let mut delegators_rewards_canonical_addresses: Vec<CanonicalAccountAddress> = vec![];
+        let mut delegators_rewards_canonical_addresses: Vec<Vec<u8>> = vec![];
         let mut delegators_transaction_rewards: Vec<i64> = vec![];
         let mut delegators_baking_rewards: Vec<i64> = vec![];
         let mut delegators_finalization_rewards: Vec<i64> = vec![];
@@ -117,7 +116,7 @@ pub async fn run(
                     if let Some(last_pool_owner) = last_pool_owner {
                         delegators_rewards_pool_owners.push(last_pool_owner);
                         delegators_rewards_canonical_addresses
-                            .push(account.get_canonical_address());
+                            .push(account.get_canonical_address().0.to_vec());
                         delegators_transaction_rewards.push(transaction_fees.micro_ccd.try_into()?);
                         delegators_baking_rewards.push(baker_reward.micro_ccd.try_into()?);
                         delegators_finalization_rewards
@@ -127,11 +126,6 @@ pub async fn run(
                 _ => {}
             }
         }
-
-        let delegators_rewards_canonical_addresses = delegators_rewards_canonical_addresses
-            .iter()
-            .map(|x| x.0.to_vec())
-            .collect::<Vec<Vec<u8>>>();
 
         // Calculate and insert the delegators' rewards.
         // Don't record the rewards if they are associated with the baker itself
