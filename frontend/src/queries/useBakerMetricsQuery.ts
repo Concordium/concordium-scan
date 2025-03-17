@@ -25,6 +25,7 @@ const BakerMetricsQuery = gql<BakerMetricsQueryResponse>`
 
 export const useBakerMetricsQuery = (period: Ref<MetricsPeriod>) => {
 	const { data, fetching } = useQuery({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: BakerMetricsQuery,
 		requestPolicy: 'cache-and-network',
 		variables: { period },

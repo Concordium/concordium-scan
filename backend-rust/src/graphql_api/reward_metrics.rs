@@ -35,39 +35,40 @@ async fn reward_metrics(
     account_id: Option<types::ID>,
     pool: &PgPool,
 ) -> ApiResult<RewardMetrics> {
-    let end_time = Utc::now();
-    let before_time = end_time - period.as_duration();
-    let bucket_width = period.bucket_width();
-
-    let bucket_interval: PgInterval =
-        bucket_width.try_into().map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))?;
-
-    let rows = sqlx::query_file!(
-        "src/graphql_api/reward_metrics.sql",
-        end_time,
-        before_time,
-        bucket_interval
-    )
-    .fetch_all(pool)
-    .await?;
-
-    let first_row = rows.first().ok_or_else(|| {
-        ApiError::InternalError("No metrics found for the given period".to_string())
-    })?;
-
-    let (x_time, y_sum_rewards) = rows
-        .iter()
-        .map(|row| (row.bucket_time, row.after_bucket_rewards - row.before_bucket_rewards))
-        .unzip();
-
-    Ok(RewardMetrics {
-        sum_reward_amount: first_row.before_bucket_rewards,
-        buckets:           RewardMetricsBuckets {
-            bucket_width: TimeSpan(bucket_width),
-            x_time,
-            y_sum_rewards,
-        },
-    })
+    //    let end_time = Utc::now();
+    //    let before_time = end_time - period.as_duration();
+    //    let bucket_width = period.bucket_width();
+    //
+    //    let bucket_interval: PgInterval =
+    //        bucket_width.try_into().map_err(|err|
+    // ApiError::DurationOutOfRange(Arc::new(err)))?;
+    //
+    //    let rows = sqlx::query_file!(
+    //        "src/graphql_api/reward_metrics.sql",
+    //        end_time,
+    //        before_time,
+    //        bucket_interval
+    //    )
+    //    .fetch_all(pool)
+    //    .await?;
+    //
+    //    let first_row = rows.first().ok_or_else(|| {
+    //        ApiError::InternalError("No metrics found for the given
+    // period".to_string())    })?;
+    //
+    //    let (x_time, y_sum_rewards) = rows
+    //        .iter()
+    //        .map(|row| (row.bucket_time, row.after_bucket_rewards -
+    // row.before_bucket_rewards))        .unzip();
+    //
+    //    Ok(RewardMetrics {
+    //        sum_reward_amount: first_row.before_bucket_rewards,
+    //        buckets:           RewardMetricsBuckets {
+    //            bucket_width: TimeSpan(bucket_width),
+    //            x_time,
+    //            y_sum_rewards,
+    //        },
+    //    })
 }
 
 #[derive(SimpleObject)]
