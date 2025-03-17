@@ -1,10 +1,10 @@
 use super::{
     baker_and_delegator_types::{DelegationSummary, PaydayPoolReward},
-    get_config, get_pool, ApiResult,
+    get_config, get_pool, ApiError, ApiResult,
 };
 use crate::{
     connection::{ConnectionQuery, DescendingI64},
-    scalar_types::BigInteger,
+    scalar_types::{BigInteger, Decimal},
 };
 use async_graphql::{connection, Context, Object};
 use futures::TryStreamExt;
@@ -15,16 +15,31 @@ pub struct QueryPassiveDelegation;
 
 #[Object]
 impl QueryPassiveDelegation {
-    async fn passive_delegation<'a>(&self, _ctx: &Context<'a>) -> ApiResult<PassiveDelegation> {
-        Ok(PassiveDelegation {})
+    async fn passive_delegation<'a>(&self, ctx: &Context<'a>) -> ApiResult<PassiveDelegation> {
+        let pool = get_pool(ctx)?;
+
+        let passive_delegation = sqlx::query_as!(
+            PassiveDelegation,
+            "
+                SELECT 
+                    COUNT(*) as delegator_count,
+                    SUM(delegated_stake) as delegated_stake
+                FROM accounts 
+                WHERE delegated_target_baker_id IS NULL
+            ",
+        )
+        .fetch_optional(pool)
+        .await?
+        .ok_or(ApiError::NotFound)?;
+
+        Ok(passive_delegation)
     }
 }
 
 pub struct PassiveDelegation {
+    pub delegator_count: Option<i64>,
+    pub delegated_stake: Option<BigDecimal>,
     // commissionRates:  CommissionRates!
-    //
-    // "Total stake passively delegated as a percentage of all CCDs in existence."
-    // delegatedStakePercentage: Decimal!
     //
     // Query:
     // apy7days: apy(period: LAST7_DAYS)
@@ -185,39 +200,41 @@ impl PassiveDelegation {
         Ok(connection)
     }
 
-    async fn delegator_count(&self, ctx: &Context<'_>) -> ApiResult<i64> {
-        let pool = get_pool(ctx)?;
+    async fn delegator_count(&self) -> ApiResult<i64> { Ok(self.delegator_count.unwrap_or(0i64)) }
 
-        let delegator_count = sqlx::query_scalar!(
-            "
-                SELECT 
-                    COUNT(*)
-                FROM accounts 
-                WHERE delegated_target_baker_id IS NULL
-            "
-        )
-        .fetch_one(pool)
-        .await?
-        .unwrap_or(0i64);
-
-        Ok(delegator_count)
+    async fn delegated_stake(&self) -> ApiResult<BigInteger> {
+        Ok(BigInteger::from(self.delegated_stake.clone().unwrap_or_default()))
     }
 
-    async fn delegated_stake(&self, ctx: &Context<'_>) -> ApiResult<BigInteger> {
+    /// Total passively delegated stake as a percentage of all CCDs in
+    /// existence.
+    async fn delegated_stake_percentage(&self, ctx: &Context<'_>) -> ApiResult<Decimal> {
         let pool = get_pool(ctx)?;
 
-        let delegated_stake = sqlx::query_scalar!(
+        let total_ccd_amount: i64 = sqlx::query_scalar!(
             "
-                SELECT 
-                    SUM(delegated_stake)
-                FROM accounts 
-                WHERE delegated_target_baker_id IS NULL
+                SELECT total_amount 
+                FROM blocks 
+                ORDER BY height DESC 
+                LIMIT 1
             "
         )
         .fetch_one(pool)
-        .await?
-        .unwrap_or(BigDecimal::default());
+        .await?;
 
-        Ok(BigInteger::from(delegated_stake.clone()))
+        // Division by 0 is not possible because `total_ccd_amount` is always a
+        // positive number.
+        let delegated_stake_percentage: &BigDecimal =
+            &(self.delegated_stake.clone().unwrap_or_default() * 100 / total_ccd_amount);
+
+        let delegated_stake_percentage: Decimal =
+            delegated_stake_percentage.try_into().map_err(|e| {
+                ApiError::InternalError(format!(
+                    "Can not convert `delegated_stake_percentage` to `scalar_types::Decimal`: {}",
+                    e
+                ))
+            })?;
+
+        Ok(delegated_stake_percentage)
     }
 }

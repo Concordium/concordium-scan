@@ -1748,7 +1748,7 @@ impl CurrentBaker {
 
         let delegated_stake_of_pool = self.pool_total_staked - self.staked;
 
-        // Division by 0 is not possible because `pool_total_staked` is always a
+        // Division by 0 is not possible because `total_stake` is always a
         // positive number.
         let total_stake_percentage = (rust_decimal::Decimal::from(self.pool_total_staked)
             * rust_decimal::Decimal::from(100))
