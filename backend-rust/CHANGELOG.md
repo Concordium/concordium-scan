@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Baker metrics to be using the same time interval for buckets and total values.
+
 ## [0.1.35] - 2025-03-14
 
 Database schema version: 14
