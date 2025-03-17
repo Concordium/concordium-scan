@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use crate::{
     graphql_api::{ApiResult, MetricsPeriod},
     scalar_types::{DateTime, TimeSpan},
@@ -5,7 +6,8 @@ use crate::{
 use async_graphql::{types, Context, Object, SimpleObject};
 use chrono::Utc;
 use sqlx::{PgPool, Pool};
-use crate::graphql_api::get_pool;
+use sqlx::postgres::types::PgInterval;
+use crate::graphql_api::{get_pool, ApiError};
 
 #[derive(Default)]
 pub(crate) struct QueryRewardMetrics;
@@ -34,23 +36,28 @@ impl QueryRewardMetrics {
 async fn reward_metrics(period: MetricsPeriod, account_id: Option<types::ID>, pool: &PgPool) -> ApiResult<RewardMetrics> {
     let end_time = Utc::now();
     let before_time = end_time - period.as_duration();
-    let before_period_row = sqlx::query!(
-        r#"
-        SELECT
-            CASE
-                WHEN $1 IS NULL THEN total_accumulated_amount
-                ELSE account_accumulated_amount
-            END AS "accumulated_amount!"
-        FROM metrics_rewards
-        LEFT JOIN blocks ON metrics_rewards.block_height = blocks.height
-        WHERE blocks.slot_time < $2
-        AND ($1 IS NULL OR account_id = $1)
-        "#,
-        account_id,
-        before_time
+    let bucket_width = period.bucket_width();
+
+    let bucket_interval: PgInterval =
+        bucket_width.try_into().map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))?;
+
+    let rows = sqlx::query_file!(
+        "src/graphql_api/reward_metrics.sql",
+        end_time,
+        before_time,
+        bucket_interval
     )
-    .fetch_optional(pool)
+    .fetch_all(pool)
     .await?;
+
+    let first_row = rows.first().ok_or_else(|| {
+        ApiError::InternalError("No metrics found for the given period".to_string())
+    })?;
+
+    Ok(RewardMetrics {
+        sum_reward_amount
+    })
+
 
     todo!()
 }
@@ -67,7 +74,7 @@ pub struct RewardMetricsBuckets {
 
 #[derive(SimpleObject)]
 pub struct RewardMetrics {
-    /// Total bakers before the start of the period
+    /// Total rewards at the end of the period
     sum_reward_amount: u64,
     /// Bucket-wise data for bakers added, removed, and the bucket times.
     buckets:          RewardMetricsBuckets,

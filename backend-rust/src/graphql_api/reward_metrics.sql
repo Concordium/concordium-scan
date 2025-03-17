@@ -1,6 +1,7 @@
 SELECT
     bucket_time.bucket_start as "bucket_time!",
-    COALESCE(after_bucket.accumulated_amount, 0) - COALESCE(before_bucket.accumulated_amount, 0) as "bucket_rewards!"
+    COALESCE(after_bucket.accumulated_amount, 0) as "after_bucket_rewards!",
+    COALESCE(before_bucket.accumulated_amount, 0) as "before_bucket_rewards!"
 FROM
     date_bin_series(
         $3::interval,
