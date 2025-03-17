@@ -209,6 +209,8 @@ pub enum SchemaVersion {
     BakerMetrics,
     #[display("0015:Add tracking of rewards paid out to bakers and delagators in payday blocks")]
     PaydayPoolRewards,
+    #[display("0016:Passive delegation")]
+    PassiveDelgation,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -216,7 +218,7 @@ impl SchemaVersion {
     /// introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::PaydayPoolRewards;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::PaydayPoolRewards;
+    const LATEST: SchemaVersion = SchemaVersion::PassiveDelgation;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -247,6 +249,7 @@ impl SchemaVersion {
             SchemaVersion::FixDelegatedStakeEarnings => false,
             SchemaVersion::BakerMetrics => false,
             SchemaVersion::PaydayPoolRewards => false,
+            SchemaVersion::PassiveDelgation => false,
         }
     }
 
@@ -346,7 +349,15 @@ impl SchemaVersion {
                 let next_schema_version = SchemaVersion::PaydayPoolRewards;
                 m0015_pool_rewards::run(&mut tx, endpoints, next_schema_version).await?
             }
-            SchemaVersion::PaydayPoolRewards => unimplemented!(
+            SchemaVersion::PaydayPoolRewards => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0016-passive-delegation.sql"
+                    )))
+                    .await?;
+                SchemaVersion::PassiveDelgation
+            }
+            SchemaVersion::PassiveDelgation => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),

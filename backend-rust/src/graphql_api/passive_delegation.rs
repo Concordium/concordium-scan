@@ -2,10 +2,7 @@ use super::{
     baker_and_delegator_types::{DelegationSummary, PaydayPoolReward},
     get_config, get_pool, ApiResult,
 };
-use crate::{
-    connection::{ConnectionQuery, DescendingI64},
-    graphql_api::todo_api,
-};
+use crate::connection::{ConnectionQuery, DescendingI64};
 use async_graphql::{connection, Context, Object};
 use futures::TryStreamExt;
 
@@ -117,47 +114,75 @@ impl PassiveDelegation {
         Ok(connection)
     }
 
-    // Query:
-    // delegators(
-    //     after: $afterDelegators
-    //     before: $beforeDelegators
-    //     first: $firstDelegators
-    //     last: $lastDelegators
-    //   ) {
-    //     nodes {
-    //       accountAddress {
-    //         asString
-    //         __typename
-    //       }
-    //       stakedAmount
-    //       restakeEarnings
-    //       __typename
-    //     }
-    //     pageInfo {
-    //       hasNextPage
-    //       hasPreviousPage
-    //       startCursor
-    //       endCursor
-    //       __typename
-    //     }
-    //     __typename
-    //   }
-    // Schema:
-    // delegators("Returns the first _n_ elements from the list." first: Int
-    // "Returns the elements in the list that come after the specified cursor."
-    // after: String "Returns the last _n_ elements from the list." last: Int
-    // "Returns the elements in the list that come before the specified cursor."
-    // before: String): DelegatorsConnection
+    // Passive delegators are sorted descending by `staked_amount`.
     async fn delegators(
         &self,
-        _ctx: &Context<'_>,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<u64>,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        _after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<u64>,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        _before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, DelegationSummary>> {
-        todo_api!()
+        before: Option<String>,
+    ) -> ApiResult<connection::Connection<DescendingI64, DelegationSummary>> {
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+        let query = ConnectionQuery::<DescendingI64>::new(
+            first,
+            after,
+            last,
+            before,
+            config.delegators_connection_limit,
+        )?;
+        let mut row_stream = sqlx::query_as!(
+            DelegationSummary,
+            "SELECT * FROM (
+                SELECT
+                    index,
+                    address as account_address,
+                    delegated_restake_earnings as restake_earnings,
+                    delegated_stake as staked_amount
+                FROM accounts
+                WHERE delegated_target_baker_id IS NULL AND
+                    accounts.index > $2 AND accounts.index < $1
+                ORDER BY
+                    (CASE WHEN $4 THEN accounts.index END) ASC,
+                    (CASE WHEN NOT $4 THEN accounts.index END) DESC
+                LIMIT $3
+            ) AS delegators
+            ORDER BY delegators.staked_amount DESC",
+            i64::from(query.from),
+            i64::from(query.to),
+            query.limit,
+            query.is_last
+        )
+        .fetch(pool);
+        let mut connection = connection::Connection::new(false, false);
+        while let Some(delegator) = row_stream.try_next().await? {
+            connection.edges.push(connection::Edge::new(delegator.index.into(), delegator));
+        }
+
+        if let (Some(edge_min_index), Some(edge_max_index)) =
+            (connection.edges.last(), connection.edges.first())
+        {
+            let result = sqlx::query!(
+                "
+                SELECT 
+                    MAX(index) as min_index,
+                    MIN(index) as max_index
+                FROM accounts 
+                WHERE delegated_target_baker_id IS NULL
+            "
+            )
+            .fetch_one(pool)
+            .await?;
+
+            connection.has_previous_page =
+                result.max_index.map_or(false, |db_max| db_max > edge_max_index.node.index);
+            connection.has_next_page =
+                result.min_index.map_or(false, |db_min| db_min < edge_min_index.node.index);
+        }
+
+        Ok(connection)
     }
 }

@@ -1,0 +1,3 @@
+CREATE INDEX accounts_delegated_target_null_idx
+ON accounts (delegated_target_baker_id)
+WHERE delegated_target_baker_id IS NULL;
