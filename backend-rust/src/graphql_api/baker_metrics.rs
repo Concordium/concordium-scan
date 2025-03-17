@@ -39,17 +39,22 @@ impl QueryBakerMetrics {
         )
         .fetch_all(pool)
         .await?;
-        let (mut bakers_added, mut bakers_removed) = (0, 0);
+
+        let first_row = rows.first().ok_or_else(|| {
+            ApiError::InternalError("No metrics found for the given period".to_string())
+        })?;
+
+        let mut current_period_baker_count: u64 = first_row
+            .bucket_previous_count_total
+            .try_into()
+            .map_err(|_| ApiError::InternalError("Invalid initial baker count".to_string()))?;
+
+        let (mut bakers_added, mut bakers_removed) = (0i64, 0i64);
 
         let mut x_time = Vec::with_capacity(rows.len());
         let mut y_bakers_added: Vec<u64> = Vec::with_capacity(rows.len());
         let mut y_bakers_removed: Vec<u64> = Vec::with_capacity(rows.len());
         let mut y_last_baker_count: Vec<u64> = Vec::with_capacity(rows.len());
-        let mut current_period_baker_count = TryInto::<u64>::try_into(
-            rows.first()
-                .ok_or(ApiError::InternalError("".to_string()))?
-                .bucket_previous_count_total,
-        )?;
         for r in rows.iter() {
             x_time.push(r.bucket_time);
 
@@ -66,13 +71,16 @@ impl QueryBakerMetrics {
             y_last_baker_count.push(current_period_baker_count);
         }
 
+        // Verify that we have a final baker count.
+        let last_baker_count = y_last_baker_count.last().copied().ok_or_else(|| {
+            ApiError::InternalError("Failed to compute final baker count".to_string())
+        })?;
+
         Ok(BakerMetrics {
-            bakers_added:     bakers_added.try_into()?,
-            bakers_removed:   bakers_removed.try_into()?,
-            last_baker_count: *y_last_baker_count
-                .last()
-                .ok_or(ApiError::InternalError("".to_string()))?,
-            buckets:          BakerMetricsBuckets {
+            bakers_added,
+            bakers_removed,
+            last_baker_count,
+            buckets: BakerMetricsBuckets {
                 bucket_width: TimeSpan(bucket_width),
                 y_last_baker_count,
                 x_time,
