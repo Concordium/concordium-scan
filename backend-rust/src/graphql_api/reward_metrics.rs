@@ -76,6 +76,6 @@ pub struct RewardMetricsBuckets {
 pub struct RewardMetrics {
     /// Total rewards at the end of the period
     sum_reward_amount: u64,
-    /// Bucket-wise data for bakers added, removed, and the bucket times.
+    /// Bucket-wise data for rewards
     buckets:          RewardMetricsBuckets,
 }
