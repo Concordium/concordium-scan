@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT block_height\n            FROM block_special_transaction_outcomes\n            WHERE outcome_type IN ('PaydayFoundationReward', 'PaydayAccountReward', 'PaydayPoolReward')\n            GROUP BY block_height\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "block_height",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "46f9a19472e48e03eeaf78953f09e49afe6676ca0b8a1400e5ffa7a666ab8f81"
+}

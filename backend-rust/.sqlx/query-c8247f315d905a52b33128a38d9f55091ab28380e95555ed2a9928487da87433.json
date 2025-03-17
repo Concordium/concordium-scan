@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT \n                        MIN(payday_block_height) as min_index,\n                        MAX(payday_block_height) as max_index\n                    FROM bakers_payday_pool_rewards\n                    WHERE pool_owner_for_primary_key = $1\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "min_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "max_index",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "c8247f315d905a52b33128a38d9f55091ab28380e95555ed2a9928487da87433"
+}

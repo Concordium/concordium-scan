@@ -1,0 +1,74 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM (\n                SELECT\n                    payday_block_height as block_height,\n                    slot_time,\n                    pool_owner,\n                    payday_total_transaction_rewards as total_transaction_rewards,\n                    payday_delegators_transaction_rewards as delegators_transaction_rewards,\n                    payday_total_baking_rewards as total_baking_rewards,\n                    payday_delegators_baking_rewards as delegators_baking_rewards,\n                    payday_total_finalization_rewards as total_finalization_rewards,\n                    payday_delegators_finalization_rewards as delegators_finalization_rewards\n                FROM bakers_payday_pool_rewards\n                    JOIN blocks ON blocks.height = payday_block_height\n                WHERE pool_owner_for_primary_key = $5 \n                    AND payday_block_height > $2 AND payday_block_height < $1\n                ORDER BY\n                    (CASE WHEN $4 THEN payday_block_height END) ASC,\n                    (CASE WHEN NOT $4 THEN payday_block_height END) DESC\n                LIMIT $3\n                ) AS rewards\n            ORDER BY rewards.block_height DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "block_height",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "slot_time",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 2,
+        "name": "pool_owner",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "total_transaction_rewards",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "delegators_transaction_rewards",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "total_baking_rewards",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "delegators_baking_rewards",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "total_finalization_rewards",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "delegators_finalization_rewards",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Bool",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "1281e0abfe0333f68e0b2f52aaccdff5272f95b59c2850888c125965c071cc6f"
+}

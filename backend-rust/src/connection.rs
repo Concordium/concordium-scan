@@ -84,7 +84,9 @@ impl From<i64> for DescendingI64 {
 
 /// GraphQL Connection Cursor representing a collection where the pages are
 /// reversed order.
-#[derive(Debug, Clone)]
+/// This wrapper flips the start and end bounds of the [`ConnectionBound`] and
+/// implements [`Ord`] which is reverse of the inner type.
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct Reversed<Cursor> {
     pub inner: Cursor,
@@ -117,6 +119,22 @@ where
     }
 
     fn encode_cursor(&self) -> String { self.inner.encode_cursor() }
+}
+
+impl<C> PartialOrd for Reversed<C>
+where
+    C: PartialOrd,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.inner.partial_cmp(&other.inner).map(|ord| ord.reverse())
+    }
+}
+
+impl<C> Ord for Reversed<C>
+where
+    C: Ord,
+{
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering { self.inner.cmp(&other.inner).reverse() }
 }
 
 /// Construct for combining two connection cursors into one, where the two

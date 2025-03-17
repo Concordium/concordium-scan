@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\nSELECT\n  hash,\n  cumulative_finalization_time\nFROM blocks\nWHERE finalization_time IS NOT NULL\nORDER BY height DESC\nLIMIT 1\n",
+  "query": "\n            SELECT\n                hash,\n                cumulative_finalization_time\n            FROM blocks\n            WHERE finalization_time IS NOT NULL\n            ORDER BY height DESC\n            LIMIT 1\n            ",
   "describe": {
     "columns": [
       {
@@ -22,5 +22,5 @@
       true
     ]
   },
-  "hash": "36e4dfcc33f6337ec3abbda670a4a9e07dffde8ba68145c2e519d27eadbd8b12"
+  "hash": "79524f9943d92565a99d0dedfa766f55e28d2153a23dc9b3a099b4e1905fa411"
 }
