@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 Database schema version: 15
 
+### Fixed
+
+- Baker metrics to be using the same time interval for buckets and total values.
+
 ### Added
 
 - Add database migration 15 adding a table tracking rewards paid to delegators, passive delegators, and baker accounts at past payday blocks and populate the table.
