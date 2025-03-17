@@ -1,13 +1,11 @@
-use std::sync::Arc;
 use crate::{
-    graphql_api::{ApiResult, MetricsPeriod},
+    graphql_api::{get_pool, ApiError, ApiResult, MetricsPeriod},
     scalar_types::{DateTime, TimeSpan},
 };
 use async_graphql::{types, Context, Object, SimpleObject};
 use chrono::Utc;
-use sqlx::{PgPool, Pool};
-use sqlx::postgres::types::PgInterval;
-use crate::graphql_api::{get_pool, ApiError};
+use sqlx::{postgres::types::PgInterval, PgPool};
+use std::sync::Arc;
 
 #[derive(Default)]
 pub(crate) struct QueryRewardMetrics;
@@ -26,14 +24,17 @@ impl QueryRewardMetrics {
         &self,
         ctx: &Context<'a>,
         period: MetricsPeriod,
-        account_id: types::ID
+        account_id: types::ID,
     ) -> ApiResult<RewardMetrics> {
         reward_metrics(period, Some(account_id), get_pool(ctx)?).await
     }
-
 }
 
-async fn reward_metrics(period: MetricsPeriod, account_id: Option<types::ID>, pool: &PgPool) -> ApiResult<RewardMetrics> {
+async fn reward_metrics(
+    period: MetricsPeriod,
+    account_id: Option<types::ID>,
+    pool: &PgPool,
+) -> ApiResult<RewardMetrics> {
     let end_time = Utc::now();
     let before_time = end_time - period.as_duration();
     let bucket_width = period.bucket_width();
@@ -54,28 +55,35 @@ async fn reward_metrics(period: MetricsPeriod, account_id: Option<types::ID>, po
         ApiError::InternalError("No metrics found for the given period".to_string())
     })?;
 
+    let (x_time, y_sum_rewards) = rows
+        .iter()
+        .map(|row| (row.bucket_time, row.after_bucket_rewards - row.before_bucket_rewards))
+        .unzip();
+
     Ok(RewardMetrics {
-        sum_reward_amount
+        sum_reward_amount: first_row.before_bucket_rewards,
+        buckets:           RewardMetricsBuckets {
+            bucket_width: TimeSpan(bucket_width),
+            x_time,
+            y_sum_rewards,
+        },
     })
-
-
-    todo!()
 }
 
 #[derive(SimpleObject)]
 pub struct RewardMetricsBuckets {
     /// The width (time interval) of each bucket.
-    bucket_width:       TimeSpan,
+    bucket_width:  TimeSpan,
     #[graphql(name = "x_Time")]
-    x_time:             Vec<DateTime>,
+    x_time:        Vec<DateTime>,
     #[graphql(name = "y_SumRewards")]
-    y_bakers_added:     Vec<u64>,
+    y_sum_rewards: Vec<u64>,
 }
 
 #[derive(SimpleObject)]
 pub struct RewardMetrics {
-    /// Total rewards at the end of the period
+    /// Total rewards at the end of the interval
     sum_reward_amount: u64,
     /// Bucket-wise data for rewards
-    buckets:          RewardMetricsBuckets,
+    buckets:           RewardMetricsBuckets,
 }

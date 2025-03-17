@@ -10,11 +10,11 @@ mod block_metrics;
 mod contract;
 mod module_reference_event;
 pub mod node_status;
+mod reward_metrics;
 mod search_result;
 mod token;
 mod transaction;
 mod transaction_metrics;
-mod reward_metrics;
 
 // TODO remove this macro, when done with first iteration
 /// Short hand for returning API error with the message not implemented.
