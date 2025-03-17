@@ -2,9 +2,13 @@ use super::{
     baker_and_delegator_types::{DelegationSummary, PaydayPoolReward},
     get_config, get_pool, ApiResult,
 };
-use crate::connection::{ConnectionQuery, DescendingI64};
+use crate::{
+    connection::{ConnectionQuery, DescendingI64},
+    scalar_types::BigInteger,
+};
 use async_graphql::{connection, Context, Object};
 use futures::TryStreamExt;
+use sqlx::types::BigDecimal;
 
 #[derive(Default)]
 pub struct QueryPassiveDelegation;
@@ -18,9 +22,6 @@ impl QueryPassiveDelegation {
 
 pub struct PassiveDelegation {
     // commissionRates:  CommissionRates!
-    //
-    // "The total amount staked by delegators to passive delegation."
-    // delegatedStake: UnsignedLong!
     //
     // "Total stake passively delegated as a percentage of all CCDs in existence."
     // delegatedStakePercentage: Decimal!
@@ -200,5 +201,23 @@ impl PassiveDelegation {
         .unwrap_or(0i64);
 
         Ok(delegator_count)
+    }
+
+    async fn delegated_stake(&self, ctx: &Context<'_>) -> ApiResult<BigInteger> {
+        let pool = get_pool(ctx)?;
+
+        let delegated_stake = sqlx::query_scalar!(
+            "
+                SELECT 
+                    SUM(delegated_stake)
+                FROM accounts 
+                WHERE delegated_target_baker_id IS NULL
+            "
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(BigDecimal::default());
+
+        Ok(BigInteger::from(delegated_stake.clone()))
     }
 }
