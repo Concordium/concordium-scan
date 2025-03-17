@@ -42,7 +42,8 @@ async fn reward_metrics(
     let bucket_interval: PgInterval =
         bucket_width.try_into().map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))?;
 
-    let value: Option<i64> = account_id.map(|x| x.try_into().map_err(ApiError::InvalidIdInt).unwrap());
+    let value: Option<i64> =
+        account_id.map(|x| x.try_into().map_err(ApiError::InvalidIdInt)).transpose()?;
 
     let rows = sqlx::query_file!(
         "src/graphql_api/reward_metrics.sql",
@@ -54,11 +55,12 @@ async fn reward_metrics(
     .fetch_all(pool)
     .await?;
 
-    let first_row = rows.first().ok_or_else(|| {
-        ApiError::InternalError(
-            "No metrics found for the given period".to_string(),
-        )
-    })?;
+    let sum_reward_amount: u64 = match rows.first() {
+        None => Err(ApiError::InternalError("No metrics found for the given period".to_string())),
+        Some(row) => row.before_bucket_rewards.try_into().map_err(|_| {
+            ApiError::InternalError("Returned reward for entity is less than 0".to_string())
+        }),
+    }?;
 
     let (x_time, y_sum_rewards) = rows
         .iter()
@@ -66,8 +68,8 @@ async fn reward_metrics(
         .unzip();
 
     Ok(RewardMetrics {
-        sum_reward_amount: first_row.before_bucket_rewards.try_into().unwrap(),
-        buckets:           RewardMetricsBuckets {
+        sum_reward_amount,
+        buckets: RewardMetricsBuckets {
             bucket_width: TimeSpan(bucket_width),
             x_time,
             y_sum_rewards,
@@ -88,7 +90,7 @@ pub struct RewardMetricsBuckets {
 #[derive(SimpleObject)]
 pub struct RewardMetrics {
     /// Total rewards at the end of the interval
-    sum_reward_amount: i64,
+    sum_reward_amount: u64,
     /// Bucket-wise data for rewards
     buckets:           RewardMetricsBuckets,
 }
