@@ -49,8 +49,7 @@ impl QueryBakerMetrics {
             .try_into()
             .map_err(|_| ApiError::InternalError("Invalid initial baker count".to_string()))?;
 
-        let (mut bakers_added, mut bakers_removed) = (0i64, 0i64);
-
+        let (mut bakers_added, mut bakers_removed) = (0, 0);
         let mut x_time = Vec::with_capacity(rows.len());
         let mut y_bakers_added: Vec<u64> = Vec::with_capacity(rows.len());
         let mut y_bakers_removed: Vec<u64> = Vec::with_capacity(rows.len());
@@ -71,14 +70,13 @@ impl QueryBakerMetrics {
             y_last_baker_count.push(current_period_baker_count);
         }
 
-        // Verify that we have a final baker count.
         let last_baker_count = y_last_baker_count.last().copied().ok_or_else(|| {
             ApiError::InternalError("Failed to compute final baker count".to_string())
         })?;
 
         Ok(BakerMetrics {
-            bakers_added,
-            bakers_removed,
+            bakers_added: bakers_added.try_into()?,
+            bakers_removed: bakers_removed.try_into()?,
             last_baker_count,
             buckets: BakerMetricsBuckets {
                 bucket_width: TimeSpan(bucket_width),
