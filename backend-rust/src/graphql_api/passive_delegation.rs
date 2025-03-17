@@ -1,5 +1,5 @@
 use super::{
-    baker_and_delegator_types::{DelegationSummary, PaydayPoolReward},
+    baker_and_delegator_types::{CommissionRates, DelegationSummary, PaydayPoolReward},
     get_config, get_pool, ApiError, ApiResult,
 };
 use crate::{
@@ -7,6 +7,7 @@ use crate::{
     scalar_types::{BigInteger, Decimal},
 };
 use async_graphql::{connection, Context, Object};
+use concordium_rust_sdk::types::AmountFraction;
 use futures::TryStreamExt;
 use sqlx::types::BigDecimal;
 
@@ -22,11 +23,19 @@ impl QueryPassiveDelegation {
             PassiveDelegation,
             "
                 SELECT 
-                    COUNT(*) as delegator_count,
-                    SUM(delegated_stake) as delegated_stake
+                    COUNT(*) AS delegator_count,
+                    SUM(delegated_stake) AS delegated_stake,
+                    payday_transaction_commission,
+                    payday_baking_commission,             
+                    payday_finalization_commission
                 FROM accounts 
+                 JOIN passive_delegation_payday_commission_rates ON id = TRUE
                 WHERE delegated_target_baker_id IS NULL
-            ",
+                GROUP BY 
+                    payday_transaction_commission,
+                    payday_baking_commission,
+                    payday_finalization_commission
+            "
         )
         .fetch_optional(pool)
         .await?
@@ -36,10 +45,12 @@ impl QueryPassiveDelegation {
     }
 }
 
-pub struct PassiveDelegation {
-    pub delegator_count: Option<i64>,
-    pub delegated_stake: Option<BigDecimal>,
-    // commissionRates:  CommissionRates!
+struct PassiveDelegation {
+    delegator_count:                Option<i64>,
+    delegated_stake:                Option<BigDecimal>,
+    payday_transaction_commission:  Option<i64>,
+    payday_baking_commission:       Option<i64>,
+    payday_finalization_commission: Option<i64>,
     //
     // Query:
     // apy7days: apy(period: LAST7_DAYS)
@@ -236,5 +247,28 @@ impl PassiveDelegation {
             })?;
 
         Ok(delegated_stake_percentage)
+    }
+
+    async fn commission_rates(&self) -> ApiResult<CommissionRates> {
+        let payday_transaction_commission = self
+            .payday_transaction_commission
+            .map(u32::try_from)
+            .transpose()?
+            .map(|c| AmountFraction::new_unchecked(c).into());
+        let payday_baking_commission = self
+            .payday_baking_commission
+            .map(u32::try_from)
+            .transpose()?
+            .map(|c| AmountFraction::new_unchecked(c).into());
+        let payday_finalization_commission = self
+            .payday_finalization_commission
+            .map(u32::try_from)
+            .transpose()?
+            .map(|c| AmountFraction::new_unchecked(c).into());
+        Ok(CommissionRates {
+            transaction_commission:  payday_transaction_commission,
+            baking_commission:       payday_baking_commission,
+            finalization_commission: payday_finalization_commission,
+        })
     }
 }

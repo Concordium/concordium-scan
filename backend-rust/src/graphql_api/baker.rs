@@ -1,6 +1,6 @@
 use super::{
     account::Account,
-    baker_and_delegator_types::{DelegationSummary, PaydayPoolReward},
+    baker_and_delegator_types::{CommissionRates, DelegationSummary, PaydayPoolReward},
     get_config, get_pool,
     transaction::Transaction,
     ApiError, ApiResult, ApiServiceConfig, ConnectionQuery,
@@ -2426,13 +2426,6 @@ impl<'a> BakerPool<'a> {
         }
         Ok(connection)
     }
-}
-
-#[derive(SimpleObject)]
-struct CommissionRates {
-    transaction_commission:  Option<Decimal>,
-    finalization_commission: Option<Decimal>,
-    baking_commission:       Option<Decimal>,
 }
 
 struct DelegatedStakeBounds {
