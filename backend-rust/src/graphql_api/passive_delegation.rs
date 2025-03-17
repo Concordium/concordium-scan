@@ -19,8 +19,6 @@ impl QueryPassiveDelegation {
 pub struct PassiveDelegation {
     // commissionRates:  CommissionRates!
     //
-    // delegatorCount: Int!
-    //
     // "The total amount staked by delegators to passive delegation."
     // delegatedStake: UnsignedLong!
     //
@@ -184,5 +182,23 @@ impl PassiveDelegation {
         }
 
         Ok(connection)
+    }
+
+    async fn delegator_count(&self, ctx: &Context<'_>) -> ApiResult<i64> {
+        let pool = get_pool(ctx)?;
+
+        let delegator_count = sqlx::query_scalar!(
+            "
+                SELECT 
+                    COUNT(*)
+                FROM accounts 
+                WHERE delegated_target_baker_id IS NULL
+            "
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0i64);
+
+        Ok(delegator_count)
     }
 }

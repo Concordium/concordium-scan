@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT \n                    COUNT(*)\n                FROM accounts \n                WHERE delegated_target_baker_id IS NULL\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "2f93e5f1dd60ced8ad1fc35f3271c053be6414714d8f3da07826960f00106364"
+}
