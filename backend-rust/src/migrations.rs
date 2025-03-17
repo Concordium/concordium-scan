@@ -216,9 +216,9 @@ impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking database schema versions have been
     /// introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::PaydayPoolRewards;
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::RewardMetrics;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::PaydayPoolRewards;
+    const LATEST: SchemaVersion = SchemaVersion::RewardMetrics;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.

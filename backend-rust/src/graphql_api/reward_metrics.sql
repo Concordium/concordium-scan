@@ -11,22 +11,22 @@ FROM
 LEFT JOIN LATERAL (
     SELECT
         CASE
-            WHEN $1 IS NULL THEN total_accumulated_amount
+            WHEN $4::BIGINT IS NULL THEN total_accumulated_amount
             ELSE account_accumulated_amount
         END AS accumulated_amount
     FROM metrics_rewards
     LEFT JOIN blocks ON metrics_rewards.block_height = blocks.height
-    WHERE slot_time < bucket_time.bucket_end AND ($1 IS NULL OR account_id = $1)
+    WHERE slot_time < bucket_time.bucket_end AND ($4::BIGINT IS NULL OR account_id = $4::BIGINT)
     LIMIT 1
 ) before_bucket ON true
 LEFT JOIN LATERAL (
     SELECT
         CASE
-            WHEN $1 IS NULL THEN total_accumulated_amount
+            WHEN $4::BIGINT IS NULL THEN total_accumulated_amount
             ELSE account_accumulated_amount
         END AS accumulated_amount
     FROM metrics_rewards
     LEFT JOIN blocks ON metrics_rewards.block_height = blocks.height
-    WHERE slot_time < bucket_time.bucket_start AND ($1 IS NULL OR account_id = $1)
+    WHERE slot_time < bucket_time.bucket_start AND ($4::BIGINT IS NULL OR account_id = $4::BIGINT)
     LIMIT 1
 ) after_bucket ON true
