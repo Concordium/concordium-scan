@@ -19,22 +19,22 @@ impl QueryPassiveDelegation {
     async fn passive_delegation<'a>(&self, ctx: &Context<'a>) -> ApiResult<PassiveDelegation> {
         let pool = get_pool(ctx)?;
 
+        // The `passive_delegation_payday_commission_rates` table has at most one row.
+        // As such taking the `MAX()` of its fields does not change the field
+        // value.
         let passive_delegation = sqlx::query_as!(
             PassiveDelegation,
             "
                 SELECT 
                     COUNT(*) AS delegator_count,
                     SUM(delegated_stake) AS delegated_stake,
-                    payday_transaction_commission,
-                    payday_baking_commission,             
-                    payday_finalization_commission
+                    MAX(payday_transaction_commission) as payday_transaction_commission,
+                    MAX(payday_baking_commission) as payday_baking_commission,             
+                    MAX(payday_finalization_commission) as payday_finalization_commission
                 FROM accounts 
-                 JOIN passive_delegation_payday_commission_rates ON id = TRUE
-                WHERE delegated_target_baker_id IS NULL
-                GROUP BY 
-                    payday_transaction_commission,
-                    payday_baking_commission,
-                    payday_finalization_commission
+                    CROSS JOIN passive_delegation_payday_commission_rates
+                WHERE delegated_target_baker_id IS NULL AND
+                    delegated_stake != 0
             "
         )
         .fetch_optional(pool)
@@ -169,6 +169,7 @@ impl PassiveDelegation {
                     delegated_stake as staked_amount
                 FROM accounts
                 WHERE delegated_target_baker_id IS NULL AND
+                    delegated_stake != 0 AND
                     accounts.index > $2 AND accounts.index < $1
                 ORDER BY
                     (CASE WHEN $4 THEN accounts.index END) ASC,

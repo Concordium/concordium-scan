@@ -5089,12 +5089,18 @@ impl PreparedPassiveDelegationPaydayCommissionRates {
         {
             sqlx::query!(
                 "
-                UPDATE passive_delegation_payday_commission_rates
-                SET
-                    payday_transaction_commission = $1,
-                    payday_baking_commission = $2,
-                    payday_finalization_commission = $3
-            ",
+                INSERT INTO passive_delegation_payday_commission_rates (
+                    payday_transaction_commission,
+                    payday_baking_commission,
+                    payday_finalization_commission
+                )
+                VALUES ($1, $2, $3)
+                ON CONFLICT (id) 
+                DO UPDATE SET
+                    payday_transaction_commission = EXCLUDED.payday_transaction_commission,
+                    payday_baking_commission = EXCLUDED.payday_baking_commission,
+                    payday_finalization_commission = EXCLUDED.payday_finalization_commission
+                ",
                 &transaction_commission,
                 &baking_commission,
                 &finalization_commission

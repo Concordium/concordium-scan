@@ -1,6 +1,6 @@
-CREATE INDEX accounts_delegated_target_null_idx
-ON accounts (delegated_target_baker_id)
-WHERE delegated_target_baker_id IS NULL;
+CREATE INDEX passive_delegators_idx
+ON accounts (delegated_target_baker_id, delegated_stake)
+WHERE delegated_target_baker_id IS NULL AND delegated_stake != 0;
 
 CREATE TABLE passive_delegation_payday_commission_rates(
     -- This field is always `true` and a primary key to constrain the table to have a single row.
