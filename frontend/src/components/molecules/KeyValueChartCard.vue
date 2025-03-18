@@ -5,6 +5,10 @@
 				<slot name="topRight" />
 			</div>
 
+			<div class="absolute bottom-3 text-xs text-center">
+				<slot name="bottom" />
+			</div>
+
 			<div class="text-sm text-theme-faded pt-4 w-72 text-center">
 				<slot name="title" />
 			</div>
