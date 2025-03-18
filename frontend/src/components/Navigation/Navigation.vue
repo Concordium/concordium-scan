@@ -44,5 +44,9 @@ const routes: Route[] = [
 		title: 'CIS-2 Tokens',
 		path: '/tokens',
 	},
+	{
+		title: 'Stable Coin',
+		path: '/stable-coin',
+	},
 ]
 </script>

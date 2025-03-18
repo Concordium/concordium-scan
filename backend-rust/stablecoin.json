@@ -1,0 +1,82 @@
+[
+  {
+    "name": "USD Tether",
+    "symbol": "USDT",
+    "decimal": 6,
+    "contract_address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    "total_supply": "90,000,000,000",
+    "circulating_supply": "86,500,000,000"
+  },
+  {
+    "name": "USD Coin",
+    "symbol": "USDC",
+    "decimal": 6,
+    "contract_address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "total_supply": "52,000,000,000",
+    "circulating_supply": "50,000,000,000"
+  },
+  {
+    "name": "Dai",
+    "symbol": "DAI",
+    "decimal": 18,
+    "contract_address": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+    "total_supply": "5,800,000,000",
+    "circulating_supply": "5,750,000,000"
+  },
+  {
+    "name": "Binance USD",
+    "symbol": "BUSD",
+    "decimal": 18,
+    "contract_address": "0x4fabb145d64652a948d72533023f6e7a623c7c53",
+    "total_supply": "1,000,000,000",
+    "circulating_supply": "900,000,000"
+  },
+  {
+    "name": "TrueUSD",
+    "symbol": "TUSD",
+    "decimal": 18,
+    "contract_address": "0x0000000000085d4780B73119b644AE5ecd22b376",
+    "total_supply": "1,200,000,000",
+    "circulating_supply": "1,150,000,000"
+  },
+  {
+    "name": "Pax Dollar",
+    "symbol": "USDP",
+    "decimal": 18,
+    "contract_address": "0x8e870d67f660d95d5be530380d0ec0bd388289e1",
+    "total_supply": "945,000,000",
+    "circulating_supply": "900,000,000"
+  },
+  {
+    "name": "Gemini Dollar",
+    "symbol": "GUSD",
+    "decimal": 2,
+    "contract_address": "0x056fd409e1d7a124bd7017459dfea2f387b6d5cd",
+    "total_supply": "200,000,000",
+    "circulating_supply": "180,000,000"
+  },
+  {
+    "name": "Fei USD",
+    "symbol": "FEI",
+    "decimal": 18,
+    "contract_address": "0x956f47f50a910163d8bf957cf5846d573e7f87ca",
+    "total_supply": "425,000,000",
+    "circulating_supply": "400,000,000"
+  },
+  {
+    "name": "Frax",
+    "symbol": "FRAX",
+    "decimal": 18,
+    "contract_address": "0x853d955acef822db058eb8505911ed77f175b99e",
+    "total_supply": "2,200,000,000",
+    "circulating_supply": "2,100,000,000"
+  },
+  {
+    "name": "Stably USD",
+    "symbol": "USDS",
+    "decimal": 18,
+    "contract_address": "0xa4bdb11dc0a2bec88d24a3aa1e6bb17201112ebe",
+    "total_supply": "10,000,000",
+    "circulating_supply": "9,500,000"
+  }
+]

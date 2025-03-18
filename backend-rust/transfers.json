@@ -1,0 +1,359 @@
+[
+  {
+    "from": "0xe3864b9e12d48bd001bd72957e2eaa1d34627965",
+    "to": "0x19f45ad2567f4b26323ead1de97a665d83aba0a9",
+    "asset_name": "FEI",
+    "date": "2025-03-08T18:00:39.710Z",
+    "amount": "1266.56"
+  },
+  {
+    "from": "0x65b09b49ad916e39dc7fb1ce6423f145018326ec",
+    "to": "0xe065dfdf4f32f3315a327000284aed16f445f6d6",
+    "asset_name": "USDT",
+    "date": "2025-02-28T22:56:19.453Z",
+    "amount": "5087.30"
+  },
+  {
+    "from": "0x6492fcd0906efa6f839814fc970acdb481a30f20",
+    "to": "0x0ab7762d74f8253b02c02ca99bbfd25000b75724",
+    "asset_name": "USDT",
+    "date": "2025-03-03T21:35:10.627Z",
+    "amount": "338.76"
+  },
+  {
+    "from": "0xfa8ac4a4db7787f409a003f63e012595722b63a6",
+    "to": "0xf3177c57156173f290bf02827b0c12a810d23d27",
+    "asset_name": "BUSD",
+    "date": "2025-03-06T18:52:54.179Z",
+    "amount": "4173.68"
+  },
+  {
+    "from": "0x057b673ef3b6c2c16f3c62c89bdf3eeedd6e3144",
+    "to": "0xaf9a4f9dd0cd26fa54053504a80e8dba26e4622d",
+    "asset_name": "FRAX",
+    "date": "2025-03-08T08:39:47.319Z",
+    "amount": "9682.04"
+  },
+  {
+    "from": "0x057b673df3b6c2c16f3c62c89bdf3eeedd6e3144",
+    "to": "0xaf9a4f9dl0cd26fa54053504a80e8dba26e4622d",
+    "asset_name": "FRAX",
+    "date": "2025-03-08T08:39:47.319Z",
+    "amount": "9683.04"
+  },
+  {
+    "from": "0xf1e593e40787b4bb91be674c42fd6de8732491d3",
+    "to": "0x1868eff4d3158f110de6dd43a2071d91be302e8b",
+    "asset_name": "TUSD",
+    "date": "2025-03-06T20:21:23.469Z",
+    "amount": "4566.99"
+  },
+  {
+    "from": "0x8c609623f088913b3d24381aa2b9092ccbdd6e4f",
+    "to": "0x73c89a8ed7d8e21549a8bc941f83c93c7abca312",
+    "asset_name": "USDC",
+    "date": "2025-03-07T18:40:25.233Z",
+    "amount": "255.07"
+  },
+  {
+    "from": "0xb7fc04ab37871efe94c9a52abe9f700dfad98556",
+    "to": "0x98262f9413be36d7918936b96817a62fc00f8e59",
+    "asset_name": "USDP",
+    "date": "2025-03-05T00:25:49.655Z",
+    "amount": "4102.46"
+  },
+  {
+    "from": "0x8c2a79b6c60859d6342e890e379ed225160dcea8",
+    "to": "0x107d25be224d60e74a00cffb89af1ae569d08481",
+    "asset_name": "GUSD",
+    "date": "2025-03-02T18:24:52.948Z",
+    "amount": "1247.52"
+  },
+  {
+    "from": "0x51ab8dae684585f60e6b1201648ffeb11d5d7799",
+    "to": "0xfbda1a039e7ecb7cf579225102a01736d224483f",
+    "asset_name": "FRAX",
+    "date": "2025-03-07T21:19:18.126Z",
+    "amount": "7111.81"
+  },
+  {
+    "from": "0x890747555a115d99cbb0e794266d1d8f03d1ddb8",
+    "to": "0xb53b96ef02987dfc644f34801c900d712201a727",
+    "asset_name": "USDP",
+    "date": "2025-03-01T15:13:46.848Z",
+    "amount": "1095.97"
+  },
+  {
+    "from": "0x68715d90ade1b1d14bc073b4049d10ad2408853a",
+    "to": "0x87e81bd3b92e003139e6aceb71dad1f6f05ab006",
+    "asset_name": "TUSD",
+    "date": "2025-03-09T04:26:06.769Z",
+    "amount": "4669.56"
+  },
+  {
+    "from": "0x036925edd42f6028c055d4f1e72496fb2363a3b2",
+    "to": "0xbe2dc30f330738d8d94bf91b7051974a07dc37a0",
+    "asset_name": "USDC",
+    "date": "2025-03-04T01:54:06.425Z",
+    "amount": "4396.24"
+  },
+  {
+    "from": "0xf6f564f990d448db3225efe4b05f6ea1d47ecd0d",
+    "to": "0x78bd524782b6e170fbcaf8ce7908e45f9620b74a",
+    "asset_name": "FRAX",
+    "date": "2025-03-01T14:15:03.839Z",
+    "amount": "8791.56"
+  },
+  {
+    "from": "0x9c0132930868a5733f06c20d8710ad310b6f0bb0",
+    "to": "0xb3a9d90d1fcf64ee33ee4cab19ee2a3a34a53cf3",
+    "asset_name": "FEI",
+    "date": "2025-03-05T14:18:38.792Z",
+    "amount": "3439.72"
+  },
+  {
+    "from": "0x68eb8c47d1969f1fafff7e8543a082511fe384e0",
+    "to": "0x738a7eed9cbb2026186ac5d8288b55b6395129dc",
+    "asset_name": "USDC",
+    "date": "2025-03-08T03:50:06.919Z",
+    "amount": "6717.33"
+  },
+  {
+    "from": "0x3017ed17ef7c01e2ce15124a15cf030feefc3766",
+    "to": "0x97fc2388fe0a8423e2e535b580178ce1dc81e66b",
+    "asset_name": "BUSD",
+    "date": "2025-03-08T18:51:05.647Z",
+    "amount": "7223.27"
+  },
+  {
+    "from": "0x0c525e41a6b3c2d36f120a0dfdf742d4e8afca7c",
+    "to": "0xabd9160c6871bf48723da51a1a686ae7581e12d0",
+    "asset_name": "USDT",
+    "date": "2025-03-01T01:21:00.594Z",
+    "amount": "8685.62"
+  },
+  {
+    "from": "0xf455c62343182e96066b43f9d20d1163c25e95ba",
+    "to": "0x0b6c1b4680969d7b46b57c9c8b4200fd43d44aa9",
+    "asset_name": "USDS",
+    "date": "2025-03-05T05:00:20.977Z",
+    "amount": "844.47"
+  },
+  {
+    "from": "0xb8f8f14561b9a65a1555d2a0f8f0c40feb7d251f",
+    "to": "0xc9d2c5407a620c41953714634d34e8d5400ae98b",
+    "asset_name": "USDC",
+    "date": "2025-03-08T10:11:06.777Z",
+    "amount": "4673.25"
+  },
+  {
+    "from": "0x226aad7079ecc98d7298c9ffd668c067099c6951",
+    "to": "0xb30748a9976cf980280351079ca7619ca9c4a5c7",
+    "asset_name": "USDC",
+    "date": "2025-03-09T04:32:54.248Z",
+    "amount": "9352.06"
+  },
+  {
+    "from": "0x3307e3f928237a9c8a7b957ed1026f30a71877a4",
+    "to": "0x78644060cf634fbe7e86e7bb90ec292049260dfd",
+    "asset_name": "USDS",
+    "date": "2025-03-04T13:53:39.822Z",
+    "amount": "7161.32"
+  },
+  {
+    "from": "0xe4ad5981478efbea7ade1b6e0b91aefde8049bd5",
+    "to": "0x62ac07510e4835ddb92c733f02753db1bd0d012c",
+    "asset_name": "USDS",
+    "date": "2025-03-08T06:25:54.753Z",
+    "amount": "142.40"
+  },
+  {
+    "from": "0x628785a081f653862c7e42c80da87be5af723fe6",
+    "to": "0x9b0f82684c006430a82b370a7b2a6a38c5636ed9",
+    "asset_name": "USDS",
+    "date": "2025-03-09T01:30:11.961Z",
+    "amount": "459.57"
+  },
+  {
+    "from": "0xb04c4033d3a54163ab80011d8f6345805ac13178",
+    "to": "0x7856a3bdeb226f49c9feaada6b90635ff4d8256d",
+    "asset_name": "USDT",
+    "date": "2025-03-04T12:52:44.258Z",
+    "amount": "8269.81"
+  },
+  {
+    "from": "0xeb36b1e1dbc9d77acd2668eaf3668f04334e74f2",
+    "to": "0x30d6494b23f8d481aee4d57408a91db8bf09b9d2",
+    "asset_name": "USDS",
+    "date": "2025-03-09T13:35:05.332Z",
+    "amount": "5284.58"
+  },
+  {
+    "from": "0x00800925365b2ab11341e3f347776c447d9bd22e",
+    "to": "0x33bfa4ed2bcb5260f12060c8ef7cf62983147980",
+    "asset_name": "DAI",
+    "date": "2025-03-09T12:20:43.414Z",
+    "amount": "1866.27"
+  },
+  {
+    "from": "0x209482ba808404a0240d31852b7673457ff5e580",
+    "to": "0x79468fc499bf362ad15c93e7a04ebf7402ef5a9c",
+    "asset_name": "FRAX",
+    "date": "2025-03-01T22:11:55.358Z",
+    "amount": "6706.15"
+  },
+  {
+    "from": "0x171891afc6d46b88894d24c6de22d114fac3779a",
+    "to": "0x47f34d51f9d50a5a8c2f4822d4513bfdf16124d4",
+    "asset_name": "USDC",
+    "date": "2025-03-07T06:13:10.685Z",
+    "amount": "4811.12"
+  },
+  {
+    "from": "0xe4ff947a43edcb8c391702950e7278bb0af760ab",
+    "to": "0xbe973b51b34f932e7899e41ec40644c28ac622c1",
+    "asset_name": "DAI",
+    "date": "2025-03-09T13:06:26.498Z",
+    "amount": "7664.39"
+  },
+  {
+    "from": "0xb2fff049dab6f77659f385db3d408230c1400f3f",
+    "to": "0x747170a1cb2edb8e05a03dfd8df884ed1988bec8",
+    "asset_name": "USDC",
+    "date": "2025-03-01T21:20:30.531Z",
+    "amount": "9504.28"
+  },
+  {
+    "from": "0x30c2881a0329d9362b96dae641df45d53dbc867f",
+    "to": "0x7599992526c0c5a21ed070ed8781ca5daaed3054",
+    "asset_name": "USDT",
+    "date": "2025-03-06T12:03:43.270Z",
+    "amount": "4739.59"
+  },
+  {
+    "from": "0x7238beecbebc321bd344bcbeec2860b88e40e848",
+    "to": "0x6509a500766323166246fdeb7082c546e9312b0c",
+    "asset_name": "GUSD",
+    "date": "2025-03-06T02:36:46.942Z",
+    "amount": "3678.82"
+  },
+  {
+    "from": "0xde685962ef1b7d79f6a68cb9a6400ee07820439d",
+    "to": "0x9ede46db4f9c6e4c56a5ec13a926b85b0857b324",
+    "asset_name": "FEI",
+    "date": "2025-03-06T07:00:45.000Z",
+    "amount": "1845.59"
+  },
+  {
+    "from": "0x7afe952e036f3bd3c3b8712d3921ffe5e8040d0d",
+    "to": "0xd49d8db4f106a5217e5ea4031dedf22a20f628e8",
+    "asset_name": "FEI",
+    "date": "2025-03-03T16:14:02.444Z",
+    "amount": "4003.66"
+  },
+  {
+    "from": "0x6bdd76096b5c92376a10a69f904867b70e8b607e",
+    "to": "0xf126e2d536af1b75da8a7e50cbd72152cbafd30b",
+    "asset_name": "FEI",
+    "date": "2025-03-02T01:42:36.665Z",
+    "amount": "3405.25"
+  },
+  {
+    "from": "0x4312c5f54b81bfb1389f6701c5a85c0673b7ed6e",
+    "to": "0xe751ccaca8d38b7386d61c65956d805bcdbc860d",
+    "asset_name": "BUSD",
+    "date": "2025-03-05T10:19:28.679Z",
+    "amount": "8478.63"
+  },
+  {
+    "from": "0x10af2307dc36fb8cb79a5a9010bb1fa36b755798",
+    "to": "0x24882f7a4a0d35d4592d90072df618167ed7aa5b",
+    "asset_name": "USDS",
+    "date": "2025-03-02T21:57:51.869Z",
+    "amount": "8376.57"
+  },
+  {
+    "from": "0x23d6dbcbcb823d742fe0ccceb59b6af4f9e182cf",
+    "to": "0xfedd106b29c379d8740d63abb0154bc898dc4837",
+    "asset_name": "USDP",
+    "date": "2025-03-06T23:23:41.448Z",
+    "amount": "3378.00"
+  },
+  {
+    "from": "0xfbdfcb9647a4c5a359428221ce192eedf103116f",
+    "to": "0xc22d65a9b04b49bf937142601c3d0c6d0d22188f",
+    "asset_name": "DAI",
+    "date": "2025-03-06T12:06:50.097Z",
+    "amount": "5917.09"
+  },
+  {
+    "from": "0xd356866a9d05a4ddd4096c3e9fd7c5423651667f",
+    "to": "0x93c0596a4febce3a5ec0e98c1f80892048eaeae1",
+    "asset_name": "FRAX",
+    "date": "2025-03-08T02:41:40.985Z",
+    "amount": "7624.76"
+  },
+  {
+    "from": "0x01d221976d589592800774213f0e8abebaab5606",
+    "to": "0xe11db53a925f183f2f34f42f5846a0e645ee3fa2",
+    "asset_name": "USDT",
+    "date": "2025-03-04T09:44:20.084Z",
+    "amount": "167.70"
+  },
+  {
+    "from": "0x3d86b42bb74d8adf0e8d0a62e252adce23e43a89",
+    "to": "0x054883eb36e981517f3bb3da9154487266802c26",
+    "asset_name": "USDC",
+    "date": "2025-03-06T01:26:56.927Z",
+    "amount": "9958.28"
+  },
+  {
+    "from": "0xdec975d5e1c7ea94cf01feec37b8cd94a43681fc",
+    "to": "0x46526883df52e7115da1809750af57f6f81880d2",
+    "asset_name": "USDC",
+    "date": "2025-03-02T19:40:48.967Z",
+    "amount": "1988.02"
+  },
+  {
+    "from": "0x59c50b3a1bf5170160832b4ca197c17dc22967c3",
+    "to": "0x2f554de5e81e151c0dfe19228aed5b92cf960e99",
+    "asset_name": "FEI",
+    "date": "2025-03-05T03:25:42.376Z",
+    "amount": "5960.29"
+  },
+  {
+    "from": "0x4af17701f6837bde58e38818e0c895b91a51d6ec",
+    "to": "0xa0cac655271cff94a9f0380fc3d9a9f303013c41",
+    "asset_name": "FEI",
+    "date": "2025-03-09T05:58:42.041Z",
+    "amount": "6086.49"
+  },
+  {
+    "from": "0x61a1b313c7514e58657c3d9396d079a2d46ce377",
+    "to": "0xf5f72553a439ae0f6758f2242f951b7987c72b58",
+    "asset_name": "USDC",
+    "date": "2025-03-07T13:20:42.640Z",
+    "amount": "5605.57"
+  },
+  {
+    "from": "0xc82b619df426c036497b2277a0319466628c862f",
+    "to": "0x7877ddc40a955892b0ddf97e9ff202965d3396b6",
+    "asset_name": "TUSD",
+    "date": "2025-03-03T12:59:15.181Z",
+    "amount": "6044.95"
+  },
+  {
+    "from": "0x73eebedebb301eeeb495172710801a6cc42eb39e",
+    "to": "0x0f538df86a2e5b429bb8627eb0f1470bf49a6a90",
+    "asset_name": "GUSD",
+    "date": "2025-03-01T03:46:45.601Z",
+    "amount": "6869.90"
+  },
+  {
+    "from": "0xa2b4ac7a18e1412a2e7a7f0c8779fbcd4f616803",
+    "to": "0xbf37494f4abd5e481f9fc93202be5a0026036146",
+    "asset_name": "USDP",
+    "date": "2025-03-04T03:05:59.461Z",
+    "amount": "8947.62"
+  }
+]
