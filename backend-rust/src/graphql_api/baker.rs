@@ -329,6 +329,9 @@ impl Baker {
                     restake_earnings,
                     open_status as "open_status: _",
                     metadata_url,
+                    self_suspended,
+                    inactive_suspended,
+                    primed_for_suspension,
                     transaction_commission,
                     baking_commission,
                     finalization_commission,
@@ -478,6 +481,9 @@ impl Baker {
                     restake_earnings,
                     open_status as "open_status: _",
                     metadata_url,
+                    self_suspended,
+                    inactive_suspended,
+                    primed_for_suspension,
                     transaction_commission,
                     baking_commission,
                     finalization_commission,
@@ -624,6 +630,9 @@ impl Baker {
                     restake_earnings,
                     open_status as "open_status: _",
                     metadata_url,
+                    self_suspended,
+                    inactive_suspended,
+                    primed_for_suspension,
                     transaction_commission,
                     baking_commission,
                     finalization_commission,
@@ -868,6 +877,9 @@ impl Baker {
                     restake_earnings,
                     open_status as "open_status: _",
                     metadata_url,
+                    self_suspended,
+                    inactive_suspended,
+                    primed_for_suspension,
                     transaction_commission,
                     baking_commission,
                     finalization_commission,
@@ -1113,6 +1125,9 @@ impl Baker {
                     restake_earnings,
                     open_status as "open_status: _",
                     metadata_url,
+                    self_suspended,
+                    inactive_suspended,
+                    primed_for_suspension,
                     transaction_commission,
                     baking_commission,
                     finalization_commission,
@@ -1372,6 +1387,9 @@ impl Baker {
                     restake_earnings,
                     open_status as "open_status: _",
                     metadata_url,
+                    self_suspended,
+                    inactive_suspended,
+                    primed_for_suspension,
                     transaction_commission,
                     baking_commission,
                     finalization_commission,
@@ -1645,6 +1663,9 @@ pub struct CurrentBaker {
     restake_earnings: bool,
     open_status: Option<BakerPoolOpenStatus>,
     metadata_url: Option<MetadataUrl>,
+    self_suspended: Option<i64>,
+    inactive_suspended: Option<i64>,
+    primed_for_suspension: Option<i64>,
     transaction_commission: Option<i64>,
     baking_commission: Option<i64>,
     finalization_commission: Option<i64>,
@@ -1671,6 +1692,9 @@ impl CurrentBaker {
                 restake_earnings,
                 open_status as "open_status: BakerPoolOpenStatus",
                 metadata_url,
+                self_suspended,
+                inactive_suspended,
+                primed_for_suspension,
                 transaction_commission,
                 baking_commission,
                 finalization_commission,
@@ -1967,6 +1991,9 @@ impl CurrentBaker {
                     .try_into()
                     .map_err(|e: anyhow::Error| ApiError::InternalError(e.to_string()))?,
                 metadata_url: self.metadata_url.as_deref(),
+                self_suspended: self.self_suspended,
+                inactive_suspended: self.inactive_suspended,
+                primed_for_suspension: self.primed_for_suspension,
                 total_stake_percentage,
                 total_stake: Amount::try_from(self.pool_total_staked)?,
                 delegated_stake: Amount::try_from(delegated_stake_of_pool)?,
@@ -2250,6 +2277,9 @@ struct BakerPool<'a> {
     delegated_stake_cap: Amount,
     open_status: Option<BakerPoolOpenStatus>,
     metadata_url: Option<&'a str>,
+    self_suspended: Option<i64>,
+    inactive_suspended: Option<i64>,
+    primed_for_suspension: Option<i64>
 }
 
 #[Object]
@@ -2281,6 +2311,12 @@ impl<'a> BakerPool<'a> {
     async fn open_status(&self) -> Option<BakerPoolOpenStatus> { self.open_status }
 
     async fn metadata_url(&self) -> Option<&'a str> { self.metadata_url }
+
+    async fn self_suspended(&self) -> Option<i64> { self.self_suspended }
+
+    async fn inactive_suspended(&self) -> Option<i64> { self.inactive_suspended }
+
+    async fn primed_for_suspension(&self) -> Option<i64> { self.primed_for_suspension }
 
     async fn pool_rewards(
         &self,

@@ -55,13 +55,13 @@ const BakerQuery = gql<BakerListResponse>`
 						pool {
 							openStatus
 							totalStake
+							selfSuspended
+							inactiveSuspended
+							primedForSuspension
 							delegatorCount
 							delegatedStake
 							delegatedStakeCap
-							apy(period: LAST30_DAYS) {
-								bakerApy
-								delegatorsApy
-							}
+
 							commissionRates {
 								transactionCommission
 								bakingCommission
@@ -86,9 +86,16 @@ const BakerQuery = gql<BakerListResponse>`
 		}
 	}
 `
+// TODO: add back once rust backend supports APY queries
+//
+// apy(period: LAST30_DAYS) {
+// 	bakerApy
+// 	delegatorsApy
+// }
 
 export const useBakerListQuery = (variables: BakerListVariables) => {
 	const { data } = useQuery({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: BakerQuery,
 		requestPolicy: 'cache-and-network',
 		variables,

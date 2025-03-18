@@ -3,13 +3,15 @@
 		<Table>
 			<TableHead>
 				<TableRow>
-					<TableTh width="20%">Validator ID</TableTh>
+					<TableTh width="15%">Validator ID</TableTh>
+					<TableTh width="15%">Status</TableTh>
 					<TableTh
 						v-if="!hasPoolData && breakpoint >= Breakpoint.SM"
 						width="20%"
 					>
 						Account
 					</TableTh>
+					<TableTh width="15%">Status</TableTh>
 					<TableTh
 						v-if="hasPoolData && breakpoint >= Breakpoint.SM"
 						align="right"
@@ -84,17 +86,27 @@
 					</TableTd>
 
 					<TableTd
+						v-if="hasPoolData && breakpoint >= Breakpoint.SM"
+						align="right"
+					>
+						<template v-if="baker.state.__typename === 'ActiveBakerState'">
+							<BakerSuspension
+								:self-suspended="baker.state.pool?.selfSuspended"
+								:inactive-suspended="baker.state.pool?.inactiveSuspended"
+								:primed-for-suspension="baker.state.pool?.primedForSuspension"
+							/>
+						</template>
+					</TableTd>
+
+					<TableTd
 						v-if="hasPoolData && breakpoint >= Breakpoint.LG"
 						align="right"
 					>
 						<span
-							v-if="
-								baker.state.__typename === 'ActiveBakerState' &&
-								Number.isFinite(baker.state.pool?.apy.bakerApy)
-							"
+							v-if="baker.state.__typename === 'ActiveBakerState'"
 							class="numerical"
 						>
-							{{ formatPercentage(baker.state.pool!.apy.bakerApy!) }}%
+							10%
 						</span>
 						<span v-else>-</span>
 					</TableTd>
@@ -104,13 +116,10 @@
 						align="right"
 					>
 						<span
-							v-if="
-								baker.state.__typename === 'ActiveBakerState' &&
-								Number.isFinite(baker.state.pool?.apy.delegatorsApy)
-							"
+							v-if="baker.state.__typename === 'ActiveBakerState'"
 							class="numerical"
 						>
-							{{ formatPercentage(baker.state.pool!.apy.delegatorsApy!) }}%
+							10%
 						</span>
 						<span v-else>-</span>
 					</TableTd>
@@ -291,6 +300,7 @@
 <script lang="ts" setup>
 import { toRef } from 'vue'
 import CommissionRates from './CommissionRates.vue'
+import BakerSuspension from './BakerSuspension.vue'
 import { composeBakerStatus } from '~/utils/composeBakerStatus'
 import { usePagination } from '~/composables/usePagination'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
