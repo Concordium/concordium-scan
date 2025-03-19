@@ -75,10 +75,10 @@ impl QueryBakerMetrics {
         })?;
 
         Ok(BakerMetrics {
-            bakers_added: bakers_added.try_into()?,
-            bakers_removed: bakers_removed.try_into()?,
+            bakers_added:     bakers_added.try_into()?,
+            bakers_removed:   bakers_removed.try_into()?,
             last_baker_count: *last_baker_count,
-            buckets: BakerMetricsBuckets {
+            buckets:          BakerMetricsBuckets {
                 bucket_width: TimeSpan(bucket_width),
                 y_last_baker_count,
                 x_time,
