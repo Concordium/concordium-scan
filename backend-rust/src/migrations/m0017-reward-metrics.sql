@@ -20,7 +20,6 @@ WITH per_block AS (
     'TransactionFeeReward'
   )
   GROUP BY block_height, account_index
-  HAVING COUNT(*) > 0
 )
 SELECT
   block_height,
