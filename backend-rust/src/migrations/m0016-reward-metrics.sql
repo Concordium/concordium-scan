@@ -30,5 +30,3 @@ SELECT
 FROM per_block;
 
 CREATE INDEX metrics_rewards_accounts_slot_time_idx ON metrics_rewards(account_index, block_slot_time);
-
-

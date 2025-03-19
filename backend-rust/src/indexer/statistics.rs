@@ -128,7 +128,7 @@ impl RewardStatistics {
         *self.account_rewards.entry(account_id).or_insert(0) += count;
     }
 
-    /// Saves the reward statistics into the `metrics_rewards` table.
+    /// Saves the reward statistics.
     /// For each account in the hashmap, a new row is inserted for the current
     /// block. Does no database operations given account rewards are empty
     pub(crate) async fn save(&self, tx: &mut Transaction<'static, Postgres>) -> Result<()> {
@@ -160,15 +160,12 @@ impl RewardStatistics {
 }
 
 /// Composite Statistics that holds different types of statistics
-/// It propagates increments to the appropriate sub-component and saves both
-/// sets of data.
 pub(crate) struct Statistics {
     pub baker_stats:  BakerStatistics,
     pub reward_stats: RewardStatistics,
 }
 
 impl Statistics {
-    /// Creates a new composite Statistics instance for the given block.
     pub(crate) fn new(block_height: i64, slot_time: DateTime) -> Self {
         Self {
             baker_stats:  BakerStatistics::new(block_height),
@@ -177,8 +174,6 @@ impl Statistics {
     }
 
     /// Increments a counter based on the provided StatisticsField.
-    /// - For Baker fields, updates the global baker counters.
-    /// - For Reward fields, updates the rewards for a specific account.
     pub(crate) fn increment(&mut self, field: StatisticsField, count: i64) {
         match field {
             StatisticsField::Baker(bf) => self.baker_stats.increment(bf, count),
