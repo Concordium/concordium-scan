@@ -31,8 +31,9 @@ use concordium_rust_sdk::{
         AbsoluteBlockHeight, AccountStakingInfo, AccountTransactionDetails,
         AccountTransactionEffects, BakerId, BakerRewardPeriodInfo, BirkBaker, BlockItemSummary,
         BlockItemSummaryDetails, ContractAddress, ContractInitializedEvent, ContractTraceElement,
-        DelegationTarget, PartsPerHundredThousands, PassiveDelegationStatus, ProtocolVersion,
-        RejectReason, RewardsOverview, SpecialTransactionOutcome, TransactionType,
+        DelegationTarget, DelegatorRewardPeriodInfo, PartsPerHundredThousands,
+        PassiveDelegationStatus, ProtocolVersion, RejectReason, RewardsOverview,
+        SpecialTransactionOutcome, TransactionType,
     },
     v2::{
         self, BlockIdentifier, ChainParameters, FinalizedBlockInfo, QueryError, QueryResult,
@@ -4970,6 +4971,12 @@ struct PreparedPayDayBlock {
     /// Represents the payday lottery power updates for bakers captured from
     /// the `get_election_info` node endpoint.
     payday_bakers_lottery_powers: PreparedPaydayLotteryPowers,
+    /// Represents the baker pool stakes locked for reward period after this
+    /// payday.
+    baker_pool_stakes: PreparedPaydayBakerPoolStakes,
+    /// Represents the passive pool stake locked for reward period after this
+    /// payday.
+    passive_pool_stake: PreparedPaydayPassivePoolStake,
 }
 
 impl PreparedPayDayBlock {
@@ -4981,17 +4988,32 @@ impl PreparedPayDayBlock {
         // `payday_pool_rewards` instead. The information of the last payday commission
         // rate of baker pools is expected to be used when the indexer has fully
         // caught up to the top of the chain.
-        let baker_reward_period_infos: Vec<BakerRewardPeriodInfo> =
-            if block_info.protocol_version >= ProtocolVersion::P4 {
-                let stream = node_client
-                    .get_bakers_reward_period(BlockIdentifier::AbsoluteHeight(block_height))
-                    .await?
-                    .response;
+        let (baker_reward_period_infos, passive_info) = if block_info.protocol_version
+            >= ProtocolVersion::P4
+        {
+            let baker_info = node_client
+                .get_bakers_reward_period(BlockIdentifier::AbsoluteHeight(block_height))
+                .await?
+                .response
+                .try_collect()
+                .await?;
+            let passive_info = node_client
+                .get_passive_delegators_reward_period(BlockIdentifier::AbsoluteHeight(block_height))
+                .await?
+                .response
+                .try_collect()
+                .await?;
+            (baker_info, passive_info)
+        } else {
+            (vec![], vec![])
+        };
 
-                stream.try_collect().await?
-            } else {
-                vec![]
-            };
+        let baker_pool_stakes =
+            PreparedPaydayBakerPoolStakes::prepare(&baker_reward_period_infos, block_height)?;
+
+        let passive_pool_stake =
+            PreparedPaydayPassivePoolStake::prepare(&passive_info, block_height)?;
+
         let baker_payday_commission_rates =
             PreparedBakerPaydayCommissionRates::prepare(baker_reward_period_infos)?;
 
@@ -5020,6 +5042,8 @@ impl PreparedPayDayBlock {
             baker_payday_commission_rates,
             passive_delegation_payday_commission_rates,
             payday_bakers_lottery_powers,
+            baker_pool_stakes,
+            passive_pool_stake,
         })
     }
 
@@ -5042,6 +5066,14 @@ impl PreparedPayDayBlock {
         .execute(tx.as_mut())
         .await?
         .ensure_affected_one_row()?;
+        self.baker_pool_stakes
+            .save(tx)
+            .await
+            .context("Failed inserting the reward period baker pool stakes")?;
+        self.passive_pool_stake
+            .save(tx)
+            .await
+            .context("Failed inserting the reward period passive pool stake")?;
         Ok(())
     }
 }
@@ -5250,6 +5282,96 @@ impl PreparedPaydayLotteryPowers {
             &self.baker_ids,
             &self.bakers_lottery_powers,
             &self.ranks
+        )
+        .execute(tx.as_mut())
+        .await?;
+        Ok(())
+    }
+}
+
+struct PreparedPaydayBakerPoolStakes {
+    block_height:     i64,
+    baker_ids:        Vec<i64>,
+    baker_stake:      Vec<i64>,
+    delegators_stake: Vec<i64>,
+}
+
+impl PreparedPaydayBakerPoolStakes {
+    fn prepare(
+        bakers: &[BakerRewardPeriodInfo],
+        block_height: AbsoluteBlockHeight,
+    ) -> anyhow::Result<Self> {
+        let capacity = bakers.len();
+        let mut out = Self {
+            block_height:     block_height.height.try_into()?,
+            baker_ids:        Vec::with_capacity(capacity),
+            baker_stake:      Vec::with_capacity(capacity),
+            delegators_stake: Vec::with_capacity(capacity),
+        };
+        for baker in bakers.iter() {
+            out.baker_ids.push(baker.baker.baker_id.id.index.try_into()?);
+            out.baker_stake.push(baker.equity_capital.micro_ccd().try_into()?);
+            out.delegators_stake.push(baker.delegated_capital.micro_ccd().try_into()?);
+        }
+        Ok(out)
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            "INSERT INTO payday_baker_pool_stakes (
+                 payday_block,
+                 baker,
+                 baker_stake,
+                 delegators_stake
+             ) SELECT $1, * FROM UNNEST(
+                     $2::BIGINT[],
+                     $3::BIGINT[],
+                     $4::BIGINT[]
+             ) AS payday_baker(owner, baker_stake, delegators_stake)",
+            self.block_height,
+            &self.baker_ids,
+            &self.baker_stake,
+            &self.delegators_stake
+        )
+        .execute(tx.as_mut())
+        .await?
+        .ensure_affected_rows(self.baker_ids.len().try_into()?)?;
+        Ok(())
+    }
+}
+
+struct PreparedPaydayPassivePoolStake {
+    block_height:     i64,
+    delegators_stake: i64,
+}
+
+impl PreparedPaydayPassivePoolStake {
+    fn prepare(
+        infos: &[DelegatorRewardPeriodInfo],
+        block_height: AbsoluteBlockHeight,
+    ) -> anyhow::Result<Self> {
+        let delegators_stake =
+            infos.iter().map(|info| info.stake.micro_ccd()).sum::<u64>().try_into()?;
+        Ok(Self {
+            block_height: block_height.height.try_into()?,
+            delegators_stake,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            "INSERT INTO payday_passive_pool_stakes (
+                 payday_block,
+                 delegators_stake
+             ) VALUES ($1, $2)",
+            self.block_height,
+            self.delegators_stake
         )
         .execute(tx.as_mut())
         .await?;
