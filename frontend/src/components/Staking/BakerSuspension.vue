@@ -25,11 +25,20 @@
 		</span>
 	</Tooltip>
 	<Tooltip
-		v-else-if="props.selfSuspended !== null || props.inactiveSuspended !== null"
+		v-else-if="props.inactiveSuspended !== null"
 		:text="`Validator is suspended.`"
 	>
 		<span class="numerical change" style="color: #ffc600">
-			Suspended
+			Suspended (inactivity)
+			<WarningIcon class="h-4 align-middle" />
+		</span>
+	</Tooltip>
+	<Tooltip
+		v-else-if="props.selfSuspended !== null"
+		:text="`Validator is suspended.`"
+	>
+		<span class="numerical change" style="color: #ffc600">
+			Suspended (self)
 			<WarningIcon class="h-4 align-middle" />
 		</span>
 	</Tooltip>

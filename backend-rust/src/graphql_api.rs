@@ -14,6 +14,7 @@ pub mod node_status;
 mod passive_delegation;
 mod reward_metrics;
 mod search_result;
+mod suspended_validators;
 mod token;
 mod transaction;
 mod transaction_metrics;
@@ -167,6 +168,7 @@ pub struct ApiServiceConfig {
 pub struct Query(
     BaseQuery,
     passive_delegation::QueryPassiveDelegation,
+    suspended_validators::QuerySuspendedValidators,
     baker::QueryBaker,
     block::QueryBlocks,
     transaction::QueryTransactions,
