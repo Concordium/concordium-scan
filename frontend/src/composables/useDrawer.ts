@@ -51,8 +51,13 @@ type NodeDrawerItem = {
 	entityTypeName: 'node'
 	nodeId: string
 }
+
 type PassiveDelegationItem = {
 	entityTypeName: 'passiveDelegation'
+}
+
+type SuspendedValidatorsItem = {
+	entityTypeName: 'suspendedValidators'
 }
 
 type TokenDrawerItem = {
@@ -71,6 +76,7 @@ export type DrawerItem = (
 	| ValidatorDrawerItem
 	| BakerDrawerItem
 	| PassiveDelegationItem
+	| SuspendedValidatorsItem
 	| NodeDrawerItem
 	| TokenDrawerItem
 ) & {
@@ -167,6 +173,12 @@ export const isItemOnTop = (
 
 	if (
 		item.entityTypeName === 'passiveDelegation' &&
+		item.entityTypeName === currentTopItem.value.entityTypeName
+	)
+		return true
+
+	if (
+		item.entityTypeName === 'suspendedValidators' &&
 		item.entityTypeName === currentTopItem.value.entityTypeName
 	)
 		return true
@@ -349,6 +361,13 @@ export const useDrawer = () => {
 			push(
 				{
 					entityTypeName: 'passiveDelegation',
+				},
+				false
+			)
+		} else if (route.query.dentity === 'suspendedValidators') {
+			push(
+				{
+					entityTypeName: 'suspendedValidators',
 				},
 				false
 			)

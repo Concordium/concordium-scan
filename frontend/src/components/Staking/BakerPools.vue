@@ -11,7 +11,6 @@
 					>
 						Account
 					</TableTh>
-					<TableTh width="15%">Status</TableTh>
 					<TableTh
 						v-if="hasPoolData && breakpoint >= Breakpoint.SM"
 						align="right"
@@ -74,13 +73,10 @@
 						align="right"
 					>
 						<template v-if="baker.state.__typename === 'ActiveBakerState'">
-							<CommissionRates
-								:current-payday-commission="
-									baker.state.pool?.paydayCommissionRates?.bakingCommission
-								"
-								:next-payday-commission="
-									baker.state.pool?.commissionRates.bakingCommission
-								"
+							<BakerSuspension
+								:self-suspended="baker.state.pool?.selfSuspended"
+								:inactive-suspended="baker.state.pool?.inactiveSuspended"
+								:primed-for-suspension="baker.state.pool?.primedForSuspension"
 							/>
 						</template>
 					</TableTd>
@@ -90,10 +86,13 @@
 						align="right"
 					>
 						<template v-if="baker.state.__typename === 'ActiveBakerState'">
-							<BakerSuspension
-								:self-suspended="baker.state.pool?.selfSuspended"
-								:inactive-suspended="baker.state.pool?.inactiveSuspended"
-								:primed-for-suspension="baker.state.pool?.primedForSuspension"
+							<CommissionRates
+								:current-payday-commission="
+									baker.state.pool?.paydayCommissionRates?.bakingCommission
+								"
+								:next-payday-commission="
+									baker.state.pool?.commissionRates.bakingCommission
+								"
 							/>
 						</template>
 					</TableTd>

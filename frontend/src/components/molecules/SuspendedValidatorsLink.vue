@@ -1,7 +1,7 @@
 ﻿<template>
 	<div class="inline-block whitespace-nowrap">
 		<LinkButton @blur="emitBlur" @click="() => handleOnClick()">
-			<div text-class="text-theme-body">Passive Delegation</div>
+			<div text-class="text-theme-body">Suspended Validators</div>
 		</LinkButton>
 	</div>
 </template>
@@ -16,6 +16,6 @@ const emitBlur = (newTarget: FocusEvent) => {
 }
 
 const handleOnClick = () => {
-	drawer.push({ entityTypeName: 'passiveDelegation' })
+	drawer.push({ entityTypeName: 'suspendedValidators' })
 }
 </script>
