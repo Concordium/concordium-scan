@@ -1,6 +1,9 @@
-use anyhow::Result;
-use sqlx::{Postgres, Transaction};
 use crate::scalar_types::DateTime;
+use anyhow::Result;
+use concordium_rust_sdk::base::contracts_common::CanonicalAccountAddress;
+use sqlx::{Postgres, Transaction};
+use std::collections::HashMap;
+use tracing::debug;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum BakerField {
@@ -10,51 +13,54 @@ pub(crate) enum BakerField {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum RewardField {
-    Account,
+    Account(CanonicalAccountAddress),
 }
 
-pub(crate) struct Statistics {
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub(crate) enum StatisticsField {
+    Baker(BakerField),
+    Reward(RewardField),
+}
+
+/// BakerStatistics holds baker-related counters and tracks whether a change has
+/// occurred.
+pub(crate) struct BakerStatistics {
     baker_is_changed:    bool,
     baker_added_count:   i64,
     baker_removed_count: i64,
     block_height:        i64,
-    slot_time:           DateTime
 }
 
-impl Statistics {
-    pub(crate) fn new(block_height: i64, slot_time: DateTime) -> Self {
-        Statistics {
+impl BakerStatistics {
+    /// Creates a new BakerStatistics instance for the given block.
+    pub(crate) fn new(block_height: i64) -> Self {
+        Self {
             baker_is_changed: false,
             baker_added_count: 0,
             baker_removed_count: 0,
             block_height,
-            slot_time
         }
     }
 
-    /// Increments the counter for the given field.
+    /// Increments the counter for the given BakerField by `count`.
     pub(crate) fn increment(&mut self, field: BakerField, count: i64) {
         let counter = match field {
-            BakerField::Removed => &mut self.baker_removed_count,
             BakerField::Added => &mut self.baker_added_count,
+            BakerField::Removed => &mut self.baker_removed_count,
         };
         *counter += count;
         self.baker_is_changed = true;
     }
 
-    /// If any counter has been incremented, updates the latest row in
-    /// metrics_bakers by adding the increments.
-    ///
-    /// The SQL query adds the current counter values to the corresponding
-    /// columns: total_bakers_added, total_bakers_removed
-    ///
-    /// If no increments were recorded (i.e. current is empty), no update is
-    /// performed.
+    /// Saves the baker metrics
+    /// If changes have been recorded (baker_is_changed is true), it first
+    /// attempts to update the latest row by adding the increments. If no
+    /// row exists, it inserts a new row.
     pub(crate) async fn save(&self, tx: &mut Transaction<'static, Postgres>) -> Result<()> {
-        if !&self.baker_is_changed {
+        if !self.baker_is_changed {
+            debug!("No change in baker count at block_height: {}", self.block_height);
             return Ok(());
         }
-
         let result = sqlx::query!(
             "INSERT INTO metrics_bakers (
               block_height,
@@ -77,8 +83,9 @@ impl Statistics {
         )
         .execute(tx.as_mut())
         .await?;
-        let previous_baker_metrics_exists = result.rows_affected() == 0;
-        if previous_baker_metrics_exists {
+
+        if result.rows_affected() == 0 {
+            // No previous row exists; insert a new row.
             sqlx::query!(
                 "INSERT INTO metrics_bakers (
               block_height,
@@ -96,7 +103,95 @@ impl Statistics {
             .execute(tx.as_mut())
             .await?;
         }
+        Ok(())
+    }
+}
 
+/// RewardStatistics holds rewards for individual accounts
+pub(crate) struct RewardStatistics {
+    account_rewards: HashMap<CanonicalAccountAddress, i64>,
+    block_height:    i64,
+    block_slot_time: DateTime,
+}
+
+impl RewardStatistics {
+    pub(crate) fn new(block_height: i64, slot_time: DateTime) -> Self {
+        Self {
+            account_rewards: HashMap::new(),
+            block_height,
+            block_slot_time: slot_time,
+        }
+    }
+
+    /// Increments the reward counter for the specified account by `count`.
+    pub(crate) fn increment(&mut self, account_id: CanonicalAccountAddress, count: i64) {
+        *self.account_rewards.entry(account_id).or_insert(0) += count;
+    }
+
+    /// Saves the reward statistics into the `metrics_rewards` table.
+    /// For each account in the hashmap, a new row is inserted for the current
+    /// block. Does no database operations given account rewards are empty
+    pub(crate) async fn save(&self, tx: &mut Transaction<'static, Postgres>) -> Result<()> {
+        if self.account_rewards.is_empty() {
+            debug!("No rewards at block_height: {}", self.block_height);
+            return Ok(());
+        }
+
+        for (&accound_address, &reward) in self.account_rewards.iter() {
+            sqlx::query!(
+                "INSERT INTO metrics_rewards (
+                  block_height,
+                  block_slot_time,
+                  account_index,
+                  amount
+                ) VALUES (
+                  $1, $2, (SELECT index FROM accounts WHERE canonical_address = $3), $4
+                )",
+                self.block_height,
+                self.block_slot_time,
+                accound_address.0.as_slice(),
+                reward,
+            )
+            .execute(tx.as_mut())
+            .await?;
+        }
+        Ok(())
+    }
+}
+
+/// Composite Statistics that holds different types of statistics
+/// It propagates increments to the appropriate sub-component and saves both
+/// sets of data.
+pub(crate) struct Statistics {
+    pub baker_stats:  BakerStatistics,
+    pub reward_stats: RewardStatistics,
+}
+
+impl Statistics {
+    /// Creates a new composite Statistics instance for the given block.
+    pub(crate) fn new(block_height: i64, slot_time: DateTime) -> Self {
+        Self {
+            baker_stats:  BakerStatistics::new(block_height),
+            reward_stats: RewardStatistics::new(block_height, slot_time),
+        }
+    }
+
+    /// Increments a counter based on the provided StatisticsField.
+    /// - For Baker fields, updates the global baker counters.
+    /// - For Reward fields, updates the rewards for a specific account.
+    pub(crate) fn increment(&mut self, field: StatisticsField, count: i64) {
+        match field {
+            StatisticsField::Baker(bf) => self.baker_stats.increment(bf, count),
+            StatisticsField::Reward(RewardField::Account(account_id)) => {
+                self.reward_stats.increment(account_id, count);
+            }
+        }
+    }
+
+    /// Persists statistics changes if recorded
+    pub(crate) async fn save(&self, tx: &mut Transaction<'static, Postgres>) -> Result<()> {
+        self.baker_stats.save(tx).await?;
+        self.reward_stats.save(tx).await?;
         Ok(())
     }
 }

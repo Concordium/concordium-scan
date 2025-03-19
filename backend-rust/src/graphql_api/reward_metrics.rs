@@ -54,11 +54,8 @@ async fn reward_metrics(
     .fetch_all(pool)
     .await?;
 
-
-    let (x_time, y_sum_rewards): (Vec<DateTime>, Vec<i64>) = rows
-        .iter()
-        .map(|row| (row.bucket_time, row.accumulated_amount))
-        .unzip();
+    let (x_time, y_sum_rewards): (Vec<DateTime>, Vec<i64>) =
+        rows.iter().map(|row| (row.bucket_time, row.accumulated_amount)).unzip();
 
     let sum_reward_amount = y_sum_rewards.iter().sum();
 

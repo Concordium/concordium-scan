@@ -60,7 +60,8 @@ mod ensure_affected_rows;
 mod statistics;
 use crate::indexer::statistics::{
     BakerField::{Added, Removed},
-    Statistics,
+    RewardField::Account,
+    Statistics, StatisticsField,
 };
 use ensure_affected_rows::EnsureAffectedRows;
 
@@ -895,6 +896,7 @@ impl PreparedBlock {
             node_client,
             &data.block_info,
             &data.special_events,
+            &mut statistics,
         )
         .await?;
         let baker_unmark_suspended = PreparedUnmarkPrimedForSuspension::prepare(data)?;
@@ -2159,7 +2161,7 @@ struct BakerRemoved {
 }
 impl BakerRemoved {
     fn prepare(baker_id: &sdk_types::BakerId, statistics: &mut Statistics) -> anyhow::Result<Self> {
-        statistics.increment(Removed, 1);
+        statistics.increment(StatisticsField::Baker(Removed), 1);
         Ok(Self {
             move_delegators: MovePoolDelegatorsToPassivePool::prepare(baker_id)?,
             remove_baker:    RemoveBaker::prepare(baker_id)?,
@@ -2332,7 +2334,7 @@ impl PreparedBakerEvent {
             BakerEvent::BakerAdded {
                 data: details,
             } => {
-                statistics.increment(Added, 1);
+                statistics.increment(StatisticsField::Baker(Added), 1);
                 PreparedBakerEvent::Add {
                     baker_id:             details.keys_event.baker_id.id.index.try_into()?,
                     staked:               details.stake.micro_ccd().try_into()?,
@@ -4213,6 +4215,7 @@ impl PreparedSpecialTransactionOutcomes {
         node_client: &mut v2::Client,
         block_info: &BlockInfo,
         events: &[SpecialTransactionOutcome],
+        statistics: &mut Statistics,
     ) -> anyhow::Result<Self> {
         // Return whether the block is a payday block. This is always false for
         // protocol versions before P4. In protocol version 4 and later this is the
@@ -4240,7 +4243,9 @@ impl PreparedSpecialTransactionOutcomes {
                 )?,
             updates: events
                 .iter()
-                .map(|event| PreparedSpecialTransactionOutcomeUpdate::prepare(event, block_info))
+                .map(|event| {
+                    PreparedSpecialTransactionOutcomeUpdate::prepare(event, block_info, statistics)
+                })
                 .collect::<Result<_, _>>()?,
             payday_updates,
         })
@@ -4279,8 +4284,6 @@ struct PreparedPaydaySpecialTransactionOutcomes {
     delegators_baking_rewards: Vec<i64>,
     delegators_finalization_rewards: Vec<i64>,
 }
-
-
 
 impl PreparedPaydaySpecialTransactionOutcomes {
     fn prepare(block_height: i64, events: &[SpecialTransactionOutcome]) -> anyhow::Result<Self> {
@@ -4485,13 +4488,12 @@ impl PreparedPaydaySpecialTransactionOutcomes {
         .await
         .context("Failed inserting total rewards at payday block")?;
 
-//        sqlx::query!(
-//            "REFRESH MATERIALIZED VIEW metrics_rewards;",
-//        )
-//        .execute(tx.as_mut())
-//        .await
-//        .context("Failed inserting total rewards at payday block")?;
-
+        //        sqlx::query!(
+        //            "REFRESH MATERIALIZED VIEW metrics_rewards;",
+        //        )
+        //        .execute(tx.as_mut())
+        //        .await
+        //        .context("Failed inserting total rewards at payday block")?;
 
         Ok(())
     }
@@ -4513,7 +4515,6 @@ struct PreparedInsertBlockSpecialTransactionOutcomes {
     /// The `SpecialEvents` of a payday block in the order they
     /// occur in the block.
     payday_special_transaction_outcomes: PreparedPaydaySpecialTransactionOutcomes,
-
 }
 
 impl PreparedInsertBlockSpecialTransactionOutcomes {
@@ -4594,7 +4595,11 @@ enum PreparedSpecialTransactionOutcomeUpdate {
 }
 
 impl PreparedSpecialTransactionOutcomeUpdate {
-    fn prepare(event: &SpecialTransactionOutcome, block_info: &BlockInfo) -> anyhow::Result<Self> {
+    fn prepare(
+        event: &SpecialTransactionOutcome,
+        block_info: &BlockInfo,
+        statistics: &mut Statistics,
+    ) -> anyhow::Result<Self> {
         let results = match &event {
             SpecialTransactionOutcome::BakingRewards {
                 baker_rewards,
@@ -4609,6 +4614,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                             block_info.block_height,
                             AccountStatementEntryType::BakerReward,
                             block_info.protocol_version,
+                            statistics,
                         )
                     })
                     .collect::<Result<Vec<_>, _>>()?;
@@ -4625,6 +4631,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                     block_info.block_height,
                     AccountStatementEntryType::FoundationReward,
                     block_info.protocol_version,
+                    statistics,
                 )?];
                 Self::Rewards(rewards)
             }
@@ -4641,6 +4648,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                             block_info.block_height,
                             AccountStatementEntryType::FinalizationReward,
                             block_info.protocol_version,
+                            statistics,
                         )
                     })
                     .collect::<Result<Vec<_>, _>>()?;
@@ -4659,6 +4667,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                     block_info.block_height,
                     AccountStatementEntryType::FoundationReward,
                     block_info.protocol_version,
+                    statistics,
                 )?,
                 AccountReceivedReward::prepare(
                     baker,
@@ -4666,6 +4675,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                     block_info.block_height,
                     AccountStatementEntryType::BakerReward,
                     block_info.protocol_version,
+                    statistics,
                 )?,
             ]),
             SpecialTransactionOutcome::PaydayFoundationReward {
@@ -4677,6 +4687,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 block_info.block_height,
                 AccountStatementEntryType::FoundationReward,
                 block_info.protocol_version,
+                statistics,
             )?]),
             SpecialTransactionOutcome::PaydayAccountReward {
                 account,
@@ -4690,6 +4701,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                     block_info.block_height,
                     AccountStatementEntryType::TransactionFeeReward,
                     block_info.protocol_version,
+                    statistics,
                 )?,
                 AccountReceivedReward::prepare(
                     account,
@@ -4697,6 +4709,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                     block_info.block_height,
                     AccountStatementEntryType::BakerReward,
                     block_info.protocol_version,
+                    statistics,
                 )?,
                 AccountReceivedReward::prepare(
                     account,
@@ -4704,6 +4717,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                     block_info.block_height,
                     AccountStatementEntryType::FinalizationReward,
                     block_info.protocol_version,
+                    statistics,
                 )?,
             ]),
             // TODO: Support these two types. (Deviates from Old CCDScan)
@@ -4763,7 +4777,12 @@ impl AccountReceivedReward {
         block_height: AbsoluteBlockHeight,
         transaction_type: AccountStatementEntryType,
         protocol_version: ProtocolVersion,
+        statistics: &mut Statistics,
     ) -> anyhow::Result<Self> {
+        statistics.increment(
+            StatisticsField::Reward(Account(account_address.get_canonical_address())),
+            amount,
+        );
         Ok(Self {
             update_account_balance: PreparedUpdateAccountBalance::prepare(
                 account_address,

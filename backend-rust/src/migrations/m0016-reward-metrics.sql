@@ -2,7 +2,7 @@ CREATE TABLE metrics_rewards (
     block_height        BIGINT NOT NULL,
     block_slot_time     TIMESTAMPTZ NOT NULL,
     account_index       BIGINT NOT NULL,
-    accumulated_amount  BIGINT NOT NULL
+    amount              BIGINT NOT NULL
 );
 
 INSERT INTO metrics_rewards
@@ -11,7 +11,7 @@ WITH per_block AS (
     block_height,
     account_index,
     (SELECT slot_time FROM blocks WHERE height = block_height) AS block_slot_time,
-    SUM(amount) AS total_rewards
+    SUM(amount) AS rewards
   FROM account_statements
   WHERE entry_type IN (
     'FinalizationReward',
@@ -26,7 +26,7 @@ SELECT
   block_height,
   block_slot_time,
   account_index,
-  total_rewards
+  rewards
 FROM per_block;
 
 CREATE INDEX metrics_rewards_accounts_slot_time_idx ON metrics_rewards(account_index, block_slot_time);
