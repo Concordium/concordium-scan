@@ -1,9 +1,16 @@
 use super::{block::Block, get_pool, ApiError, ApiResult};
 use crate::{
     address::AccountAddress,
-    scalar_types::{Amount, BlockHeight, DateTime},
+    scalar_types::{Amount, BlockHeight, DateTime, Decimal},
 };
 use async_graphql::{Context, Object, SimpleObject};
+
+#[derive(SimpleObject)]
+pub struct CommissionRates {
+    pub transaction_commission:  Option<Decimal>,
+    pub finalization_commission: Option<Decimal>,
+    pub baking_commission:       Option<Decimal>,
+}
 
 #[derive(SimpleObject, Clone)]
 pub struct PaydayPoolRewardAmounts {

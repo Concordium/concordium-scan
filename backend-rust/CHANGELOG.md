@@ -4,7 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+Database schema version: 16
+
+### Added
+
+- Add database migration 16 adding a table tracking commission rates for passive delegation and adding an index to retrieve passive delegators efficiently from the accounts table.
+- Add query `PassiveDelegation::delegators`, `PassiveDelegation::delegatorCount`,
+`assiveDelegation::commissionRates`, `PassiveDelegation::delegatedStake` and `PassiveDelegation::delegatedStakePercentage`.
+
+## [0.1.36] - 2025-03-17
+
 Database schema version: 15
+
+### Fixed
+
+- Baker metrics to be using the same time interval for buckets and total values.
 
 ### Added
 

@@ -1,6 +1,6 @@
 use super::{
     account::Account,
-    baker_and_delegator_types::{DelegationSummary, PaydayPoolReward},
+    baker_and_delegator_types::{CommissionRates, DelegationSummary, PaydayPoolReward},
     get_config, get_pool,
     transaction::Transaction,
     ApiError, ApiResult, ApiServiceConfig, ConnectionQuery,
@@ -1748,7 +1748,7 @@ impl CurrentBaker {
 
         let delegated_stake_of_pool = self.pool_total_staked - self.staked;
 
-        // Division by 0 is not possible because `pool_total_staked` is always a
+        // Division by 0 is not possible because `total_stake` is always a
         // positive number.
         let total_stake_percentage = (rust_decimal::Decimal::from(self.pool_total_staked)
             * rust_decimal::Decimal::from(100))
@@ -2372,7 +2372,7 @@ impl<'a> BakerPool<'a> {
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, DelegationSummary>> {
+    ) -> ApiResult<connection::Connection<DescendingI64, DelegationSummary>> {
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
         let query = ConnectionQuery::<DescendingI64>::new(
@@ -2408,7 +2408,7 @@ impl<'a> BakerPool<'a> {
         .fetch(pool);
         let mut connection = connection::Connection::new(false, false);
         while let Some(delegator) = row_stream.try_next().await? {
-            connection.edges.push(connection::Edge::new(delegator.index.to_string(), delegator));
+            connection.edges.push(connection::Edge::new(delegator.index.into(), delegator));
         }
         if let Some(page_max_index) = connection.edges.first() {
             if let Some(max_index) = sqlx::query_scalar!(
@@ -2426,13 +2426,6 @@ impl<'a> BakerPool<'a> {
         }
         Ok(connection)
     }
-}
-
-#[derive(SimpleObject)]
-struct CommissionRates {
-    transaction_commission:  Option<Decimal>,
-    finalization_commission: Option<Decimal>,
-    baking_commission:       Option<Decimal>,
 }
 
 struct DelegatedStakeBounds {

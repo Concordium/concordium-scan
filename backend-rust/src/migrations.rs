@@ -209,7 +209,9 @@ pub enum SchemaVersion {
     BakerMetrics,
     #[display("0015:Add tracking of rewards paid out to bakers and delegators in payday blocks")]
     PaydayPoolRewards,
-    #[display("0016:Reward metrics")]
+    #[display("0016:Passive delegation")]
+    PassiveDelegation,
+    #[display("0017:Reward metrics")]
     RewardMetrics,
 }
 impl SchemaVersion {
@@ -249,6 +251,7 @@ impl SchemaVersion {
             SchemaVersion::FixDelegatedStakeEarnings => false,
             SchemaVersion::BakerMetrics => false,
             SchemaVersion::PaydayPoolRewards => false,
+            SchemaVersion::PassiveDelegation => false,
             SchemaVersion::RewardMetrics => false,
         }
     }
@@ -351,10 +354,19 @@ impl SchemaVersion {
             }
             SchemaVersion::PaydayPoolRewards => {
                 tx.as_mut()
-                    .execute(sqlx::raw_sql(include_str!("./migrations/m0016-reward-metrics.sql")))
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0016-passive-delegation.sql"
+                    )))
+                    .await?;
+                SchemaVersion::PassiveDelegation
+            }
+            SchemaVersion::PassiveDelegation => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!("./migrations/m0017-reward-metrics.sql")))
                     .await?;
                 SchemaVersion::RewardMetrics
             }
+
             SchemaVersion::RewardMetrics => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()

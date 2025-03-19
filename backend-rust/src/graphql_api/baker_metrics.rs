@@ -24,51 +24,8 @@ impl QueryBakerMetrics {
         period: MetricsPeriod,
     ) -> ApiResult<BakerMetrics> {
         let pool = get_pool(ctx)?;
-
         let end_time = Utc::now();
-
         let before_time = end_time - period.as_duration();
-
-        let before_period_row = sqlx::query!(
-            "SELECT
-                total_bakers_added,
-                total_bakers_removed
-            FROM metrics_bakers
-            LEFT JOIN blocks ON metrics_bakers.block_height = blocks.height
-            WHERE blocks.slot_time < $1
-            ORDER BY blocks.slot_time DESC
-            LIMIT 1
-            ",
-            before_time,
-        )
-        .fetch_optional(pool)
-        .await?;
-
-        let last_in_period_row = sqlx::query!(
-            "SELECT
-                total_bakers_added,
-                total_bakers_removed
-            FROM metrics_bakers
-            LEFT JOIN blocks ON metrics_bakers.block_height = blocks.height
-            WHERE blocks.slot_time < $1
-            ORDER BY blocks.slot_time DESC
-            LIMIT 1",
-            end_time,
-        )
-        .fetch_optional(pool)
-        .await?;
-
-        let (before_added, before_removed) = before_period_row
-            .map(|r| (r.total_bakers_added, r.total_bakers_removed))
-            .unwrap_or((0, 0));
-        let (after_added, after_removed) = last_in_period_row
-            .map(|r| (r.total_bakers_added, r.total_bakers_removed))
-            .unwrap_or((0, 0));
-
-        let last_baker_count = after_added - after_removed;
-        let bakers_added = after_added - before_added;
-        let bakers_removed = after_removed - before_removed;
-
         let bucket_width = period.bucket_width();
 
         let bucket_interval: PgInterval =
@@ -83,28 +40,44 @@ impl QueryBakerMetrics {
         .fetch_all(pool)
         .await?;
 
+        let first_row = rows.first().ok_or_else(|| {
+            ApiError::InternalError("No metrics found for the given period".to_string())
+        })?;
+
+        let mut current_period_baker_count: u64 = first_row
+            .bucket_previous_count_total
+            .try_into()
+            .map_err(|_| ApiError::InternalError("Invalid initial baker count".to_string()))?;
+
+        let (mut bakers_added, mut bakers_removed) = (0, 0);
         let mut x_time = Vec::with_capacity(rows.len());
         let mut y_bakers_added: Vec<u64> = Vec::with_capacity(rows.len());
         let mut y_bakers_removed: Vec<u64> = Vec::with_capacity(rows.len());
         let mut y_last_baker_count: Vec<u64> = Vec::with_capacity(rows.len());
-
-        let mut current_period_baker_count =
-            TryInto::<u64>::try_into(before_added - before_removed)?;
         for r in rows.iter() {
             x_time.push(r.bucket_time);
+
             let added_during_period: u64 = r.bucket_bakers_added.try_into()?;
+            bakers_added += added_during_period;
             y_bakers_added.push(added_during_period);
+
             let removed_during_period: u64 = r.bucket_bakers_removed.try_into()?;
+            bakers_removed += removed_during_period;
             y_bakers_removed.push(removed_during_period);
+
             current_period_baker_count =
                 current_period_baker_count + added_during_period - removed_during_period;
             y_last_baker_count.push(current_period_baker_count);
         }
 
+        let last_baker_count = y_last_baker_count.last().copied().ok_or_else(|| {
+            ApiError::InternalError("Failed to compute final baker count".to_string())
+        })?;
+
         Ok(BakerMetrics {
-            bakers_added,
-            bakers_removed,
-            last_baker_count: last_baker_count.try_into()?,
+            bakers_added: bakers_added.try_into()?,
+            bakers_removed: bakers_removed.try_into()?,
+            last_baker_count,
             buckets: BakerMetricsBuckets {
                 bucket_width: TimeSpan(bucket_width),
                 y_last_baker_count,

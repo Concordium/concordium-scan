@@ -31,8 +31,8 @@ use concordium_rust_sdk::{
         AbsoluteBlockHeight, AccountStakingInfo, AccountTransactionDetails,
         AccountTransactionEffects, BakerId, BakerRewardPeriodInfo, BirkBaker, BlockItemSummary,
         BlockItemSummaryDetails, ContractAddress, ContractInitializedEvent, ContractTraceElement,
-        DelegationTarget, PartsPerHundredThousands, ProtocolVersion, RejectReason, RewardsOverview,
-        SpecialTransactionOutcome, TransactionType,
+        DelegationTarget, PartsPerHundredThousands, PassiveDelegationStatus, ProtocolVersion,
+        RejectReason, RewardsOverview, SpecialTransactionOutcome, TransactionType,
     },
     v2::{
         self, BlockIdentifier, ChainParameters, FinalizedBlockInfo, QueryError, QueryResult,
@@ -4996,10 +4996,13 @@ struct PreparedValidatorSuspension {
 /// Represents a payday block, its payday commission
 /// rates, and the associated block height.
 struct PreparedPayDayBlock {
-    block_height:                 i64,
+    block_height: i64,
     /// Represents the payday baker pool commission rates captured from
     /// the `get_bakers_reward_period` node endpoint.
-    payday_commission_rates:      PreparedPaydayCommissionRates,
+    baker_payday_commission_rates: PreparedBakerPaydayCommissionRates,
+    /// Represents the payday pool commission rates to passive delegators
+    /// captured from the `get_passive_delegation_info` node endpoint.
+    passive_delegation_payday_commission_rates: PreparedPassiveDelegationPaydayCommissionRates,
     /// Represents the payday lottery power updates for bakers captured from
     /// the `get_election_info` node endpoint.
     payday_bakers_lottery_powers: PreparedPaydayLotteryPowers,
@@ -5025,8 +5028,21 @@ impl PreparedPayDayBlock {
             } else {
                 vec![]
             };
-        let payday_commission_rates =
-            PreparedPaydayCommissionRates::prepare(baker_reward_period_infos)?;
+        let baker_payday_commission_rates =
+            PreparedBakerPaydayCommissionRates::prepare(baker_reward_period_infos)?;
+
+        let passive_delegation_status = if block_info.protocol_version >= ProtocolVersion::P4 {
+            Some(
+                node_client
+                    .get_passive_delegation_info(BlockIdentifier::AbsoluteHeight(block_height))
+                    .await?
+                    .response,
+            )
+        } else {
+            None
+        };
+        let passive_delegation_payday_commission_rates =
+            PreparedPassiveDelegationPaydayCommissionRates::prepare(passive_delegation_status)?;
 
         let election_info = node_client
             .get_election_info(BlockIdentifier::AbsoluteHeight(block_height))
@@ -5037,7 +5053,8 @@ impl PreparedPayDayBlock {
 
         Ok(Self {
             block_height: block_height.height.try_into()?,
-            payday_commission_rates,
+            baker_payday_commission_rates,
+            passive_delegation_payday_commission_rates,
             payday_bakers_lottery_powers,
         })
     }
@@ -5047,7 +5064,8 @@ impl PreparedPayDayBlock {
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
         // Save the commission rates to the database.
-        self.payday_commission_rates.save(tx).await?;
+        self.baker_payday_commission_rates.save(tx).await?;
+        self.passive_delegation_payday_commission_rates.save(tx).await?;
 
         // Save the lottery_powers to the database.
         self.payday_bakers_lottery_powers.save(tx).await?;
@@ -5064,16 +5082,82 @@ impl PreparedPayDayBlock {
     }
 }
 
+/// Represents the payday pool commission rates to passive delegators captured
+/// from the `get_passive_delegation_info` node endpoint.
+struct PreparedPassiveDelegationPaydayCommissionRates {
+    transaction_commission:  Option<i64>,
+    baking_commission:       Option<i64>,
+    finalization_commission: Option<i64>,
+}
+
+impl PreparedPassiveDelegationPaydayCommissionRates {
+    fn prepare(passive_delegation_status: Option<PassiveDelegationStatus>) -> anyhow::Result<Self> {
+        Ok(Self {
+            transaction_commission: passive_delegation_status.as_ref().map(|status| {
+                i64::from(u32::from(PartsPerHundredThousands::from(
+                    status.commission_rates.transaction,
+                )))
+            }),
+
+            baking_commission: passive_delegation_status.as_ref().map(|status| {
+                i64::from(u32::from(PartsPerHundredThousands::from(status.commission_rates.baking)))
+            }),
+
+            finalization_commission: passive_delegation_status.as_ref().map(|status| {
+                i64::from(u32::from(PartsPerHundredThousands::from(
+                    status.commission_rates.finalization,
+                )))
+            }),
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        // The fields `transaction_commission`, `baking_commission`, and
+        // `finalization_commission` are either all `Some` or all `None`.
+        if let (
+            Some(transaction_commission),
+            Some(baking_commission),
+            Some(finalization_commission),
+        ) = (self.transaction_commission, self.baking_commission, self.finalization_commission)
+        {
+            sqlx::query!(
+                "
+                INSERT INTO passive_delegation_payday_commission_rates (
+                    payday_transaction_commission,
+                    payday_baking_commission,
+                    payday_finalization_commission
+                )
+                VALUES ($1, $2, $3)
+                ON CONFLICT (id) 
+                DO UPDATE SET
+                    payday_transaction_commission = EXCLUDED.payday_transaction_commission,
+                    payday_baking_commission = EXCLUDED.payday_baking_commission,
+                    payday_finalization_commission = EXCLUDED.payday_finalization_commission
+                ",
+                &transaction_commission,
+                &baking_commission,
+                &finalization_commission
+            )
+            .execute(tx.as_mut())
+            .await?;
+        }
+        Ok(())
+    }
+}
+
 /// Represents the payday baker pool commission rates captured from
 /// the `get_bakers_reward_period` node endpoint.
-struct PreparedPaydayCommissionRates {
+struct PreparedBakerPaydayCommissionRates {
     baker_ids:                Vec<i64>,
     transaction_commissions:  Vec<i64>,
     baking_commissions:       Vec<i64>,
     finalization_commissions: Vec<i64>,
 }
 
-impl PreparedPaydayCommissionRates {
+impl PreparedBakerPaydayCommissionRates {
     fn prepare(baker_reward_period_info: Vec<BakerRewardPeriodInfo>) -> anyhow::Result<Self> {
         let capacity = baker_reward_period_info.len();
         let mut baker_ids: Vec<i64> = Vec::with_capacity(capacity);
