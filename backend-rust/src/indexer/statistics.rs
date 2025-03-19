@@ -84,8 +84,8 @@ impl BakerStatistics {
         .execute(tx.as_mut())
         .await?;
 
-        if result.rows_affected() == 0 {
-            // No previous row exists; insert a new row.
+        let previous_baker_metrics_exists = result.rows_affected() == 0;
+        if previous_baker_metrics_exists {
             sqlx::query!(
                 "INSERT INTO metrics_bakers (
               block_height,
