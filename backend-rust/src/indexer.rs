@@ -4388,13 +4388,13 @@ impl PreparedPaydaySpecialTransactionOutcomes {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
+        if !self.has_reward_events {
+            return Ok(());
+        }
         // Calculate and insert the delegators' rewards.
         // Don't record the rewards if they are associated with the baker itself
         // (not a delegator) hence we check that `pool_owner IS DISTINCT FROM
         // account_index`.
-        if !self.has_reward_events {
-            return Ok(());
-        }
         sqlx::query!(
             "
             INSERT INTO bakers_payday_pool_rewards (
