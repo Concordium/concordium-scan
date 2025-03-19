@@ -190,7 +190,7 @@ where metrics_blocks.block_height = sub_query.block_height
         using var counter = _metrics.MeasureDuration(nameof(MetricsWriter), nameof(AddRewardMetrics));
         
         var sql = @"
-                insert into metrics_rewards (time, account_id, amount) 
+                insert into ds (time, account_id, amount) 
                 values (@Time, @AccountId, @Amount)";
 
         using var conn = new NpgsqlConnection(_settings.ConnectionString);

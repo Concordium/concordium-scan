@@ -1,9 +1,34 @@
-CREATE TABLE metrics_rewards
-(
-    block_height                    BIGINT    PRIMARY KEY REFERENCES blocks(height),
-    account_id                      BIGINT    NOT NULL,
-    total_accumulated_amount        BIGINT    NOT NULL,
-    account_accumulated_amount      BIGINT    NOT NULL
+CREATE TABLE metrics_rewards (
+    block_height        BIGINT NOT NULL,
+    block_slot_time     TIMESTAMPTZ NOT NULL,
+    account_index       BIGINT NOT NULL,
+    accumulated_amount  BIGINT NOT NULL
 );
 
-CREATE INDEX ON metrics_rewards (account_id, block_height);
+INSERT INTO metrics_rewards
+WITH per_block AS (
+  SELECT
+    block_height,
+    account_index,
+    (SELECT slot_time FROM blocks WHERE height = block_height) AS block_slot_time,
+    SUM(amount) AS total_rewards
+  FROM account_statements
+  WHERE entry_type IN (
+    'FinalizationReward',
+    'FoundationReward',
+    'BakerReward',
+    'TransactionFeeReward'
+  )
+  GROUP BY block_height, account_index
+  HAVING COUNT(*) > 0
+)
+SELECT
+  block_height,
+  block_slot_time,
+  account_index,
+  total_rewards
+FROM per_block;
+
+CREATE INDEX metrics_rewards_accounts_slot_time_idx ON metrics_rewards(account_index, block_slot_time);
+
+

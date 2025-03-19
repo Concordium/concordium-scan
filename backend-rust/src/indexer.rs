@@ -879,7 +879,7 @@ impl PreparedBlock {
         } else {
             None
         };
-        let mut statistics = Statistics::new(height);
+        let mut statistics = Statistics::new(height, slot_time);
         let total_amount =
             i64::try_from(data.tokenomics_info.common_reward_data().total_amount.micro_ccd())?;
         let total_staked = i64::try_from(data.total_staked_capital.micro_ccd())?;
@@ -4200,7 +4200,7 @@ impl PreparedCcdTransferEvent {
 /// block.
 struct PreparedSpecialTransactionOutcomes {
     /// Insert the special transaction outcomes for this block.
-    insert_special_transaction_outcomes: PreparedInsertBlockSpecialTransacionOutcomes,
+    insert_special_transaction_outcomes: PreparedInsertBlockSpecialTransactionOutcomes,
     /// Updates to various tables depending on the type of special transaction
     /// outcome.
     updates: Vec<PreparedSpecialTransactionOutcomeUpdate>,
@@ -4234,7 +4234,7 @@ impl PreparedSpecialTransactionOutcomes {
 
         Ok(Self {
             insert_special_transaction_outcomes:
-                PreparedInsertBlockSpecialTransacionOutcomes::prepare(
+                PreparedInsertBlockSpecialTransactionOutcomes::prepare(
                     block_info.block_height,
                     events,
                 )?,
@@ -4263,9 +4263,10 @@ impl PreparedSpecialTransactionOutcomes {
 
 /// The `SpecialEvents` of a payday block in the order they
 /// occur in the block.
-struct PreparedPaydaySpecialTransacionOutcomes {
+struct PreparedPaydaySpecialTransactionOutcomes {
     /// Height of the payday block containing the events.
     block_height: i64,
+    has_reward_events: bool,
     // Total rewards
     total_rewards_pool_owners: Vec<Option<i64>>,
     total_transaction_rewards: Vec<i64>,
@@ -4279,7 +4280,9 @@ struct PreparedPaydaySpecialTransacionOutcomes {
     delegators_finalization_rewards: Vec<i64>,
 }
 
-impl PreparedPaydaySpecialTransacionOutcomes {
+
+
+impl PreparedPaydaySpecialTransactionOutcomes {
     fn prepare(block_height: i64, events: &[SpecialTransactionOutcome]) -> anyhow::Result<Self> {
         // Extract the rewards from the `SpecialEvents` in each payday block
         // and associate it with the `pool_owner`.
@@ -4321,6 +4324,7 @@ impl PreparedPaydaySpecialTransacionOutcomes {
         let mut delegators_finalization_rewards: Vec<i64> = vec![];
 
         let mut last_pool_owner: Option<Option<i64>> = None;
+        let has_reward_events = !events.is_empty();
 
         for event in events {
             match event {
@@ -4364,6 +4368,7 @@ impl PreparedPaydaySpecialTransacionOutcomes {
 
         Ok(Self {
             block_height,
+            has_reward_events,
             total_rewards_pool_owners,
             total_transaction_rewards,
             total_baking_rewards,
@@ -4384,6 +4389,9 @@ impl PreparedPaydaySpecialTransacionOutcomes {
         // Don't record the rewards if they are associated with the baker itself
         // (not a delegator) hence we check that `pool_owner IS DISTINCT FROM
         // account_index`.
+        if !self.has_reward_events {
+            return Ok(());
+        }
         sqlx::query!(
             "
             INSERT INTO bakers_payday_pool_rewards (
@@ -4477,12 +4485,20 @@ impl PreparedPaydaySpecialTransacionOutcomes {
         .await
         .context("Failed inserting total rewards at payday block")?;
 
+//        sqlx::query!(
+//            "REFRESH MATERIALIZED VIEW metrics_rewards;",
+//        )
+//        .execute(tx.as_mut())
+//        .await
+//        .context("Failed inserting total rewards at payday block")?;
+
+
         Ok(())
     }
 }
 
 /// Insert special transaction outcomes for a particular block.
-struct PreparedInsertBlockSpecialTransacionOutcomes {
+struct PreparedInsertBlockSpecialTransactionOutcomes {
     /// Height of the block containing these special events.
     block_height: i64,
     /// Index of the outcome within this block in the order they
@@ -4496,10 +4512,11 @@ struct PreparedInsertBlockSpecialTransacionOutcomes {
     outcomes: Vec<serde_json::Value>,
     /// The `SpecialEvents` of a payday block in the order they
     /// occur in the block.
-    payday_special_transacion_outcomes: PreparedPaydaySpecialTransacionOutcomes,
+    payday_special_transaction_outcomes: PreparedPaydaySpecialTransactionOutcomes,
+
 }
 
-impl PreparedInsertBlockSpecialTransacionOutcomes {
+impl PreparedInsertBlockSpecialTransactionOutcomes {
     fn prepare(
         block_height: AbsoluteBlockHeight,
         events: &[SpecialTransactionOutcome],
@@ -4509,8 +4526,8 @@ impl PreparedInsertBlockSpecialTransacionOutcomes {
         let mut outcome_type = Vec::with_capacity(events.len());
         let mut outcomes = Vec::with_capacity(events.len());
 
-        let payday_special_transacion_outcomes =
-            PreparedPaydaySpecialTransacionOutcomes::prepare(block_height, events)?;
+        let payday_special_transaction_outcomes =
+            PreparedPaydaySpecialTransactionOutcomes::prepare(block_height, events)?;
 
         for (block_index, event) in events.iter().enumerate() {
             let outcome_index = block_index.try_into()?;
@@ -4528,7 +4545,7 @@ impl PreparedInsertBlockSpecialTransacionOutcomes {
             block_outcome_index,
             outcome_type,
             outcomes,
-            payday_special_transacion_outcomes,
+            payday_special_transaction_outcomes,
         })
     }
 
@@ -4559,7 +4576,7 @@ impl PreparedInsertBlockSpecialTransacionOutcomes {
         .await?
         .ensure_affected_rows(self.outcomes.len().try_into()?)?;
 
-        self.payday_special_transacion_outcomes.save(tx).await?;
+        self.payday_special_transaction_outcomes.save(tx).await?;
 
         Ok(())
     }

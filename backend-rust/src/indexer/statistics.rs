@@ -1,5 +1,6 @@
 use anyhow::Result;
 use sqlx::{Postgres, Transaction};
+use crate::scalar_types::DateTime;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum BakerField {
@@ -7,20 +8,27 @@ pub(crate) enum BakerField {
     Removed,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub(crate) enum RewardField {
+    Account,
+}
+
 pub(crate) struct Statistics {
     baker_is_changed:    bool,
     baker_added_count:   i64,
     baker_removed_count: i64,
     block_height:        i64,
+    slot_time:           DateTime
 }
 
 impl Statistics {
-    pub(crate) fn new(block_height: i64) -> Self {
+    pub(crate) fn new(block_height: i64, slot_time: DateTime) -> Self {
         Statistics {
             baker_is_changed: false,
             baker_added_count: 0,
             baker_removed_count: 0,
             block_height,
+            slot_time
         }
     }
 
