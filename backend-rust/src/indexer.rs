@@ -4488,13 +4488,6 @@ impl PreparedPaydaySpecialTransactionOutcomes {
         .await
         .context("Failed inserting total rewards at payday block")?;
 
-        //        sqlx::query!(
-        //            "REFRESH MATERIALIZED VIEW metrics_rewards;",
-        //        )
-        //        .execute(tx.as_mut())
-        //        .await
-        //        .context("Failed inserting total rewards at payday block")?;
-
         Ok(())
     }
 }
