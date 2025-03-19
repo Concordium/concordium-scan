@@ -70,14 +70,14 @@ impl QueryBakerMetrics {
             y_last_baker_count.push(current_period_baker_count);
         }
 
-        let last_baker_count = y_last_baker_count.last().copied().ok_or_else(|| {
+        let last_baker_count = y_last_baker_count.iter().max().ok_or_else(|| {
             ApiError::InternalError("Failed to compute final baker count".to_string())
         })?;
 
         Ok(BakerMetrics {
             bakers_added: bakers_added.try_into()?,
             bakers_removed: bakers_removed.try_into()?,
-            last_baker_count,
+            last_baker_count: *last_baker_count,
             buckets: BakerMetricsBuckets {
                 bucket_width: TimeSpan(bucket_width),
                 y_last_baker_count,
