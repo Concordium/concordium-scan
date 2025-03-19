@@ -60,8 +60,7 @@ mod ensure_affected_rows;
 mod statistics;
 use crate::indexer::statistics::{
     BakerField::{Added, Removed},
-    RewardField::Account,
-    Statistics, StatisticsField,
+    Statistics,
 };
 use ensure_affected_rows::EnsureAffectedRows;
 
@@ -2161,7 +2160,7 @@ struct BakerRemoved {
 }
 impl BakerRemoved {
     fn prepare(baker_id: &sdk_types::BakerId, statistics: &mut Statistics) -> anyhow::Result<Self> {
-        statistics.increment(StatisticsField::Baker(Removed), 1);
+        statistics.baker_stats.increment(Removed, 1);
         Ok(Self {
             move_delegators: MovePoolDelegatorsToPassivePool::prepare(baker_id)?,
             remove_baker:    RemoveBaker::prepare(baker_id)?,
@@ -2334,7 +2333,7 @@ impl PreparedBakerEvent {
             BakerEvent::BakerAdded {
                 data: details,
             } => {
-                statistics.increment(StatisticsField::Baker(Added), 1);
+                statistics.baker_stats.increment(Added, 1);
                 PreparedBakerEvent::Add {
                     baker_id:             details.keys_event.baker_id.id.index.try_into()?,
                     staked:               details.stake.micro_ccd().try_into()?,
@@ -4772,10 +4771,7 @@ impl AccountReceivedReward {
         protocol_version: ProtocolVersion,
         statistics: &mut Statistics,
     ) -> anyhow::Result<Self> {
-        statistics.increment(
-            StatisticsField::Reward(Account(account_address.get_canonical_address())),
-            amount,
-        );
+        statistics.reward_stats.increment(account_address.get_canonical_address(), amount);
         Ok(Self {
             update_account_balance: PreparedUpdateAccountBalance::prepare(
                 account_address,

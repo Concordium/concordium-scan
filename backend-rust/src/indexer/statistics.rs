@@ -11,17 +11,6 @@ pub(crate) enum BakerField {
     Removed,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) enum RewardField {
-    Account(CanonicalAccountAddress),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) enum StatisticsField {
-    Baker(BakerField),
-    Reward(RewardField),
-}
-
 /// BakerStatistics holds baker-related counters and tracks whether a change has
 /// occurred.
 pub(crate) struct BakerStatistics {
@@ -170,16 +159,6 @@ impl Statistics {
         Self {
             baker_stats:  BakerStatistics::new(block_height),
             reward_stats: RewardStatistics::new(block_height, slot_time),
-        }
-    }
-
-    /// Increments a counter based on the provided StatisticsField.
-    pub(crate) fn increment(&mut self, field: StatisticsField, count: i64) {
-        match field {
-            StatisticsField::Baker(bf) => self.baker_stats.increment(bf, count),
-            StatisticsField::Reward(RewardField::Account(account_id)) => {
-                self.reward_stats.increment(account_id, count);
-            }
         }
     }
 

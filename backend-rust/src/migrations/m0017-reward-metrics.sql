@@ -1,7 +1,7 @@
 CREATE TABLE metrics_rewards (
-    block_height        BIGINT NOT NULL,
+    block_height        BIGINT NOT NULL REFERENCES blocks,
     block_slot_time     TIMESTAMPTZ NOT NULL,
-    account_index       BIGINT NOT NULL,
+    account_index       BIGINT NOT NULL REFERENCES accounts,
     amount              BIGINT NOT NULL
 );
 
