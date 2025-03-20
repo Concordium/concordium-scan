@@ -18,22 +18,24 @@
 						Commission
 					</TableTh>
 					<TableTh
-						v-if="hasPoolData && breakpoint >= Breakpoint.LG"
+						v-if="hasPoolData && breakpoint >= Breakpoint.SM"
 						align="right"
 					>
-						Validator APY <span class="text-theme-faded">(30 days)</span>
+						<span>Validator APY</span> <br />
+						<span class="text-theme-faded">(30 days)</span>
 					</TableTh>
 					<TableTh
 						v-if="hasPoolData && breakpoint >= Breakpoint.SM"
 						align="right"
 					>
-						Delegators APY <span class="text-theme-faded">(30 days)</span>
+						<span>Delegators APY</span> <br />
+						<span class="text-theme-faded">(30 days)</span>
 					</TableTh>
 					<TableTh v-if="hasPoolData && breakpoint >= Breakpoint.MD">
 						Delegation pool status
 					</TableTh>
 					<TableTh
-						v-if="hasPoolData && breakpoint >= Breakpoint.XXL"
+						v-if="hasPoolData && breakpoint >= Breakpoint.XL"
 						align="right"
 					>
 						Delegators

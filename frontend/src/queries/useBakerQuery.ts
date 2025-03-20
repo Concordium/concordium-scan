@@ -121,6 +121,16 @@ const BakerQuery = gql<BakerResponse>`
 
 export const useBakerQuery = (bakerId: number) => {
 	const { data, fetching, error } = useQuery({
+		// TODO use new rust-backend here once APY is supported
+		// (otherwise suspended validator status on baker details does not work properly)
+		//
+		// Add the three fields to the query:
+		// selfSuspended
+		// inactiveSuspended
+		// primedForSuspension
+		//
+		// Update the context:
+		// context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: BakerQuery,
 		requestPolicy: 'cache-first',
 		variables: {

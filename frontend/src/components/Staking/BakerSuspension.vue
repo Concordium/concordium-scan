@@ -20,25 +20,25 @@
 		:text="`Validator will be suspended on the next pay day.`"
 	>
 		<span class="numerical change" style="color: #ffc600">
-			Primed for suspension
+			Primed
 			<WarningIcon class="h-4 align-middle" />
 		</span>
 	</Tooltip>
 	<Tooltip
 		v-else-if="props.inactiveSuspended !== null"
-		:text="`Validator is suspended.`"
+		:text="`Validator is suspended due to inactivity.`"
 	>
 		<span class="numerical change" style="color: #ffc600">
-			Suspended (inactivity)
+			Suspended
 			<WarningIcon class="h-4 align-middle" />
 		</span>
 	</Tooltip>
 	<Tooltip
 		v-else-if="props.selfSuspended !== null"
-		:text="`Validator is suspended.`"
+		:text="`Validator is suspended because the validator sent a self-suspending transaction.`"
 	>
 		<span class="numerical change" style="color: #ffc600">
-			Suspended (self)
+			Suspended
 			<WarningIcon class="h-4 align-middle" />
 		</span>
 	</Tooltip>
