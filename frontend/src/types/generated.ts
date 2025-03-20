@@ -2444,6 +2444,7 @@ export type Query = {
   rewardMetrics: RewardMetrics;
   rewardMetricsForAccount: RewardMetrics;
   search: SearchResult;
+  suspendedValidators: SuspendedValidators;
   token: Token;
   tokens?: Maybe<TokensConnection>;
   transaction?: Maybe<Transaction>;
@@ -2453,6 +2454,51 @@ export type Query = {
   versions: Versions;
 };
 
+export type SuspendedValidators = {
+  __typename?: 'SuspendedValidators';
+  primedForSuspensionValidators: ValidatorsConnection;
+  suspendedValidators: ValidatorsConnection;
+};
+
+
+export type SuspendedValidatorsPrimedForSuspensionValidatorsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type SuspendedValidatorsSuspendedValidatorsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+export type Validators = {
+  __typename?: 'Validators';
+  id: Scalars['Int'];
+};
+
+export type ValidatorsConnection = {
+  __typename?: 'ValidatorsConnection';
+  /** A list of edges. */
+  edges: Array<ValidatorsEdge>;
+  /** A list of nodes. */
+  nodes: Array<Validators>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type ValidatorsEdge = {
+  __typename?: 'ValidatorsEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: Validators;
+};
 
 export type QueryAccountArgs = {
   id: Scalars['ID'];

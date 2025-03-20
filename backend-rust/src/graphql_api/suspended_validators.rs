@@ -17,40 +17,6 @@ struct SuspendedValidators {}
 
 #[Object]
 impl SuspendedValidators {
-    async fn suspended_validator_count(&self, ctx: &Context<'_>) -> ApiResult<i64> {
-        let pool = get_pool(ctx)?;
-
-        let count = sqlx::query_scalar!(
-            "
-                SELECT
-                    COUNT(*)
-                FROM bakers
-                WHERE self_suspended IS NOT NULL OR inactive_suspended IS NOT NULL;
-            "
-        )
-        .fetch_one(pool)
-        .await?;
-
-        Ok(count.unwrap_or(0i64))
-    }
-
-    async fn primed_for_suspension_validator_count<'a>(&self, ctx: &Context<'a>) -> ApiResult<i64> {
-        let pool = get_pool(ctx)?;
-
-        let count = sqlx::query_scalar!(
-            "
-                SELECT
-                    COUNT(*)
-                FROM bakers
-                WHERE primed_for_suspension IS NOT NULL;
-            "
-        )
-        .fetch_one(pool)
-        .await?;
-
-        Ok(count.unwrap_or(0i64))
-    }
-
     async fn suspended_validators(
         &self,
         ctx: &Context<'_>,
@@ -68,7 +34,7 @@ impl SuspendedValidators {
             after,
             last,
             before,
-            config.delegators_connection_limit,
+            config.validators_connection_limit,
         )?;
         let mut row_stream = sqlx::query_as!(
             Validators,
@@ -77,7 +43,7 @@ impl SuspendedValidators {
                     bakers.id as id
                 FROM bakers
                 WHERE self_suspended IS NOT NULL OR inactive_suspended IS NOT NULL AND
-                    id > $2 AND id < $1
+                    id > $1 AND id < $2
                 ORDER BY
                     (CASE WHEN $4 THEN bakers.id END) DESC,
                     (CASE WHEN NOT $4 THEN bakers.id END) ASC
@@ -137,7 +103,7 @@ impl SuspendedValidators {
             after,
             last,
             before,
-            config.delegators_connection_limit,
+            config.validators_connection_limit,
         )?;
         let mut row_stream = sqlx::query_as!(
             Validators,
@@ -146,7 +112,7 @@ impl SuspendedValidators {
                         bakers.id as id
                     FROM bakers
                     WHERE primed_for_suspension IS NOT NULL AND
-                        id > $2 AND id < $1
+                        id > $1 AND id < $2
                     ORDER BY
                         (CASE WHEN $4 THEN bakers.id END) DESC,
                         (CASE WHEN NOT $4 THEN bakers.id END) ASC

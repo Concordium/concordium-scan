@@ -2,20 +2,28 @@
 	<div>
 		<SuspendedValidatorsHeader />
 		<DrawerContent>
-			<span class="text-theme">
-				Total number: {{ passiveDelegationData.delegatorCount }}
-			</span>
 			<SuspendedValidators
 				v-if="
-					passiveDelegationData.delegators?.nodes?.length &&
-					passiveDelegationData.delegators?.nodes?.length > 0
+					data.suspendedValidators?.nodes?.length &&
+					data.suspendedValidators?.nodes?.length > 0
 				"
-				:delegators="passiveDelegationData.delegators!.nodes"
-				:total-count="passiveDelegationData.delegators!.nodes.length"
-				:page-info="passiveDelegationData.delegators!.pageInfo"
+				:suspended-validators="data.suspendedValidators!.nodes"
+				:total-count="data.suspendedValidators!.nodes.length"
+				:page-info="data.suspendedValidators!.pageInfo"
 				:go-to-page="goToPageDelegators"
 			/>
 			<div v-else class="p-4">No validators suspended</div>
+			<PrimedForSuspensionValidators
+				v-if="
+					data.primedForSuspensionValidators?.nodes?.length &&
+					data.primedForSuspensionValidators?.nodes?.length > 0
+				"
+				:primed-for-suspension-validators="data.primedForSuspensionValidators!.nodes"
+				:total-count="data.primedForSuspensionValidators!.nodes.length"
+				:page-info="data.primedForSuspensionValidators!.pageInfo"
+				:go-to-page="goToPageDelegators"
+			/>
+			<div v-else class="p-4">No validators primed for suspension</div>
 		</DrawerContent>
 	</div>
 </template>
@@ -23,14 +31,15 @@
 <script lang="ts" setup>
 import SuspendedValidatorsHeader from './SuspendedValidatorsHeader.vue'
 import SuspendedValidators from './SuspendedValidators.vue'
+import PrimedForSuspensionValidators from './PrimedForSuspensionValidators.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 
-import type { PassiveDelegationWithAPYFilter } from '~/queries/usePassiveDelegationQuery'
+import type { SuspendedValidatorsType } from '~/queries/useSuspendedValidatorsQuery'
 import type { PageInfo } from '~/types/generated'
 import type { PaginationTarget } from '~/composables/usePagination'
 
 type Props = {
-	passiveDelegationData: PassiveDelegationWithAPYFilter
+	data: SuspendedValidatorsType
 	goToPageDelegators: (page: PageInfo) => (target: PaginationTarget) => void
 	goToPageRewards: (page: PageInfo) => (target: PaginationTarget) => void
 }

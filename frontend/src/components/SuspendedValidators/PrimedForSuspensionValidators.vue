@@ -3,7 +3,9 @@
 		<div class="flex flex-wrap flex-grow w-1/2">
 			<div class="w-full flex items-center justify-items-stretch">
 				<h1 class="inline-block text-2xl">
-					Suspended validators ({{ suspendedValidators.length }})
+					Primed for suspension validators ({{
+						primedForSuspensionValidators.length
+					}})
 				</h1>
 			</div>
 		</div>
@@ -15,11 +17,11 @@
 			</TableHead>
 			<TableBody>
 				<TableRow
-					v-for="suspendedValidator in suspendedValidators"
-					:key="suspendedValidator.id"
+					v-for="primedForSuspensionValidator in primedForSuspensionValidators"
+					:key="primedForSuspensionValidator.id"
 				>
 					<TableTd>
-						<BakerLink :id="suspendedValidator.id" />
+						<BakerLink :id="primedForSuspensionValidator.id" />
 					</TableTd>
 				</TableRow>
 			</TableBody>
@@ -38,7 +40,7 @@ import type { PageInfo, Validators } from '~/types/generated'
 import BakerLink from '~/components/molecules/BakerLink.vue'
 
 type Props = {
-	suspendedValidators: Validators[]
+	primedForSuspensionValidators: Validators[]
 	pageInfo: PageInfo
 	totalCount: number
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void

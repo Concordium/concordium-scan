@@ -108,6 +108,8 @@ pub struct ApiServiceConfig {
     delegators_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_POOL_REWARDS_CONNECTION_LIMIT", default_value = "100")]
     pool_rewards_connection_limit: u64,
+    #[arg(long, env = "CCDSCAN_API_CONFIG_VALIDATORS_CONNECTION_LIMIT", default_value = "100")]
+    validators_connection_limit: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",

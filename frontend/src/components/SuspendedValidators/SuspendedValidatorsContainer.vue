@@ -5,7 +5,7 @@
 
 	<SuspendedValidators
 		v-else-if="componentState === 'success' && data"
-		:passive-delegation-data="data"
+		:data="data"
 		:go-to-page-delegators="goToPageDelegators"
 		:go-to-page-rewards="goToPageRewards"
 	/>
@@ -16,33 +16,33 @@ import Error from '~/components/molecules/Error.vue'
 import Loader from '~/components/molecules/Loader.vue'
 import NotFound from '~/components/molecules/NotFound.vue'
 import { usePagination, PAGE_SIZE_SMALL } from '~/composables/usePagination'
-import { usePassiveDelegationQuery } from '~/queries/usePassiveDelegationQuery'
+import { useSuspendedValidatorsQuery } from '~/queries/useSuspendedValidatorsQuery'
 import SuspendedValidators from '~/components/SuspendedValidators/SuspendedValidatorsContent.vue'
 
 const {
-	first: firstDelegators,
-	last: lastDelegators,
-	after: afterDelegators,
-	before: beforeDelegators,
+	first: firstSuspendedValidators,
+	last: lastSuspendedValidators,
+	after: afterSuspendedValidators,
+	before: beforeSuspendedValidators,
 	goToPage: goToPageDelegators,
 } = usePagination({ pageSize: PAGE_SIZE_SMALL })
 const {
-	first: firstRewards,
-	last: lastRewards,
-	after: afterRewards,
-	before: beforeRewards,
+	first: firstPrimedForSuspensionValidators,
+	last: lastPrimedForSuspensionValidators,
+	after: afterPrimedForSuspensionValidators,
+	before: beforePrimedForSuspensionValidators,
 	goToPage: goToPageRewards,
 } = usePagination({ pageSize: PAGE_SIZE_SMALL })
 const pagingVariables = {
-	firstDelegators,
-	lastDelegators,
-	afterDelegators,
-	beforeDelegators,
-	firstRewards,
-	lastRewards,
-	afterRewards,
-	beforeRewards,
+	firstSuspendedValidators,
+	lastSuspendedValidators,
+	afterSuspendedValidators,
+	beforeSuspendedValidators,
+	firstPrimedForSuspensionValidators,
+	lastPrimedForSuspensionValidators,
+	afterPrimedForSuspensionValidators,
+	beforePrimedForSuspensionValidators,
 }
 const { data, error, componentState } =
-	usePassiveDelegationQuery(pagingVariables)
+	useSuspendedValidatorsQuery(pagingVariables)
 </script>
