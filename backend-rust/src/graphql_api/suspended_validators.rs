@@ -8,7 +8,7 @@ pub struct QuerySuspendedValidators;
 
 #[Object]
 impl QuerySuspendedValidators {
-    async fn passive_delegation(&self) -> ApiResult<SuspendedValidators> {
+    async fn suspended_validators(&self) -> ApiResult<SuspendedValidators> {
         Ok(SuspendedValidators {})
     }
 }
