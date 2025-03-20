@@ -207,18 +207,20 @@ pub enum SchemaVersion {
     FixDelegatedStakeEarnings,
     #[display("0014:RankingByLotteryPower")]
     BakerMetrics,
-    #[display("0015:Add tracking of rewards paid out to bakers and delagators in payday blocks")]
+    #[display("0015:Add tracking of rewards paid out to bakers and delegators in payday blocks")]
     PaydayPoolRewards,
     #[display("0016:Passive delegation")]
-    PassiveDelgation,
+    PassiveDelegation,
+    #[display("0017:Reward metrics")]
+    RewardMetrics,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking database schema versions have been
     /// introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::PaydayPoolRewards;
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::RewardMetrics;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::PassiveDelgation;
+    const LATEST: SchemaVersion = SchemaVersion::RewardMetrics;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -249,7 +251,8 @@ impl SchemaVersion {
             SchemaVersion::FixDelegatedStakeEarnings => false,
             SchemaVersion::BakerMetrics => false,
             SchemaVersion::PaydayPoolRewards => false,
-            SchemaVersion::PassiveDelgation => false,
+            SchemaVersion::PassiveDelegation => false,
+            SchemaVersion::RewardMetrics => false,
         }
     }
 
@@ -355,9 +358,16 @@ impl SchemaVersion {
                         "./migrations/m0016-passive-delegation.sql"
                     )))
                     .await?;
-                SchemaVersion::PassiveDelgation
+                SchemaVersion::PassiveDelegation
             }
-            SchemaVersion::PassiveDelgation => unimplemented!(
+            SchemaVersion::PassiveDelegation => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!("./migrations/m0017-reward-metrics.sql")))
+                    .await?;
+                SchemaVersion::RewardMetrics
+            }
+
+            SchemaVersion::RewardMetrics => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
