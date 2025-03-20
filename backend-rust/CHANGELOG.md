@@ -12,6 +12,10 @@ Database schema version: 16
 - Add query `PassiveDelegation::delegators`, `PassiveDelegation::delegatorCount`,
 `assiveDelegation::commissionRates`, `PassiveDelegation::delegatedStake` and `PassiveDelegation::delegatedStakePercentage`.
 
+### Fixed
+
+- Total count to the connection holding the events being emitted as part of the transaction query.
+
 ## [0.1.36] - 2025-03-17
 
 Database schema version: 15
