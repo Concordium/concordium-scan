@@ -327,8 +327,6 @@ impl Success<'_> {
         connection.edges = edges;
         Ok(connection)
     }
-
-    async fn total_count(&self) -> u64 { self.events.len() as u64 }
 }
 
 #[derive(SimpleObject)]
