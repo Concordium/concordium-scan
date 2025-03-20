@@ -11,7 +11,7 @@ The frontend is built on some fundamental technologies:
 - **[TypeScript](https://www.typescriptlang.org/)**
   A typed programming language, which compiles to JavaScript. This acts as an accelerator during development, and prevents most type errors at write-time and compile-time. [More on this in a later section](#typescript).
 
-Note: The old backend (`backend` folder), which had performance issues, is being replaced by a more optimized new backend (`backend-rust` folder). During the migration, the front-end relies on both backends, as not all queries have been transitioned yet. To ensure a smooth migration, the API interface remains backward-compatible and non-breaking.
+Note: The old backend (`backend` folder), which had performance issues, is being replaced by a better performing backend (`backend-rust` folder). During the migration, the front-end relies on both backends, as not all queries have been transitioned yet. To ensure a smooth migration, the API interface remains backward-compatible and non-breaking.
 
 ## Setup
 

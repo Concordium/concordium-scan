@@ -6,8 +6,6 @@
 	<SuspendedValidators
 		v-else-if="componentState === 'success' && data"
 		:data="data"
-		:go-to-page-delegators="goToPageDelegators"
-		:go-to-page-rewards="goToPageRewards"
 	/>
 </template>
 
@@ -24,14 +22,12 @@ const {
 	last: lastSuspendedValidators,
 	after: afterSuspendedValidators,
 	before: beforeSuspendedValidators,
-	goToPage: goToPageDelegators,
 } = usePagination({ pageSize: PAGE_SIZE_SMALL })
 const {
 	first: firstPrimedForSuspensionValidators,
 	last: lastPrimedForSuspensionValidators,
 	after: afterPrimedForSuspensionValidators,
 	before: beforePrimedForSuspensionValidators,
-	goToPage: goToPageRewards,
 } = usePagination({ pageSize: PAGE_SIZE_SMALL })
 const pagingVariables = {
 	firstSuspendedValidators,

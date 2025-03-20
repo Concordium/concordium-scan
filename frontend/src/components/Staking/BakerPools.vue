@@ -18,7 +18,7 @@
 						Commission
 					</TableTh>
 					<TableTh
-						v-if="hasPoolData && breakpoint >= Breakpoint.SM"
+						v-if="hasPoolData && breakpoint >= Breakpoint.LG"
 						align="right"
 					>
 						<span>Validator APY</span> <br />
@@ -35,7 +35,7 @@
 						Delegation pool status
 					</TableTh>
 					<TableTh
-						v-if="hasPoolData && breakpoint >= Breakpoint.XL"
+						v-if="hasPoolData && breakpoint >= Breakpoint.XXL"
 						align="right"
 					>
 						Delegators

@@ -24,24 +24,15 @@
 				</TableRow>
 			</TableBody>
 		</Table>
-		<Pagination
-			v-if="pageInfo && (pageInfo.hasNextPage || pageInfo.hasPreviousPage)"
-			:page-info="pageInfo"
-			:go-to-page="goToPage"
-		/>
 	</div>
 </template>
 
 <script lang="ts" setup>
-import type { PaginationTarget } from '~/composables/usePagination'
-import type { PageInfo, Validators } from '~/types/generated'
+import type { Validators } from '~/types/generated'
 import BakerLink from '~/components/molecules/BakerLink.vue'
 
 type Props = {
 	suspendedValidators: Validators[]
-	pageInfo: PageInfo
-	totalCount: number
-	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 defineProps<Props>()
 </script>
