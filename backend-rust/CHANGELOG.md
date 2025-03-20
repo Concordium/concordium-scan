@@ -14,7 +14,7 @@ Database schema version: 16
 
 ### Fixed
 
-- Total count to the connetion holding the events being emitted as part of the transaction query.  
+- Total count to the connection holding the events being emitted as part of the transaction query.
 
 ## [0.1.36] - 2025-03-17
 
