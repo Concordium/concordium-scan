@@ -310,12 +310,12 @@ impl Success<'_> {
             }
         }
 
+        let total_count = self.events.len();
         let edges: Vec<_> = self.events[start..end]
             .iter()
             .enumerate()
             .map(|(i, event)| connection::Edge::new(i.to_string(), event))
             .collect();
-        let total_count = edges.len();
         let mut connection: Connection<String, &Event, AdditionalFields> =
             Connection::with_additional_fields(
                 start == 0,
