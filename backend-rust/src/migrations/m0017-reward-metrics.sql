@@ -2,7 +2,8 @@ CREATE TABLE metrics_rewards (
     block_height        BIGINT NOT NULL REFERENCES blocks,
     block_slot_time     TIMESTAMPTZ NOT NULL,
     account_index       BIGINT NOT NULL REFERENCES accounts,
-    amount              BIGINT NOT NULL
+    amount              BIGINT NOT NULL,
+    PRIMARY KEY (account_index, block_slot_time)
 );
 
 INSERT INTO metrics_rewards
@@ -27,5 +28,3 @@ SELECT
   account_index,
   rewards
 FROM per_block;
-
-CREATE INDEX metrics_rewards_accounts_slot_time_idx ON metrics_rewards(account_index, block_slot_time);
