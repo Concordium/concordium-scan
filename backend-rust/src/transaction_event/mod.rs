@@ -560,7 +560,7 @@ pub fn events_from_summary(
                     0,
                 )
                 .context("Failed to parse effective time")?,
-                payload:        true, // placeholder
+                payload: details.payload.into(), // placeholder
             })]
         }
     };
