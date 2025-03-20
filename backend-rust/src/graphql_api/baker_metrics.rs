@@ -70,7 +70,7 @@ impl QueryBakerMetrics {
             y_last_baker_count.push(current_period_baker_count);
         }
 
-        let last_baker_count = y_last_baker_count.iter().max().ok_or_else(|| {
+        let last_baker_count = y_last_baker_count.last().ok_or_else(|| {
             ApiError::InternalError("Failed to compute final baker count".to_string())
         })?;
 
