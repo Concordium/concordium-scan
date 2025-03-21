@@ -280,18 +280,23 @@ impl PassiveDelegation {
             r#"WITH chain_parameter AS (
                  SELECT
                       id,
-                      (EXTRACT('epoch' from '1 year'::INTERVAL) * 1000)
-                          / (epoch_duration * reward_period_length)
+                      ((EXTRACT('epoch' from '1 year'::INTERVAL) * 1000)
+                          / (epoch_duration * reward_period_length))::FLOAT8
                           AS paydays_per_year
                  FROM current_chain_parameters
                  WHERE id = true
              ) SELECT
-                 EXP(AVG(LN(POWER(
-                     (payday_total_transaction_rewards
-                         + payday_total_baking_rewards
-                         + payday_total_finalization_rewards) / delegators_stake,
-                     chain_parameter.paydays_per_year
-                 ))))::FLOAT8
+                 geometric_mean(
+                     CASE
+                         WHEN delegators_stake = 0 THEN NULL
+                         ELSE apy(
+                             (payday_total_transaction_rewards
+                                  + payday_total_baking_rewards
+                                  + payday_total_finalization_rewards)::FLOAT8,
+                             delegators_stake::FLOAT8,
+                             paydays_per_year)
+                     END
+                 )
              FROM payday_passive_pool_stakes
              JOIN blocks ON blocks.height = payday_passive_pool_stakes.payday_block
              JOIN bakers_payday_pool_rewards
