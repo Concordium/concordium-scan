@@ -5013,7 +5013,7 @@ impl PreparedPayDayBlock {
         // `payday_pool_rewards` instead. The information of the last payday commission
         // rate of baker pools is expected to be used when the indexer has fully
         // caught up to the top of the chain.
-        let (baker_reward_period_infos, passive_info) = if block_info.protocol_version
+        let (baker_reward_period_infos, passive_reward_period_info) = if block_info.protocol_version
             >= ProtocolVersion::P4
         {
             let baker_info = node_client
@@ -5037,7 +5037,7 @@ impl PreparedPayDayBlock {
             PreparedPaydayBakerPoolStakes::prepare(&baker_reward_period_infos, block_height)?;
 
         let passive_pool_stake =
-            PreparedPaydayPassivePoolStake::prepare(&passive_info, block_height)?;
+            PreparedPaydayPassivePoolStake::prepare(&passive_reward_period_info, block_height)?;
 
         let baker_payday_commission_rates =
             PreparedBakerPaydayCommissionRates::prepare(baker_reward_period_infos)?;

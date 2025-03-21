@@ -28,7 +28,7 @@ CREATE TABLE payday_passive_pool_stakes(
         BIGINT
         PRIMARY KEY
         REFERENCES blocks,
-    -- The total stake of the accounts delegating to this pool.
+    -- The total passive stake.
     delegators_stake
         BIGINT
         NOT NULL
