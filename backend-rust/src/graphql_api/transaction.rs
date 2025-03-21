@@ -310,12 +310,12 @@ impl Success<'_> {
             }
         }
 
+        let total_count = self.events.len();
         let edges: Vec<_> = self.events[start..end]
             .iter()
             .enumerate()
             .map(|(i, event)| connection::Edge::new(i.to_string(), event))
             .collect();
-        let total_count = edges.len();
         let mut connection: Connection<String, &Event, AdditionalFields> =
             Connection::with_additional_fields(
                 start == 0,
@@ -327,8 +327,6 @@ impl Success<'_> {
         connection.edges = edges;
         Ok(connection)
     }
-
-    async fn total_count(&self) -> u64 { self.events.len() as u64 }
 }
 
 #[derive(SimpleObject)]

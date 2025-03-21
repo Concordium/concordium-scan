@@ -21,6 +21,7 @@ const RewardMetricsQuery = gql<RewardMetricsQueryResponse>`
 
 export const useRewardMetricsQuery = (period: Ref<MetricsPeriod>) => {
 	const { data, fetching } = useQuery({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: RewardMetricsQuery,
 		requestPolicy: 'cache-and-network',
 		variables: { period },

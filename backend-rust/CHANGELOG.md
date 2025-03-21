@@ -10,7 +10,12 @@ Database schema version: 16
 
 - Add database migration 16 adding a table tracking commission rates for passive delegation and adding an index to retrieve passive delegators efficiently from the accounts table.
 - Add query `PassiveDelegation::delegators`, `PassiveDelegation::delegatorCount`,
-`assiveDelegation::commissionRates`, `PassiveDelegation::delegatedStake` and `PassiveDelegation::delegatedStakePercentage`.
+`PassiveDelegation::commissionRates`, `PassiveDelegation::delegatedStake` and `PassiveDelegation::delegatedStakePercentage`.
+- Add `Query::rewardMetrics` and `Query::rewardMetricsForAccount` which returns metrics on the total rewards and those for a given account respectively.
+
+### Fixed
+
+- Total count to the connection holding the events being emitted as part of the transaction query.
 
 ## [0.1.36] - 2025-03-17
 
