@@ -4,15 +4,27 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+Database schema version: 18
+
+### Added
+
+- Add database migration 18 adding table tracking baker pool and passive stake for every reward period.
+- Add query `PassiveDelegation::apy` and `BakerPool::apy`.
+
+## [0.1.37] - 2025-03-21
+
 Database schema version: 17
 
 ### Added
 
-- Add database migration 17 adding table tracking baker pool and passive stake for every reward period.
-- Add query `PassiveDelegation::apy` and `BakerPool::apy`.
 - Add database migration 16 adding a table tracking commission rates for passive delegation and adding an index to retrieve passive delegators efficiently from the accounts table.
 - Add query `PassiveDelegation::delegators`, `PassiveDelegation::delegatorCount`,
-`assiveDelegation::commissionRates`, `PassiveDelegation::delegatedStake` and `PassiveDelegation::delegatedStakePercentage`.
+`PassiveDelegation::commissionRates`, `PassiveDelegation::delegatedStake` and `PassiveDelegation::delegatedStakePercentage`.
+- Add `Query::rewardMetrics` and `Query::rewardMetricsForAccount` which returns metrics on the total rewards and those for a given account respectively.
+
+### Fixed
+
+- Total count to the connection holding the events being emitted as part of the transaction query.
 
 ## [0.1.36] - 2025-03-17
 

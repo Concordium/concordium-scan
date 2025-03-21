@@ -38,7 +38,7 @@ pub async fn run(
     endpoints: &[v2::Endpoint],
 ) -> anyhow::Result<SchemaVersion> {
     tx.as_mut()
-        .execute(sqlx::raw_sql(include_str!("./m0017-payday-stake-information.sql")))
+        .execute(sqlx::raw_sql(include_str!("./m0018-payday-stake-information.sql")))
         .await?;
 
     let endpoint = endpoints.first().with_context(|| {

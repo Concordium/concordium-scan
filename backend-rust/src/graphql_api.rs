@@ -12,6 +12,7 @@ mod contract;
 mod module_reference_event;
 pub mod node_status;
 mod passive_delegation;
+mod reward_metrics;
 mod search_result;
 mod token;
 mod transaction;
@@ -176,6 +177,7 @@ pub struct Query(
     token::QueryToken,
     account_metrics::QueryAccountMetrics,
     baker_metrics::QueryBakerMetrics,
+    reward_metrics::QueryRewardMetrics,
     block_metrics::QueryBlockMetrics,
     transaction_metrics::QueryTransactionMetrics,
 );

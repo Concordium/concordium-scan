@@ -13,7 +13,7 @@ mod m0008_canonical_address_and_transaction_search_index;
 mod m0010_fill_capital_bound_and_leverage_bound;
 mod m0014_baker_metrics;
 mod m0015_pool_rewards;
-mod m0017_payday_stake_information;
+mod m0018_payday_stake_information;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.
@@ -208,11 +208,13 @@ pub enum SchemaVersion {
     FixDelegatedStakeEarnings,
     #[display("0014:Add baker metrics")]
     BakerMetrics,
-    #[display("0015:Add tracking of rewards paid out to bakers and delagators in payday blocks")]
+    #[display("0015:Add tracking of rewards paid out to bakers and delegators in payday blocks")]
     PaydayPoolRewards,
     #[display("0016:Passive delegation")]
-    PassiveDelgation,
-    #[display("0017:Add tracking of stake to bakers and delagators in payday blocks")]
+    PassiveDelegation,
+    #[display("0017:Reward metrics")]
+    RewardMetrics,
+    #[display("0018:Add tracking of stake to bakers and delagators in payday blocks")]
     PaydayPoolStake,
 }
 impl SchemaVersion {
@@ -252,7 +254,8 @@ impl SchemaVersion {
             SchemaVersion::FixDelegatedStakeEarnings => false,
             SchemaVersion::BakerMetrics => false,
             SchemaVersion::PaydayPoolRewards => false,
-            SchemaVersion::PassiveDelgation => false,
+            SchemaVersion::PassiveDelegation => false,
+            SchemaVersion::RewardMetrics => false,
             SchemaVersion::PaydayPoolStake => false,
         }
     }
@@ -359,10 +362,16 @@ impl SchemaVersion {
                         "./migrations/m0016-passive-delegation.sql"
                     )))
                     .await?;
-                SchemaVersion::PassiveDelgation
+                SchemaVersion::PassiveDelegation
             }
-            SchemaVersion::PassiveDelgation => {
-                m0017_payday_stake_information::run(&mut tx, endpoints).await?
+            SchemaVersion::PassiveDelegation => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!("./migrations/m0017-reward-metrics.sql")))
+                    .await?;
+                SchemaVersion::RewardMetrics
+            }
+            SchemaVersion::RewardMetrics => {
+                m0018_payday_stake_information::run(&mut tx, endpoints).await?
             }
             SchemaVersion::PaydayPoolStake => unimplemented!(
                 "No migration implemented for database schema version {}",
