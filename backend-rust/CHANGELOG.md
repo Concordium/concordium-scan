@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+Database schema version: 18
+
+### Added
+
+- Add database migration 18 adding table tracking baker pool and passive stake for every reward period.
+- Add query `PassiveDelegation::apy` and `BakerPool::apy`.
+
 ## [0.1.37] - 2025-03-21
 
 Database schema version: 17

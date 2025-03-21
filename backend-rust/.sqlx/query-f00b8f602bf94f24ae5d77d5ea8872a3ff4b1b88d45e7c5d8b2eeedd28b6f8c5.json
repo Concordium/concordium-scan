@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH chain_parameter AS (\n                 SELECT\n                      id,\n                      ((EXTRACT('epoch' from '1 year'::INTERVAL) * 1000)\n                          / (epoch_duration * reward_period_length))::FLOAT8\n                          AS paydays_per_year\n                 FROM current_chain_parameters\n                 WHERE id = true\n             ) SELECT\n                 geometric_mean(\n                     CASE\n                         WHEN delegators_stake = 0 THEN NULL\n                         ELSE apy(\n                             (payday_total_transaction_rewards\n                                  + payday_total_baking_rewards\n                                  + payday_total_finalization_rewards)::FLOAT8,\n                             delegators_stake::FLOAT8,\n                             paydays_per_year)\n                     END\n                 )\n             FROM payday_passive_pool_stakes\n             JOIN blocks ON blocks.height = payday_passive_pool_stakes.payday_block\n             JOIN bakers_payday_pool_rewards\n                 ON blocks.height = bakers_payday_pool_rewards.payday_block_height\n                 -- Primary key for passive pool is (-1)\n                 AND pool_owner_for_primary_key = -1\n             JOIN chain_parameter ON chain_parameter.id = true\n             WHERE blocks.slot_time > NOW() - $1::INTERVAL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "geometric_mean",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Interval"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "f00b8f602bf94f24ae5d77d5ea8872a3ff4b1b88d45e7c5d8b2eeedd28b6f8c5"
+}

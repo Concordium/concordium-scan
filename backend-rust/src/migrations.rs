@@ -13,6 +13,7 @@ mod m0008_canonical_address_and_transaction_search_index;
 mod m0010_fill_capital_bound_and_leverage_bound;
 mod m0014_baker_metrics;
 mod m0015_pool_rewards;
+mod m0018_payday_stake_information;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.
@@ -205,7 +206,7 @@ pub enum SchemaVersion {
     TrackRemovedBakers,
     #[display("0013:Fix delegated_restake_earnings data in accounts")]
     FixDelegatedStakeEarnings,
-    #[display("0014:RankingByLotteryPower")]
+    #[display("0014:Add baker metrics")]
     BakerMetrics,
     #[display("0015:Add tracking of rewards paid out to bakers and delegators in payday blocks")]
     PaydayPoolRewards,
@@ -213,14 +214,16 @@ pub enum SchemaVersion {
     PassiveDelegation,
     #[display("0017:Reward metrics")]
     RewardMetrics,
+    #[display("0018:Add tracking of stake to bakers and delagators in payday blocks")]
+    PaydayPoolStake,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking database schema versions have been
     /// introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::RewardMetrics;
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::PaydayPoolStake;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::RewardMetrics;
+    const LATEST: SchemaVersion = SchemaVersion::PaydayPoolStake;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -253,6 +256,7 @@ impl SchemaVersion {
             SchemaVersion::PaydayPoolRewards => false,
             SchemaVersion::PassiveDelegation => false,
             SchemaVersion::RewardMetrics => false,
+            SchemaVersion::PaydayPoolStake => false,
         }
     }
 
@@ -366,8 +370,10 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::RewardMetrics
             }
-
-            SchemaVersion::RewardMetrics => unimplemented!(
+            SchemaVersion::RewardMetrics => {
+                m0018_payday_stake_information::run(&mut tx, endpoints).await?
+            }
+            SchemaVersion::PaydayPoolStake => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),

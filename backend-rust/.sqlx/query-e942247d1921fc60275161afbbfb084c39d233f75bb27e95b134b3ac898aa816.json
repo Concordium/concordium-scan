@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO payday_baker_pool_stakes (\n                 payday_block,\n                 baker,\n                 baker_stake,\n                 delegators_stake\n             ) SELECT $1, * FROM UNNEST(\n                     $2::BIGINT[],\n                     $3::BIGINT[],\n                     $4::BIGINT[]\n             ) AS payday_baker(owner, baker_stake, delegators_stake)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8Array",
+        "Int8Array",
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e942247d1921fc60275161afbbfb084c39d233f75bb27e95b134b3ac898aa816"
+}

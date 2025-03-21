@@ -801,6 +801,30 @@ struct Ranking {
 }
 
 #[derive(Enum, Clone, Copy, PartialEq, Eq)]
+enum ApyPeriod {
+    #[graphql(name = "LAST7_DAYS")]
+    Last7Days,
+    #[graphql(name = "LAST30_DAYS")]
+    Last30Days,
+}
+impl ApyPeriod {
+    /// The metrics period as a duration.
+    fn as_duration(&self) -> Duration {
+        match self {
+            Self::Last7Days => Duration::days(7),
+            Self::Last30Days => Duration::days(30),
+        }
+    }
+}
+impl TryFrom<ApyPeriod> for sqlx::postgres::types::PgInterval {
+    type Error = ApiError;
+
+    fn try_from(value: ApyPeriod) -> Result<Self, Self::Error> {
+        value.as_duration().try_into().map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))
+    }
+}
+
+#[derive(Enum, Clone, Copy, PartialEq, Eq)]
 enum MetricsPeriod {
     LastHour,
     #[graphql(name = "LAST24_HOURS")]
