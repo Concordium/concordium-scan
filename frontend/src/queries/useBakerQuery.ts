@@ -1,20 +1,23 @@
 import { useQuery, gql } from '@urql/vue'
 import { useComponentState } from '~/composables/useComponentState'
-import type {
-	Baker,
-	BakerState,
-	ActiveBakerState,
-	PoolApy,
-} from '~/types/generated'
+// import type {
+// 	Baker,
+// 	BakerState,
+// 	ActiveBakerState,
+// 	PoolApy,
+// } from '~/types/generated'
+import type { Baker } from '~/types/generated'
 
-export type BakerWithAPYFilter = Baker & {
-	state: BakerState & {
-		pool?: ActiveBakerState['pool'] & {
-			apy7days: PoolApy
-			apy30days: PoolApy
-		}
-	}
-}
+export type BakerWithAPYFilter = Baker
+// TODO add this back once new rust-backend here once APY
+// & {
+// 	state: BakerState & {
+// 		pool?: ActiveBakerState['pool'] & {
+// 			apy7days: PoolApy
+// 			apy30days: PoolApy
+// 		}
+// 	}
+// }
 
 type BakerResponse = {
 	bakerByBakerId: BakerWithAPYFilter
@@ -76,6 +79,9 @@ const BakerQuery = gql<BakerResponse>`
 						delegatedStake
 						lotteryPower
 						metadataUrl
+						selfSuspended
+						inactiveSuspended
+						primedForSuspension
 						rankingByTotalStake {
 							rank
 							total
@@ -87,16 +93,6 @@ const BakerQuery = gql<BakerResponse>`
 						commissionRates {
 							transactionCommission
 							bakingCommission
-						}
-						apy7days: apy(period: LAST7_DAYS) {
-							bakerApy
-							delegatorsApy
-							totalApy
-						}
-						apy30days: apy(period: LAST30_DAYS) {
-							bakerApy
-							delegatorsApy
-							totalApy
 						}
 					}
 					pendingChange {
@@ -118,19 +114,21 @@ const BakerQuery = gql<BakerResponse>`
 		}
 	}
 `
+// TODO add this back once new rust-backend here once APY
+// apy7days: apy(period: LAST7_DAYS) {
+// 	bakerApy
+// 	delegatorsApy
+// 	totalApy
+// }
+// apy30days: apy(period: LAST30_DAYS) {
+// 	bakerApy
+// 	delegatorsApy
+// 	totalApy
+// }
 
 export const useBakerQuery = (bakerId: number) => {
 	const { data, fetching, error } = useQuery({
-		// TODO use new rust-backend here once APY is supported
-		// (otherwise suspended validator status on baker details does not work properly)
-		//
-		// Add the three fields to the query:
-		// selfSuspended
-		// inactiveSuspended
-		// primedForSuspension
-		//
-		// Update the context:
-		// context: { url: useRuntimeConfig().public.apiUrlRust },
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: BakerQuery,
 		requestPolicy: 'cache-first',
 		variables: {

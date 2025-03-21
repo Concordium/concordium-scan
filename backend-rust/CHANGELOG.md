@@ -8,6 +8,8 @@ Database schema version: 18
 
 ### Added
 
+- Add query `SuspendedValidators::suspendedValidators`.
+- Add query `SuspendedValidators::primedForSuspensionValidators`.
 - Add database migration 18 adding table tracking baker pool and passive stake for every reward period.
 - Add query `PassiveDelegation::apy` and `BakerPool::apy`.
 

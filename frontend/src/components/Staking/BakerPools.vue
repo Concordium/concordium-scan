@@ -103,6 +103,17 @@
 						v-if="hasPoolData && breakpoint >= Breakpoint.LG"
 						align="right"
 					>
+						<!-- TODO: add this back once rust-backend supports APY queries
+						<span
+							v-if="
+								baker.state.__typename === 'ActiveBakerState' &&
+								Number.isFinite(baker.state.pool?.apy.bakerApy)
+							"
+							class="numerical"
+						>
+							{{ formatPercentage(baker.state.pool!.apy.bakerApy!) }}%
+						</span>
+						-->
 						<span
 							v-if="baker.state.__typename === 'ActiveBakerState'"
 							class="numerical"
@@ -116,6 +127,17 @@
 						v-if="hasPoolData && breakpoint >= Breakpoint.SM"
 						align="right"
 					>
+						<!-- TODO: add this back once rust-backend supports APY queries
+						<span
+							v-if="
+								baker.state.__typename === 'ActiveBakerState' &&
+								Number.isFinite(baker.state.pool?.apy.delegatorsApy)
+							"
+							class="numerical"
+						>
+							{{ formatPercentage(baker.state.pool!.apy.delegatorsApy!) }}%
+						</span>
+						-->
 						<span
 							v-if="baker.state.__typename === 'ActiveBakerState'"
 							class="numerical"

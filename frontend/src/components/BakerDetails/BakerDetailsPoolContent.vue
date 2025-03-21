@@ -88,10 +88,11 @@
 			<div
 				class="grid gap-8 grid-cols-2 2xl:grid-cols-4 mb-16 commission-rates rounded-lg px-8 py-4"
 			>
-				<BakerDetailsPoolAPY
+				<!-- TODO: add this back once rust-backend supports APY queries-->
+				<!-- <BakerDetailsPoolAPY
 					:apy7days="baker.state.pool.apy7days"
 					:apy30days="baker.state.pool.apy30days"
-				/>
+				/>-->
 
 				<DetailsCard v-if="baker.state.pool.lotteryPower">
 					<template #title>Lottery power</template>
@@ -232,7 +233,7 @@ import CommissionRates from '../Staking/CommissionRates.vue'
 import BakerDetailsHeader from './BakerDetailsHeader.vue'
 import BakerDetailsTransactions from './BakerDetailsTransactions.vue'
 import BakerDetailsDelegators from './BakerDetailsDelegators.vue'
-import BakerDetailsPoolAPY from './BakerDetailsPoolAPY.vue'
+// import BakerDetailsPoolAPY from './BakerDetailsPoolAPY.vue'
 import BakerSuspension from '../Staking/BakerSuspension.vue'
 import Amount from '~/components/atoms/Amount.vue'
 import Chip from '~/components/atoms/Chip.vue'
