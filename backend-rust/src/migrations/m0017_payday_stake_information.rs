@@ -5,9 +5,8 @@
 use super::{SchemaVersion, Transaction};
 use anyhow::Context;
 use concordium_rust_sdk::{common::types::Amount, types::AbsoluteBlockHeight, v2};
-use futures::stream::FuturesUnordered;
+use futures::stream::TryStreamExt;
 use sqlx::Executor;
-use tokio_stream::StreamExt;
 
 /// Resulting database schema version from running this migration.
 const NEXT_SCHEMA_VERSION: SchemaVersion = SchemaVersion::PaydayPoolStake;
@@ -45,7 +44,7 @@ pub async fn run(
     let endpoint = endpoints.first().with_context(|| {
         format!("Migration '{}' must be provided access to a Concordium node", NEXT_SCHEMA_VERSION)
     })?;
-    let client = v2::Client::new(endpoint.clone()).await?;
+    let mut client = v2::Client::new(endpoint.clone()).await?;
 
     let paydays: Vec<i64> = sqlx::query_scalar(
         "SELECT DISTINCT payday_block_height
@@ -55,35 +54,26 @@ pub async fn run(
     .fetch_all(tx.as_mut())
     .await?;
 
-    let mut futures: FuturesUnordered<_> = paydays
-        .into_iter()
-        .map(|payday_block_height| {
-            let mut client = client.clone();
-            async move {
-                let block_height = AbsoluteBlockHeight::from(u64::try_from(payday_block_height)?);
-                let mut baker_rewards =
-                    client.get_bakers_reward_period(block_height).await?.response;
-                let mut data = Data::new(payday_block_height);
-                // Iterate bakers
-                while let Some(reward) = baker_rewards.try_next().await? {
-                    data.bakers.push(reward.baker.baker_id.id.index.try_into()?);
-                    data.baker_stake.push(reward.equity_capital.micro_ccd().try_into()?);
-                    data.delegator_stake.push(reward.delegated_capital.micro_ccd().try_into()?);
-                }
-                // Iterate delegators for the passive pool
-                let mut passive_rewards =
-                    client.get_passive_delegators_reward_period(block_height).await?.response;
-                let mut passive_stake = Amount::zero();
-                while let Some(reward) = passive_rewards.try_next().await? {
-                    passive_stake += reward.stake;
-                }
-                data.passive_delegator_stake = passive_stake.micro_ccd().try_into()?;
-                Ok::<_, anyhow::Error>(data)
-            }
-        })
-        .collect();
-
-    while let Some(data) = futures.try_next().await? {
+    let mut process = paydays.len();
+    tracing::debug!("About to process {} paydays", process);
+    for payday_block_height in paydays {
+        let block_height = AbsoluteBlockHeight::from(u64::try_from(payday_block_height)?);
+        let mut baker_rewards = client.get_bakers_reward_period(block_height).await?.response;
+        let mut data = Data::new(payday_block_height);
+        // Iterate bakers
+        while let Some(reward) = baker_rewards.try_next().await? {
+            data.bakers.push(reward.baker.baker_id.id.index.try_into()?);
+            data.baker_stake.push(reward.equity_capital.micro_ccd().try_into()?);
+            data.delegator_stake.push(reward.delegated_capital.micro_ccd().try_into()?);
+        }
+        // Iterate delegators for the passive pool
+        let mut passive_rewards =
+            client.get_passive_delegators_reward_period(block_height).await?.response;
+        let mut passive_stake = Amount::zero();
+        while let Some(reward) = passive_rewards.try_next().await? {
+            passive_stake += reward.stake;
+        }
+        data.passive_delegator_stake = passive_stake.micro_ccd().try_into()?;
         sqlx::query(
             "INSERT INTO payday_baker_pool_stakes (
                  payday_block,
@@ -113,6 +103,9 @@ pub async fn run(
         .bind(data.passive_delegator_stake)
         .execute(tx.as_mut())
         .await?;
+
+        process -= 1;
+        tracing::debug!("{} paydays remaining", process);
     }
 
     Ok(NEXT_SCHEMA_VERSION)

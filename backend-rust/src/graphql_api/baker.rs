@@ -2434,33 +2434,40 @@ impl<'a> BakerPool<'a> {
             r#"WITH chain_parameter AS (
                  SELECT
                       id,
-                      (EXTRACT('epoch' from '1 year'::INTERVAL) * 1000)
-                          / (epoch_duration * reward_period_length)
+                      ((EXTRACT('epoch' from '1 year'::INTERVAL) * 1000)
+                          / (epoch_duration * reward_period_length))::FLOAT8
                           AS paydays_per_year
                  FROM current_chain_parameters
                  WHERE id = true
              ) SELECT
-                 EXP(AVG(LN(POWER(
+                 geometric_mean(apy(
                      (payday_total_transaction_rewards
-                         + payday_total_baking_rewards
-                         + payday_total_finalization_rewards) / (baker_stake + delegators_stake),
-                     chain_parameter.paydays_per_year
-                 ))))::FLOAT8 AS total_apy,
-
-                 EXP(AVG(LN(POWER(
-                     (payday_delegators_transaction_rewards
-                         + payday_delegators_baking_rewards
-                         + payday_delegators_finalization_rewards) / delegators_stake,
-                     chain_parameter.paydays_per_year
-                 ))))::FLOAT8 AS delegators_apy,
-
-                 EXP(AVG(LN(POWER(
-                     (payday_total_transaction_rewards - payday_delegators_transaction_rewards
-                       + payday_total_baking_rewards - payday_delegators_baking_rewards
-                       + payday_total_finalization_rewards - payday_delegators_finalization_rewards)
-                             / baker_stake,
-                     chain_parameter.paydays_per_year
-                 ))))::FLOAT8 AS baker_apy
+                       + payday_total_baking_rewards
+                       + payday_total_finalization_rewards)::FLOAT8,
+                     (baker_stake + delegators_stake)::FLOAT8,
+                     paydays_per_year
+                 )) AS total_apy,
+                 geometric_mean(
+                     CASE
+                         WHEN delegators_stake = 0 THEN NULL
+                         ELSE apy(
+                                (payday_delegators_transaction_rewards
+                                 + payday_delegators_baking_rewards
+                                 + payday_delegators_finalization_rewards)::FLOAT8,
+                             delegators_stake::FLOAT8,
+                             paydays_per_year)
+                     END
+                 ) AS delegators_apy,
+                 geometric_mean(apy(
+                     (payday_total_transaction_rewards
+                        - payday_delegators_transaction_rewards
+                        + payday_total_baking_rewards
+                        - payday_delegators_baking_rewards
+                        + payday_total_finalization_rewards
+                        - payday_delegators_finalization_rewards)::FLOAT8,
+                     baker_stake::FLOAT8,
+                     paydays_per_year
+                 )) AS baker_apy
              FROM payday_baker_pool_stakes
              JOIN blocks ON blocks.height = payday_baker_pool_stakes.payday_block
              JOIN bakers_payday_pool_rewards
