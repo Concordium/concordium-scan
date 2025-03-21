@@ -18,8 +18,32 @@ pub async fn run(
         "Migration '{}' must be provided access to a Concordium node",
         next_schema_version
     ))?;
+
     let mut client = v2::Client::new(endpoint.clone()).await?;
-    let events = client.get_block_transaction_events();
+
+    let rows = sqlx::query(
+        "
+            SELECT
+                block_height,
+                COUNT(*) AS update_count
+            FROM transactions
+            WHERE type = 'Update'
+            GROUP BY block_height
+            ",
+        )
+        .fetch(tx.as_mut());
+
+    while let row = rows.await? {
+        let events = client.get_block_transaction_events(AbsoluteBlockHeight {
+            height: row.block_height.try_into()?
+        }).await?.response;
+        while events {
+            
+        }
+
+
+
+    }
 
     todo!()
 }
