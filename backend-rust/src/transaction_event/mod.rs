@@ -554,6 +554,7 @@ pub fn events_from_summary(
             })]
         }
         BlockItemSummaryDetails::Update(details) => {
+            println!("Update");
             vec![Event::ChainUpdateEnqueued(chain_update::ChainUpdateEnqueued {
                 effective_time: DateTime::from_timestamp(
                     details.effective_time.seconds.try_into()?,
