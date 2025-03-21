@@ -13,6 +13,7 @@ mod m0008_canonical_address_and_transaction_search_index;
 mod m0010_fill_capital_bound_and_leverage_bound;
 mod m0014_baker_metrics;
 mod m0015_pool_rewards;
+mod m0018_chain_update_events;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.

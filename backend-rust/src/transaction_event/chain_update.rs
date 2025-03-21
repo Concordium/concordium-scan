@@ -20,7 +20,7 @@ pub struct CommissionRange {
 pub struct ChainUpdateEnqueued {
     pub effective_time: DateTime,
     // effective_immediately: bool, // Not sure this makes sense.
-    pub payload: ChainUpdatePayload,
+    pub payload: bool,
 }
 
 // union ChainUpdatePayload = MinBlockTimeUpdate | TimeoutParametersUpdate |
@@ -214,17 +214,19 @@ pub struct MintDistributionV1ChainUpdatePayload {
 /// Implement conversion from the Concordium SDK's ProtocolUpdate type.
 impl From<UpdatePayload> for ChainUpdatePayload {
     fn from(payload: UpdatePayload) -> Self {
-        println!("{:?}", payload);
-        match payload {
-            UpdatePayload::Protocol(update) => ChainUpdatePayload::Protocol(ProtocolChainUpdatePayload {
-                message: update.message,
-                specification_url: update.specification_url,
-                specification_hash: update.specification_hash.to_string(), // TODO: Validate this
-                specification_auxiliary_data_hex: hex::encode(update.specification_auxiliary_data).to_lowercase(),
-            }),
-            UpdatePayload::MinBlockTimeCPV2(update) => ChainUpdatePayload::MinBlockTime(MinBlockTimeUpdate{
-                duration_seconds: update.seconds()
-            }),
+        ChainUpdatePayload::MinBlockTime(MinBlockTimeUpdate{
+            duration_seconds: 0
+        })
+//        match payload {
+//            UpdatePayload::Protocol(update) => ChainUpdatePayload::Protocol(ProtocolChainUpdatePayload {
+//                message: update.message,
+//                specification_url: update.specification_url,
+//                specification_hash: update.specification_hash.to_string(),
+//                specification_auxiliary_data_hex: hex::encode(update.specification_auxiliary_data).to_lowercase(),
+//            }),
+//            UpdatePayload::MinBlockTimeCPV2(update) => ChainUpdatePayload::MinBlockTime(MinBlockTimeUpdate{
+//                duration_seconds: update.seconds()
+//            }),
 //            UpdatePayload::TimeoutParametersCPV2(update) => {
 //                ChainUpdatePayload::TimeoutParameters(TimeoutParametersUpdate {
 //                    duration_seconds: update.base.seconds(),
@@ -239,11 +241,11 @@ impl From<UpdatePayload> for ChainUpdatePayload {
 //                    finalizers_relative_stake_threshold: update.finalizers_relative_stake_threshold.into(),
 //                })
 //            },
-            UpdatePayload::BlockEnergyLimitCPV2(update) => {
-                ChainUpdatePayload::BlockEnergyLimit(BlockEnergyLimitUpdate {
-                    energy_limit: update.energy,
-                })
-            },
+//            UpdatePayload::BlockEnergyLimitCPV2(update) => {
+//                ChainUpdatePayload::BlockEnergyLimit(BlockEnergyLimitUpdate {
+//                    energy_limit: update.energy,
+//                })
+//            },
 //            UpdatePayload::GASRewardsCPV2(update) => {
 //                ChainUpdatePayload::GasRewardsCpv2(GasRewardsCpv2Update {
 //                    baker: update.baker.into(),
@@ -344,11 +346,9 @@ impl From<UpdatePayload> for ChainUpdatePayload {
 //                    value: update.value.into(), // Placeholder conversion
 //                })
 //            },
-
-            _ => {
-                println!("TODO");
-                todo!()
-            }
-        }
+//
+//            _ => {
+//            }
+//        }
     }
 }
