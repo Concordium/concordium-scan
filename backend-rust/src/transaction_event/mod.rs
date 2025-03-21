@@ -3,13 +3,13 @@ use crate::{
     decoded_text::DecodedText,
     graphql_api::{ApiError, ApiResult},
     scalar_types::{BigInteger, Byte, DateTime, UnsignedLong},
+    transaction_event::chain_update::{ChainUpdatePayload, MinBlockTimeUpdate},
 };
 use anyhow::Context;
 use async_graphql::{ComplexObject, Object, SimpleObject, Union};
 use bigdecimal::BigDecimal;
 use concordium_rust_sdk::{cis2, types::Address};
-use tracing::{error};
-use crate::transaction_event::chain_update::{ChainUpdatePayload, MinBlockTimeUpdate};
+use tracing::error;
 
 pub mod baker;
 pub mod chain_update;
@@ -555,14 +555,13 @@ pub fn events_from_summary(
             })]
         }
         BlockItemSummaryDetails::Update(details) => {
-
             vec![Event::ChainUpdateEnqueued(chain_update::ChainUpdateEnqueued {
                 effective_time: DateTime::from_timestamp(
                     details.effective_time.seconds.try_into()?,
                     0,
                 )
                 .context("Failed to parse effective time")?,
-                payload: true,
+                payload:        true,
             })]
         }
     };

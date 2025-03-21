@@ -1,8 +1,9 @@
 use super::{SchemaVersion, Transaction};
+use crate::transaction_event::events_from_summary;
 use anyhow::Context;
 use async_graphql::futures_util::StreamExt;
 use concordium_rust_sdk::{
-    types::AbsoluteBlockHeight,
+    types::{AbsoluteBlockHeight, BlockItemSummaryDetails},
     v2::{self, BlockIdentifier},
 };
 use sqlx::Executor;
@@ -30,19 +31,32 @@ pub async fn run(
             WHERE type = 'Update'
             GROUP BY block_height
             ",
-        )
-        .fetch(tx.as_mut());
+    )
+    .fetch(tx.as_mut());
 
     while let row = rows.await? {
-        let events = client.get_block_transaction_events(AbsoluteBlockHeight {
-            height: row.block_height.try_into()?
-        }).await?.response;
-        while events {
-            
+        let mut block_summary = client
+            .get_block_transaction_events(AbsoluteBlockHeight {
+                height: row.block_height.try_into()?,
+            })
+            .await?
+            .response;
+        while let Some(summary) = block_summary.next().await.transpose()? {
+            let BlockItemSummaryDetails::Update(update) = summary.details else {
+                continue
+            };
+            sqlx::query(
+                "
+                UPDATE transactions
+                SET events = $1::jsonb
+                WHERE index = $2;
+            ",
+            )
+            .bind(serde_json::to_value(events_from_summary(update.payload.into())?)?)
+            .bind(summary.index)
+            .execute(tx.as_mut())
+            .await?;
         }
-
-
-
     }
 
     todo!()
