@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.7.8] - 2025-03-21
+
 ### Fixed
 
 - Allowed queries `useBakerQuery` and `useBakerListQuery` to use the new `rust-backend` API.
