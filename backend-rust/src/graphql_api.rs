@@ -14,6 +14,7 @@ pub mod node_status;
 mod passive_delegation;
 mod reward_metrics;
 mod search_result;
+mod suspended_validators;
 mod token;
 mod transaction;
 mod transaction_metrics;
@@ -107,6 +108,8 @@ pub struct ApiServiceConfig {
     delegators_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_POOL_REWARDS_CONNECTION_LIMIT", default_value = "100")]
     pool_rewards_connection_limit: u64,
+    #[arg(long, env = "CCDSCAN_API_CONFIG_VALIDATORS_CONNECTION_LIMIT", default_value = "100")]
+    validators_connection_limit: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
@@ -167,6 +170,7 @@ pub struct ApiServiceConfig {
 pub struct Query(
     BaseQuery,
     passive_delegation::QueryPassiveDelegation,
+    suspended_validators::QuerySuspendedValidators,
     baker::QueryBaker,
     block::QueryBlocks,
     transaction::QueryTransactions,

@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Allowed queries `useBakerQuery` and `useBakerListQuery` to use the new `rust-backend` API.
+
+### Added
+
+- Added `Suspended Validators` drawer which displays a list of all suspended validators and a list of all primed for suspension validators.
+- Added the `status` (`active`, `suspended` or `primed`) of a baker in the baker details page.
+- Included the `status` (`active`, `suspended` or `primed`) for each baker in the baker's list.
+- Implemented tooltips for `statuses`, providing additional explanations, such as the reason for suspension (`inactivity` or `self-suspend transaction sent`).
+
 ## [1.7.7] - 2025-03-21
 
 ### Fixed
