@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.7.7] - 2025-03-21
+
+### Fixed
+
+- Allowed queries `useRewardMetricsQuery` and `useRewardMetricsForBakerQuery` to use a separate API.
+
 ## [1.7.6] - 2025-03-14
 
 ### Fixed
