@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Allowed queries `useBakerQuery` and `useBakerListQuery` to use the new `rust-backend` API.
+
 ### Added
 
 - Added `Suspended Validators` drawer which displays a list of all suspended validators and a list of all primed for suspension validators.

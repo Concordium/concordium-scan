@@ -42,7 +42,7 @@ impl SuspendedValidators {
                 SELECT
                     bakers.id as id
                 FROM bakers
-                WHERE self_suspended IS NOT NULL OR inactive_suspended IS NOT NULL AND
+                WHERE (self_suspended IS NOT NULL OR inactive_suspended IS NOT NULL) AND
                     id > $1 AND id < $2
                 ORDER BY
                     (CASE WHEN $4 THEN bakers.id END) DESC,

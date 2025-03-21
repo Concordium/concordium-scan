@@ -2279,7 +2279,7 @@ struct BakerPool<'a> {
     metadata_url: Option<&'a str>,
     self_suspended: Option<i64>,
     inactive_suspended: Option<i64>,
-    primed_for_suspension: Option<i64>
+    primed_for_suspension: Option<i64>,
 }
 
 #[Object]

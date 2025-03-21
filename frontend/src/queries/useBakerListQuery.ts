@@ -61,7 +61,10 @@ const BakerQuery = gql<BakerListResponse>`
 							delegatorCount
 							delegatedStake
 							delegatedStakeCap
-
+							apy(period: LAST30_DAYS) {
+								bakerApy
+								delegatorsApy
+							}
 							commissionRates {
 								transactionCommission
 								bakingCommission
@@ -86,12 +89,6 @@ const BakerQuery = gql<BakerListResponse>`
 		}
 	}
 `
-// TODO: add back once rust backend supports APY queries
-//
-// apy(period: LAST30_DAYS) {
-// 	bakerApy
-// 	delegatorsApy
-// }
 
 export const useBakerListQuery = (variables: BakerListVariables) => {
 	const { data } = useQuery({
