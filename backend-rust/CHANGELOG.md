@@ -10,6 +10,10 @@ Database schema version: 19
 
 - Add support for ChainUpdatePayload events.
 
+### Fixed
+
+- Change `Versions::backend_versions` to `Versions::backend_version`.
+
 ## [0.1.38] - 2025-03-21
 
 Database schema version: 18
