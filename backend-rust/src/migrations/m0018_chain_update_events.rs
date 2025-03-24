@@ -1,12 +1,11 @@
 use super::{SchemaVersion, Transaction};
-use crate::transaction_event::events_from_summary;
+use crate::transaction_event::chain_update::ChainUpdatePayload;
 use anyhow::Context;
 use async_graphql::futures_util::StreamExt;
 use concordium_rust_sdk::{
     types::{AbsoluteBlockHeight, BlockItemSummaryDetails},
-    v2::{self, BlockIdentifier},
+    v2::{self},
 };
-use sqlx::Executor;
 
 /// Performs a migration that creates and populates the baker metrics table.
 pub async fn run(
@@ -14,7 +13,6 @@ pub async fn run(
     endpoints: &[v2::Endpoint],
     next_schema_version: SchemaVersion,
 ) -> anyhow::Result<SchemaVersion> {
-    tx.as_mut().execute(sqlx::raw_sql(include_str!("m0014-baker-metrics.sql"))).await?;
     let endpoint = endpoints.first().context(format!(
         "Migration '{}' must be provided access to a Concordium node",
         next_schema_version
@@ -32,12 +30,14 @@ pub async fn run(
             GROUP BY block_height
             ",
     )
-    .fetch(tx.as_mut());
+    .fetch_all(tx.as_mut())
+    .await?;
 
-    while let row = rows.await? {
+    for row in rows {
+        let height: i64 = sqlx::Row::try_get(&row, "block_height")?;
         let mut block_summary = client
             .get_block_transaction_events(AbsoluteBlockHeight {
-                height: row.block_height.try_into()?,
+                height: height.try_into()?,
             })
             .await?
             .response;
@@ -45,19 +45,21 @@ pub async fn run(
             let BlockItemSummaryDetails::Update(update) = summary.details else {
                 continue
             };
-            sqlx::query(
+            let payload: ChainUpdatePayload = update.payload.try_into().unwrap();
+            let transaction_index: i64 = summary.index.index.try_into()?;
+            let result = sqlx::query(
                 "
                 UPDATE transactions
                 SET events = $1::jsonb
                 WHERE index = $2;
             ",
             )
-            .bind(serde_json::to_value(events_from_summary(update.payload.into())?)?)
-            .bind(summary.index)
+            .bind(serde_json::to_value(payload)?)
+            .bind(transaction_index)
             .execute(tx.as_mut())
             .await?;
+            println!("{}", result.rows_affected());
         }
     }
-
-    todo!()
+    Ok(next_schema_version)
 }

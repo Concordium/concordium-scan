@@ -491,6 +491,10 @@ reason {
 		bakerId
 		__typename
   }
+	... on ValidatorScoreParametersUpdate {
+		maximumMissedRounds
+		__typename
+	}
   ... on StakeOverMaximumThresholdForPool {
 		__typename
   }
@@ -635,6 +639,7 @@ export const useTransactionQuery = ({
 	const identifier = id?.value ? { id: id.value } : { hash: hash?.value }
 
 	const { data, fetching, error } = useQuery({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query,
 		requestPolicy: 'cache-first',
 		variables: {

@@ -3,7 +3,6 @@ use crate::{
     decoded_text::DecodedText,
     graphql_api::{ApiError, ApiResult},
     scalar_types::{BigInteger, Byte, DateTime, UnsignedLong},
-    transaction_event::chain_update::{ChainUpdatePayload, MinBlockTimeUpdate},
 };
 use anyhow::Context;
 use async_graphql::{ComplexObject, Object, SimpleObject, Union};
@@ -561,7 +560,7 @@ pub fn events_from_summary(
                     0,
                 )
                 .context("Failed to parse effective time")?,
-                payload:        true,
+                payload:        details.payload.into(),
             })]
         }
     };

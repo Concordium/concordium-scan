@@ -1,39 +1,35 @@
-use crate::{address::AccountAddress, scalar_types::DateTime};
+use crate::{
+    address::AccountAddress,
+    scalar_types::{DateTime, Decimal, UnsignedInt, UnsignedLong},
+};
 use async_graphql::{SimpleObject, Union};
-use concordium_rust_sdk::types::UpdatePayload;
+use concordium_rust_sdk::types::{ExchangeRate, UpdatePayload};
 use serde::{Deserialize, Serialize};
 
-#[derive(SimpleObject, Clone, Serialize, Deserialize)]
-pub struct Ratio {
-    numerator:   u64,
-    denominator: u64,
+#[derive(SimpleObject, Serialize, Deserialize)]
+pub struct LeverageFactor {
+    numerator:   UnsignedLong,
+    denominator: UnsignedLong,
 }
 
-#[derive(SimpleObject, Clone, Serialize, Deserialize)]
+#[derive(SimpleObject, Serialize, Deserialize)]
+pub struct Ratio {
+    numerator:   UnsignedLong,
+    denominator: UnsignedLong,
+}
+
+#[derive(SimpleObject, Serialize, Deserialize)]
 pub struct CommissionRange {
-    min: f64,
-    max: f64,
+    min: Decimal,
+    max: Decimal,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct ChainUpdateEnqueued {
     pub effective_time: DateTime,
-    // effective_immediately: bool, // Not sure this makes sense.
     pub payload:        ChainUpdatePayload,
 }
 
-// union ChainUpdatePayload = MinBlockTimeUpdate | TimeoutParametersUpdate |
-// FinalizationCommitteeParametersUpdate | BlockEnergyLimitUpdate |
-// GasRewardsCpv2Update | ProtocolChainUpdatePayload |
-// ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload |
-// MicroCcdPerEuroChainUpdatePayload | FoundationAccountChainUpdatePayload |
-// MintDistributionChainUpdatePayload |
-// TransactionFeeDistributionChainUpdatePayload | GasRewardsChainUpdatePayload |
-// BakerStakeThresholdChainUpdatePayload | RootKeysChainUpdatePayload |
-// Level1KeysChainUpdatePayload | AddAnonymityRevokerChainUpdatePayload |
-// AddIdentityProviderChainUpdatePayload | CooldownParametersChainUpdatePayload
-// | PoolParametersChainUpdatePayload | TimeParametersChainUpdatePayload |
-// MintDistributionV1ChainUpdatePayload
 #[derive(Union, serde::Serialize, serde::Deserialize)]
 pub enum ChainUpdatePayload {
     Protocol(ProtocolChainUpdatePayload),
@@ -47,56 +43,52 @@ pub enum ChainUpdatePayload {
     MicroCcdPerEuro(MicroCcdPerEuroChainUpdatePayload),
     FoundationAccount(FoundationAccountChainUpdatePayload),
     MintDistribution(MintDistributionChainUpdatePayload),
+    MintDistributionCpv1(MintDistributionV1ChainUpdatePayload),
     TransactionFeeDistribution(TransactionFeeDistributionChainUpdatePayload),
     GasRewards(GasRewardsChainUpdatePayload),
     BakerStakeThreshold(BakerStakeThresholdChainUpdatePayload),
-    //    RootKeys(RootKeysChainUpdatePayload),
-    //    Level1Keys(Level1KeysChainUpdatePayload),
+    RootKeys(RootKeysChainUpdatePayload),
+    Level1Keys(Level1KeysChainUpdatePayload),
     AddAnonymityRevoker(AddAnonymityRevokerChainUpdatePayload),
     AddIdentityProvider(AddIdentityProviderChainUpdatePayload),
     CooldownParameters(CooldownParametersChainUpdatePayload),
     PoolParameters(PoolParametersChainUpdatePayload),
     TimeParameters(TimeParametersChainUpdatePayload),
-    MintDistributionV1(MintDistributionV1ChainUpdatePayload),
+    ValidatorScoreParameters(ValidatorScoreParametersChainUpdatePayload),
 }
 
-#[derive(SimpleObject, Debug, Clone, Serialize, Deserialize)]
+#[derive(SimpleObject, Serialize, Deserialize)]
 pub struct MinBlockTimeUpdate {
-    pub duration_seconds: u64,
+    pub duration_seconds: UnsignedLong,
 }
 
-#[derive(Debug, Clone)]
-pub struct ValidatorScoreParametersUpdate {
-    pub maximum_missed_rounds: u64,
-}
-
-#[derive(SimpleObject, Clone, Serialize, Deserialize)]
+#[derive(SimpleObject, Serialize, Deserialize)]
 pub struct TimeoutParametersUpdate {
-    pub duration_seconds: u64,
+    pub duration_seconds: UnsignedLong,
     pub increase:         Ratio,
     pub decrease:         Ratio,
 }
 
-#[derive(SimpleObject, Debug, Clone, Serialize, Deserialize)]
+#[derive(SimpleObject, Serialize, Deserialize)]
 pub struct FinalizationCommitteeParametersUpdate {
-    pub min_finalizers: u32,
-    pub max_finalizers: u32,
-    pub finalizers_relative_stake_threshold: f64,
+    pub min_finalizers: UnsignedInt,
+    pub max_finalizers: UnsignedInt,
+    pub finalizers_relative_stake_threshold: Decimal,
 }
 
 #[derive(SimpleObject, Debug, Clone, Serialize, Deserialize)]
 pub struct BlockEnergyLimitUpdate {
-    pub energy_limit: u64,
+    pub energy_limit: UnsignedLong,
 }
 
-#[derive(SimpleObject, Debug, Clone, Serialize, Deserialize)]
+#[derive(SimpleObject, Serialize, Deserialize)]
 pub struct GasRewardsCpv2Update {
-    pub baker:            f64,
-    pub account_creation: f64,
-    pub chain_update:     f64,
+    pub baker:            Decimal,
+    pub account_creation: Decimal,
+    pub chain_update:     Decimal,
 }
 
-#[derive(SimpleObject, Debug, Clone, Serialize, Deserialize)]
+#[derive(SimpleObject, Serialize, Deserialize)]
 pub struct ProtocolChainUpdatePayload {
     pub message: String,
     pub specification_url: String,
@@ -104,17 +96,17 @@ pub struct ProtocolChainUpdatePayload {
     pub specification_auxiliary_data_hex: String,
 }
 
-#[derive(SimpleObject, Debug, Clone, Serialize, Deserialize)]
+#[derive(SimpleObject, Serialize, Deserialize)]
 pub struct ElectionDifficultyChainUpdatePayload {
-    pub election_difficulty: f64,
+    pub election_difficulty: Decimal,
 }
 
-#[derive(SimpleObject, Clone, Serialize, Deserialize)]
+#[derive(SimpleObject, Serialize, Deserialize)]
 pub struct EuroPerEnergyChainUpdatePayload {
     pub exchange_rate: Ratio,
 }
 
-#[derive(SimpleObject, Clone, Serialize, Deserialize)]
+#[derive(SimpleObject, Serialize, Deserialize)]
 pub struct MicroCcdPerEuroChainUpdatePayload {
     pub exchange_rate: Ratio,
 }
@@ -124,95 +116,243 @@ pub struct FoundationAccountChainUpdatePayload {
     pub account_address: AccountAddress,
 }
 
-#[derive(SimpleObject, Debug, Clone, Serialize, Deserialize)]
+#[derive(SimpleObject, Serialize, Deserialize)]
 pub struct MintDistributionChainUpdatePayload {
-    pub mint_per_slot:       f64,
-    pub baking_reward:       f64,
-    pub finalization_reward: f64,
+    pub mint_per_slot:       Decimal,
+    pub baking_reward:       Decimal,
+    pub finalization_reward: Decimal,
 }
 
-#[derive(SimpleObject, Debug, Clone, Serialize, Deserialize)]
+#[derive(SimpleObject, Serialize, Deserialize)]
 pub struct TransactionFeeDistributionChainUpdatePayload {
-    pub baker:       f64,
-    pub gas_account: f64,
+    pub baker:       Decimal,
+    pub gas_account: Decimal,
 }
 
-#[derive(SimpleObject, Debug, Clone, Serialize, Deserialize)]
+#[derive(SimpleObject, Serialize, Deserialize)]
 pub struct GasRewardsChainUpdatePayload {
-    pub account_creation:   f64,
-    pub baker:              f64,
-    pub chain_update:       f64,
-    pub finalization_proof: f64,
+    account_creation:   Decimal,
+    baker:              Decimal,
+    chain_update:       Decimal,
+    finalization_proof: Decimal,
 }
 
-#[derive(SimpleObject, Debug, Clone, Serialize, Deserialize)]
+#[derive(SimpleObject, Serialize, Deserialize)]
 pub struct BakerStakeThresholdChainUpdatePayload {
-    pub amount: u64,
+    amount: UnsignedLong,
 }
 
-//#[derive(SimpleObject, Debug, Clone, Serialize, Deserialize)]
-//pub struct RootKeysChainUpdatePayload {
-//    // No fields: this is used as a marker type.
-//}
-//
-//#[derive(SimpleObject, Debug, Clone, Serialize, Deserialize)]
-//pub struct Level1KeysChainUpdatePayload {
-//    // No fields: this is used as a marker type.
-//}
+#[derive(SimpleObject, Serialize, Deserialize)]
+pub struct RootKeysChainUpdatePayload {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL \
+                       type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
 
-#[derive(SimpleObject, Debug, Clone, Serialize, Deserialize)]
+#[derive(SimpleObject, Serialize, Deserialize)]
+pub struct Level1KeysChainUpdatePayload {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL \
+                       type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, Serialize, Deserialize)]
 pub struct AddAnonymityRevokerChainUpdatePayload {
-    pub ar_identity: i32,
+    pub ar_identity: u32,
     pub name:        String,
     pub url:         String,
     pub description: String,
 }
 
-#[derive(SimpleObject, Debug, Clone, Serialize, Deserialize)]
+#[derive(SimpleObject, Serialize, Deserialize)]
 pub struct AddIdentityProviderChainUpdatePayload {
-    pub ip_identity: i32,
+    pub ip_identity: u32,
     pub name:        String,
     pub url:         String,
     pub description: String,
 }
 
-#[derive(SimpleObject, Debug, Clone, Serialize, Deserialize)]
+#[derive(SimpleObject, Serialize, Deserialize)]
 pub struct CooldownParametersChainUpdatePayload {
-    pub pool_owner_cooldown: u64,
-    pub delegator_cooldown:  u64,
+    pub pool_owner_cooldown: UnsignedLong,
+    pub delegator_cooldown:  UnsignedLong,
 }
 
-#[derive(SimpleObject, Clone, Serialize, Deserialize)]
+#[derive(SimpleObject, Serialize, Deserialize)]
 pub struct PoolParametersChainUpdatePayload {
-    pub passive_finalization_commission:  f64,
-    pub passive_baking_commission:        f64,
-    pub passive_transaction_commission:   f64,
-    pub finalization_commission_range:    CommissionRange,
-    pub transaction_commission_range:     CommissionRange,
-    pub baking_commission_range:          CommissionRange,
-    pub transaction_commission_range_min: f64,
-    pub transaction_commission_range_max: f64,
-    pub minimum_equity_capital:           u64,
-    pub capital_bound:                    f64,
-    pub leverage_bound:                   Ratio,
+    pub passive_finalization_commission: Decimal,
+    pub passive_baking_commission:       Decimal,
+    pub passive_transaction_commission:  Decimal,
+    pub finalization_commission_range:   CommissionRange,
+    pub transaction_commission_range:    CommissionRange,
+    pub baking_commission_range:         CommissionRange,
+    pub minimum_equity_capital:          UnsignedLong,
+    pub capital_bound:                   Decimal,
+    pub leverage_bound:                  LeverageFactor,
 }
 
-#[derive(SimpleObject, Clone, Serialize, Deserialize)]
+#[derive(SimpleObject, Serialize, Deserialize)]
 pub struct TimeParametersChainUpdatePayload {
-    pub reward_period_length: u64,
-    pub mint_per_payday:      f64,
+    pub reward_period_length: UnsignedLong,
+    pub mint_per_payday:      Decimal,
 }
 
-#[derive(SimpleObject, Clone, Serialize, Deserialize)]
+#[derive(SimpleObject, Serialize, Deserialize)]
 pub struct MintDistributionV1ChainUpdatePayload {
-    pub baking_reward:       f64,
-    pub finalization_reward: f64,
+    pub baking_reward:       Decimal,
+    pub finalization_reward: Decimal,
 }
 
-/// Implement conversion from the Concordium SDK's ProtocolUpdate type.
+#[derive(SimpleObject, Serialize, Deserialize)]
+pub struct ValidatorScoreParametersChainUpdatePayload {
+    maxiumum_missed_rounds: UnsignedLong,
+}
+
+/// Implement conversion from the Concordium SDK's UpdatePayload type to the
+/// internally owned ChainUpdatePayload
 impl From<UpdatePayload> for ChainUpdatePayload {
     fn from(payload: UpdatePayload) -> Self {
         match payload {
+            UpdatePayload::AddAnonymityRevoker(update) => {
+                ChainUpdatePayload::AddAnonymityRevoker(AddAnonymityRevokerChainUpdatePayload {
+                    ar_identity: update.ar_identity.into(),
+                    name:        update.ar_description.name,
+                    url:         update.ar_description.url,
+                    description: update.ar_description.description,
+                })
+            }
+            UpdatePayload::AddIdentityProvider(update) => {
+                ChainUpdatePayload::AddIdentityProvider(AddIdentityProviderChainUpdatePayload {
+                    ip_identity: update.ip_identity.0,
+                    name:        update.ip_description.name,
+                    url:         update.ip_description.url,
+                    description: update.ip_description.description,
+                })
+            }
+            UpdatePayload::BakerStakeThreshold(update) => {
+                ChainUpdatePayload::BakerStakeThreshold(BakerStakeThresholdChainUpdatePayload {
+                    amount: UnsignedLong(update.minimum_threshold_for_baking.micro_ccd),
+                })
+            }
+            UpdatePayload::BlockEnergyLimitCPV2(update) => {
+                ChainUpdatePayload::BlockEnergyLimit(BlockEnergyLimitUpdate {
+                    energy_limit: UnsignedLong(update.energy),
+                })
+            }
+            UpdatePayload::CooldownParametersCPV1(update) => {
+                ChainUpdatePayload::CooldownParameters(CooldownParametersChainUpdatePayload {
+                    pool_owner_cooldown: UnsignedLong(update.pool_owner_cooldown.seconds),
+                    delegator_cooldown:  UnsignedLong(update.delegator_cooldown.seconds),
+                })
+            }
+            UpdatePayload::ElectionDifficulty(update) => {
+                ChainUpdatePayload::ElectionDifficulty(ElectionDifficultyChainUpdatePayload {
+                    election_difficulty: Decimal(update.into()),
+                })
+            }
+            UpdatePayload::EuroPerEnergy(update) => {
+                ChainUpdatePayload::EuroPerEnergy(EuroPerEnergyChainUpdatePayload {
+                    exchange_rate: update.into(),
+                })
+            }
+            UpdatePayload::FinalizationCommitteeParametersCPV2(update) => {
+                ChainUpdatePayload::FinalizationCommitteeParameters(
+                    FinalizationCommitteeParametersUpdate {
+                        min_finalizers: UnsignedInt(update.min_finalizers),
+                        max_finalizers: UnsignedInt(update.max_finalizers),
+                        finalizers_relative_stake_threshold: Decimal(
+                            update.finalizers_relative_stake_threshold.into(),
+                        ),
+                    },
+                )
+            }
+            UpdatePayload::FoundationAccount(update) => {
+                ChainUpdatePayload::FoundationAccount(FoundationAccountChainUpdatePayload {
+                    account_address: update.into(),
+                })
+            }
+            UpdatePayload::GASRewards(update) => {
+                ChainUpdatePayload::GasRewards(GasRewardsChainUpdatePayload {
+                    baker:              update.baker.into(),
+                    account_creation:   update.account_creation.into(),
+                    chain_update:       update.chain_update.into(),
+                    finalization_proof: update.finalization_proof.into(),
+                })
+            }
+            UpdatePayload::GASRewardsCPV2(update) => {
+                ChainUpdatePayload::GasRewardsCpv2(GasRewardsCpv2Update {
+                    baker:            update.baker.into(),
+                    account_creation: update.account_creation.into(),
+                    chain_update:     update.chain_update.into(),
+                })
+            }
+            UpdatePayload::Level1(_) => {
+                ChainUpdatePayload::Level1Keys(Level1KeysChainUpdatePayload {
+                    dummy: true,
+                })
+            }
+            UpdatePayload::MicroGTUPerEuro(update) => {
+                ChainUpdatePayload::MicroCcdPerEuro(MicroCcdPerEuroChainUpdatePayload {
+                    exchange_rate: update.into(),
+                })
+            }
+            UpdatePayload::MinBlockTimeCPV2(update) => {
+                ChainUpdatePayload::MinBlockTime(MinBlockTimeUpdate {
+                    duration_seconds: UnsignedLong(update.seconds()),
+                })
+            }
+            UpdatePayload::MintDistribution(update) => {
+                ChainUpdatePayload::MintDistribution(MintDistributionChainUpdatePayload {
+                    mint_per_slot:       Decimal(rust_decimal::Decimal::new(
+                        update.mint_per_slot.mantissa as i64,
+                        update.mint_per_slot.exponent as u32,
+                    )),
+                    baking_reward:       update.baking_reward.into(),
+                    finalization_reward: update.finalization_reward.into(),
+                })
+            }
+            UpdatePayload::MintDistributionCPV1(update) => {
+                ChainUpdatePayload::MintDistributionCpv1(MintDistributionV1ChainUpdatePayload {
+                    finalization_reward: update.finalization_reward.into(),
+                    baking_reward:       update.baking_reward.into(),
+                })
+            }
+            UpdatePayload::PoolParametersCPV1(update) => {
+                ChainUpdatePayload::PoolParameters(PoolParametersChainUpdatePayload {
+                    passive_finalization_commission: update.passive_finalization_commission.into(),
+                    passive_baking_commission:       update.passive_baking_commission.into(),
+                    passive_transaction_commission:  update.passive_transaction_commission.into(),
+                    baking_commission_range:         CommissionRange {
+                        // TODO From pattern
+                        max: update.commission_bounds.baking.min.into(),
+                        min: update.commission_bounds.baking.max.into(),
+                    },
+                    finalization_commission_range:   CommissionRange {
+                        // TODO From pattern
+                        max: update.commission_bounds.finalization.min.into(),
+                        min: update.commission_bounds.finalization.max.into(),
+                    },
+                    transaction_commission_range:    CommissionRange {
+                        // TODO From pattern
+                        max: update.commission_bounds.transaction.min.into(),
+                        min: update.commission_bounds.transaction.max.into(),
+                    },
+                    minimum_equity_capital:          UnsignedLong(
+                        update.minimum_equity_capital.micro_ccd,
+                    ),
+                    capital_bound:                   update.capital_bound.bound.into(),
+                    leverage_bound:                  LeverageFactor {
+                        denominator: UnsignedLong(update.leverage_bound.denominator),
+                        numerator:   UnsignedLong(update.leverage_bound.numerator),
+                    },
+                })
+            }
             UpdatePayload::Protocol(update) => {
                 ChainUpdatePayload::Protocol(ProtocolChainUpdatePayload {
                     message: update.message,
@@ -224,156 +364,59 @@ impl From<UpdatePayload> for ChainUpdatePayload {
                     .to_lowercase(),
                 })
             }
-            UpdatePayload::MinBlockTimeCPV2(update) => {
-                ChainUpdatePayload::MinBlockTime(MinBlockTimeUpdate {
-                    duration_seconds: update.seconds(),
-                })
-            }
-            //            UpdatePayload::TimeoutParametersCPV2(update) => {
-            //                ChainUpdatePayload::TimeoutParameters(TimeoutParametersUpdate {
-            //                    duration_seconds: update.base.seconds(),
-            //                    increase: update.increase.into(), // Convert as needed
-            //                    decrease: update.decrease.into(),
-            //                })
-            //            },
-            //            UpdatePayload::FinalizationCommitteeParametersCPV2(update) => {
-            //                
-            // ChainUpdatePayload::FinalizationCommitteeParameters(FinalizationCommitteeParametersUpdate
-            // {                    min_finalizers: update.min_finalizers,
-            //                    max_finalizers: update.max_finalizers,
-            //                    finalizers_relative_stake_threshold:
-            // update.finalizers_relative_stake_threshold.into(),                })
-            //            },
-            UpdatePayload::BlockEnergyLimitCPV2(update) => {
-                ChainUpdatePayload::BlockEnergyLimit(BlockEnergyLimitUpdate {
-                    energy_limit: update.energy,
-                })
-            }
-            //            UpdatePayload::GASRewardsCPV2(update) => {
-            //                ChainUpdatePayload::GasRewardsCpv2(GasRewardsCpv2Update {
-            //                    baker: update.baker.into(),
-            //                    account_creation: update.account_creation.into(),
-            //                    chain_update: update.chain_update.into(),
-            //                })
-            //            },
-            //            UpdatePayload::ElectionDifficulty(update) => {
-            //                
-            // ChainUpdatePayload::ElectionDifficulty(ElectionDifficultyChainUpdatePayload {
-            //                    election_difficulty: update.into(),
-            //                })
-            //            },
-            //            UpdatePayload::EuroPerEnergy(update) => {
-            //                ChainUpdatePayload::EuroPerEnergy(EuroPerEnergyChainUpdatePayload {
-            //                    exchange_rate: update.into(),
-            //                })
-            //            },
-            //            UpdatePayload::MicroCcdPerEuro(update) => {
-            //                ChainUpdatePayload::MicroCcdPerEuro(MicroCcdPerEuroChainUpdatePayload
-            // {                    exchange_rate: update.exchange_rate.into(),
-            //                })
-            //            },
-            //            UpdatePayload::FoundationAccount(update) => {
-            //                
-            // ChainUpdatePayload::FoundationAccount(FoundationAccountChainUpdatePayload {
-            //                    account_address: update.account_address.to_string(),
-            //                })
-            //            },
-            //            UpdatePayload::MintDistribution(update) => {
-            //                
-            // ChainUpdatePayload::MintDistribution(MintDistributionChainUpdatePayload {
-            //                    mint_per_slot: update.mint_distribution.mint_per_slot.into(),
-            //                    baking_reward: update.mint_distribution.baking_reward.into(),
-            //                    finalization_reward:
-            // update.mint_distribution.finalization_reward.into(),                })
-            //            },
-            //            UpdatePayload::TransactionFeeDistribution(update) => {
-            //                
-            // ChainUpdatePayload::TransactionFeeDistribution(TransactionFeeDistributionChainUpdatePayload
-            // {                    baker:
-            // update.transaction_fee_distribution.baker.into(),                    
-            // gas_account: update.transaction_fee_distribution.gas_account.into(),
-            //                })
-            //            },
-            //            UpdatePayload::BakerStakeThreshold(update) => {
-            //                
-            // ChainUpdatePayload::BakerStakeThreshold(BakerStakeThresholdChainUpdatePayload {
-            //                    amount: update.minimum_threshold_for_baking.value,
-            //                })
-            //            },
-            //            UpdatePayload::Root(update) => {
-            //                ChainUpdatePayload::RootKeys(RootKeysChainUpdatePayload {})
-            //            },
-            //            UpdatePayload::Level1(update) => {
-            //                ChainUpdatePayload::Level1Keys(Level1KeysChainUpdatePayload {})
-            //            },
-            //            UpdatePayload::AddAnonymityRevoker(update) => {
-            //                
-            // ChainUpdatePayload::AddAnonymityRevoker(AddAnonymityRevokerChainUpdatePayload {
-            //                    ar_identity: update.ar_info.ar_identity.id as i32,
-            //                    name: update.ar_info.ar_description.name,
-            //                    url: update.ar_info.ar_description.url,
-            //                    description: update.ar_info.ar_description.info,
-            //                })
-            //            },
-            //            UpdatePayload::AddIdentityProvider(update) => {
-            //                
-            // ChainUpdatePayload::AddIdentityProvider(AddIdentityProviderChainUpdatePayload {
-            //                    ip_identity: update.ip_info.ip_identity.id as i32,
-            //                    name: update.ip_info.description.name,
-            //                    url: update.ip_info.description.url,
-            //                    description: update.ip_info.description.info,
-            //                })
-            //            },
-            //            UpdatePayload::CooldownParameters(update) => {
-            //                
-            // ChainUpdatePayload::CooldownParameters(CooldownParametersChainUpdatePayload {
-            //                    pool_owner_cooldown:
-            // update.cooldown_parameters.pool_owner_cooldown.as_secs(),                
-            // delegator_cooldown: update.cooldown_parameters.delegator_cooldown.as_secs(),
-            //                })
-            //            },
-            //            UpdatePayload::PoolParameters(update) => {
-            //                ChainUpdatePayload::PoolParameters(PoolParametersChainUpdatePayload {
-            //                    passive_finalization_commission:
-            // update.pool_parameters.passive_finalization_commission.into(),
-            //                    passive_baking_commission:
-            // update.pool_parameters.passive_baking_commission.into(),                 
-            // passive_transaction_commission:
-            // update.pool_parameters.passive_transaction_commission.into(),            
-            // finalization_commission_range_min:
-            // update.pool_parameters.commission_bounds.finalization.min.into(),
-            //                    finalization_commission_range_max:
-            // update.pool_parameters.commission_bounds.finalization.max.into(),
-            //                    baking_commission_range_min:
-            // update.pool_parameters.commission_bounds.baking.min.into(),              
-            // baking_commission_range_max:
-            // update.pool_parameters.commission_bounds.baking.max.into(),              
-            // transaction_commission_range_min:
-            // update.pool_parameters.commission_bounds.transaction.min.into(),
-            //                    transaction_commission_range_max:
-            // update.pool_parameters.commission_bounds.transaction.max.into(),
-            //                    minimum_equity_capital:
-            // update.pool_parameters.minimum_equity_capital.value,                    
-            // capital_bound: update.pool_parameters.capital_bound.bound.into(),
-            //                    leverage_bound: update.pool_parameters.leverage_bound.into(),
-            //                })
-            //            },
-            //            UpdatePayload::TimeParameters(update) => {
-            //                ChainUpdatePayload::TimeParameters(TimeParametersChainUpdatePayload {
-            //                    reward_period_length:
-            // update.time_parameters.reward_period_length.count(),                    
-            // mint_per_payday: update.time_parameters.mint_pr_payday.into(),
-            //                })
-            //            },
-            //            UpdatePayload::MintDistributionV1(update) => {
-            //                
-            // ChainUpdatePayload::MintDistributionV1(MintDistributionV1ChainUpdatePayload {
-            //                    value: update.value.into(), // Placeholder conversion
-            //                })
-            //            },
-            _ => ChainUpdatePayload::MinBlockTime(MinBlockTimeUpdate {
-                duration_seconds: 0,
+            UpdatePayload::Root(_) => ChainUpdatePayload::RootKeys(RootKeysChainUpdatePayload {
+                dummy: true,
             }),
+            UpdatePayload::TimeoutParametersCPV2(update) => {
+                ChainUpdatePayload::TimeoutParameters(TimeoutParametersUpdate {
+                    duration_seconds: UnsignedLong(update.base.seconds()),
+                    increase:         update.increase.into(),
+                    decrease:         update.decrease.into(),
+                })
+            }
+            UpdatePayload::TimeParametersCPV1(update) => {
+                ChainUpdatePayload::TimeParameters(TimeParametersChainUpdatePayload {
+                    reward_period_length: UnsignedLong(
+                        update.reward_period_length.reward_period_epochs().epoch,
+                    ),
+                    mint_per_payday:      Decimal(rust_decimal::Decimal::new(
+                        update.mint_per_payday.mantissa as i64,
+                        update.mint_per_payday.exponent as u32,
+                    )),
+                })
+            }
+            UpdatePayload::TransactionFeeDistribution(update) => {
+                ChainUpdatePayload::TransactionFeeDistribution(
+                    TransactionFeeDistributionChainUpdatePayload {
+                        baker:       update.baker.into(),
+                        gas_account: update.gas_account.into(),
+                    },
+                )
+            }
+            UpdatePayload::ValidatorScoreParametersCPV3(update) => {
+                ChainUpdatePayload::ValidatorScoreParameters(
+                    ValidatorScoreParametersChainUpdatePayload {
+                        maxiumum_missed_rounds: UnsignedLong(update.max_missed_rounds),
+                    },
+                )
+            }
+        }
+    }
+}
+
+impl From<concordium_rust_sdk::common::types::Ratio> for Ratio {
+    fn from(ratio: concordium_rust_sdk::common::types::Ratio) -> Self {
+        Ratio {
+            denominator: UnsignedLong(ratio.denominator()),
+            numerator:   UnsignedLong(ratio.numerator()),
+        }
+    }
+}
+impl From<ExchangeRate> for Ratio {
+    fn from(rate: ExchangeRate) -> Self {
+        Ratio {
+            denominator: UnsignedLong(rate.denominator()),
+            numerator:   UnsignedLong(rate.numerator()),
         }
     }
 }

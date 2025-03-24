@@ -214,14 +214,16 @@ pub enum SchemaVersion {
     PassiveDelegation,
     #[display("0017:Reward metrics")]
     RewardMetrics,
+    #[display("0018:Chain updates events")]
+    ChainUpdateEvents,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking database schema versions have been
     /// introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::RewardMetrics;
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::ChainUpdateEvents;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::RewardMetrics;
+    const LATEST: SchemaVersion = SchemaVersion::ChainUpdateEvents;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -254,6 +256,7 @@ impl SchemaVersion {
             SchemaVersion::PaydayPoolRewards => false,
             SchemaVersion::PassiveDelegation => false,
             SchemaVersion::RewardMetrics => false,
+            SchemaVersion::ChainUpdateEvents => false,
         }
     }
 
@@ -368,7 +371,11 @@ impl SchemaVersion {
                 SchemaVersion::RewardMetrics
             }
 
-            SchemaVersion::RewardMetrics => unimplemented!(
+            SchemaVersion::RewardMetrics => {
+                m0018_chain_update_events::run(&mut tx, endpoints, SchemaVersion::ChainUpdateEvents)
+                    .await?
+            }
+            SchemaVersion::ChainUpdateEvents => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
