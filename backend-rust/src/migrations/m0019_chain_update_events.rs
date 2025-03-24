@@ -1,5 +1,5 @@
 use super::{SchemaVersion, Transaction};
-use crate::transaction_event::chain_update::ChainUpdatePayload;
+use crate::transaction_event::{chain_update::ChainUpdatePayload, events_from_summary};
 use anyhow::Context;
 use async_graphql::futures_util::StreamExt;
 use concordium_rust_sdk::{
@@ -7,7 +7,8 @@ use concordium_rust_sdk::{
     v2::{self},
 };
 
-/// Performs a migration that alters the events types for transactions of type Update
+/// Performs a migration that alters the events types for transactions of type
+/// Update
 pub async fn run(
     tx: &mut Transaction,
     endpoints: &[v2::Endpoint],
@@ -42,10 +43,10 @@ pub async fn run(
             .await?
             .response;
         while let Some(summary) = block_summary.next().await.transpose()? {
-            let BlockItemSummaryDetails::Update(update) = summary.details else {
+            let BlockItemSummaryDetails::Update(update) = &summary.details else {
                 continue
             };
-            let payload: ChainUpdatePayload = update.payload.into();
+            let events = events_from_summary(summary.details)?;
             let transaction_index: i64 = summary.index.index.try_into()?;
             sqlx::query(
                 "
@@ -54,7 +55,7 @@ pub async fn run(
                 WHERE index = $2;
             ",
             )
-            .bind(serde_json::to_value(payload)?)
+            .bind(serde_json::to_value(events)?)
             .bind(transaction_index)
             .execute(tx.as_mut())
             .await?;
