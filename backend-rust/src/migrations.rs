@@ -259,8 +259,8 @@ impl SchemaVersion {
             SchemaVersion::PaydayPoolRewards => false,
             SchemaVersion::PassiveDelegation => false,
             SchemaVersion::RewardMetrics => false,
-            SchemaVersion::ChainUpdateEvents => false,
             SchemaVersion::PaydayPoolStake => false,
+            SchemaVersion::ChainUpdateEvents => false,
         }
     }
 
