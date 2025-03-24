@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+Database schema version: 20
+
+### Added
+
+- Add support for `TransferredWithSchedule::amountsSchedule`
+
 ## [0.1.38] - 2025-03-21
 
 Database schema version: 18
