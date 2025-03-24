@@ -329,17 +329,14 @@ impl From<UpdatePayload> for ChainUpdatePayload {
                     passive_baking_commission:       update.passive_baking_commission.into(),
                     passive_transaction_commission:  update.passive_transaction_commission.into(),
                     baking_commission_range:         CommissionRange {
-                        // TODO From pattern
                         max: update.commission_bounds.baking.min.into(),
                         min: update.commission_bounds.baking.max.into(),
                     },
                     finalization_commission_range:   CommissionRange {
-                        // TODO From pattern
                         max: update.commission_bounds.finalization.min.into(),
                         min: update.commission_bounds.finalization.max.into(),
                     },
                     transaction_commission_range:    CommissionRange {
-                        // TODO From pattern
                         max: update.commission_bounds.transaction.min.into(),
                         min: update.commission_bounds.transaction.max.into(),
                     },
