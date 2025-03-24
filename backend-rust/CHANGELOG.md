@@ -8,7 +8,7 @@ Database schema version: 19
 
 ### Added
 
-- Add support for ChainUpdatePayload events
+- Add support for ChainUpdatePayload events.
 
 ## [0.1.38] - 2025-03-21
 
