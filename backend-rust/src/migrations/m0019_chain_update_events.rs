@@ -45,7 +45,7 @@ pub async fn run(
             let BlockItemSummaryDetails::Update(update) = summary.details else {
                 continue
             };
-            let payload: ChainUpdatePayload = update.payload.try_into()?;
+            let payload: ChainUpdatePayload = update.payload.into();
             let transaction_index: i64 = summary.index.index.try_into()?;
             sqlx::query(
                 "
