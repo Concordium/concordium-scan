@@ -8,6 +8,7 @@ use anyhow::Context;
 use async_graphql::{ComplexObject, Object, SimpleObject, Union};
 use bigdecimal::BigDecimal;
 use concordium_rust_sdk::{cis2, types::Address};
+use std::vec::IntoIter;
 use tracing::error;
 
 pub mod baker;
@@ -303,11 +304,7 @@ pub fn events_from_summary(
                 vec![Event::TransferredWithSchedule(transfers::TransferredWithSchedule {
                     from_account_address: details.sender.into(),
                     to_account_address:   to.into(),
-                    total_amount:         amount
-                        .into_iter()
-                        .map(|(_, amount)| amount.micro_ccd())
-                        .sum::<u64>()
-                        .into(),
+                    amounts_schedule:     amount.into_iter(),
                 })]
             }
             AccountTransactionEffects::TransferredWithScheduleAndMemo {
@@ -319,11 +316,7 @@ pub fn events_from_summary(
                     Event::TransferredWithSchedule(transfers::TransferredWithSchedule {
                         from_account_address: details.sender.into(),
                         to_account_address:   to.into(),
-                        total_amount:         amount
-                            .into_iter()
-                            .map(|(_, amount)| amount.micro_ccd())
-                            .sum::<u64>()
-                            .into(),
+                        amounts_schedule:     amount.into_iter(),
                     }),
                     Event::TransferMemo(memo.into()),
                 ]
