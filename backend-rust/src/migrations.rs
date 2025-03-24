@@ -15,6 +15,7 @@ mod m0014_baker_metrics;
 mod m0015_pool_rewards;
 mod m0018_payday_stake_information;
 mod m0019_chain_update_events;
+mod m0020_amounts_schedule;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.
@@ -219,14 +220,16 @@ pub enum SchemaVersion {
     PaydayPoolStake,
     #[display("0019:Chain updates events")]
     ChainUpdateEvents,
+    #[display("0020:Amount schedule")]
+    AmountSchedule,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking database schema versions have been
     /// introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::ChainUpdateEvents;
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::AmountSchedule;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::ChainUpdateEvents;
+    const LATEST: SchemaVersion = SchemaVersion::AmountSchedule;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -259,8 +262,9 @@ impl SchemaVersion {
             SchemaVersion::PaydayPoolRewards => false,
             SchemaVersion::PassiveDelegation => false,
             SchemaVersion::RewardMetrics => false,
-            SchemaVersion::ChainUpdateEvents => false,
             SchemaVersion::PaydayPoolStake => false,
+            SchemaVersion::ChainUpdateEvents => false,
+            SchemaVersion::AmountSchedule => false,
         }
     }
 
@@ -381,7 +385,11 @@ impl SchemaVersion {
                 m0019_chain_update_events::run(&mut tx, endpoints, SchemaVersion::ChainUpdateEvents)
                     .await?
             }
-            SchemaVersion::ChainUpdateEvents => unimplemented!(
+            SchemaVersion::ChainUpdateEvents => {
+                m0020_amounts_schedule::run(&mut tx, endpoints, SchemaVersion::AmountSchedule)
+                    .await?
+            }
+            SchemaVersion::AmountSchedule => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
