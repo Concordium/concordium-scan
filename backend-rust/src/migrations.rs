@@ -13,7 +13,8 @@ mod m0008_canonical_address_and_transaction_search_index;
 mod m0010_fill_capital_bound_and_leverage_bound;
 mod m0014_baker_metrics;
 mod m0015_pool_rewards;
-mod m0018_chain_update_events;
+mod m0018_payday_stake_information;
+mod m0019_chain_update_events;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.
@@ -206,7 +207,7 @@ pub enum SchemaVersion {
     TrackRemovedBakers,
     #[display("0013:Fix delegated_restake_earnings data in accounts")]
     FixDelegatedStakeEarnings,
-    #[display("0014:RankingByLotteryPower")]
+    #[display("0014:Add baker metrics")]
     BakerMetrics,
     #[display("0015:Add tracking of rewards paid out to bakers and delegators in payday blocks")]
     PaydayPoolRewards,
@@ -214,7 +215,9 @@ pub enum SchemaVersion {
     PassiveDelegation,
     #[display("0017:Reward metrics")]
     RewardMetrics,
-    #[display("0018:Chain updates events")]
+    #[display("0018:Add tracking of stake to bakers and delagators in payday blocks")]
+    PaydayPoolStake,
+    #[display("0019:Chain updates events")]
     ChainUpdateEvents,
 }
 impl SchemaVersion {
@@ -257,6 +260,7 @@ impl SchemaVersion {
             SchemaVersion::PassiveDelegation => false,
             SchemaVersion::RewardMetrics => false,
             SchemaVersion::ChainUpdateEvents => false,
+            SchemaVersion::PaydayPoolStake => false,
         }
     }
 
@@ -370,11 +374,12 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::RewardMetrics
             }
-
             SchemaVersion::RewardMetrics => {
-                m0018_chain_update_events::run(&mut tx, endpoints, SchemaVersion::ChainUpdateEvents)
-                    .await?
+                m0018_payday_stake_information::run(&mut tx, endpoints).await?
             }
+            SchemaVersion::PaydayPoolStake => {
+                m0019_chain_update_events::run(&mut tx, endpoints, SchemaVersion::ChainUpdateEvents).await?
+            },
             SchemaVersion::ChainUpdateEvents => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()

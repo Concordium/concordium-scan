@@ -76,6 +76,9 @@ const BakerQuery = gql<BakerResponse>`
 						delegatedStake
 						lotteryPower
 						metadataUrl
+						selfSuspended
+						inactiveSuspended
+						primedForSuspension
 						rankingByTotalStake {
 							rank
 							total
@@ -121,6 +124,7 @@ const BakerQuery = gql<BakerResponse>`
 
 export const useBakerQuery = (bakerId: number) => {
 	const { data, fetching, error } = useQuery({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: BakerQuery,
 		requestPolicy: 'cache-first',
 		variables: {

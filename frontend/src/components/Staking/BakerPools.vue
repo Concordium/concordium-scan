@@ -3,7 +3,8 @@
 		<Table>
 			<TableHead>
 				<TableRow>
-					<TableTh width="20%">Validator ID</TableTh>
+					<TableTh width="15%">Validator ID</TableTh>
+					<TableTh width="15%">Status</TableTh>
 					<TableTh
 						v-if="!hasPoolData && breakpoint >= Breakpoint.SM"
 						width="20%"
@@ -20,13 +21,15 @@
 						v-if="hasPoolData && breakpoint >= Breakpoint.LG"
 						align="right"
 					>
-						Validator APY <span class="text-theme-faded">(30 days)</span>
+						<span>Validator APY</span> <br />
+						<span class="text-theme-faded">(30 days)</span>
 					</TableTh>
 					<TableTh
 						v-if="hasPoolData && breakpoint >= Breakpoint.SM"
 						align="right"
 					>
-						Delegators APY <span class="text-theme-faded">(30 days)</span>
+						<span>Delegators APY</span> <br />
+						<span class="text-theme-faded">(30 days)</span>
 					</TableTh>
 					<TableTh v-if="hasPoolData && breakpoint >= Breakpoint.MD">
 						Delegation pool status
@@ -65,6 +68,19 @@
 
 					<TableTd v-if="!hasPoolData && breakpoint >= Breakpoint.SM">
 						<AccountLink :address="baker.account.address.asString" />
+					</TableTd>
+
+					<TableTd
+						v-if="hasPoolData && breakpoint >= Breakpoint.SM"
+						align="right"
+					>
+						<template v-if="baker.state.__typename === 'ActiveBakerState'">
+							<BakerSuspension
+								:self-suspended="baker.state.pool?.selfSuspended"
+								:inactive-suspended="baker.state.pool?.inactiveSuspended"
+								:primed-for-suspension="baker.state.pool?.primedForSuspension"
+							/>
+						</template>
 					</TableTd>
 
 					<TableTd
@@ -291,6 +307,7 @@
 <script lang="ts" setup>
 import { toRef } from 'vue'
 import CommissionRates from './CommissionRates.vue'
+import BakerSuspension from './BakerSuspension.vue'
 import { composeBakerStatus } from '~/utils/composeBakerStatus'
 import { usePagination } from '~/composables/usePagination'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'

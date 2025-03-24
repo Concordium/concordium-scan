@@ -53,6 +53,7 @@
 					</TabBarItem>
 				</TabBar>
 				<PassiveDelegationLink />
+				<SuspendedValidatorsLink />
 			</div>
 
 			<div class="flex flex-wrap flex-grow justify-end items-center gap-8">
@@ -93,6 +94,7 @@ import Toggle from '~/components/atoms/Toggle.vue'
 import TabBar from '~/components/atoms/TabBar.vue'
 import TabBarItem from '~/components/atoms/TabBarItem.vue'
 import PassiveDelegationLink from '~/components/molecules/PassiveDelegationLink.vue'
+import SuspendedValidatorsLink from '~/components/molecules/SuspendedValidatorsLink.vue'
 import StakingSortSelect from '~/components/molecules/StakingSortSelect.vue'
 import MetricsPeriodDropdown from '~/components/molecules/MetricsPeriodDropdown.vue'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'

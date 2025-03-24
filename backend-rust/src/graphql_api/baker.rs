@@ -3,7 +3,7 @@ use super::{
     baker_and_delegator_types::{CommissionRates, DelegationSummary, PaydayPoolReward},
     get_config, get_pool,
     transaction::Transaction,
-    ApiError, ApiResult, ApiServiceConfig, ConnectionQuery,
+    ApiError, ApiResult, ApiServiceConfig, ApyPeriod, ConnectionQuery,
 };
 use crate::{
     connection::{ConcatCursor, ConnectionBounds, DescendingI64, Reversed},
@@ -26,7 +26,7 @@ use async_graphql::{
 use bigdecimal::BigDecimal;
 use concordium_rust_sdk::types::AmountFraction;
 use futures::TryStreamExt;
-use sqlx::PgPool;
+use sqlx::{postgres::types::PgInterval, PgPool};
 use std::cmp::{max, min, Ordering};
 
 #[derive(Default)]
@@ -329,6 +329,9 @@ impl Baker {
                     restake_earnings,
                     open_status as "open_status: _",
                     metadata_url,
+                    self_suspended,
+                    inactive_suspended,
+                    primed_for_suspension,
                     transaction_commission,
                     baking_commission,
                     finalization_commission,
@@ -478,6 +481,9 @@ impl Baker {
                     restake_earnings,
                     open_status as "open_status: _",
                     metadata_url,
+                    self_suspended,
+                    inactive_suspended,
+                    primed_for_suspension,
                     transaction_commission,
                     baking_commission,
                     finalization_commission,
@@ -624,6 +630,9 @@ impl Baker {
                     restake_earnings,
                     open_status as "open_status: _",
                     metadata_url,
+                    self_suspended,
+                    inactive_suspended,
+                    primed_for_suspension,
                     transaction_commission,
                     baking_commission,
                     finalization_commission,
@@ -868,6 +877,9 @@ impl Baker {
                     restake_earnings,
                     open_status as "open_status: _",
                     metadata_url,
+                    self_suspended,
+                    inactive_suspended,
+                    primed_for_suspension,
                     transaction_commission,
                     baking_commission,
                     finalization_commission,
@@ -1113,6 +1125,9 @@ impl Baker {
                     restake_earnings,
                     open_status as "open_status: _",
                     metadata_url,
+                    self_suspended,
+                    inactive_suspended,
+                    primed_for_suspension,
                     transaction_commission,
                     baking_commission,
                     finalization_commission,
@@ -1372,6 +1387,9 @@ impl Baker {
                     restake_earnings,
                     open_status as "open_status: _",
                     metadata_url,
+                    self_suspended,
+                    inactive_suspended,
+                    primed_for_suspension,
                     transaction_commission,
                     baking_commission,
                     finalization_commission,
@@ -1645,6 +1663,9 @@ pub struct CurrentBaker {
     restake_earnings: bool,
     open_status: Option<BakerPoolOpenStatus>,
     metadata_url: Option<MetadataUrl>,
+    self_suspended: Option<i64>,
+    inactive_suspended: Option<i64>,
+    primed_for_suspension: Option<i64>,
     transaction_commission: Option<i64>,
     baking_commission: Option<i64>,
     finalization_commission: Option<i64>,
@@ -1671,6 +1692,9 @@ impl CurrentBaker {
                 restake_earnings,
                 open_status as "open_status: BakerPoolOpenStatus",
                 metadata_url,
+                self_suspended,
+                inactive_suspended,
+                primed_for_suspension,
                 transaction_commission,
                 baking_commission,
                 finalization_commission,
@@ -1967,6 +1991,9 @@ impl CurrentBaker {
                     .try_into()
                     .map_err(|e: anyhow::Error| ApiError::InternalError(e.to_string()))?,
                 metadata_url: self.metadata_url.as_deref(),
+                self_suspended: self.self_suspended,
+                inactive_suspended: self.inactive_suspended,
+                primed_for_suspension: self.primed_for_suspension,
                 total_stake_percentage,
                 total_stake: Amount::try_from(self.pool_total_staked)?,
                 delegated_stake: Amount::try_from(delegated_stake_of_pool)?,
@@ -2250,7 +2277,9 @@ struct BakerPool<'a> {
     delegated_stake_cap: Amount,
     open_status: Option<BakerPoolOpenStatus>,
     metadata_url: Option<&'a str>,
-    // TODO: apy(period: ApyPeriod!): PoolApy!
+    self_suspended: Option<i64>,
+    inactive_suspended: Option<i64>,
+    primed_for_suspension: Option<i64>,
 }
 
 #[Object]
@@ -2282,6 +2311,12 @@ impl<'a> BakerPool<'a> {
     async fn open_status(&self) -> Option<BakerPoolOpenStatus> { self.open_status }
 
     async fn metadata_url(&self) -> Option<&'a str> { self.metadata_url }
+
+    async fn self_suspended(&self) -> Option<i64> { self.self_suspended }
+
+    async fn inactive_suspended(&self) -> Option<i64> { self.inactive_suspended }
+
+    async fn primed_for_suspension(&self) -> Option<i64> { self.primed_for_suspension }
 
     async fn pool_rewards(
         &self,
@@ -2426,6 +2461,72 @@ impl<'a> BakerPool<'a> {
         }
         Ok(connection)
     }
+
+    async fn apy(&self, ctx: &Context<'_>, period: ApyPeriod) -> ApiResult<PoolApy> {
+        let pool = get_pool(ctx)?;
+        let interval = PgInterval::try_from(period)?;
+        let apy = sqlx::query_as!(
+            PoolApy,
+            r#"WITH chain_parameter AS (
+                 SELECT
+                      id,
+                      ((EXTRACT('epoch' from '1 year'::INTERVAL) * 1000)
+                          / (epoch_duration * reward_period_length))::FLOAT8
+                          AS paydays_per_year
+                 FROM current_chain_parameters
+                 WHERE id = true
+             ) SELECT
+                 geometric_mean(apy(
+                     (payday_total_transaction_rewards
+                       + payday_total_baking_rewards
+                       + payday_total_finalization_rewards)::FLOAT8,
+                     (baker_stake + delegators_stake)::FLOAT8,
+                     paydays_per_year
+                 )) AS total_apy,
+                 geometric_mean(
+                     CASE
+                         WHEN delegators_stake = 0 THEN NULL
+                         ELSE apy(
+                                (payday_delegators_transaction_rewards
+                                 + payday_delegators_baking_rewards
+                                 + payday_delegators_finalization_rewards)::FLOAT8,
+                             delegators_stake::FLOAT8,
+                             paydays_per_year)
+                     END
+                 ) AS delegators_apy,
+                 geometric_mean(apy(
+                     (payday_total_transaction_rewards
+                        - payday_delegators_transaction_rewards
+                        + payday_total_baking_rewards
+                        - payday_delegators_baking_rewards
+                        + payday_total_finalization_rewards
+                        - payday_delegators_finalization_rewards)::FLOAT8,
+                     baker_stake::FLOAT8,
+                     paydays_per_year
+                 )) AS baker_apy
+             FROM payday_baker_pool_stakes
+             JOIN blocks ON blocks.height = payday_baker_pool_stakes.payday_block
+             JOIN bakers_payday_pool_rewards
+                 ON blocks.height = bakers_payday_pool_rewards.payday_block_height
+                 AND pool_owner_for_primary_key = $1
+             JOIN chain_parameter ON chain_parameter.id = true
+             WHERE
+                 payday_baker_pool_stakes.baker = $1
+                 AND blocks.slot_time > NOW() - $2::INTERVAL"#,
+            self.id,
+            interval
+        )
+        .fetch_one(pool)
+        .await?;
+        Ok(apy)
+    }
+}
+
+#[derive(SimpleObject)]
+struct PoolApy {
+    total_apy:      Option<f64>,
+    baker_apy:      Option<f64>,
+    delegators_apy: Option<f64>,
 }
 
 struct DelegatedStakeBounds {

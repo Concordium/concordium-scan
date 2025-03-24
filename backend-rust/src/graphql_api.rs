@@ -14,6 +14,7 @@ pub mod node_status;
 mod passive_delegation;
 mod reward_metrics;
 mod search_result;
+mod suspended_validators;
 mod token;
 mod transaction;
 mod transaction_metrics;
@@ -107,6 +108,8 @@ pub struct ApiServiceConfig {
     delegators_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_POOL_REWARDS_CONNECTION_LIMIT", default_value = "100")]
     pool_rewards_connection_limit: u64,
+    #[arg(long, env = "CCDSCAN_API_CONFIG_VALIDATORS_CONNECTION_LIMIT", default_value = "100")]
+    validators_connection_limit: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
@@ -167,6 +170,7 @@ pub struct ApiServiceConfig {
 pub struct Query(
     BaseQuery,
     passive_delegation::QueryPassiveDelegation,
+    suspended_validators::QuerySuspendedValidators,
     baker::QueryBaker,
     block::QueryBlocks,
     transaction::QueryTransactions,
@@ -798,6 +802,30 @@ struct CollectionSegmentInfo {
 struct Ranking {
     rank:  i32,
     total: i32,
+}
+
+#[derive(Enum, Clone, Copy, PartialEq, Eq)]
+enum ApyPeriod {
+    #[graphql(name = "LAST7_DAYS")]
+    Last7Days,
+    #[graphql(name = "LAST30_DAYS")]
+    Last30Days,
+}
+impl ApyPeriod {
+    /// The metrics period as a duration.
+    fn as_duration(&self) -> Duration {
+        match self {
+            Self::Last7Days => Duration::days(7),
+            Self::Last30Days => Duration::days(30),
+        }
+    }
+}
+impl TryFrom<ApyPeriod> for sqlx::postgres::types::PgInterval {
+    type Error = ApiError;
+
+    fn try_from(value: ApyPeriod) -> Result<Self, Self::Error> {
+        value.as_duration().try_into().map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))
+    }
 }
 
 #[derive(Enum, Clone, Copy, PartialEq, Eq)]

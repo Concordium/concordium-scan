@@ -127,6 +127,16 @@
 						/>
 					</template>
 				</DetailsCard>
+				<DetailsCard>
+					<template #title>Status</template>
+					<template #default>
+						<BakerSuspension
+							:self-suspended="baker.state.pool.selfSuspended"
+							:inactive-suspended="baker.state.pool.inactiveSuspended"
+							:primed-for-suspension="baker.state.pool.primedForSuspension"
+						/>
+					</template>
+				</DetailsCard>
 			</div>
 
 			<Accordion>
@@ -223,6 +233,7 @@ import BakerDetailsHeader from './BakerDetailsHeader.vue'
 import BakerDetailsTransactions from './BakerDetailsTransactions.vue'
 import BakerDetailsDelegators from './BakerDetailsDelegators.vue'
 import BakerDetailsPoolAPY from './BakerDetailsPoolAPY.vue'
+import BakerSuspension from '../Staking/BakerSuspension.vue'
 import Amount from '~/components/atoms/Amount.vue'
 import Chip from '~/components/atoms/Chip.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'

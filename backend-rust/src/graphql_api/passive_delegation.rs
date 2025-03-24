@@ -1,6 +1,6 @@
 use super::{
     baker_and_delegator_types::{CommissionRates, DelegationSummary, PaydayPoolReward},
-    get_config, get_pool, ApiError, ApiResult,
+    get_config, get_pool, ApiError, ApiResult, ApyPeriod,
 };
 use crate::{
     connection::{ConnectionQuery, DescendingI64},
@@ -9,7 +9,7 @@ use crate::{
 use async_graphql::{connection, Context, Object};
 use concordium_rust_sdk::types::AmountFraction;
 use futures::TryStreamExt;
-use sqlx::types::BigDecimal;
+use sqlx::{postgres::types::PgInterval, types::BigDecimal};
 
 #[derive(Default)]
 pub struct QueryPassiveDelegation;
@@ -271,5 +271,44 @@ impl PassiveDelegation {
             baking_commission:       payday_baking_commission,
             finalization_commission: payday_finalization_commission,
         })
+    }
+
+    async fn apy(&self, ctx: &Context<'_>, period: ApyPeriod) -> ApiResult<Option<f64>> {
+        let pool = get_pool(ctx)?;
+        let interval = PgInterval::try_from(period)?;
+        let apy = sqlx::query_scalar!(
+            r#"WITH chain_parameter AS (
+                 SELECT
+                      id,
+                      ((EXTRACT('epoch' from '1 year'::INTERVAL) * 1000)
+                          / (epoch_duration * reward_period_length))::FLOAT8
+                          AS paydays_per_year
+                 FROM current_chain_parameters
+                 WHERE id = true
+             ) SELECT
+                 geometric_mean(
+                     CASE
+                         WHEN delegators_stake = 0 THEN NULL
+                         ELSE apy(
+                             (payday_total_transaction_rewards
+                                  + payday_total_baking_rewards
+                                  + payday_total_finalization_rewards)::FLOAT8,
+                             delegators_stake::FLOAT8,
+                             paydays_per_year)
+                     END
+                 )
+             FROM payday_passive_pool_stakes
+             JOIN blocks ON blocks.height = payday_passive_pool_stakes.payday_block
+             JOIN bakers_payday_pool_rewards
+                 ON blocks.height = bakers_payday_pool_rewards.payday_block_height
+                 -- Primary key for passive pool is (-1)
+                 AND pool_owner_for_primary_key = -1
+             JOIN chain_parameter ON chain_parameter.id = true
+             WHERE blocks.slot_time > NOW() - $1::INTERVAL"#,
+            interval
+        )
+        .fetch_one(pool)
+        .await?;
+        Ok(apy)
     }
 }

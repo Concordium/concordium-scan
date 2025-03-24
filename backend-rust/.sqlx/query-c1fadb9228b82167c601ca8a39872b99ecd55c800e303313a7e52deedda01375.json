@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO payday_passive_pool_stakes (\n                 payday_block,\n                 delegators_stake\n             ) VALUES ($1, $2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c1fadb9228b82167c601ca8a39872b99ecd55c800e303313a7e52deedda01375"
+}

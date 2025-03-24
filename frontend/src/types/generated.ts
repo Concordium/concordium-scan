@@ -299,27 +299,49 @@ export type AccountTransactionRelationEdge = {
   node: AccountTransactionRelation;
 };
 
+/** Types of account transactions. */
 export enum AccountTransactionType {
+  /** Register an account as a baker. */
   AddBaker = 'ADD_BAKER',
+  /** Configure an account's baker. */
   ConfigureBaker = 'CONFIGURE_BAKER',
+  /** Configure an account's stake delegation. */
   ConfigureDelegation = 'CONFIGURE_DELEGATION',
+  /** Deploy a Wasm module. */
   DeployModule = 'DEPLOY_MODULE',
+  /** Transfer encrypted amount. */
   EncryptedTransfer = 'ENCRYPTED_TRANSFER',
+  /** Same as encrypted transfer, but with a memo. */
   EncryptedTransferWithMemo = 'ENCRYPTED_TRANSFER_WITH_MEMO',
+  /** Initialize a smart contract instance. */
   InitializeSmartContractInstance = 'INITIALIZE_SMART_CONTRACT_INSTANCE',
+  /** Register some data on the chain. */
   RegisterData = 'REGISTER_DATA',
+  /** Remove an account as a baker. */
   RemoveBaker = 'REMOVE_BAKER',
+  /** Transfer CCD from an account to another. */
   SimpleTransfer = 'SIMPLE_TRANSFER',
+  /** Same as transfer, but with a memo field. */
   SimpleTransferWithMemo = 'SIMPLE_TRANSFER_WITH_MEMO',
+  /** Transfer from public to encrypted balance of the same account. */
   TransferToEncrypted = 'TRANSFER_TO_ENCRYPTED',
+  /** Transfer from encrypted to public balance of the same account. */
   TransferToPublic = 'TRANSFER_TO_PUBLIC',
+  /** Transfer a CCD with a release schedule. */
   TransferWithSchedule = 'TRANSFER_WITH_SCHEDULE',
+  /** Same as transfer with schedule, but with an added memo. */
   TransferWithScheduleWithMemo = 'TRANSFER_WITH_SCHEDULE_WITH_MEMO',
+  /** Update baker keys */
   UpdateBakerKeys = 'UPDATE_BAKER_KEYS',
+  /** Update whether the baker automatically restakes earnings. */
   UpdateBakerRestakeEarnings = 'UPDATE_BAKER_RESTAKE_EARNINGS',
+  /** Update the staked amount. */
   UpdateBakerStake = 'UPDATE_BAKER_STAKE',
+  /** Update the account's credentials. */
   UpdateCredentials = 'UPDATE_CREDENTIALS',
+  /** Update given credential keys */
   UpdateCredentialKeys = 'UPDATE_CREDENTIAL_KEYS',
+  /** Update a smart contract instance. */
   UpdateSmartContractInstance = 'UPDATE_SMART_CONTRACT_INSTANCE'
 }
 
@@ -554,6 +576,9 @@ export type BakerPool = {
   metadataUrl: Scalars['String'];
   openStatus: BakerPoolOpenStatus;
   paydayCommissionRates?: Maybe<CommissionRates>;
+  selfSuspended?:Maybe<Scalars['UnsignedLong']>,
+  inactiveSuspended?:Maybe<Scalars['UnsignedLong']>,
+  primedForSuspension?:Maybe<Scalars['UnsignedLong']>,
   poolRewards?: Maybe<PaydayPoolRewardConnection>;
   /** Ranking of the baker pool by total staked amount. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition. */
   rankingByTotalStake?: Maybe<Ranking>;
@@ -994,6 +1019,28 @@ export type ChainParametersV2 = ChainParameters & {
   transactionCommissionRange: CommissionRange;
 };
 
+export type ChainParametersV3 = ChainParameters & {
+  __typename?: 'ChainParametersV3';
+  accountCreationLimit: Scalars['Int'];
+  bakingCommissionRange: CommissionRange;
+  capitalBound: Scalars['Decimal'];
+  delegatorCooldown: Scalars['UnsignedLong'];
+  euroPerEnergy: ExchangeRate;
+  finalizationCommissionRange: CommissionRange;
+  foundationAccountAddress: AccountAddress;
+  leverageBound: LeverageFactor;
+  microCcdPerEuro: ExchangeRate;
+  minimumEquityCapital: Scalars['UnsignedLong'];
+  mintPerPayday: Scalars['Decimal'];
+  passiveBakingCommission: Scalars['Decimal'];
+  passiveFinalizationCommission: Scalars['Decimal'];
+  passiveTransactionCommission: Scalars['Decimal'];
+  poolOwnerCooldown: Scalars['UnsignedLong'];
+  rewardParameters: RewardParametersV2;
+  rewardPeriodLength: Scalars['UnsignedLong'];
+  transactionCommissionRange: CommissionRange;
+};
+
 export type ChainUpdateEnqueued = {
   __typename?: 'ChainUpdateEnqueued';
   effectiveImmediately: Scalars['Boolean'];
@@ -1001,7 +1048,7 @@ export type ChainUpdateEnqueued = {
   payload: ChainUpdatePayload;
 };
 
-export type ChainUpdatePayload = AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | BlockEnergyLimitUpdate | CooldownParametersChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | FinalizationCommitteeParametersUpdate | FoundationAccountChainUpdatePayload | GasRewardsChainUpdatePayload | GasRewardsCpv2Update | Level1KeysChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | MinBlockTimeUpdate | MintDistributionChainUpdatePayload | MintDistributionV1ChainUpdatePayload | PoolParametersChainUpdatePayload | ProtocolChainUpdatePayload | RootKeysChainUpdatePayload | TimeParametersChainUpdatePayload | TimeoutParametersUpdate | TransactionFeeDistributionChainUpdatePayload;
+export type ChainUpdatePayload = AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | BlockEnergyLimitUpdate | CooldownParametersChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | FinalizationCommitteeParametersUpdate | FoundationAccountChainUpdatePayload | GasRewardsChainUpdatePayload | GasRewardsCpv2Update | Level1KeysChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | MinBlockTimeUpdate | MintDistributionChainUpdatePayload | MintDistributionV1ChainUpdatePayload | PoolParametersChainUpdatePayload | ProtocolChainUpdatePayload | RootKeysChainUpdatePayload | TimeParametersChainUpdatePayload | TimeoutParametersUpdate | TransactionFeeDistributionChainUpdatePayload | ValidatorScoreParametersUpdate;
 
 export type CisBurnEvent = {
   __typename?: 'CisBurnEvent';
@@ -1319,8 +1366,19 @@ export type CredentialDeploymentTransaction = {
   credentialDeploymentTransactionType?: Maybe<CredentialDeploymentTransactionType>;
 };
 
+/** Enumeration of the types of credentials. */
 export enum CredentialDeploymentTransactionType {
+  /**
+   * Initial credential is a credential that is submitted by the identity
+   * provider on behalf of the user. There is at most one initial credential
+   * per identity.
+   */
   Initial = 'INITIAL',
+  /**
+   * A normal credential is one where the identity behind it is only known to
+   * the owner of the account, unless the identity disclosure process
+   * has been initiated.
+   */
   Normal = 'NORMAL'
 }
 
@@ -2386,6 +2444,7 @@ export type Query = {
   rewardMetrics: RewardMetrics;
   rewardMetricsForAccount: RewardMetrics;
   search: SearchResult;
+  suspendedValidators: SuspendedValidators;
   token: Token;
   tokens?: Maybe<TokensConnection>;
   transaction?: Maybe<Transaction>;
@@ -2395,6 +2454,51 @@ export type Query = {
   versions: Versions;
 };
 
+export type SuspendedValidators = {
+  __typename?: 'SuspendedValidators';
+  primedForSuspensionValidators: ValidatorsConnection;
+  suspendedValidators: ValidatorsConnection;
+};
+
+
+export type SuspendedValidatorsPrimedForSuspensionValidatorsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type SuspendedValidatorsSuspendedValidatorsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+export type Validators = {
+  __typename?: 'Validators';
+  id: Scalars['Int'];
+};
+
+export type ValidatorsConnection = {
+  __typename?: 'ValidatorsConnection';
+  /** A list of edges. */
+  edges: Array<ValidatorsEdge>;
+  /** A list of nodes. */
+  nodes: Array<Validators>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type ValidatorsEdge = {
+  __typename?: 'ValidatorsEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: Validators;
+};
 
 export type QueryAccountArgs = {
   id: Scalars['ID'];
@@ -3060,31 +3164,62 @@ export type UpdateTransaction = {
   updateTransactionType?: Maybe<UpdateTransactionType>;
 };
 
+/** The type of an update. */
 export enum UpdateTransactionType {
+  /** Update of block energy limit parameters. */
   BlockEnergyLimitUpdate = 'BLOCK_ENERGY_LIMIT_UPDATE',
+  /** Update of finalization committee parameters. */
   FinalizationCommitteeParametersUpdate = 'FINALIZATION_COMMITTEE_PARAMETERS_UPDATE',
+  /** Update of distribution of GAS rewards. */
   GasRewardsCpv2Update = 'GAS_REWARDS_CPV2_UPDATE',
+  /** Update of distribution of minted CCD. */
   MintDistributionCpv1Update = 'MINT_DISTRIBUTION_CPV1_UPDATE',
+  /** Update of min-block-time parameters. */
   MinBlockTimeUpdate = 'MIN_BLOCK_TIME_UPDATE',
+  /** Update of timeout parameters. */
   TimeoutParametersUpdate = 'TIMEOUT_PARAMETERS_UPDATE',
+  /** Introduce new Identity Disclosure Authority. */
   UpdateAddAnonymityRevoker = 'UPDATE_ADD_ANONYMITY_REVOKER',
+  /** Introduce new Identity Provider. */
   UpdateAddIdentityProvider = 'UPDATE_ADD_IDENTITY_PROVIDER',
+  /** Update of minimum threshold for becoming a validator. */
   UpdateBakerStakeThreshold = 'UPDATE_BAKER_STAKE_THRESHOLD',
+  /** Update of cooldown parameters. */
   UpdateCooldownParameters = 'UPDATE_COOLDOWN_PARAMETERS',
+  /** Update of the election difficulty. */
   UpdateElectionDifficulty = 'UPDATE_ELECTION_DIFFICULTY',
+  /** Update of conversion rate of Euro per energy. */
   UpdateEuroPerEnergy = 'UPDATE_EURO_PER_ENERGY',
+  /** Update of account marked as foundation account. */
   UpdateFoundationAccount = 'UPDATE_FOUNDATION_ACCOUNT',
+  /** Update of distribution of GAS rewards. */
   UpdateGasRewards = 'UPDATE_GAS_REWARDS',
+  /** Update of level1 keys. */
   UpdateLevel1Keys = 'UPDATE_LEVEL1_KEYS',
+  /** Update of level2 keys. */
   UpdateLevel2Keys = 'UPDATE_LEVEL2_KEYS',
+  /** Update of conversion rate of CCD per Euro. */
   UpdateMicroGtuPerEuro = 'UPDATE_MICRO_GTU_PER_EURO',
+  /** Update of distribution of minted CCD. */
   UpdateMintDistribution = 'UPDATE_MINT_DISTRIBUTION',
+  /** Update of pool parameters. */
   UpdatePoolParameters = 'UPDATE_POOL_PARAMETERS',
+  /** Update of protocol version. */
   UpdateProtocol = 'UPDATE_PROTOCOL',
+  /** Update of root keys. */
   UpdateRootKeys = 'UPDATE_ROOT_KEYS',
+  /** Update of time parameters. */
   UpdateTimeParameters = 'UPDATE_TIME_PARAMETERS',
-  UpdateTransactionFeeDistribution = 'UPDATE_TRANSACTION_FEE_DISTRIBUTION'
+  /** Update of distribution of transaction fee. */
+  UpdateTransactionFeeDistribution = 'UPDATE_TRANSACTION_FEE_DISTRIBUTION',
+  /** Update of validator score parameters. */
+  ValidatorScoreParametersUpdate = 'VALIDATOR_SCORE_PARAMETERS_UPDATE'
 }
+
+export type ValidatorScoreParametersUpdate = {
+  __typename?: 'ValidatorScoreParametersUpdate';
+  maximumMissedRounds: Scalars['UnsignedLong'];
+};
 
 export type Versions = {
   __typename?: 'Versions';
