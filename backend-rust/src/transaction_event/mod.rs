@@ -3,12 +3,12 @@ use crate::{
     decoded_text::DecodedText,
     graphql_api::{ApiError, ApiResult},
     scalar_types::{BigInteger, Byte, DateTime, UnsignedLong},
+    transaction_event::transfers::TimestampedAmount,
 };
 use anyhow::Context;
 use async_graphql::{ComplexObject, Object, SimpleObject, Union};
 use bigdecimal::BigDecimal;
 use concordium_rust_sdk::{cis2, types::Address};
-use std::vec::IntoIter;
 use tracing::error;
 
 pub mod baker;
@@ -304,7 +304,15 @@ pub fn events_from_summary(
                 vec![Event::TransferredWithSchedule(transfers::TransferredWithSchedule {
                     from_account_address: details.sender.into(),
                     to_account_address:   to.into(),
-                    amounts_schedule:     amount.into_iter(),
+                    amounts_schedule:     amount
+                        .iter()
+                        .map(|(timestamp, amount)| {
+                            Ok::<TimestampedAmount, anyhow::Error>(TimestampedAmount {
+                                timestamp: (*timestamp).try_into()?,
+                                amount:    UnsignedLong(amount.micro_ccd()),
+                            })
+                        })
+                        .collect::<Result<Vec<TimestampedAmount>, _>>()?,
                 })]
             }
             AccountTransactionEffects::TransferredWithScheduleAndMemo {
@@ -316,7 +324,15 @@ pub fn events_from_summary(
                     Event::TransferredWithSchedule(transfers::TransferredWithSchedule {
                         from_account_address: details.sender.into(),
                         to_account_address:   to.into(),
-                        amounts_schedule:     amount.into_iter(),
+                        amounts_schedule:     amount
+                            .iter()
+                            .map(|(timestamp, amount)| {
+                                Ok::<TimestampedAmount, anyhow::Error>(TimestampedAmount {
+                                    timestamp: (*timestamp).try_into()?,
+                                    amount:    UnsignedLong(amount.micro_ccd()),
+                                })
+                            })
+                            .collect::<Result<Vec<TimestampedAmount>, _>>()?,
                     }),
                     Event::TransferMemo(memo.into()),
                 ]

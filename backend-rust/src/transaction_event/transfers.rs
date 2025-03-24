@@ -1,12 +1,11 @@
 use crate::{
     address::{AccountAddress, Address},
+    connection::connection_from_slice,
     decoded_text::DecodedText,
-    graphql_api::{get_pool, ApiError, ApiResult},
+    graphql_api::{ApiError, ApiResult},
     scalar_types::{Amount, DateTime, UnsignedLong},
 };
-use async_graphql::{connection::Connection, ComplexObject, Context, SimpleObject};
-use concordium_rust_sdk::base::contracts_common::Timestamp;
-use std::vec::IntoIter;
+use async_graphql::{connection::Connection, ComplexObject, SimpleObject};
 use tracing::error;
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -99,10 +98,10 @@ impl From<concordium_rust_sdk::types::Memo> for TransferMemo {
     }
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TimestampedAmount {
-    timestamp: DateTime,
-    amount:    UnsignedLong,
+    pub timestamp: DateTime,
+    pub amount:    UnsignedLong,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -111,19 +110,17 @@ pub struct TransferredWithSchedule {
     pub from_account_address:    AccountAddress,
     pub to_account_address:      AccountAddress,
     #[graphql(skip)]
-    pub(crate) amounts_schedule:
-        Vec<(Timestamp, concordium_rust_sdk::base::contracts_common::Amount)>,
+    pub(crate) amounts_schedule: Vec<TimestampedAmount>,
 }
 
 #[ComplexObject]
 impl TransferredWithSchedule {
     async fn total_amount(&self) -> Amount {
-        &self.amounts_schedule.into_iter().map(|(_, amount)| amount.micro_ccd()).sum::<u64>().into()
+        self.amounts_schedule.iter().map(|amount| amount.amount.0).sum::<u64>().into()
     }
 
     async fn amounts_schedule(
         &self,
-        ctx: &Context<'_>,
         #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<usize>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
@@ -131,7 +128,6 @@ impl TransferredWithSchedule {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<Connection<String, TimestampedAmount>> {
-        let amounts = self.amounts_schedule.into(iter)
-        connection_from_slice(&self.amounts_schedule, first, after, last, before)
+        connection_from_slice(&self.amounts_schedule[..], first, after, last, before)
     }
 }
