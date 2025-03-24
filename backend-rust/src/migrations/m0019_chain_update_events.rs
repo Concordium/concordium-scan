@@ -45,9 +45,9 @@ pub async fn run(
             let BlockItemSummaryDetails::Update(update) = summary.details else {
                 continue
             };
-            let payload: ChainUpdatePayload = update.payload.try_into().unwrap();
+            let payload: ChainUpdatePayload = update.payload.try_into()?;
             let transaction_index: i64 = summary.index.index.try_into()?;
-            let result = sqlx::query(
+            sqlx::query(
                 "
                 UPDATE transactions
                 SET events = $1::jsonb
@@ -58,7 +58,6 @@ pub async fn run(
             .bind(transaction_index)
             .execute(tx.as_mut())
             .await?;
-            println!("{}", result.rows_affected());
         }
     }
     Ok(next_schema_version)
