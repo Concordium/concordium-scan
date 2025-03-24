@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Change `Versions::backend_versions` to `Versions::backend_version`.
+
 ## [0.1.38] - 2025-03-21
 
 Database schema version: 18

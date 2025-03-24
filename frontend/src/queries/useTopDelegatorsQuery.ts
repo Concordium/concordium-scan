@@ -48,6 +48,7 @@ const TopDelegatorsQuery = gql<TopDelegatorsResponse>`
 
 export const useTopDelegatorsQuery = (variables: Partial<QueryVariables>) => {
 	const { data, error, fetching } = useQuery({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: TopDelegatorsQuery,
 		requestPolicy: 'cache-and-network',
 		variables,
