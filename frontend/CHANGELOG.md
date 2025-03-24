@@ -4,11 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Change queries `useVersionsQuery`, `useTopDelegatorsQuery` and `usePaydayStatusQuery` to use the new `rust-backend` API.
+
 ## [1.7.8] - 2025-03-21
 
-### Fixed
+### Changed
 
-- Allowed queries `useBakerQuery` and `useBakerListQuery` to use the new `rust-backend` API.
+- Change queries `useBakerQuery` and `useBakerListQuery` to use the new `rust-backend` API.
 
 ### Added
 
