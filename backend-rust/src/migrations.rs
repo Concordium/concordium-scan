@@ -378,8 +378,9 @@ impl SchemaVersion {
                 m0018_payday_stake_information::run(&mut tx, endpoints).await?
             }
             SchemaVersion::PaydayPoolStake => {
-                m0019_chain_update_events::run(&mut tx, endpoints, SchemaVersion::ChainUpdateEvents).await?
-            },
+                m0019_chain_update_events::run(&mut tx, endpoints, SchemaVersion::ChainUpdateEvents)
+                    .await?
+            }
             SchemaVersion::ChainUpdateEvents => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
