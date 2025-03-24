@@ -4,13 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+Database schema version: 19
+
+### Added
+
+- Add support for ChainUpdatePayload events
+
 ## [0.1.38] - 2025-03-21
 
 Database schema version: 18
 
 ### Added
 
-- Add support for ChainUpdatePayload events
 - Add query `SuspendedValidators::suspendedValidators`.
 - Add query `SuspendedValidators::primedForSuspensionValidators`.
 - Add database migration 18 adding table tracking baker pool and passive stake for every reward period.
