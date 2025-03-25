@@ -1,6 +1,6 @@
 use super::{SchemaVersion, Transaction};
 use crate::transaction_event::events_from_summary;
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use async_graphql::futures_util::StreamExt;
 use concordium_rust_sdk::{
     types::{
@@ -38,6 +38,7 @@ pub async fn run(
 
     for row in rows {
         let height: i64 = sqlx::Row::try_get(&row, "block_height")?;
+        let mut expected_rows_to_be_affected_count: i64 = sqlx::Row::try_get(&row, "update_count")?;
         let mut block_summary = client
             .get_block_transaction_events(AbsoluteBlockHeight {
                 height: height.try_into()?,
@@ -78,6 +79,15 @@ pub async fn run(
             .bind(hash)
             .execute(tx.as_mut())
             .await?;
+            expected_rows_to_be_affected_count -= 1;
+        }
+        let is_misalignment_between_expected_and_actual_rows_updated_count =
+            expected_rows_to_be_affected_count != 0;
+        if is_misalignment_between_expected_and_actual_rows_updated_count {
+            return Err(anyhow!(
+                "There is a misalignment between expected number of rows to be updated and actual \
+                 number of rows to have become updated"
+            ));
         }
     }
     Ok(next_schema_version)
