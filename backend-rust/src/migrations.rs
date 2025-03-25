@@ -236,12 +236,14 @@ pub enum SchemaVersion {
     AmountSchedule,
     #[display("0022:Fix corrupted passive delegators")]
     FixCorruptedPassiveDelegators,
+    #[display("0023:Fix transaction count")]
+    FixTransactionCount,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking database schema versions have been
     /// introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::AmountSchedule;
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::FixTransactionCount;
     /// The latest known version of the schema.
     const LATEST: SchemaVersion = SchemaVersion::FixCorruptedPassiveDelegators;
 
@@ -281,6 +283,7 @@ impl SchemaVersion {
             SchemaVersion::ChainUpdateEvents => false,
             SchemaVersion::AmountSchedule => false,
             SchemaVersion::FixCorruptedPassiveDelegators => false,
+            SchemaVersion::FixTransactionCount => false,
         }
     }
 
@@ -310,6 +313,7 @@ impl SchemaVersion {
             SchemaVersion::ChainUpdateEvents => false,
             SchemaVersion::AmountSchedule => false,
             SchemaVersion::FixCorruptedPassiveDelegators => false,
+            SchemaVersion::FixTransactionCount => false,
         }
     }
 
@@ -450,7 +454,8 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::FixCorruptedPassiveDelegators
             }
-            SchemaVersion::FixCorruptedPassiveDelegators => unimplemented!(
+            SchemaVersion::FixCorruptedPassiveDelegators => SchemaVersion::FixTransactionCount,
+            SchemaVersion::FixTransactionCount => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
