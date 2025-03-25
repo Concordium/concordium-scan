@@ -18,6 +18,7 @@ use std::{net::SocketAddr, path::PathBuf, time::Duration};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
+use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _};
 
 #[derive(Parser)]
 struct Cli {
@@ -110,7 +111,17 @@ async fn main() -> anyhow::Result<()> {
         let _ = dotenvy::dotenv();
     }
     let cli = Cli::parse();
-    tracing_subscriber::fmt().with_max_level(cli.log_level).init();
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer())
+        .with(
+            tracing_subscriber::EnvFilter::builder()
+                .with_default_directive(
+                    format!("{}={}", env!("CARGO_PKG_NAME").replace('-', "_"), cli.log_level)
+                        .parse()?,
+                )
+                .from_env_lossy(),
+        )
+        .init();
     if let Some(schema_file) = cli.schema_out {
         let sdl = graphql_api::Service::sdl();
         if schema_file.as_path() == std::path::Path::new("-") {
