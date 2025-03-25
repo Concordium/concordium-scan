@@ -1192,7 +1192,10 @@ impl PreparedBlockItem {
             };
         let success = item_summary.is_success();
         let (events, reject) = if success {
-            let events = serde_json::to_value(events_from_summary(item_summary.details.clone())?)?;
+            let events = serde_json::to_value(events_from_summary(
+                item_summary.details.clone(),
+                data.block_info.block_slot_time,
+            )?)?;
             (Some(events), None)
         } else {
             let reject =
