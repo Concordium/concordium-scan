@@ -400,8 +400,15 @@ impl Account {
         Ok(slot_time)
     }
 
-    /// Number of transactions where this account is used as sender.
-    async fn transaction_count<'a>(&self, ctx: &Context<'a>) -> ApiResult<i64> {
+    /// Number of transactions the account has been involved in or
+    /// affected by.
+    async fn transaction_count<'a>(&self) -> ApiResult<i64> { Ok(self.num_txs) }
+
+    /// Number of transactions where this account is the sender of the
+    /// transaction. This is the `nonce` of the account. This value is
+    /// currently not used by the front-end and the `COUNT(*)` will need further
+    /// optimization if intended to be used.
+    async fn nonce<'a>(&self, ctx: &Context<'a>) -> ApiResult<i64> {
         let count = sqlx::query_scalar!(
             "SELECT COUNT(*) FROM transactions WHERE sender_index = $1",
             self.index
