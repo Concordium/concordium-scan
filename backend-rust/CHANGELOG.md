@@ -8,7 +8,12 @@ Database schema version: 20
 
 ### Added
 
+- Add support for ChainUpdatePayload events.
 - Add support for `TransferredWithSchedule::amountsSchedule`
+
+### Fixed
+
+- Change `Versions::backend_versions` to `Versions::backend_version`.
 
 ## [0.1.38] - 2025-03-21
 
@@ -16,7 +21,6 @@ Database schema version: 18
 
 ### Added
 
-- Add support for ChainUpdatePayload events
 - Add query `SuspendedValidators::suspendedValidators`.
 - Add query `SuspendedValidators::primedForSuspensionValidators`.
 - Add database migration 18 adding table tracking baker pool and passive stake for every reward period.
