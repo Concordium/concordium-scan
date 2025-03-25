@@ -73,6 +73,47 @@ impl From<concordium_rust_sdk::common::types::Amount> for UnsignedLong {
     fn from(value: concordium_rust_sdk::common::types::Amount) -> Self { Self(value.micro_ccd()) }
 }
 
+/// The UnsignedInt scalar type represents a unsigned 32-bit numeric
+/// non-fractional value greater than or equal to 0.
+#[derive(
+    Clone,
+    Copy,
+    derive_more::Display,
+    Debug,
+    serde::Serialize,
+    serde::Deserialize,
+    derive_more::From,
+    derive_more::FromStr,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+)]
+#[repr(transparent)]
+#[serde(transparent)]
+#[display("{_0}")]
+pub struct UnsignedInt(pub u32);
+
+#[Scalar]
+impl ScalarType for UnsignedInt {
+    fn parse(value: Value) -> InputValueResult<Self> {
+        let Value::Number(number) = &value else {
+            return Err(InputValueError::expected_type(value));
+        };
+        if let Some(v) = number.as_u64() {
+            if v <= u32::MAX as u64 {
+                Ok(Self(v as u32))
+            } else {
+                Err(InputValueError::expected_type(value))
+            }
+        } else {
+            Err(InputValueError::expected_type(value))
+        }
+    }
+
+    fn to_value(&self) -> Value { Value::Number(self.0.into()) }
+}
+
 /// The `Long` scalar type represents non-fractional signed whole 64-bit numeric
 /// values. Long can represent values between -(2^63) and 2^63 - 1.
 #[derive(

@@ -14,6 +14,7 @@ mod m0010_fill_capital_bound_and_leverage_bound;
 mod m0014_baker_metrics;
 mod m0015_pool_rewards;
 mod m0018_payday_stake_information;
+mod m0019_chain_update_events;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.
@@ -216,14 +217,16 @@ pub enum SchemaVersion {
     RewardMetrics,
     #[display("0018:Add tracking of stake to bakers and delagators in payday blocks")]
     PaydayPoolStake,
+    #[display("0019:Chain updates events")]
+    ChainUpdateEvents,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking database schema versions have been
     /// introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::PaydayPoolStake;
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::ChainUpdateEvents;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::PaydayPoolStake;
+    const LATEST: SchemaVersion = SchemaVersion::ChainUpdateEvents;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -257,6 +260,7 @@ impl SchemaVersion {
             SchemaVersion::PassiveDelegation => false,
             SchemaVersion::RewardMetrics => false,
             SchemaVersion::PaydayPoolStake => false,
+            SchemaVersion::ChainUpdateEvents => false,
         }
     }
 
@@ -373,7 +377,11 @@ impl SchemaVersion {
             SchemaVersion::RewardMetrics => {
                 m0018_payday_stake_information::run(&mut tx, endpoints).await?
             }
-            SchemaVersion::PaydayPoolStake => unimplemented!(
+            SchemaVersion::PaydayPoolStake => {
+                m0019_chain_update_events::run(&mut tx, endpoints, SchemaVersion::ChainUpdateEvents)
+                    .await?
+            }
+            SchemaVersion::ChainUpdateEvents => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),

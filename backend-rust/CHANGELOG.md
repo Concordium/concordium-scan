@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+Database schema version: 19
+
+### Added
+
+- Add support for ChainUpdatePayload events.
+
 ### Fixed
 
 - Change `Versions::backend_versions` to `Versions::backend_version`.
