@@ -32,6 +32,8 @@ WHERE
 
 
 -- Migration which fixes data due to bug in indexer where delegators which set their target to a pools pending for removal did not get updated (only relevant for blocks prior to Protocol Version 7).
+-- NOTE: This migration was meant to set `delegated_target_baker_id` to NULL (and not `delegated_restake_earnings`). This migration has been fixed and being
+-- re-executed in `m0019-fix-corrupted-passive-delegators.sql`.
 
 -- The approach is to first find the latest set delegation target event for each account and ensure
 -- the target is still a baker, if not we set the target to the passive pool.
