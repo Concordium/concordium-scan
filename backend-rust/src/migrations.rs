@@ -234,6 +234,8 @@ pub enum SchemaVersion {
     ChainUpdateEvents,
     #[display("0021:Amount schedule")]
     AmountSchedule,
+    #[display("0022:Fix corrupted passive delegators")]
+    FixCorruptedPassiveDelegators,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -241,7 +243,7 @@ impl SchemaVersion {
     /// introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::AmountSchedule;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::AmountSchedule;
+    const LATEST: SchemaVersion = SchemaVersion::FixCorruptedPassiveDelegators;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -278,6 +280,7 @@ impl SchemaVersion {
             SchemaVersion::PaydayPoolStake => false,
             SchemaVersion::ChainUpdateEvents => false,
             SchemaVersion::AmountSchedule => false,
+            SchemaVersion::FixCorruptedPassiveDelegators => false,
         }
     }
 
@@ -306,6 +309,7 @@ impl SchemaVersion {
             SchemaVersion::PaydayPoolStake => false,
             SchemaVersion::ChainUpdateEvents => false,
             SchemaVersion::AmountSchedule => false,
+            SchemaVersion::FixCorruptedPassiveDelegators => false,
         }
     }
 
@@ -438,7 +442,15 @@ impl SchemaVersion {
                 m0021_amounts_schedule::run(&mut tx, endpoints, SchemaVersion::AmountSchedule)
                     .await?
             }
-            SchemaVersion::AmountSchedule => unimplemented!(
+            SchemaVersion::AmountSchedule => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0022-fix-corrupted-passive-delegators.sql"
+                    )))
+                    .await?;
+                SchemaVersion::FixCorruptedPassiveDelegators
+            }
+            SchemaVersion::FixCorruptedPassiveDelegators => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
