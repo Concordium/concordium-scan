@@ -9,7 +9,8 @@ use concordium_rust_sdk::{
     v2::{self},
 };
 
-/// Performs a migration that creates and populates the baker metrics table.
+/// Performs a migration that alters the events of transactions being a transfer
+/// with schedule
 pub async fn run(
     tx: &mut Transaction,
     endpoints: &[v2::Endpoint],
