@@ -3,7 +3,9 @@ use crate::transaction_event::events_from_summary;
 use anyhow::Context;
 use async_graphql::futures_util::StreamExt;
 use concordium_rust_sdk::{
-    types::{AbsoluteBlockHeight, BlockItemSummaryDetails, TransactionType},
+    types::{
+        AbsoluteBlockHeight, AccountTransactionEffects, BlockItemSummaryDetails, TransactionType,
+    },
     v2::{self},
 };
 
@@ -26,7 +28,7 @@ pub async fn run(
                 block_height,
                 COUNT(*) AS update_count
             FROM transactions
-            WHERE type_account IN ('TransferWithSchedule', 'TransferWithScheduleAndMemo')
+            WHERE type_account IN ('TransferWithSchedule', 'TransferWithScheduleWithMemo')
             GROUP BY block_height
             ",
     )
@@ -54,17 +56,25 @@ pub async fn run(
             ) {
                 continue;
             }
-            let payload = events_from_summary(summary.details)?;
-            let transaction_index: i64 = summary.index.index.try_into()?;
+            if !matches!(
+                update.effects,
+                AccountTransactionEffects::TransferredWithSchedule { .. }
+                    | AccountTransactionEffects::TransferredWithScheduleAndMemo { .. }
+            ) {
+                continue;
+            }
+
+            let events = events_from_summary(summary.details)?;
+            let hash = summary.hash.to_string();
             sqlx::query(
                 "
                 UPDATE transactions
                 SET events = $1::jsonb
-                WHERE index = $2;
+                WHERE hash = $2;
             ",
             )
-            .bind(serde_json::to_value(payload)?)
-            .bind(transaction_index)
+            .bind(serde_json::to_value(events)?)
+            .bind(hash)
             .execute(tx.as_mut())
             .await?;
         }
