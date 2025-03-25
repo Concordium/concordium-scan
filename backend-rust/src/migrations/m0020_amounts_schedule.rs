@@ -26,8 +26,7 @@ pub async fn run(
     let rows = sqlx::query(
         "
             SELECT
-                block_height,
-                COUNT(*) AS update_count
+                block_height
             FROM transactions
             WHERE type_account IN ('TransferWithSchedule', 'TransferWithScheduleWithMemo')
             GROUP BY block_height
@@ -79,15 +78,6 @@ pub async fn run(
             .bind(hash)
             .execute(tx.as_mut())
             .await?;
-            expected_rows_to_be_affected_count -= 1;
-        }
-        let is_misalignment_between_expected_and_actual_rows_updated_count =
-            expected_rows_to_be_affected_count != 0;
-        if is_misalignment_between_expected_and_actual_rows_updated_count {
-            return Err(anyhow!(
-                "There is a misalignment between expected number of rows to be updated and actual \
-                 number of rows to have become updated"
-            ));
         }
     }
     Ok(next_schema_version)
