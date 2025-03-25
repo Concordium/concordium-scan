@@ -1,5 +1,5 @@
 use super::{SchemaVersion, Transaction};
-use crate::transaction_event::{chain_update::ChainUpdatePayload, events_from_summary};
+use crate::transaction_event::events_from_summary;
 use anyhow::Context;
 use async_graphql::futures_util::StreamExt;
 use concordium_rust_sdk::{
