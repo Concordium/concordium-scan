@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ## [0.1.39] - 2025-03-25
 
-Database schema version: 20
+Database schema version: 22
 
 ### Added
 
@@ -15,8 +15,11 @@ Database schema version: 20
 
 ### Fixed
 
+- Add database migration 22 fixing some passive delegators that had no `delegated_restake_earnings` value set in the database.
 - Change `Versions::backend_versions` to `Versions::backend_version`.
 - When `effective_time` is zero then it translates into `Block::slot_time`.
+- Split up migration 18 into several SQL transactions to avoid timeouts for long running migrations.
+- Change CLI option `--log-level` to only apply for logs produced directly from this project, instead of including every dependency.
 
 ## [0.1.38] - 2025-03-21
 

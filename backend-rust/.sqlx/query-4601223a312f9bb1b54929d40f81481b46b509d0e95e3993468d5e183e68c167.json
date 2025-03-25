@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO migrations (version, description, destructive, start_time, end_time)\n         VALUES ($1, $2, $3, $4, $5)\n         ON CONFLICT (version) DO UPDATE SET\n             end_time = EXCLUDED.end_time",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Bool",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4601223a312f9bb1b54929d40f81481b46b509d0e95e3993468d5e183e68c167"
+}
