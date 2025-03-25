@@ -116,6 +116,8 @@ async fn main() -> anyhow::Result<()> {
         .with(
             tracing_subscriber::EnvFilter::builder()
                 .with_default_directive(
+                    // Only apply the --log-level option to logs produced from this crate and not
+                    // from the dependencies.
                     format!("{}={}", env!("CARGO_PKG_NAME").replace('-', "_"), cli.log_level)
                         .parse()?,
                 )
