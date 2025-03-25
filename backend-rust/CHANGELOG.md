@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-- Add API schema 23 fixing the `AccountByAddress::transactionCount` query to return the number of transactions the account has been involved in or
+- Fix the `AccountByAddress::transactionCount` query to return the number of transactions the account has been involved in or
 affected by. Expose the `AccountByAddress::nonce` query to return the account nonce.
 
 ## [0.1.39] - 2025-03-25
