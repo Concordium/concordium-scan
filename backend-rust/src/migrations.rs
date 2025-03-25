@@ -234,7 +234,7 @@ pub enum SchemaVersion {
     ChainUpdateEvents,
     #[display("0021:Amount schedule")]
     AmountSchedule,
-    #[display("0021:")]
+    #[display("0022:Fix corrupted passive delegators")]
     FixCorruptedPassiveDelegators,
 }
 impl SchemaVersion {
@@ -280,6 +280,7 @@ impl SchemaVersion {
             SchemaVersion::PaydayPoolStake => false,
             SchemaVersion::ChainUpdateEvents => false,
             SchemaVersion::AmountSchedule => false,
+            SchemaVersion::FixCorruptedPassiveDelegators => false,
         }
     }
 
@@ -444,7 +445,7 @@ impl SchemaVersion {
             SchemaVersion::AmountSchedule => {
                 tx.as_mut()
                     .execute(sqlx::raw_sql(include_str!(
-                        "./migrations/m0021-fix-corrupted-passive-delegators.sql"
+                        "./migrations/m0022-fix-corrupted-passive-delegators.sql"
                     )))
                     .await?;
                 SchemaVersion::FixCorruptedPassiveDelegators

@@ -305,8 +305,9 @@ pub struct Account {
     /// The total number of transactions this account has been involved in or
     /// affected by.
     pub num_txs: i64,
-    /// Flag indicating whether we are re-staking earnings. `None` means we are
-    /// not using delegation.
+    /// Flag indicating whether we are re-staking earnings. `None` means the
+    /// account is not delegating to a baker and not using passive
+    /// delegation.
     pub delegated_restake_earnings: Option<bool>,
     /// Target id of the baker. An account can delegate stake to at most one
     /// baker pool. When this is `None` it means that we are using

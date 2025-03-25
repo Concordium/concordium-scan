@@ -266,7 +266,8 @@ CREATE TABLE accounts(
         BIGINT
         NOT NULL
         DEFAULT 0,
-    -- Whether we are re-staking earnings. Null means we are not using delegation to a baker and not using passive delegation.
+    -- Whether we are re-staking earnings. Null means the account is not
+    -- delegating to a baker and not using passive delegation.
     delegated_restake_earnings
         BOOLEAN
         NULL,
