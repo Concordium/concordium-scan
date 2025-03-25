@@ -73,6 +73,7 @@ export const useBakerPoolRewardsQuery = (
 	variables: Partial<QueryVariables>
 ) => {
 	const { data, fetching, error } = useQuery({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: BakerPoolRewardsQuery,
 		requestPolicy: 'cache-and-network',
 		variables: {
