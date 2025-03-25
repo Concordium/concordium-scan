@@ -13,9 +13,9 @@ mod m0008_canonical_address_and_transaction_search_index;
 mod m0010_fill_capital_bound_and_leverage_bound;
 mod m0014_baker_metrics;
 mod m0015_pool_rewards;
-mod m0018_payday_stake_information;
-mod m0019_chain_update_events;
-mod m0020_amounts_schedule;
+mod m0019_payday_stake_information;
+mod m0020_chain_update_events;
+mod m0021_amounts_schedule;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.
@@ -99,7 +99,17 @@ pub async fn run_migrations(
             while current < SchemaVersion::LATEST {
                 info!("Running migration from database schema version {}", current.as_i64());
                 let new_version = current.migration_to_next(&pool, endpoints.as_slice()).await?;
-                info!("Migrated database schema to version {} successfully", new_version.as_i64());
+                if new_version.is_partial() {
+                    info!(
+                        "Committing partial migration to schema version {}",
+                        new_version.as_i64()
+                    );
+                } else {
+                    info!(
+                        "Migrated database schema to version {} successfully",
+                        new_version.as_i64()
+                    );
+                }
                 current = new_version
             }
             Ok::<_, anyhow::Error>(())
@@ -216,11 +226,13 @@ pub enum SchemaVersion {
     PassiveDelegation,
     #[display("0017:Reward metrics")]
     RewardMetrics,
-    #[display("0018:Add tracking of stake to bakers and delagators in payday blocks")]
+    #[display("0018:Add tracking of stake to bakers and delagators in payday blocks (Partial)")]
+    PaydayPoolStakePartial,
+    #[display("0019:Add tracking of stake to bakers and delagators in payday blocks")]
     PaydayPoolStake,
-    #[display("0019:Chain updates events")]
+    #[display("0020:Chain updates events")]
     ChainUpdateEvents,
-    #[display("0020:Amount schedule")]
+    #[display("0021:Amount schedule")]
     AmountSchedule,
 }
 impl SchemaVersion {
@@ -262,6 +274,35 @@ impl SchemaVersion {
             SchemaVersion::PaydayPoolRewards => false,
             SchemaVersion::PassiveDelegation => false,
             SchemaVersion::RewardMetrics => false,
+            SchemaVersion::PaydayPoolStakePartial => false,
+            SchemaVersion::PaydayPoolStake => false,
+            SchemaVersion::ChainUpdateEvents => false,
+            SchemaVersion::AmountSchedule => false,
+        }
+    }
+
+    /// Whether the database schema version is a partial migration.
+    fn is_partial(self) -> bool {
+        match self {
+            SchemaVersion::Empty => false,
+            SchemaVersion::InitialFirstHalf => false,
+            SchemaVersion::IndexBlocksWithNoCumulativeFinTime => false,
+            SchemaVersion::PayDayPoolCommissionRates => false,
+            SchemaVersion::PayDayLotteryPowers => false,
+            SchemaVersion::FixDanglingDelegators => false,
+            SchemaVersion::FixStakedAmounts => false,
+            SchemaVersion::AddAccumulatedPoolState => false,
+            SchemaVersion::AccountBaseAddress => false,
+            SchemaVersion::StakedPoolSizeConstraint => false,
+            SchemaVersion::DelegatedStakeCap => false,
+            SchemaVersion::RankingByLotteryPower => false,
+            SchemaVersion::TrackRemovedBakers => false,
+            SchemaVersion::FixDelegatedStakeEarnings => false,
+            SchemaVersion::BakerMetrics => false,
+            SchemaVersion::PaydayPoolRewards => false,
+            SchemaVersion::PassiveDelegation => false,
+            SchemaVersion::RewardMetrics => false,
+            SchemaVersion::PaydayPoolStakePartial => true,
             SchemaVersion::PaydayPoolStake => false,
             SchemaVersion::ChainUpdateEvents => false,
             SchemaVersion::AmountSchedule => false,
@@ -379,14 +420,22 @@ impl SchemaVersion {
                 SchemaVersion::RewardMetrics
             }
             SchemaVersion::RewardMetrics => {
-                m0018_payday_stake_information::run(&mut tx, endpoints).await?
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0018-payday-stake-information.sql"
+                    )))
+                    .await?;
+                SchemaVersion::PaydayPoolStakePartial
+            }
+            SchemaVersion::PaydayPoolStakePartial => {
+                m0019_payday_stake_information::run(&mut tx, endpoints).await?
             }
             SchemaVersion::PaydayPoolStake => {
-                m0019_chain_update_events::run(&mut tx, endpoints, SchemaVersion::ChainUpdateEvents)
+                m0020_chain_update_events::run(&mut tx, endpoints, SchemaVersion::ChainUpdateEvents)
                     .await?
             }
             SchemaVersion::ChainUpdateEvents => {
-                m0020_amounts_schedule::run(&mut tx, endpoints, SchemaVersion::AmountSchedule)
+                m0021_amounts_schedule::run(&mut tx, endpoints, SchemaVersion::AmountSchedule)
                     .await?
             }
             SchemaVersion::AmountSchedule => unimplemented!(
@@ -450,8 +499,10 @@ async fn insert_migration(
     end_time: chrono::DateTime<chrono::Utc>,
 ) -> anyhow::Result<()> {
     sqlx::query!(
-        "INSERT INTO migrations (version, description, destructive, start_time, end_time) VALUES \
-         ($1, $2, $3, $4, $5)",
+        "INSERT INTO migrations (version, description, destructive, start_time, end_time)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (version) DO UPDATE SET
+             end_time = EXCLUDED.end_time",
         migration.version,
         migration.description,
         migration.destructive,

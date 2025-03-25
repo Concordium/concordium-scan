@@ -15,6 +15,7 @@ Database schema version: 20
 
 - Change `Versions::backend_versions` to `Versions::backend_version`.
 - When `effective_time` is zero then it translates into `Block::slot_time`.
+- Split up migration 18 into several SQL transactions to avoid timeouts for long running migrations.
 
 ## [0.1.38] - 2025-03-21
 
