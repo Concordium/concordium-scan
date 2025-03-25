@@ -2,6 +2,7 @@ use super::{SchemaVersion, Transaction};
 use crate::transaction_event::events_from_summary;
 use anyhow::{anyhow, Context};
 use async_graphql::futures_util::StreamExt;
+use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
     types::{AbsoluteBlockHeight, BlockItemSummaryDetails},
     v2::{self},
@@ -25,6 +26,7 @@ pub async fn run(
         "
             SELECT
                 block_height,
+                (SELECT slot_time FROM blocks WHERE height = block_height) as block_slot_time,
                 COUNT(*) AS update_count
             FROM transactions
             WHERE type = 'Update'
@@ -37,6 +39,7 @@ pub async fn run(
     for row in rows {
         let height: i64 = sqlx::Row::try_get(&row, "block_height")?;
         let mut expected_rows_to_be_affected_count: i64 = sqlx::Row::try_get(&row, "update_count")?;
+        let block_slot_time: DateTime<Utc> = sqlx::Row::try_get(&row, "block_slot_time")?;
         let mut block_summary = client
             .get_block_transaction_events(AbsoluteBlockHeight {
                 height: height.try_into()?,
@@ -47,7 +50,7 @@ pub async fn run(
             let BlockItemSummaryDetails::Update(_) = &summary.details else {
                 continue
             };
-            let events = events_from_summary(summary.details)?;
+            let events = events_from_summary(summary.details, block_slot_time)?;
             let json = serde_json::to_value(events)?;
             let hash = summary.hash.to_string();
             sqlx::query(

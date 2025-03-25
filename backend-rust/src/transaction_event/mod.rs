@@ -90,6 +90,7 @@ impl DataRegistered {
 
 pub fn events_from_summary(
     value: concordium_rust_sdk::types::BlockItemSummaryDetails,
+    block_time: DateTime,
 ) -> anyhow::Result<Vec<Event>> {
     use concordium_rust_sdk::types::{AccountTransactionEffects, BlockItemSummaryDetails};
     let events = match value {
@@ -563,11 +564,14 @@ pub fn events_from_summary(
             })]
         }
         BlockItemSummaryDetails::Update(details) => {
+            let effective_time = details.effective_time.seconds;
+            let is_effetive_immediately = effective_time == 0;
             vec![Event::ChainUpdateEnqueued(chain_update::ChainUpdateEnqueued {
-                effective_time: DateTime::from_timestamp(
-                    details.effective_time.seconds.try_into()?,
-                    0,
-                )
+                effective_time: if is_effetive_immediately {
+                    Some(block_time)
+                } else {
+                    DateTime::from_timestamp(effective_time.try_into()?, 0)
+                }
                 .context("Failed to parse effective time")?,
                 payload:        details.payload.into(),
             })]

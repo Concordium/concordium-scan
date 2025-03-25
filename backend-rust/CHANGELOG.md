@@ -14,6 +14,7 @@ Database schema version: 20
 ### Fixed
 
 - Change `Versions::backend_versions` to `Versions::backend_version`.
+- When `effective_time` is zero then it translates into `Block::slot_time`.
 
 ## [0.1.38] - 2025-03-21
 
