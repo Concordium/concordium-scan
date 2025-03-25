@@ -4,11 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-Database schema version: 19
+Database schema version: 20
 
 ### Added
 
 - Add support for ChainUpdatePayload events.
+- Add support for `TransferredWithSchedule::amountsSchedule`
 
 ### Fixed
 
