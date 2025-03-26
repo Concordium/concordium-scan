@@ -45,6 +45,13 @@ pub struct TransferSummary {
     transaction_count: usize,
 }
 
+#[derive(Debug, Clone, SimpleObject)]
+pub struct TransferSummaryResponse {
+    daily_summary: Vec<TransferSummary>,
+    total_txn_count: usize,
+    total_value: f64,
+}
+
 impl StableCoin {
     pub fn top_holders(&self, top_holder: Option<usize>, min_quantity: Option<f64>) -> Option<Vec<Holding>> {
         let mut holders = self.holding.clone()?;
@@ -151,21 +158,18 @@ impl QueryStableCoins {
             .collect()
     }
     
-    async fn token_transfers<'a>(&self, _ctx: &Context<'a>, asset_name: String) -> Vec<Transfer> {
-        Self::load_transfers()
-            .into_iter()
-            .filter(|transfer| transfer.asset_name == asset_name)
-            .collect()
-    }
-
-    async fn daily_transfer_summary<'a>(&self, _ctx: &Context<'a>, asset_name: String) -> Vec<TransferSummary> {
+    async fn transfer_summary<'a>(&self, _ctx: &Context<'a>, asset_name: String) -> TransferSummaryResponse {
         let transfers = Self::load_transfers();
         let mut summary: HashMap<String, (f64, usize)> = HashMap::new();
+        let mut total_value = 0.0;
+        let mut total_txn_count = 0;
         
         for transfer in transfers.iter().filter(|t| t.asset_name == asset_name) {
             let entry = summary.entry(transfer.date.clone()).or_insert((0.0, 0));
             entry.0 += transfer.amount;
             entry.1 += 1;
+            total_value += transfer.amount;
+            total_txn_count += 1;
         }
         
         let mut summary_vec: Vec<TransferSummary> = summary.into_iter()
@@ -177,6 +181,11 @@ impl QueryStableCoins {
             .collect();
         
         summary_vec.sort_by(|a, b| a.date.cmp(&b.date));
-        summary_vec
+        
+        TransferSummaryResponse {
+            daily_summary: summary_vec,
+            total_txn_count,
+            total_value,
+        }
     }
 }
