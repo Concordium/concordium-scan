@@ -133,16 +133,16 @@ impl QueryAccounts {
                 (CASE WHEN $5 AND NOT $10 THEN num_txs         END) ASC,
                 (CASE WHEN $6 AND $10     THEN delegated_stake END) DESC,
                 (CASE WHEN $6 AND NOT $10 THEN delegated_stake END) ASC",
-            query.from,
-            query.to,
-            matches!(order.field, AccountOrderField::Age),
-            matches!(order.field, AccountOrderField::Amount),
-            matches!(order.field, AccountOrderField::TransactionCount),
-            matches!(order.field, AccountOrderField::DelegatedStake),
-            filter.map(|f| f.is_delegator).unwrap_or_default(),
-            query.is_last != matches!(order.dir, OrderDir::Desc),
-            query.limit,
-            matches!(order.dir, OrderDir::Desc),
+            query.from,                                                 // $1
+            query.to,                                                   // $2
+            matches!(order.field, AccountOrderField::Age),              // $3
+            matches!(order.field, AccountOrderField::Amount),           // $4
+            matches!(order.field, AccountOrderField::TransactionCount), // $5
+            matches!(order.field, AccountOrderField::DelegatedStake),   // $6
+            filter.map(|f| f.is_delegator).unwrap_or_default(),         // $6
+            query.is_last != matches!(order.dir, OrderDir::Desc),       // $7
+            query.limit,                                                // $8
+            matches!(order.dir, OrderDir::Desc),                        // $9
         )
         .fetch(pool);
 
@@ -292,22 +292,27 @@ impl AccountReleaseScheduleItem {
 
 pub struct Account {
     /// Index of the account.
-    pub index:             i64,
+    pub index: i64,
     /// Index of the transaction creating this account.
     /// Only `None` for genesis accounts.
     pub transaction_index: Option<i64>,
     /// The address of the account in Base58Check.
-    pub address:           AccountAddress,
+    pub address: AccountAddress,
     /// The total amount of CCD hold by the account.
-    pub amount:            i64,
+    pub amount: i64,
     /// The total delegated stake of this account.
-    pub delegated_stake:   i64,
+    pub delegated_stake: i64,
     /// The total number of transactions this account has been involved in or
     /// affected by.
-    pub num_txs:           i64,
-
+    pub num_txs: i64,
+    /// Flag indicating whether we are re-staking earnings. `None` means the
+    /// account is not delegating to a baker and not using passive
+    /// delegation.
     pub delegated_restake_earnings: Option<bool>,
-    pub delegated_target_baker_id:  Option<i64>,
+    /// Target id of the baker. An account can delegate stake to at most one
+    /// baker pool. When this is `None` it means that we are using
+    /// passive delegation.
+    pub delegated_target_baker_id: Option<i64>,
 }
 impl Account {
     pub async fn query_by_index(pool: &PgPool, index: AccountIndex) -> ApiResult<Option<Self>> {
@@ -395,8 +400,15 @@ impl Account {
         Ok(slot_time)
     }
 
-    /// Number of transactions where this account is used as sender.
-    async fn transaction_count<'a>(&self, ctx: &Context<'a>) -> ApiResult<i64> {
+    /// Number of transactions the account has been involved in or
+    /// affected by.
+    async fn transaction_count<'a>(&self) -> ApiResult<i64> { Ok(self.num_txs) }
+
+    /// Number of transactions where this account is the sender of the
+    /// transaction. This is the `nonce` of the account. This value is
+    /// currently not used by the front-end and the `COUNT(*)` will need further
+    /// optimization if intended to be used.
+    async fn nonce<'a>(&self, ctx: &Context<'a>) -> ApiResult<i64> {
         let count = sqlx::query_scalar!(
             "SELECT COUNT(*) FROM transactions WHERE sender_index = $1",
             self.index
