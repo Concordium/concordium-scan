@@ -4,7 +4,6 @@ use crate::{
     scalar_types::{AccountIndex, Amount, BakerId, Decimal},
 };
 use async_graphql::{ComplexObject, Context, Enum, SimpleObject};
-use sqlx::PgPool;
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 #[graphql(complex)]
