@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed bug when setting `--log-level` causing some project logs to be filtered out, and filter dependencies to `info` level. This behavior can be overwritten using `RUST_LOG`.
+
 ## [0.1.40] - 2025-03-26
 
 Database schema version: 22

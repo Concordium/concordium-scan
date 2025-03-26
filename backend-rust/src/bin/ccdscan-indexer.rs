@@ -84,19 +84,18 @@ async fn main() -> anyhow::Result<()> {
         let _ = dotenvy::dotenv();
     }
     let cli = Cli::parse();
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::fmt::layer())
-        .with(
-            tracing_subscriber::EnvFilter::builder()
-                .with_default_directive(
-                    // Only apply the --log-level option to logs produced from this crate and not
-                    // from the dependencies.
-                    format!("{}={}", env!("CARGO_PKG_NAME").replace('-', "_"), cli.log_level)
-                        .parse()?,
-                )
-                .from_env_lossy(),
-        )
-        .init();
+    let filter = if std::env::var("RUST_LOG").is_ok() {
+        // If RUST_LOG env is defined we fallback to the default behavior of the env
+        // filter.
+        tracing_subscriber::EnvFilter::builder().from_env_lossy()
+    } else {
+        // If RUST_LOG env is not defined, set the --log-level only for this project and
+        // leave dependencies filter to info level.
+        let pkg_name = env!("CARGO_PKG_NAME").replace('-', "_");
+        let crate_name = env!("CARGO_CRATE_NAME");
+        format!("info,{pkg_name}={0},{crate_name}={0}", cli.log_level).parse()?
+    };
+    tracing_subscriber::registry().with(tracing_subscriber::fmt::layer()).with(filter).init();
     let pool = PgPoolOptions::new()
         .min_connections(cli.min_connections)
         .max_connections(cli.max_connections)
