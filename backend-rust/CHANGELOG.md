@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- `baker_id` to `AccountAddress` in transaction events.
+
 ### Fixed
 
 - Fixed bug when setting `--log-level` causing some project logs to be filtered out, and filter dependencies to `info` level. This behavior can be overwritten using `RUST_LOG`.
