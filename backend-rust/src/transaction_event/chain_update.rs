@@ -54,7 +54,7 @@ pub enum ChainUpdatePayload {
     CooldownParameters(CooldownParametersChainUpdatePayload),
     PoolParameters(PoolParametersChainUpdatePayload),
     TimeParameters(TimeParametersChainUpdatePayload),
-    ValidatorScoreParameters(ValidatorScoreParametersChainUpdatePayload),
+    ValidatorScoreParameters(ValidatorScoreParametersUpdate),
 }
 
 #[derive(SimpleObject, Serialize, Deserialize)]
@@ -210,7 +210,7 @@ pub struct MintDistributionV1ChainUpdatePayload {
 }
 
 #[derive(SimpleObject, Serialize, Deserialize)]
-pub struct ValidatorScoreParametersChainUpdatePayload {
+pub struct ValidatorScoreParametersUpdate {
     maxiumum_missed_rounds: UnsignedLong,
 }
 
@@ -391,11 +391,9 @@ impl From<UpdatePayload> for ChainUpdatePayload {
                 )
             }
             UpdatePayload::ValidatorScoreParametersCPV3(update) => {
-                ChainUpdatePayload::ValidatorScoreParameters(
-                    ValidatorScoreParametersChainUpdatePayload {
-                        maxiumum_missed_rounds: UnsignedLong(update.max_missed_rounds),
-                    },
-                )
+                ChainUpdatePayload::ValidatorScoreParameters(ValidatorScoreParametersUpdate {
+                    maxiumum_missed_rounds: UnsignedLong(update.max_missed_rounds),
+                })
             }
         }
     }
