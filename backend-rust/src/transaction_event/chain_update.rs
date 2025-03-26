@@ -391,11 +391,9 @@ impl From<UpdatePayload> for ChainUpdatePayload {
                 )
             }
             UpdatePayload::ValidatorScoreParametersCPV3(update) => {
-                ChainUpdatePayload::ValidatorScoreParameters(
-                    ValidatorScoreParametersUpdate {
-                        maxiumum_missed_rounds: UnsignedLong(update.max_missed_rounds),
-                    },
-                )
+                ChainUpdatePayload::ValidatorScoreParameters(ValidatorScoreParametersUpdate {
+                    maxiumum_missed_rounds: UnsignedLong(update.max_missed_rounds),
+                })
             }
         }
     }
