@@ -211,7 +211,7 @@ pub struct MintDistributionV1ChainUpdatePayload {
 
 #[derive(SimpleObject, Serialize, Deserialize)]
 pub struct ValidatorScoreParametersUpdate {
-    maxiumum_missed_rounds: UnsignedLong,
+    maximum_missed_rounds: UnsignedLong,
 }
 
 /// Implement conversion from the Concordium SDK's UpdatePayload type to the
@@ -392,7 +392,7 @@ impl From<UpdatePayload> for ChainUpdatePayload {
             }
             UpdatePayload::ValidatorScoreParametersCPV3(update) => {
                 ChainUpdatePayload::ValidatorScoreParameters(ValidatorScoreParametersUpdate {
-                    maxiumum_missed_rounds: UnsignedLong(update.max_missed_rounds),
+                    maximum_missed_rounds: UnsignedLong(update.max_missed_rounds),
                 })
             }
         }

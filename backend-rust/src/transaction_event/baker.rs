@@ -1,9 +1,10 @@
 use crate::{
     address::AccountAddress,
-    graphql_api::{todo_api, ApiResult},
+    graphql_api::{get_pool, ApiError, ApiResult},
     scalar_types::{AccountIndex, Amount, BakerId, Decimal},
 };
 use async_graphql::{ComplexObject, Context, Enum, SimpleObject};
+use sqlx::PgPool;
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 #[graphql(complex)]
@@ -17,7 +18,10 @@ pub struct BakerAdded {
 }
 #[ComplexObject]
 impl BakerAdded {
-    async fn account_address(&self, _ctx: &Context<'_>) -> ApiResult<AccountAddress> { todo_api!() }
+    async fn account_address(&self, ctx: &Context<'_>) -> ApiResult<AccountAddress> {
+        let pool = get_pool(ctx)?;
+        account_address(&self.baker_id, pool).await
+    }
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -30,7 +34,10 @@ pub struct BakerKeysUpdated {
 }
 #[ComplexObject]
 impl BakerKeysUpdated {
-    async fn account_address(&self, _ctx: &Context<'_>) -> ApiResult<AccountAddress> { todo_api!() }
+    async fn account_address(&self, ctx: &Context<'_>) -> ApiResult<AccountAddress> {
+        let pool = get_pool(ctx)?;
+        account_address(&self.baker_id, pool).await
+    }
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -40,7 +47,10 @@ pub struct BakerRemoved {
 }
 #[ComplexObject]
 impl BakerRemoved {
-    async fn account_address(&self, _ctx: &Context<'_>) -> ApiResult<AccountAddress> { todo_api!() }
+    async fn account_address(&self, ctx: &Context<'_>) -> ApiResult<AccountAddress> {
+        let pool = get_pool(ctx)?;
+        account_address(&self.baker_id, pool).await
+    }
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -51,7 +61,10 @@ pub struct BakerSetRestakeEarnings {
 }
 #[ComplexObject]
 impl BakerSetRestakeEarnings {
-    async fn account_address(&self, _ctx: &Context<'_>) -> ApiResult<AccountAddress> { todo_api!() }
+    async fn account_address(&self, ctx: &Context<'_>) -> ApiResult<AccountAddress> {
+        let pool = get_pool(ctx)?;
+        account_address(&self.baker_id, pool).await
+    }
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -62,7 +75,10 @@ pub struct BakerStakeDecreased {
 }
 #[ComplexObject]
 impl BakerStakeDecreased {
-    async fn account_address(&self, _ctx: &Context<'_>) -> ApiResult<AccountAddress> { todo_api!() }
+    async fn account_address(&self, ctx: &Context<'_>) -> ApiResult<AccountAddress> {
+        let pool = get_pool(ctx)?;
+        account_address(&self.baker_id, pool).await
+    }
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -73,7 +89,10 @@ pub struct BakerStakeIncreased {
 }
 #[ComplexObject]
 impl BakerStakeIncreased {
-    async fn account_address(&self, _ctx: &Context<'_>) -> ApiResult<AccountAddress> { todo_api!() }
+    async fn account_address(&self, ctx: &Context<'_>) -> ApiResult<AccountAddress> {
+        let pool = get_pool(ctx)?;
+        account_address(&self.baker_id, pool).await
+    }
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -127,6 +146,16 @@ pub struct BakerSuspended {
 pub struct BakerResumed {
     pub baker_id:        BakerId,
     pub account_address: AccountAddress,
+}
+
+async fn account_address(baker_id: &BakerId, pool: &PgPool) -> ApiResult<AccountAddress> {
+    let address = sqlx::query_scalar!("SELECT address FROM accounts WHERE index = $1", baker_id.0)
+        .fetch_one(pool)
+        .await
+        .map_err(|_| {
+            ApiError::InternalError(format!("Unable to find account with index {}", baker_id))
+        })?;
+    Ok(AccountAddress::from(address))
 }
 
 #[derive(
