@@ -9,7 +9,6 @@ pub struct StableCoin {
     name: String,
     symbol: String,
     decimal: u8,
-    contract_address: String,
     total_supply: i64,
     circulating_supply: i64,
     transfers: Option<Vec<Transfer>>, // Transfers sorted by date
