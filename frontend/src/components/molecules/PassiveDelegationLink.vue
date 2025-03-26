@@ -1,7 +1,7 @@
 ﻿<template>
 	<div class="inline-block whitespace-nowrap">
 		<LinkButton @blur="emitBlur" @click="() => handleOnClick()">
-			<div text-class="text-theme-body">Passive delegation</div>
+			<div text-class="text-theme-body">Passive Delegation</div>
 		</LinkButton>
 	</div>
 </template>

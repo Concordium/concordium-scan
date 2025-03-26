@@ -24,6 +24,7 @@ const PaydayStatusQuery = gql<PaydayStatusQueryResponse>`
 
 export const usePaydayStatusQuery = () => {
 	const { data, error, fetching } = useQuery({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: PaydayStatusQuery,
 		requestPolicy: 'cache-and-network',
 	})

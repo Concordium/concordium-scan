@@ -11,7 +11,9 @@ use crate::{
         UpdateTransactionType,
     },
 };
-use async_graphql::{connection, types, Context, Object, SimpleObject, Union};
+use async_graphql::{
+    connection, connection::Connection, types, Context, Object, SimpleObject, Union,
+};
 use futures::TryStreamExt;
 use sqlx::PgPool;
 use std::str::FromStr;
@@ -267,6 +269,11 @@ enum TransactionResult<'a> {
     Rejected(Rejected<'a>),
 }
 
+#[derive(SimpleObject)]
+struct AdditionalFields {
+    total_count: usize,
+}
+
 struct Success<'a> {
     events: &'a Vec<Event>,
 }
@@ -280,7 +287,7 @@ impl Success<'_> {
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<usize>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, &Event>> {
+    ) -> ApiResult<connection::Connection<String, &Event, AdditionalFields>> {
         if first.is_some() && last.is_some() {
             return Err(ApiError::QueryConnectionFirstLast);
         }
@@ -302,12 +309,22 @@ impl Success<'_> {
                 start = usize::max(start, new_end);
             }
         }
-        let mut connection = connection::Connection::new(start == 0, end == self.events.len());
-        connection.edges = self.events[start..end]
+
+        let total_count = self.events.len();
+        let edges: Vec<_> = self.events[start..end]
             .iter()
             .enumerate()
             .map(|(i, event)| connection::Edge::new(i.to_string(), event))
             .collect();
+        let mut connection: Connection<String, &Event, AdditionalFields> =
+            Connection::with_additional_fields(
+                start == 0,
+                end == self.events.len(),
+                AdditionalFields {
+                    total_count,
+                },
+            );
+        connection.edges = edges;
         Ok(connection)
     }
 }

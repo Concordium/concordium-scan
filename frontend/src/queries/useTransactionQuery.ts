@@ -491,6 +491,10 @@ reason {
 		bakerId
 		__typename
   }
+  ... on ValidatorScoreParametersUpdate {
+		maximumMissedRounds
+		__typename
+  }
   ... on StakeOverMaximumThresholdForPool {
 		__typename
   }

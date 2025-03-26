@@ -1,11 +1,16 @@
 use super::{
-    account::Account, get_config, get_pool, transaction::Transaction, ApiError, ApiResult,
-    ApiServiceConfig, ConnectionQuery,
+    account::Account,
+    baker_and_delegator_types::{CommissionRates, DelegationSummary, PaydayPoolReward},
+    get_config, get_pool,
+    transaction::Transaction,
+    ApiError, ApiResult, ApiServiceConfig, ApyPeriod, ConnectionQuery,
 };
 use crate::{
-    address::AccountAddress,
     connection::{ConcatCursor, ConnectionBounds, DescendingI64, Reversed},
-    graphql_api::node_status::{NodeInfoReceiver, NodeStatus},
+    graphql_api::{
+        node_status::{NodeInfoReceiver, NodeStatus},
+        todo_api,
+    },
     scalar_types::{Amount, BakerId, DateTime, Decimal, MetadataUrl},
     transaction_event::{baker::BakerPoolOpenStatus, Event},
     transaction_reject::TransactionRejectReason,
@@ -21,7 +26,7 @@ use async_graphql::{
 use bigdecimal::BigDecimal;
 use concordium_rust_sdk::types::AmountFraction;
 use futures::TryStreamExt;
-use sqlx::PgPool;
+use sqlx::{postgres::types::PgInterval, PgPool};
 use std::cmp::{max, min, Ordering};
 
 #[derive(Default)]
@@ -113,10 +118,34 @@ impl QueryBaker {
                 )
                 .await
             }
-            BakerSort::BakerApy30DaysDesc => todo!(),
-            BakerSort::DelegatorApy30DaysDesc => todo!(),
-            BakerSort::BlockCommissionsAsc => todo!(),
-            BakerSort::BlockCommissionsDesc => todo!(),
+            BakerSort::BakerApy30DaysDesc => todo_api!(),
+            BakerSort::DelegatorApy30DaysDesc => todo_api!(),
+            BakerSort::BlockCommissionsAsc => {
+                Baker::block_commission_asc_connection(
+                    config,
+                    pool,
+                    first,
+                    after,
+                    last,
+                    before,
+                    open_status_filter,
+                    include_removed_filter,
+                )
+                .await
+            }
+            BakerSort::BlockCommissionsDesc => {
+                Baker::block_commission_desc_connection(
+                    config,
+                    pool,
+                    first,
+                    after,
+                    last,
+                    before,
+                    open_status_filter,
+                    include_removed_filter,
+                )
+                .await
+            }
         }
     }
 }
@@ -144,6 +173,13 @@ impl BakerFieldDescCursor {
     fn delegator_count_cursor(row: &CurrentBaker) -> Self {
         BakerFieldDescCursor {
             field:    row.pool_delegator_count,
+            baker_id: row.id,
+        }
+    }
+
+    fn payday_baking_commission_rate(row: &CurrentBaker) -> Self {
+        BakerFieldDescCursor {
+            field:    row.payday_baking_commission_rate(),
             baker_id: row.id,
         }
     }
@@ -293,6 +329,9 @@ impl Baker {
                     restake_earnings,
                     open_status as "open_status: _",
                     metadata_url,
+                    self_suspended,
+                    inactive_suspended,
+                    primed_for_suspension,
                     transaction_commission,
                     baking_commission,
                     finalization_commission,
@@ -442,6 +481,9 @@ impl Baker {
                     restake_earnings,
                     open_status as "open_status: _",
                     metadata_url,
+                    self_suspended,
+                    inactive_suspended,
+                    primed_for_suspension,
                     transaction_commission,
                     baking_commission,
                     finalization_commission,
@@ -588,6 +630,9 @@ impl Baker {
                     restake_earnings,
                     open_status as "open_status: _",
                     metadata_url,
+                    self_suspended,
+                    inactive_suspended,
+                    primed_for_suspension,
                     transaction_commission,
                     baking_commission,
                     finalization_commission,
@@ -832,6 +877,9 @@ impl Baker {
                     restake_earnings,
                     open_status as "open_status: _",
                     metadata_url,
+                    self_suspended,
+                    inactive_suspended,
+                    primed_for_suspension,
                     transaction_commission,
                     baking_commission,
                     finalization_commission,
@@ -1045,6 +1093,534 @@ impl Baker {
         }
         Ok(connection)
     }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn block_commission_desc_connection(
+        config: &ApiServiceConfig,
+        pool: &PgPool,
+        first: Option<u64>,
+        after: Option<String>,
+        last: Option<u64>,
+        before: Option<String>,
+        open_status_filter: Option<BakerPoolOpenStatus>,
+        include_removed_filter: bool,
+    ) -> ApiResult<connection::Connection<String, Baker>> {
+        type RemovedBakerCursor = Reversed<BakerIdCursor>;
+        type Cursor = ConcatCursor<BakerFieldDescCursor, RemovedBakerCursor>;
+
+        /// Internal helper function for querying the current bakers sorted
+        /// by the block_commission in descending order.
+        async fn query_current_bakers(
+            query: ConnectionQuery<BakerFieldDescCursor>,
+            open_status_filter: Option<BakerPoolOpenStatus>,
+            connection: &mut connection::Connection<String, Baker>,
+            pool: &PgPool,
+        ) -> ApiResult<()> {
+            let mut row_stream = sqlx::query_as!(
+                CurrentBaker,
+                r#"SELECT * FROM (
+                SELECT
+                    bakers.id AS id,
+                    staked,
+                    restake_earnings,
+                    open_status as "open_status: _",
+                    metadata_url,
+                    self_suspended,
+                    inactive_suspended,
+                    primed_for_suspension,
+                    transaction_commission,
+                    baking_commission,
+                    finalization_commission,
+                    payday_transaction_commission as "payday_transaction_commission?",
+                    payday_baking_commission as "payday_baking_commission?",
+                    payday_finalization_commission as "payday_finalization_commission?",
+                    payday_lottery_power as "payday_lottery_power?",
+                    payday_ranking_by_lottery_powers as "payday_ranking_by_lottery_powers?",
+                    (SELECT MAX(payday_ranking_by_lottery_powers) FROM bakers_payday_lottery_powers) as "payday_total_ranking_by_lottery_powers?",
+                    pool_total_staked,
+                    pool_delegator_count
+                FROM bakers
+                    LEFT JOIN bakers_payday_commission_rates
+                        ON bakers_payday_commission_rates.id = bakers.id
+                    LEFT JOIN bakers_payday_lottery_powers
+                        ON bakers_payday_lottery_powers.id = bakers.id
+                WHERE (
+                        (payday_baking_commission > $2 AND payday_baking_commission < $1)
+                        OR (payday_baking_commission = $2 AND bakers.id > $4)
+                        OR (payday_baking_commission = $1 AND bakers.id < $3)
+                    )
+                    -- filter if provided
+                    AND ($7::pool_open_status IS NULL OR open_status = $7::pool_open_status)
+                ORDER BY
+                    (CASE WHEN $5     THEN payday_baking_commission END) ASC NULLS FIRST,
+                    (CASE WHEN $5     THEN bakers.id                END) ASC,
+                    (CASE WHEN NOT $5 THEN payday_baking_commission END) DESC NULLS LAST,
+                    (CASE WHEN NOT $5 THEN bakers.id                END) DESC
+                LIMIT $6
+            ) ORDER BY "payday_baking_commission?" DESC NULLS LAST, id DESC"#,
+                query.from.field,                                  // $1
+                query.to.field,                                    // $2
+                query.from.baker_id,                               // $3
+                query.to.baker_id,                                 // $4
+                query.is_last,                                     // $5
+                query.limit,                                       // $6
+                open_status_filter as Option<BakerPoolOpenStatus>  // $7
+            )
+            .fetch(pool);
+            while let Some(row) = row_stream.try_next().await? {
+                let cursor =
+                    Cursor::First(BakerFieldDescCursor::payday_baking_commission_rate(&row));
+                connection.edges.push(connection::Edge::new(
+                    cursor.encode_cursor(),
+                    Baker::Current(Box::new(row)),
+                ));
+            }
+            Ok(())
+        }
+
+        /// Internal helper function for querying the removed bakers sorted
+        /// by the baker ID in descending order.
+        async fn query_removed_baker(
+            query: ConnectionQuery<Reversed<BakerIdCursor>>,
+            connection: &mut connection::Connection<String, Baker>,
+            pool: &PgPool,
+        ) -> ApiResult<()> {
+            let mut row_stream = sqlx::query_as!(
+                PreviouslyBaker,
+                "SELECT * FROM (
+                    SELECT
+                        id,
+                        slot_time AS removed_at
+                    FROM bakers_removed
+                        JOIN transactions
+                            ON transactions.index = bakers_removed.removed_by_tx_index
+                        JOIN blocks ON blocks.height = transactions.block_height
+                    WHERE id > $2 AND id < $1
+                    ORDER BY
+                        (CASE WHEN $3     THEN id END) ASC,
+                        (CASE WHEN NOT $3 THEN id END) DESC
+                    LIMIT $4
+                ) ORDER BY id DESC",
+                query.from.inner,
+                query.to.inner,
+                query.is_last,
+                query.limit,
+            )
+            .fetch(pool);
+            while let Some(row) = row_stream.try_next().await? {
+                let cursor: Cursor = Cursor::Second(Reversed::new(row.id));
+                connection
+                    .edges
+                    .push(connection::Edge::new(cursor.encode_cursor(), Baker::Previously(row)));
+            }
+            Ok(())
+        }
+
+        let query = ConnectionQuery::<Cursor>::new(
+            first,
+            after,
+            last,
+            before,
+            config.baker_connection_limit,
+        )?;
+        let mut connection = connection::Connection::new(false, false);
+
+        // In this connection there are potentially two collections/tables involved,
+        // firstly the current bakers sorted by some field, secondly removed bakers when
+        // enabled. The strategy is then to query one collection and if the result is
+        // below the limit, we query the second collection. The order of which
+        // collection to query first and second will depend on the whether the
+        // `last` parameter was provided in the top level query.
+        if query.is_last {
+            if include_removed_filter {
+                if let Some(removed_baker_query) = query.subquery_second() {
+                    query_removed_baker(removed_baker_query, &mut connection, pool).await?;
+                }
+            }
+            let remains_to_limit = query.limit - i64::try_from(connection.edges.len())?;
+            if remains_to_limit > 0 {
+                if let Some(current_baker_query) = query.subquery_first_with_limit(remains_to_limit)
+                {
+                    query_current_bakers(
+                        current_baker_query,
+                        open_status_filter,
+                        &mut connection,
+                        pool,
+                    )
+                    .await?;
+                }
+            }
+            if include_removed_filter {
+                // Since we might already have some removed bakers in the page, we sort to make
+                // sure these are last after adding current bakers.
+                connection.edges.sort_by(|left, right| {
+                    left.node.cmp_baker_field(&right.node, |left, right| {
+                        left.payday_baking_commission_rate()
+                            .cmp(&right.payday_baking_commission_rate())
+                            .reverse()
+                    })
+                });
+            }
+        } else {
+            if let Some(current_baker_query) = query.subquery_first() {
+                query_current_bakers(
+                    current_baker_query,
+                    open_status_filter,
+                    &mut connection,
+                    pool,
+                )
+                .await?;
+            }
+            let remains_to_limit = query.limit - i64::try_from(connection.edges.len())?;
+            if include_removed_filter && remains_to_limit > 0 {
+                if let Some(removed_baker_query) =
+                    query.subquery_second_with_limit(remains_to_limit)
+                {
+                    query_removed_baker(removed_baker_query, &mut connection, pool).await?;
+                }
+            }
+        }
+
+        let (Some(first_item), Some(last_item)) =
+            (connection.edges.first(), connection.edges.last())
+        else {
+            // No items so we just return without updating next/prev page info.
+            return Ok(connection);
+        };
+        {
+            let collection_ends = sqlx::query!(
+                r#"WITH
+                    starting_baker as (
+                        SELECT
+                            bakers.id,
+                            payday_baking_commission
+                        FROM bakers
+                        LEFT JOIN bakers_payday_commission_rates
+                            ON bakers_payday_commission_rates.id = bakers.id
+                        WHERE $1::pool_open_status IS NULL OR open_status = $1::pool_open_status
+                        ORDER BY payday_baking_commission DESC NULLS LAST, id DESC
+                        LIMIT 1
+                    ),
+                    ending_baker as (
+                        SELECT
+                            bakers.id,
+                            payday_baking_commission
+                        FROM bakers
+                        LEFT JOIN bakers_payday_commission_rates
+                            ON bakers_payday_commission_rates.id = bakers.id
+                        WHERE $1::pool_open_status IS NULL OR open_status = $1::pool_open_status
+                        ORDER BY payday_baking_commission ASC NULLS FIRST, id ASC
+                        LIMIT 1
+                    )
+                SELECT
+                    starting_baker.id AS start_id,
+                    starting_baker.payday_baking_commission AS "start_commission?",
+                    ending_baker.id AS end_id,
+                    ending_baker.payday_baking_commission AS "end_commission?"
+                FROM starting_baker, ending_baker"#,
+                open_status_filter as Option<BakerPoolOpenStatus>
+            )
+            .fetch_optional(pool)
+            .await?;
+            if let Some(collection_ends) = collection_ends {
+                connection.has_previous_page = if let Baker::Current(first_baker) = &first_item.node
+                {
+                    let collection_start_cursor = BakerFieldDescCursor {
+                        baker_id: collection_ends.start_id,
+                        field:    collection_ends.start_commission.unwrap_or(0),
+                    };
+                    collection_start_cursor
+                        < BakerFieldDescCursor::payday_baking_commission_rate(first_baker)
+                } else {
+                    true
+                };
+                if let Baker::Current(last_item) = &last_item.node {
+                    let collection_end_cursor = BakerFieldDescCursor {
+                        baker_id: collection_ends.end_id,
+                        field:    collection_ends.end_commission.unwrap_or(0),
+                    };
+                    connection.has_next_page = collection_end_cursor
+                        > BakerFieldDescCursor::payday_baking_commission_rate(last_item);
+                }
+            }
+        }
+        if include_removed_filter {
+            let min_removed_baker_id =
+                sqlx::query_scalar!("SELECT MIN(id) FROM bakers_removed").fetch_one(pool).await?;
+            connection.has_next_page = if let Some(min_removed_baker_id) = min_removed_baker_id {
+                last_item.node.get_id() != min_removed_baker_id
+            } else {
+                false
+            }
+        }
+        Ok(connection)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn block_commission_asc_connection(
+        config: &ApiServiceConfig,
+        pool: &PgPool,
+        first: Option<u64>,
+        after: Option<String>,
+        last: Option<u64>,
+        before: Option<String>,
+        open_status_filter: Option<BakerPoolOpenStatus>,
+        include_removed_filter: bool,
+    ) -> ApiResult<connection::Connection<String, Baker>> {
+        type RemovedBakerCursor = BakerIdCursor;
+        type Cursor = ConcatCursor<RemovedBakerCursor, Reversed<BakerFieldDescCursor>>;
+
+        /// Internal helper function for querying the current bakers sorted
+        /// by the block_commission in ascending order.
+        async fn query_current_bakers(
+            query: ConnectionQuery<Reversed<BakerFieldDescCursor>>,
+            open_status_filter: Option<BakerPoolOpenStatus>,
+            connection: &mut connection::Connection<String, Baker>,
+            pool: &PgPool,
+        ) -> ApiResult<()> {
+            let mut row_stream = sqlx::query_as!(
+                CurrentBaker,
+                r#"SELECT * FROM (
+                SELECT
+                    bakers.id AS id,
+                    staked,
+                    restake_earnings,
+                    open_status as "open_status: _",
+                    metadata_url,
+                    self_suspended,
+                    inactive_suspended,
+                    primed_for_suspension,
+                    transaction_commission,
+                    baking_commission,
+                    finalization_commission,
+                    payday_transaction_commission as "payday_transaction_commission?",
+                    payday_baking_commission as "payday_baking_commission?",
+                    payday_finalization_commission as "payday_finalization_commission?",
+                    payday_lottery_power as "payday_lottery_power?",
+                    payday_ranking_by_lottery_powers as "payday_ranking_by_lottery_powers?",
+                    (SELECT MAX(payday_ranking_by_lottery_powers) FROM bakers_payday_lottery_powers) as "payday_total_ranking_by_lottery_powers?",
+                    pool_total_staked,
+                    pool_delegator_count
+                FROM bakers
+                    LEFT JOIN bakers_payday_commission_rates
+                        ON bakers_payday_commission_rates.id = bakers.id
+                    LEFT JOIN bakers_payday_lottery_powers
+                        ON bakers_payday_lottery_powers.id = bakers.id
+                WHERE (
+                        (payday_baking_commission > $1 AND payday_baking_commission < $2)
+                        OR (payday_baking_commission = $1 AND bakers.id > $3)
+                        OR (payday_baking_commission = $2 AND bakers.id < $4)
+                    )
+                    -- filter if provided
+                    AND ($7::pool_open_status IS NULL OR open_status = $7::pool_open_status)
+                ORDER BY
+                    (CASE WHEN $5     THEN payday_baking_commission END) DESC NULLS LAST,
+                    (CASE WHEN $5     THEN bakers.id                END) DESC,
+                    (CASE WHEN NOT $5 THEN payday_baking_commission END) ASC NULLS FIRST,
+                    (CASE WHEN NOT $5 THEN bakers.id                END) ASC
+                LIMIT $6
+            ) ORDER BY "payday_baking_commission?" ASC NULLS FIRST, id ASC"#,
+                query.from.inner.field,                                  // $1
+                query.to.inner.field,                                    // $2
+                query.from.inner.baker_id,                               // $3
+                query.to.inner.baker_id,                                 // $4
+                query.is_last,                                     // $5
+                query.limit,                                       // $6
+                open_status_filter as Option<BakerPoolOpenStatus>  // $7
+            )
+            .fetch(pool);
+            while let Some(row) = row_stream.try_next().await? {
+                let cursor = Cursor::Second(Reversed::new(
+                    BakerFieldDescCursor::payday_baking_commission_rate(&row),
+                ));
+                connection.edges.push(connection::Edge::new(
+                    cursor.encode_cursor(),
+                    Baker::Current(Box::new(row)),
+                ));
+            }
+            Ok(())
+        }
+
+        /// Internal helper function for querying the removed bakers sorted
+        /// by the baker ID in descending order.
+        async fn query_removed_baker(
+            query: ConnectionQuery<BakerIdCursor>,
+            connection: &mut connection::Connection<String, Baker>,
+            pool: &PgPool,
+        ) -> ApiResult<()> {
+            let mut row_stream = sqlx::query_as!(
+                PreviouslyBaker,
+                "SELECT * FROM (
+                    SELECT
+                        id,
+                        slot_time AS removed_at
+                    FROM bakers_removed
+                        JOIN transactions
+                            ON transactions.index = bakers_removed.removed_by_tx_index
+                        JOIN blocks ON blocks.height = transactions.block_height
+                    WHERE id > $1 AND id < $2
+                    ORDER BY
+                        (CASE WHEN $3     THEN id END) DESC,
+                        (CASE WHEN NOT $3 THEN id END) ASC
+                    LIMIT $4
+                ) ORDER BY id ASC",
+                query.from,
+                query.to,
+                query.is_last,
+                query.limit,
+            )
+            .fetch(pool);
+            while let Some(row) = row_stream.try_next().await? {
+                let cursor: Cursor = Cursor::First(row.id);
+                connection
+                    .edges
+                    .push(connection::Edge::new(cursor.encode_cursor(), Baker::Previously(row)));
+            }
+            Ok(())
+        }
+
+        let query = ConnectionQuery::<Cursor>::new(
+            first,
+            after,
+            last,
+            before,
+            config.baker_connection_limit,
+        )?;
+        let mut connection = connection::Connection::new(false, false);
+
+        // In this connection there are potentially two collections/tables involved,
+        // firstly the current bakers sorted by some field, secondly removed bakers when
+        // enabled. The strategy is then to query one collection and if the result is
+        // below the limit, we query the second collection. The order of which
+        // collection to query first and second will depend on the whether the
+        // `last` parameter was provided in the top level query.
+        if query.is_last {
+            if let Some(current_baker_query) = query.subquery_second() {
+                query_current_bakers(current_baker_query, open_status_filter, &mut connection, pool)
+                    .await?
+            }
+            if include_removed_filter {
+                let remains_to_limit = query.limit - i64::try_from(connection.edges.len())?;
+                if remains_to_limit > 0 {
+                    if let Some(removed_baker_query) =
+                        query.subquery_first_with_limit(remains_to_limit)
+                    {
+                        query_removed_baker(removed_baker_query, &mut connection, pool).await?;
+                    }
+
+                    // Since we might already have some removed bakers in the page, we sort to make
+                    // sure these are last after adding current bakers.
+                    connection.edges.sort_by(|left, right| {
+                        left.node.cmp_baker_field(&right.node, |left, right| {
+                            left.payday_baking_commission_rate()
+                                .cmp(&right.payday_baking_commission_rate())
+                                .reverse()
+                        })
+                    });
+                }
+            }
+        } else {
+            if include_removed_filter {
+                if let Some(removed_baker_query) = query.subquery_first() {
+                    query_removed_baker(removed_baker_query, &mut connection, pool).await?;
+                }
+            }
+
+            let remains_to_limit = query.limit - i64::try_from(connection.edges.len())?;
+            if remains_to_limit > 0 {
+                if let Some(current_baker_query) =
+                    query.subquery_second_with_limit(remains_to_limit)
+                {
+                    query_current_bakers(
+                        current_baker_query,
+                        open_status_filter,
+                        &mut connection,
+                        pool,
+                    )
+                    .await?;
+                }
+            }
+        }
+
+        let (Some(first_item), Some(last_item)) =
+            (connection.edges.first(), connection.edges.last())
+        else {
+            // No items so we just return without updating next/prev page info.
+            return Ok(connection);
+        };
+
+        {
+            let collection_ends = sqlx::query!(
+                r#"WITH
+                    starting_baker as (
+                        SELECT
+                            bakers.id,
+                            payday_baking_commission
+                        FROM bakers
+                        LEFT JOIN bakers_payday_commission_rates
+                            ON bakers_payday_commission_rates.id = bakers.id
+                        WHERE $1::pool_open_status IS NULL OR open_status = $1::pool_open_status
+                        ORDER BY payday_baking_commission ASC NULLS FIRST, id ASC
+                        LIMIT 1
+                    ),
+                    ending_baker as (
+                        SELECT
+                            bakers.id,
+                            payday_baking_commission
+                        FROM bakers
+                        LEFT JOIN bakers_payday_commission_rates
+                            ON bakers_payday_commission_rates.id = bakers.id
+                        WHERE $1::pool_open_status IS NULL OR open_status = $1::pool_open_status
+                        ORDER BY payday_baking_commission DESC NULLS LAST, id DESC
+                        LIMIT 1
+                    )
+                SELECT
+                    starting_baker.id AS start_id,
+                    starting_baker.payday_baking_commission AS "start_commission?",
+                    ending_baker.id AS end_id,
+                    ending_baker.payday_baking_commission AS "end_commission?"
+                FROM starting_baker, ending_baker"#,
+                open_status_filter as Option<BakerPoolOpenStatus>
+            )
+            .fetch_optional(pool)
+            .await?;
+            if let Some(collection_ends) = collection_ends {
+                if let Baker::Current(first_baker) = &first_item.node {
+                    let collection_start_cursor = Reversed::new(BakerFieldDescCursor {
+                        baker_id: collection_ends.start_id,
+                        field:    collection_ends.start_commission.unwrap_or(0),
+                    });
+                    connection.has_previous_page = collection_start_cursor
+                        < Reversed::new(BakerFieldDescCursor::payday_baking_commission_rate(
+                            first_baker,
+                        ))
+                }
+                connection.has_next_page = if let Baker::Current(last_item) = &last_item.node {
+                    let collection_end_cursor = Reversed::new(BakerFieldDescCursor {
+                        baker_id: collection_ends.end_id,
+                        field:    collection_ends.end_commission.unwrap_or(0),
+                    });
+                    collection_end_cursor
+                        > Reversed::new(BakerFieldDescCursor::payday_baking_commission_rate(
+                            last_item,
+                        ))
+                } else {
+                    true
+                }
+            }
+        }
+        if include_removed_filter {
+            let min_removed_baker_id =
+                sqlx::query_scalar!("SELECT MIN(id) FROM bakers_removed",).fetch_one(pool).await?;
+            connection.has_previous_page = if let Some(min_removed_baker_id) = min_removed_baker_id
+            {
+                first_item.node.get_id() != min_removed_baker_id
+            } else {
+                false
+            };
+        }
+        Ok(connection)
+    }
 }
 
 #[derive(Debug)]
@@ -1087,6 +1663,9 @@ pub struct CurrentBaker {
     restake_earnings: bool,
     open_status: Option<BakerPoolOpenStatus>,
     metadata_url: Option<MetadataUrl>,
+    self_suspended: Option<i64>,
+    inactive_suspended: Option<i64>,
+    primed_for_suspension: Option<i64>,
     transaction_commission: Option<i64>,
     baking_commission: Option<i64>,
     finalization_commission: Option<i64>,
@@ -1100,6 +1679,9 @@ pub struct CurrentBaker {
     pool_delegator_count: i64,
 }
 impl CurrentBaker {
+    /// Get the current payday baking commission rate.
+    fn payday_baking_commission_rate(&self) -> i64 { self.payday_baking_commission.unwrap_or(0) }
+
     pub async fn query_by_id(pool: &PgPool, baker_id: i64) -> ApiResult<Option<Self>> {
         Ok(sqlx::query_as!(
             CurrentBaker,
@@ -1110,6 +1692,9 @@ impl CurrentBaker {
                 restake_earnings,
                 open_status as "open_status: BakerPoolOpenStatus",
                 metadata_url,
+                self_suspended,
+                inactive_suspended,
+                primed_for_suspension,
                 transaction_commission,
                 baking_commission,
                 finalization_commission,
@@ -1187,7 +1772,7 @@ impl CurrentBaker {
 
         let delegated_stake_of_pool = self.pool_total_staked - self.staked;
 
-        // Division by 0 is not possible because `pool_total_staked` is always a
+        // Division by 0 is not possible because `total_stake` is always a
         // positive number.
         let total_stake_percentage = (rust_decimal::Decimal::from(self.pool_total_staked)
             * rust_decimal::Decimal::from(100))
@@ -1406,6 +1991,9 @@ impl CurrentBaker {
                     .try_into()
                     .map_err(|e: anyhow::Error| ApiError::InternalError(e.to_string()))?,
                 metadata_url: self.metadata_url.as_deref(),
+                self_suspended: self.self_suspended,
+                inactive_suspended: self.inactive_suspended,
+                primed_for_suspension: self.primed_for_suspension,
                 total_stake_percentage,
                 total_stake: Amount::try_from(self.pool_total_staked)?,
                 delegated_stake: Amount::try_from(delegated_stake_of_pool)?,
@@ -1616,7 +2204,9 @@ enum BakerSort {
     DelegatorCountDesc,
     BakerApy30DaysDesc,
     DelegatorApy30DaysDesc,
+    /// Sort ascending by the current payday baking commission rate.
     BlockCommissionsAsc,
+    /// Sort descending by the current payday baking commission rate.
     BlockCommissionsDesc,
 }
 
@@ -1687,11 +2277,9 @@ struct BakerPool<'a> {
     delegated_stake_cap: Amount,
     open_status: Option<BakerPoolOpenStatus>,
     metadata_url: Option<&'a str>,
-    // TODO: apy(period: ApyPeriod!): PoolApy!
-    // TODO: poolRewards("Returns the first _n_ elements from the list." first: Int "Returns the
-    // elements in the list that come after the specified cursor." after: String "Returns the last
-    // _n_ elements from the list." last: Int "Returns the elements in the list that come before
-    // the specified cursor." before: String): PaydayPoolRewardConnection
+    self_suspended: Option<i64>,
+    inactive_suspended: Option<i64>,
+    primed_for_suspension: Option<i64>,
 }
 
 #[Object]
@@ -1724,6 +2312,92 @@ impl<'a> BakerPool<'a> {
 
     async fn metadata_url(&self) -> Option<&'a str> { self.metadata_url }
 
+    async fn self_suspended(&self) -> Option<i64> { self.self_suspended }
+
+    async fn inactive_suspended(&self) -> Option<i64> { self.inactive_suspended }
+
+    async fn primed_for_suspension(&self) -> Option<i64> { self.primed_for_suspension }
+
+    async fn pool_rewards(
+        &self,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        before: Option<String>,
+    ) -> ApiResult<connection::Connection<DescendingI64, PaydayPoolReward>> {
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+        let query = ConnectionQuery::<DescendingI64>::new(
+            first,
+            after,
+            last,
+            before,
+            config.pool_rewards_connection_limit,
+        )?;
+        let mut row_stream = sqlx::query_as!(
+            PaydayPoolReward,
+            "SELECT * FROM (
+                SELECT
+                    payday_block_height as block_height,
+                    slot_time,
+                    pool_owner,
+                    payday_total_transaction_rewards as total_transaction_rewards,
+                    payday_delegators_transaction_rewards as delegators_transaction_rewards,
+                    payday_total_baking_rewards as total_baking_rewards,
+                    payday_delegators_baking_rewards as delegators_baking_rewards,
+                    payday_total_finalization_rewards as total_finalization_rewards,
+                    payday_delegators_finalization_rewards as delegators_finalization_rewards
+                FROM bakers_payday_pool_rewards
+                    JOIN blocks ON blocks.height = payday_block_height
+                WHERE pool_owner_for_primary_key = $5 
+                    AND payday_block_height > $2 AND payday_block_height < $1
+                ORDER BY
+                    (CASE WHEN $4 THEN payday_block_height END) ASC,
+                    (CASE WHEN NOT $4 THEN payday_block_height END) DESC
+                LIMIT $3
+                ) AS rewards
+            ORDER BY rewards.block_height DESC",
+            i64::from(query.from),
+            i64::from(query.to),
+            query.limit,
+            query.is_last,
+            self.id
+        )
+        .fetch(pool);
+
+        let mut connection = connection::Connection::new(false, false);
+        while let Some(rewards) = row_stream.try_next().await? {
+            connection.edges.push(connection::Edge::new(rewards.block_height.into(), rewards));
+        }
+
+        if let (Some(edge_min_index), Some(edge_max_index)) =
+            (connection.edges.last(), connection.edges.first())
+        {
+            let result = sqlx::query!(
+                "
+                    SELECT 
+                        MIN(payday_block_height) as min_index,
+                        MAX(payday_block_height) as max_index
+                    FROM bakers_payday_pool_rewards
+                    WHERE pool_owner_for_primary_key = $1
+                ",
+                self.id
+            )
+            .fetch_one(pool)
+            .await?;
+
+            connection.has_previous_page =
+                result.max_index.map_or(false, |db_max| db_max > edge_max_index.node.block_height);
+            connection.has_next_page =
+                result.min_index.map_or(false, |db_min| db_min < edge_min_index.node.block_height);
+        }
+
+        Ok(connection)
+    }
+
     async fn delegators(
         &self,
         ctx: &Context<'_>,
@@ -1733,7 +2407,7 @@ impl<'a> BakerPool<'a> {
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, DelegationSummary>> {
+    ) -> ApiResult<connection::Connection<DescendingI64, DelegationSummary>> {
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
         let query = ConnectionQuery::<DescendingI64>::new(
@@ -1769,7 +2443,7 @@ impl<'a> BakerPool<'a> {
         .fetch(pool);
         let mut connection = connection::Connection::new(false, false);
         while let Some(delegator) = row_stream.try_next().await? {
-            connection.edges.push(connection::Edge::new(delegator.index.to_string(), delegator));
+            connection.edges.push(connection::Edge::new(delegator.index.into(), delegator));
         }
         if let Some(page_max_index) = connection.edges.first() {
             if let Some(max_index) = sqlx::query_scalar!(
@@ -1787,38 +2461,72 @@ impl<'a> BakerPool<'a> {
         }
         Ok(connection)
     }
-}
 
-struct DelegationSummary {
-    index:            i64,
-    account_address:  AccountAddress,
-    staked_amount:    i64,
-    restake_earnings: Option<bool>,
-}
-
-#[Object]
-impl DelegationSummary {
-    async fn account_address(&self) -> &AccountAddress { &self.account_address }
-
-    async fn staked_amount(&self) -> ApiResult<Amount> {
-        self.staked_amount.try_into().map_err(|_| {
-            ApiError::InternalError(
-                "Staked amount in database should be a valid UnsignedLong".to_string(),
-            )
-        })
+    async fn apy(&self, ctx: &Context<'_>, period: ApyPeriod) -> ApiResult<PoolApy> {
+        let pool = get_pool(ctx)?;
+        let interval = PgInterval::try_from(period)?;
+        let apy = sqlx::query_as!(
+            PoolApy,
+            r#"WITH chain_parameter AS (
+                 SELECT
+                      id,
+                      ((EXTRACT('epoch' from '1 year'::INTERVAL) * 1000)
+                          / (epoch_duration * reward_period_length))::FLOAT8
+                          AS paydays_per_year
+                 FROM current_chain_parameters
+                 WHERE id = true
+             ) SELECT
+                 geometric_mean(apy(
+                     (payday_total_transaction_rewards
+                       + payday_total_baking_rewards
+                       + payday_total_finalization_rewards)::FLOAT8,
+                     (baker_stake + delegators_stake)::FLOAT8,
+                     paydays_per_year
+                 )) AS total_apy,
+                 geometric_mean(
+                     CASE
+                         WHEN delegators_stake = 0 THEN NULL
+                         ELSE apy(
+                                (payday_delegators_transaction_rewards
+                                 + payday_delegators_baking_rewards
+                                 + payday_delegators_finalization_rewards)::FLOAT8,
+                             delegators_stake::FLOAT8,
+                             paydays_per_year)
+                     END
+                 ) AS delegators_apy,
+                 geometric_mean(apy(
+                     (payday_total_transaction_rewards
+                        - payday_delegators_transaction_rewards
+                        + payday_total_baking_rewards
+                        - payday_delegators_baking_rewards
+                        + payday_total_finalization_rewards
+                        - payday_delegators_finalization_rewards)::FLOAT8,
+                     baker_stake::FLOAT8,
+                     paydays_per_year
+                 )) AS baker_apy
+             FROM payday_baker_pool_stakes
+             JOIN blocks ON blocks.height = payday_baker_pool_stakes.payday_block
+             JOIN bakers_payday_pool_rewards
+                 ON blocks.height = bakers_payday_pool_rewards.payday_block_height
+                 AND pool_owner_for_primary_key = $1
+             JOIN chain_parameter ON chain_parameter.id = true
+             WHERE
+                 payday_baker_pool_stakes.baker = $1
+                 AND blocks.slot_time > NOW() - $2::INTERVAL"#,
+            self.id,
+            interval
+        )
+        .fetch_one(pool)
+        .await?;
+        Ok(apy)
     }
-
-    async fn restake_earnings(&self) -> ApiResult<bool> {
-        self.restake_earnings.ok_or(ApiError::InternalError(
-            "Delegator should have a boolean in the `restake_earnings` variable.".to_string(),
-        ))
-    }
 }
+
 #[derive(SimpleObject)]
-struct CommissionRates {
-    transaction_commission:  Option<Decimal>,
-    finalization_commission: Option<Decimal>,
-    baking_commission:       Option<Decimal>,
+struct PoolApy {
+    total_apy:      Option<f64>,
+    baker_apy:      Option<f64>,
+    delegators_apy: Option<f64>,
 }
 
 struct DelegatedStakeBounds {

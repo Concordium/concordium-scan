@@ -4,6 +4,35 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Change queries `useVersionsQuery`, `useTopDelegatorsQuery` and `usePaydayStatusQuery` to use the new `rust-backend` API.
+
+## [1.7.8] - 2025-03-21
+
+### Changed
+
+- Change queries `useBakerQuery` and `useBakerListQuery` to use the new `rust-backend` API.
+
+### Added
+
+- Added `Suspended Validators` drawer which displays a list of all suspended validators and a list of all primed for suspension validators.
+- Added the `status` (`active`, `suspended` or `primed`) of a baker in the baker details page.
+- Included the `status` (`active`, `suspended` or `primed`) for each baker in the baker's list.
+- Implemented tooltips for `statuses`, providing additional explanations, such as the reason for suspension (`inactivity` or `self-suspend transaction sent`).
+
+## [1.7.7] - 2025-03-21
+
+### Fixed
+
+- Allowed queries `useRewardMetricsQuery` and `useRewardMetricsForBakerQuery` to use a separate API.
+
+## [1.7.6] - 2025-03-14
+
+### Fixed
+
+- Allowed queries `useBakerMetricsQuery` to use a separate API.
+
 ## [1.7.5] - 2025-03-03
 
 ### Fixed

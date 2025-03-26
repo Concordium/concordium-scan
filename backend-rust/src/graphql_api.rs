@@ -4,13 +4,18 @@
 mod account;
 mod account_metrics;
 mod baker;
+mod baker_and_delegator_types;
+mod baker_metrics;
 mod block;
 mod block_metrics;
 mod contract;
 mod module_reference_event;
 pub mod node_status;
+mod passive_delegation;
+mod reward_metrics;
 mod search_result;
 mod stable_coin;
+mod suspended_validators;
 mod token;
 mod transaction;
 mod transaction_metrics;
@@ -103,6 +108,10 @@ pub struct ApiServiceConfig {
     contract_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_DELEGATORS_CONNECTION_LIMIT", default_value = "100")]
     delegators_connection_limit: u64,
+    #[arg(long, env = "CCDSCAN_API_CONFIG_POOL_REWARDS_CONNECTION_LIMIT", default_value = "100")]
+    pool_rewards_connection_limit: u64,
+    #[arg(long, env = "CCDSCAN_API_CONFIG_VALIDATORS_CONNECTION_LIMIT", default_value = "100")]
+    validators_connection_limit: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
@@ -162,18 +171,22 @@ pub struct ApiServiceConfig {
 #[derive(MergedObject, Default)]
 pub struct Query(
     BaseQuery,
+    passive_delegation::QueryPassiveDelegation,
+    suspended_validators::QuerySuspendedValidators,
     baker::QueryBaker,
     block::QueryBlocks,
     stable_coin::QueryStableCoins,
     transaction::QueryTransactions,
     account::QueryAccounts,
-    account_metrics::QueryAccountMetrics,
-    transaction_metrics::QueryTransactionMetrics,
-    block_metrics::QueryBlockMetrics,
     module_reference_event::QueryModuleReferenceEvent,
     contract::QueryContract,
     node_status::QueryNodeStatus,
     token::QueryToken,
+    account_metrics::QueryAccountMetrics,
+    baker_metrics::QueryBakerMetrics,
+    reward_metrics::QueryRewardMetrics,
+    block_metrics::QueryBlockMetrics,
+    transaction_metrics::QueryTransactionMetrics,
 );
 
 pub struct Service {
@@ -448,7 +461,7 @@ struct BaseQuery;
 impl BaseQuery {
     async fn versions(&self, ctx: &Context<'_>) -> ApiResult<Versions> {
         Ok(Versions {
-            backend_versions: VERSION.to_string(),
+            backend_version: VERSION.to_string(),
             database_schema_version: current_schema_version(get_pool(ctx)?)
                 .await
                 .map_err(|e| ApiError::InternalError(e.to_string()))?
@@ -528,8 +541,6 @@ impl BaseQuery {
             query,
         }
     }
-
-    // bakerMetrics(period: MetricsPeriod!): BakerMetrics!
 
     // rewardMetrics(period: MetricsPeriod!): RewardMetrics!
 
@@ -782,7 +793,7 @@ pub struct ChainParametersV1 {
 
 #[derive(SimpleObject)]
 struct Versions {
-    backend_versions: String,
+    backend_version: String,
     database_schema_version: String,
     api_supported_database_schema_version: String,
 }
@@ -802,6 +813,30 @@ struct CollectionSegmentInfo {
 struct Ranking {
     rank: i32,
     total: i32,
+}
+
+#[derive(Enum, Clone, Copy, PartialEq, Eq)]
+enum ApyPeriod {
+    #[graphql(name = "LAST7_DAYS")]
+    Last7Days,
+    #[graphql(name = "LAST30_DAYS")]
+    Last30Days,
+}
+impl ApyPeriod {
+    /// The metrics period as a duration.
+    fn as_duration(&self) -> Duration {
+        match self {
+            Self::Last7Days => Duration::days(7),
+            Self::Last30Days => Duration::days(30),
+        }
+    }
+}
+impl TryFrom<ApyPeriod> for sqlx::postgres::types::PgInterval {
+    type Error = ApiError;
+
+    fn try_from(value: ApyPeriod) -> Result<Self, Self::Error> {
+        value.as_duration().try_into().map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))
+    }
 }
 
 #[derive(Enum, Clone, Copy, PartialEq, Eq)]

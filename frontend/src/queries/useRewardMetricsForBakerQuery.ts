@@ -24,6 +24,7 @@ export const useRewardMetricsForBakerQueryQuery = (
 	period: Ref<MetricsPeriod>
 ) => {
 	const { data, executeQuery, fetching } = useQuery({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: RewardMetricsForBakerQuery,
 		requestPolicy: 'cache-and-network',
 		variables: { bakerId, period },

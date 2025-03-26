@@ -11,6 +11,11 @@ mod m0005_fix_dangling_delegators;
 mod m0006_fix_stake;
 mod m0008_canonical_address_and_transaction_search_index;
 mod m0010_fill_capital_bound_and_leverage_bound;
+mod m0014_baker_metrics;
+mod m0015_pool_rewards;
+mod m0019_payday_stake_information;
+mod m0020_chain_update_events;
+mod m0021_amounts_schedule;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.
@@ -94,7 +99,17 @@ pub async fn run_migrations(
             while current < SchemaVersion::LATEST {
                 info!("Running migration from database schema version {}", current.as_i64());
                 let new_version = current.migration_to_next(&pool, endpoints.as_slice()).await?;
-                info!("Migrated database schema to version {} successfully", new_version.as_i64());
+                if new_version.is_partial() {
+                    info!(
+                        "Committing partial migration to schema version {}",
+                        new_version.as_i64()
+                    );
+                } else {
+                    info!(
+                        "Migrated database schema to version {} successfully",
+                        new_version.as_i64()
+                    );
+                }
                 current = new_version
             }
             Ok::<_, anyhow::Error>(())
@@ -203,14 +218,32 @@ pub enum SchemaVersion {
     TrackRemovedBakers,
     #[display("0013:Fix delegated_restake_earnings data in accounts")]
     FixDelegatedStakeEarnings,
+    #[display("0014:Add baker metrics")]
+    BakerMetrics,
+    #[display("0015:Add tracking of rewards paid out to bakers and delegators in payday blocks")]
+    PaydayPoolRewards,
+    #[display("0016:Passive delegation")]
+    PassiveDelegation,
+    #[display("0017:Reward metrics")]
+    RewardMetrics,
+    #[display("0018:Add tracking of stake to bakers and delagators in payday blocks (Partial)")]
+    PaydayPoolStakePartial,
+    #[display("0019:Add tracking of stake to bakers and delagators in payday blocks")]
+    PaydayPoolStake,
+    #[display("0020:Chain updates events")]
+    ChainUpdateEvents,
+    #[display("0021:Amount schedule")]
+    AmountSchedule,
+    #[display("0022:Fix corrupted passive delegators")]
+    FixCorruptedPassiveDelegators,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking database schema versions have been
     /// introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::TrackRemovedBakers;
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::AmountSchedule;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::FixDelegatedStakeEarnings;
+    const LATEST: SchemaVersion = SchemaVersion::FixCorruptedPassiveDelegators;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -239,6 +272,44 @@ impl SchemaVersion {
             SchemaVersion::RankingByLotteryPower => false,
             SchemaVersion::TrackRemovedBakers => false,
             SchemaVersion::FixDelegatedStakeEarnings => false,
+            SchemaVersion::BakerMetrics => false,
+            SchemaVersion::PaydayPoolRewards => false,
+            SchemaVersion::PassiveDelegation => false,
+            SchemaVersion::RewardMetrics => false,
+            SchemaVersion::PaydayPoolStakePartial => false,
+            SchemaVersion::PaydayPoolStake => false,
+            SchemaVersion::ChainUpdateEvents => false,
+            SchemaVersion::AmountSchedule => false,
+            SchemaVersion::FixCorruptedPassiveDelegators => false,
+        }
+    }
+
+    /// Whether the database schema version is a partial migration.
+    fn is_partial(self) -> bool {
+        match self {
+            SchemaVersion::Empty => false,
+            SchemaVersion::InitialFirstHalf => false,
+            SchemaVersion::IndexBlocksWithNoCumulativeFinTime => false,
+            SchemaVersion::PayDayPoolCommissionRates => false,
+            SchemaVersion::PayDayLotteryPowers => false,
+            SchemaVersion::FixDanglingDelegators => false,
+            SchemaVersion::FixStakedAmounts => false,
+            SchemaVersion::AddAccumulatedPoolState => false,
+            SchemaVersion::AccountBaseAddress => false,
+            SchemaVersion::StakedPoolSizeConstraint => false,
+            SchemaVersion::DelegatedStakeCap => false,
+            SchemaVersion::RankingByLotteryPower => false,
+            SchemaVersion::TrackRemovedBakers => false,
+            SchemaVersion::FixDelegatedStakeEarnings => false,
+            SchemaVersion::BakerMetrics => false,
+            SchemaVersion::PaydayPoolRewards => false,
+            SchemaVersion::PassiveDelegation => false,
+            SchemaVersion::RewardMetrics => false,
+            SchemaVersion::PaydayPoolStakePartial => true,
+            SchemaVersion::PaydayPoolStake => false,
+            SchemaVersion::ChainUpdateEvents => false,
+            SchemaVersion::AmountSchedule => false,
+            SchemaVersion::FixCorruptedPassiveDelegators => false,
         }
     }
 
@@ -330,7 +401,56 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::FixDelegatedStakeEarnings
             }
-            SchemaVersion::FixDelegatedStakeEarnings => unimplemented!(
+            SchemaVersion::FixDelegatedStakeEarnings => {
+                let next_schema_version = SchemaVersion::BakerMetrics;
+                m0014_baker_metrics::run(&mut tx, endpoints, next_schema_version).await?
+            }
+            SchemaVersion::BakerMetrics => {
+                let next_schema_version = SchemaVersion::PaydayPoolRewards;
+                m0015_pool_rewards::run(&mut tx, endpoints, next_schema_version).await?
+            }
+            SchemaVersion::PaydayPoolRewards => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0016-passive-delegation.sql"
+                    )))
+                    .await?;
+                SchemaVersion::PassiveDelegation
+            }
+            SchemaVersion::PassiveDelegation => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!("./migrations/m0017-reward-metrics.sql")))
+                    .await?;
+                SchemaVersion::RewardMetrics
+            }
+            SchemaVersion::RewardMetrics => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0018-payday-stake-information.sql"
+                    )))
+                    .await?;
+                SchemaVersion::PaydayPoolStakePartial
+            }
+            SchemaVersion::PaydayPoolStakePartial => {
+                m0019_payday_stake_information::run(&mut tx, endpoints).await?
+            }
+            SchemaVersion::PaydayPoolStake => {
+                m0020_chain_update_events::run(&mut tx, endpoints, SchemaVersion::ChainUpdateEvents)
+                    .await?
+            }
+            SchemaVersion::ChainUpdateEvents => {
+                m0021_amounts_schedule::run(&mut tx, endpoints, SchemaVersion::AmountSchedule)
+                    .await?
+            }
+            SchemaVersion::AmountSchedule => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0022-fix-corrupted-passive-delegators.sql"
+                    )))
+                    .await?;
+                SchemaVersion::FixCorruptedPassiveDelegators
+            }
+            SchemaVersion::FixCorruptedPassiveDelegators => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
@@ -391,8 +511,10 @@ async fn insert_migration(
     end_time: chrono::DateTime<chrono::Utc>,
 ) -> anyhow::Result<()> {
     sqlx::query!(
-        "INSERT INTO migrations (version, description, destructive, start_time, end_time) VALUES \
-         ($1, $2, $3, $4, $5)",
+        "INSERT INTO migrations (version, description, destructive, start_time, end_time)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (version) DO UPDATE SET
+             end_time = EXCLUDED.end_time",
         migration.version,
         migration.description,
         migration.destructive,

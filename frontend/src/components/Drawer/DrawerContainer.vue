@@ -60,6 +60,12 @@
 								drawerItem && drawerItem.entityTypeName === 'passiveDelegation'
 							"
 						/>
+						<SuspendedValidatorsContainer
+							v-else-if="
+								drawerItem &&
+								drawerItem.entityTypeName === 'suspendedValidators'
+							"
+						/>
 						<NodeDetailsContainer
 							v-else-if="drawerItem && drawerItem.entityTypeName === 'node'"
 							:node-internal-id="drawerItem.nodeId"
@@ -85,6 +91,7 @@ import TransactionDetailsContainer from '~/components/TransactionDetails/Transac
 import BlockDetailsContainer from '~/components/BlockDetails/BlockDetailsContainer.vue'
 import BakerDetailsContainer from '~/components/BakerDetails/BakerDetailsContainer.vue'
 import PassiveDelegationContainer from '~/components/PassiveDelegation/PassiveDelegationContainer.vue'
+import SuspendedValidatorsContainer from '~/components/SuspendedValidators/SuspendedValidatorsContainer.vue'
 import NodeDetailsContainer from '~/components/NodeDetails/NodeDetailsContainer.vue'
 import ContractDetailsContainer from '~/components/Contracts/ContractDetailsContainer.vue'
 import ModuleDetailsContainer from '~/components/Module/ModuleDetailsContainer.vue'

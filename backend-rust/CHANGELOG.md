@@ -4,7 +4,84 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-Database schema version: 12
+### Fixed
+
+- Fix the `AccountByAddress::transactionCount` query to return the number of transactions the account has been involved in or
+affected by. Expose the `AccountByAddress::nonce` query to return the account nonce.
+
+## [0.1.39] - 2025-03-25
+
+Database schema version: 22
+
+### Added
+
+- Add support for ChainUpdatePayload events.
+- Add support for `TransferredWithSchedule::amountsSchedule`
+
+### Fixed
+
+- Add database migration 22 fixing some passive delegators that had no `delegated_restake_earnings` value set in the database.
+- Change `Versions::backend_versions` to `Versions::backend_version`.
+- When `effective_time` is zero then it translates into `Block::slot_time`.
+- Split up migration 18 into several SQL transactions to avoid timeouts for long running migrations.
+- Change CLI option `--log-level` to only apply for logs produced directly from this project, instead of including every dependency.
+
+## [0.1.38] - 2025-03-21
+
+Database schema version: 18
+
+### Added
+
+- Add query `SuspendedValidators::suspendedValidators`.
+- Add query `SuspendedValidators::primedForSuspensionValidators`.
+- Add database migration 18 adding table tracking baker pool and passive stake for every reward period.
+- Add query `PassiveDelegation::apy` and `BakerPool::apy`.
+
+## [0.1.37] - 2025-03-21
+
+Database schema version: 17
+
+### Added
+
+- Add database migration 17 adding a table tracking reward metrics.
+- Add database migration 16 adding a table tracking commission rates for passive delegation and adding an index to retrieve passive delegators efficiently from the accounts table.
+- Add query `PassiveDelegation::delegators`, `PassiveDelegation::delegatorCount`,
+`PassiveDelegation::commissionRates`, `PassiveDelegation::delegatedStake` and `PassiveDelegation::delegatedStakePercentage`.
+- Add `Query::rewardMetrics` and `Query::rewardMetricsForAccount` which returns metrics on the total rewards and those for a given account respectively.
+
+### Fixed
+
+- Total count to the connection holding the events being emitted as part of the transaction query.
+
+## [0.1.36] - 2025-03-17
+
+Database schema version: 15
+
+### Fixed
+
+- Baker metrics to be using the same time interval for buckets and total values.
+
+### Added
+
+- Add database migration 15 adding a table tracking rewards paid to delegators, passive delegators, and baker accounts at past payday blocks and populate the table.
+- Add query `PassiveDelegation::poolRewards` which returns the rewards paid to passive delegators at past payday blocks.
+- Add query `BakerPool::poolRewards` which returns the rewards paid to delegators and the baker at past payday blocks.
+- Support for `Query::bakers` sorting by block commission.
+
+## [0.1.35] - 2025-03-14
+
+Database schema version: 14
+
+### Added
+
+- Add baker metrics endpoints
+- Gathering statistics about change in amount of bakers
+- Migrate bakers statistics
+- Indexing genesis block creates baker metrics
+
+## [0.1.34] - 2025-03-13
+
+Database schema version: 13
 
 ### Added
 

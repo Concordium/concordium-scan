@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM (\n                    SELECT\n                        bakers.id as id\n                    FROM bakers\n                    WHERE primed_for_suspension IS NOT NULL AND\n                        id > $1 AND id < $2\n                    ORDER BY\n                        (CASE WHEN $4 THEN bakers.id END) DESC,\n                        (CASE WHEN NOT $4 THEN bakers.id END) ASC\n                    LIMIT $3\n                ) AS primed_for_suspension_bakers\n                ORDER BY primed_for_suspension_bakers.id ASC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0e7bf9cb15c06b0346d7761ebbd1a2f0e9e03a727766baac2679d896eb9d06a6"
+}

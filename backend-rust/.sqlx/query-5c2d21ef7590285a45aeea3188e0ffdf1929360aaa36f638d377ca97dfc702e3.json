@@ -1,0 +1,51 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n                    starting_baker as (\n                        SELECT\n                            bakers.id,\n                            payday_baking_commission\n                        FROM bakers\n                        LEFT JOIN bakers_payday_commission_rates\n                            ON bakers_payday_commission_rates.id = bakers.id\n                        WHERE $1::pool_open_status IS NULL OR open_status = $1::pool_open_status\n                        ORDER BY payday_baking_commission ASC NULLS FIRST, id ASC\n                        LIMIT 1\n                    ),\n                    ending_baker as (\n                        SELECT\n                            bakers.id,\n                            payday_baking_commission\n                        FROM bakers\n                        LEFT JOIN bakers_payday_commission_rates\n                            ON bakers_payday_commission_rates.id = bakers.id\n                        WHERE $1::pool_open_status IS NULL OR open_status = $1::pool_open_status\n                        ORDER BY payday_baking_commission DESC NULLS LAST, id DESC\n                        LIMIT 1\n                    )\n                SELECT\n                    starting_baker.id AS start_id,\n                    starting_baker.payday_baking_commission AS \"start_commission?\",\n                    ending_baker.id AS end_id,\n                    ending_baker.payday_baking_commission AS \"end_commission?\"\n                FROM starting_baker, ending_baker",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "start_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "start_commission?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "end_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "end_commission?",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "pool_open_status",
+            "kind": {
+              "Enum": [
+                "OpenForAll",
+                "ClosedForNew",
+                "ClosedForAll"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "5c2d21ef7590285a45aeea3188e0ffdf1929360aaa36f638d377ca97dfc702e3"
+}

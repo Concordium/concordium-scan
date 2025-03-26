@@ -3,6 +3,7 @@ use crate::{
     decoded_text::DecodedText,
     graphql_api::{ApiError, ApiResult},
     scalar_types::{BigInteger, Byte, DateTime, UnsignedLong},
+    transaction_event::transfers::TimestampedAmount,
 };
 use anyhow::Context;
 use async_graphql::{ComplexObject, Object, SimpleObject, Union};
@@ -89,6 +90,7 @@ impl DataRegistered {
 
 pub fn events_from_summary(
     value: concordium_rust_sdk::types::BlockItemSummaryDetails,
+    block_time: DateTime,
 ) -> anyhow::Result<Vec<Event>> {
     use concordium_rust_sdk::types::{AccountTransactionEffects, BlockItemSummaryDetails};
     let events = match value {
@@ -303,11 +305,15 @@ pub fn events_from_summary(
                 vec![Event::TransferredWithSchedule(transfers::TransferredWithSchedule {
                     from_account_address: details.sender.into(),
                     to_account_address:   to.into(),
-                    total_amount:         amount
-                        .into_iter()
-                        .map(|(_, amount)| amount.micro_ccd())
-                        .sum::<u64>()
-                        .into(),
+                    amounts_schedule:     amount
+                        .iter()
+                        .map(|(timestamp, amount)| {
+                            Ok::<TimestampedAmount, anyhow::Error>(TimestampedAmount {
+                                timestamp: (*timestamp).try_into()?,
+                                amount:    UnsignedLong(amount.micro_ccd()),
+                            })
+                        })
+                        .collect::<Result<Vec<TimestampedAmount>, _>>()?,
                 })]
             }
             AccountTransactionEffects::TransferredWithScheduleAndMemo {
@@ -319,11 +325,15 @@ pub fn events_from_summary(
                     Event::TransferredWithSchedule(transfers::TransferredWithSchedule {
                         from_account_address: details.sender.into(),
                         to_account_address:   to.into(),
-                        total_amount:         amount
-                            .into_iter()
-                            .map(|(_, amount)| amount.micro_ccd())
-                            .sum::<u64>()
-                            .into(),
+                        amounts_schedule:     amount
+                            .iter()
+                            .map(|(timestamp, amount)| {
+                                Ok::<TimestampedAmount, anyhow::Error>(TimestampedAmount {
+                                    timestamp: (*timestamp).try_into()?,
+                                    amount:    UnsignedLong(amount.micro_ccd()),
+                                })
+                            })
+                            .collect::<Result<Vec<TimestampedAmount>, _>>()?,
                     }),
                     Event::TransferMemo(memo.into()),
                 ]
@@ -554,13 +564,16 @@ pub fn events_from_summary(
             })]
         }
         BlockItemSummaryDetails::Update(details) => {
+            let effective_time = details.effective_time.seconds;
+            let is_effetive_immediately = effective_time == 0;
             vec![Event::ChainUpdateEnqueued(chain_update::ChainUpdateEnqueued {
-                effective_time: DateTime::from_timestamp(
-                    details.effective_time.seconds.try_into()?,
-                    0,
-                )
+                effective_time: if is_effetive_immediately {
+                    Some(block_time)
+                } else {
+                    DateTime::from_timestamp(effective_time.try_into()?, 0)
+                }
                 .context("Failed to parse effective time")?,
-                payload:        true, // placeholder
+                payload:        details.payload.into(),
             })]
         }
     };

@@ -55,6 +55,9 @@ const BakerQuery = gql<BakerListResponse>`
 						pool {
 							openStatus
 							totalStake
+							selfSuspended
+							inactiveSuspended
+							primedForSuspension
 							delegatorCount
 							delegatedStake
 							delegatedStakeCap
@@ -89,6 +92,7 @@ const BakerQuery = gql<BakerListResponse>`
 
 export const useBakerListQuery = (variables: BakerListVariables) => {
 	const { data } = useQuery({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: BakerQuery,
 		requestPolicy: 'cache-and-network',
 		variables,
