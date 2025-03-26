@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Change query `usePassiveDelegationQuery` to use the new `rust-backend` API.
 - Change queries `useVersionsQuery`, `useTopDelegatorsQuery` and `usePaydayStatusQuery` to use the new `rust-backend` API.
 
 ## [1.7.8] - 2025-03-21
