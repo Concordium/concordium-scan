@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+Database schema version: 23
+
+### Added
+
+- Add database migration 23 adding the `input_parameter` to `ContractInitializedEvents`.
+- Expose the hex-encoded and schema-decoded input parameter of init functions via `ContractInitialized::message_as_hex` and `ContractInitialized::message` queries.
+
 ## [0.1.41] - 2025-03-26
 
 Database schema version: 22

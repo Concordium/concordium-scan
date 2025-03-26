@@ -303,8 +303,11 @@ impl Contract {
                 return Err(ApiError::InternalError("Missing events in database".to_string()));
             };
 
-            let mut events: Vec<Event> = serde_json::from_value(events).map_err(|_| {
-                ApiError::InternalError("Failed to deserialize events from database".to_string())
+            let mut events: Vec<Event> = serde_json::from_value(events).map_err(|e| {
+                ApiError::InternalError(format!(
+                    "Failed to deserialize events from database: {}",
+                    e
+                ))
             })?;
 
             if row.trace_element_index as usize >= events.len() {
@@ -378,12 +381,12 @@ impl Contract {
                 return Err(ApiError::InternalError("Missing events in database".to_string()));
             };
 
-            let [event]: [Event; 1] = serde_json::from_value(events).map_err(|_| {
-                ApiError::InternalError(
+            let [event]: [Event; 1] = serde_json::from_value(events).map_err(|e| {
+                ApiError::InternalError(format!(
                     "Failed to deserialize events from database. Contract init transaction \
-                     expects exactly one event"
-                        .to_string(),
-                )
+                     expects exactly one event: {}",
+                    e
+                ))
             })?;
 
             match event {
