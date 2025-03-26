@@ -198,6 +198,10 @@ __typename
 			chainUpdate
 			finalizationProof
 		}
+		... on ValidatorScoreParametersUpdate {
+			maximumMissedRounds
+			__typename
+		}
 		...on MicroCcdPerEuroChainUpdatePayload {
 			exchangeRate {
 				denominator
@@ -489,10 +493,6 @@ reason {
   }
   ... on DelegationTargetNotABaker {
 		bakerId
-		__typename
-  }
-  ... on ValidatorScoreParametersUpdate {
-		maximumMissedRounds
 		__typename
   }
   ... on StakeOverMaximumThresholdForPool {
