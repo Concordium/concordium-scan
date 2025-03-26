@@ -105,15 +105,16 @@ watch(
 		const stableCoinsData = data.map((item: any) => {
 			if (item.transfers) {
 				totalTransactions.value += item.transfers.length
+
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				item.transfers.forEach((tx: any) => {
 					uniqueHolders.add(tx.from)
 					uniqueHolders.add(tx.to)
-					totalValueTransferred.value += Number(tx.amount.replace(/,/g, ''))
+					totalValueTransferred.value += tx.amount
 				})
 			}
 
-			totalMarketCap.value += Number(item.totalSupply.replace(/,/g, ''))
+			totalMarketCap.value += item.totalSupply
 			return {
 				name: item.symbol,
 				value: item.totalSupply,

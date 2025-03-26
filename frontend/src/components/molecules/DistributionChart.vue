@@ -82,9 +82,7 @@ const chartLabels = computed(() => {
 
 const chartData = computed(() => {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const data = props.stableCoinsData?.map((item: any) =>
-		Number(item.value.replace(/,/g, ''))
-	)
+	const data = props.stableCoinsData?.map((item: any) => item.value)
 	// const totalColors = data?.length as number
 
 	return data
