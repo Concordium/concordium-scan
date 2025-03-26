@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.41] - 2025-03-26
+
+Database schema version: 22
+
 ### Added
 
 - `baker_id` to `AccountAddress` in transaction events.
