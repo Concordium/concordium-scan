@@ -29,7 +29,7 @@ pub async fn run(
                 (SELECT slot_time FROM blocks WHERE height = block_height) as block_slot_time,
                 COUNT(*) AS update_count
             FROM transactions
-            WHERE type = 'Account' AND type_account = 'InitializeSmartContractInstance'
+            WHERE type = 'Account' AND type_account = 'InitializeSmartContractInstance' AND success
             GROUP BY block_height
             ",
     )

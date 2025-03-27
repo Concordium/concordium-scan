@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.43] - 2025-03-27
+
+### Fixed
+
+- Fix issue for database migration 23 where it failed when processing a transaction containing a rejected smart contract initialization.
+
 ## [0.1.42] - 2025-03-27
 
 Database schema version: 24
