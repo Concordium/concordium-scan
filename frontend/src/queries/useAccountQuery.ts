@@ -311,7 +311,6 @@ export const useAccountQuery = ({
 	const identifier = id?.value ? { id: id.value } : { address: address?.value }
 
 	const { data, fetching, error, executeQuery } = useQuery({
-		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query,
 		requestPolicy: 'network-only',
 		variables: {
