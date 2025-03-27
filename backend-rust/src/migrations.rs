@@ -242,8 +242,8 @@ pub enum SchemaVersion {
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
-    /// Fails at startup if any breaking database schema versions have been
-    /// introduced since this version.
+    /// Fails at startup if any breaking (destrutive) database schema versions
+    /// have been introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
         SchemaVersion::AddInputParameterToInitTransactions;
     /// The latest known version of the schema.
@@ -260,6 +260,10 @@ impl SchemaVersion {
 
     /// Whether introducing the database schema version is destructive, meaning
     /// not backwards compatible.
+    /// Note: We use match statements here to catch missing variants at
+    /// compile-time. This enforces explicit evaluation when adding a new
+    /// database schema, ensuring awareness of whether the change is
+    /// destructive.
     fn is_destructive(self) -> bool {
         match self {
             SchemaVersion::Empty => false,
@@ -290,6 +294,9 @@ impl SchemaVersion {
     }
 
     /// Whether the database schema version is a partial migration.
+    /// Note: We use match statements here to catch missing variants at
+    /// compile-time. This enforces explicit evaluation when adding a new
+    /// database schema, ensuring awareness of whether the change is partial.
     fn is_partial(self) -> bool {
         match self {
             SchemaVersion::Empty => false,
