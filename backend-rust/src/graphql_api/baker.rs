@@ -541,8 +541,8 @@ impl Baker {
                     (CASE WHEN NOT $3 THEN bakers.id END) DESC
                 LIMIT $4
             ) ORDER BY id DESC"#,
-            &query.from.cursor,                                 // $1
-            &query.to.cursor,                                   // $2
+            &query.from.cursor,                                // $1
+            &query.to.cursor,                                  // $2
             query.is_last,                                     // $3
             query.limit,                                       // $4
             open_status_filter as Option<BakerPoolOpenStatus>  // $5
@@ -1468,10 +1468,10 @@ impl Baker {
                     (CASE WHEN NOT $5 THEN bakers.id                END) ASC
                 LIMIT $6
             ) ORDER BY "payday_baking_commission?" ASC NULLS FIRST, id ASC"#,
-                query.from.cursor.field,                                  // $1
-                query.to.cursor.field,                                    // $2
-                query.from.cursor.baker_id,                               // $3
-                query.to.cursor.baker_id,                                 // $4
+                query.from.cursor.field,                           // $1
+                query.to.cursor.field,                             // $2
+                query.from.cursor.baker_id,                        // $3
+                query.to.cursor.baker_id,                          // $4
                 query.is_last,                                     // $5
                 query.limit,                                       // $6
                 open_status_filter as Option<BakerPoolOpenStatus>  // $7
@@ -1681,8 +1681,17 @@ impl Baker {
         open_status_filter: Option<BakerPoolOpenStatus>,
         include_removed_filter: bool,
     ) -> ApiResult<connection::Connection<String, Baker>> {
+        /// Cursor type for the representing the removed validators ordered
+        /// descendingly by ID.
         type RemovedBakerCursor = Reversed<BakerIdCursor>;
+        /// Cursor type for the current validators.
+        /// Ordered firstly by the optional bakers APY in descending order,
+        /// putting the bakers without an APY in the end. Secondly
+        /// ordered by the validators ID descendingly.
         type BakerCursor = NestedCursor<OptionCursor<Reversed<F64Cursor>>, Reversed<BakerIdCursor>>;
+        /// Cursor type for this connection, which is the concatenation of the
+        /// current validators then followed by the removed validators (when
+        /// `include_removed_filter` is `true`).
         type Cursor = ConcatCursor<BakerCursor, RemovedBakerCursor>;
 
         /// Internal helper function for querying the current bakers sorted
@@ -1969,8 +1978,17 @@ LIMIT $6
         open_status_filter: Option<BakerPoolOpenStatus>,
         include_removed_filter: bool,
     ) -> ApiResult<connection::Connection<String, Baker>> {
+        /// Cursor type for the representing the removed validators ordered
+        /// descendingly by ID.
         type RemovedBakerCursor = Reversed<BakerIdCursor>;
+        /// Cursor type for the current validators.
+        /// Ordered firstly by the optional delegators APY in descending order,
+        /// putting the bakers without an APY in the end.
+        /// Secondly ordered by the validators ID descendingly.
         type BakerCursor = NestedCursor<OptionCursor<Reversed<F64Cursor>>, Reversed<BakerIdCursor>>;
+        /// Cursor type for this connection, which is the concatenation of the
+        /// current validators then followed by the removed validators (when
+        /// `include_removed_filter` is `true`).
         type Cursor = ConcatCursor<BakerCursor, RemovedBakerCursor>;
 
         /// Internal helper function for querying the current bakers sorted

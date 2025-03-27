@@ -399,6 +399,7 @@ pub struct UnitCursorDecodeError {
 }
 
 /// Cursor representing some optional cursor information.
+/// Here the `None` cursor is sorted last.
 pub type OptionCursor<A> = ConcatCursor<A, UnitCursor>;
 
 impl<A> From<Option<A>> for OptionCursor<A> {
@@ -762,13 +763,7 @@ mod tests {
     #[test]
     fn test_complex_cursor_order() {
         type Cursor = NestedCursor<OptionCursor<Reversed<F64Cursor>>, Reversed<i64>>;
-        let end: Cursor = NestedCursor {
-            outer: ConcatCursor::Second(UnitCursor),
-            inner: Reversed {
-                cursor: 10,
-            },
-        };
-        let last: Cursor = NestedCursor {
+        let first: Cursor = NestedCursor {
             outer: ConcatCursor::First(Reversed {
                 cursor: F64Cursor {
                     value: 5.7180665077013275,
@@ -778,8 +773,14 @@ mod tests {
                 cursor: 204,
             },
         };
-        assert!(end > last);
-        assert!(end == end);
+        let last: Cursor = NestedCursor {
+            outer: ConcatCursor::Second(UnitCursor),
+            inner: Reversed {
+                cursor: 10,
+            },
+        };
+        assert!(last > first);
+        assert!(first == first);
         assert!(last == last);
     }
 }
