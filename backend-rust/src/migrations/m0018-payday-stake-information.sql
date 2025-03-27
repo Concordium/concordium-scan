@@ -45,6 +45,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Accumulator for the aggregate function `geometric_mean`.
+-- UPDATE: This function gets modified as part of `m0023-baker-apy-materialized-view.sql`.
 CREATE FUNCTION geometric_mean_accum(accum FLOAT8[], item FLOAT8) RETURNS FLOAT8[] AS $$
 BEGIN
     RETURN ARRAY[
@@ -57,6 +58,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Finalizer function for the aggregate function `geometric_mean`.
+-- UPDATE: This function gets modified as part of `m0023-baker-apy-materialized-view.sql`.
 CREATE FUNCTION geometric_mean_finalize(accum FLOAT8[]) RETURNS FLOAT8 AS $$
 BEGIN
     RETURN EXP(accum[1] / accum[2]);

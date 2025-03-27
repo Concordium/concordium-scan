@@ -1,0 +1,51 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n                    starting_baker as (\n                        SELECT\n                            bakers.id,\n                            delegators_apy\n                        FROM bakers\n                        LEFT JOIN latest_baker_apy_30_days\n                             ON latest_baker_apy_30_days.id = bakers.id\n                        WHERE $1::pool_open_status IS NULL OR open_status = $1::pool_open_status\n                        ORDER BY delegators_apy DESC NULLS LAST, id DESC\n                        LIMIT 1\n                    ),\n                    ending_baker as (\n                        SELECT\n                            bakers.id,\n                            delegators_apy\n                        FROM bakers\n                        LEFT JOIN latest_baker_apy_30_days\n                             ON latest_baker_apy_30_days.id = bakers.id\n                        WHERE $1::pool_open_status IS NULL OR open_status = $1::pool_open_status\n                        ORDER BY delegators_apy ASC NULLS FIRST, id ASC\n                        LIMIT 1\n                    )\n                SELECT\n                    starting_baker.id AS start_id,\n                    starting_baker.delegators_apy AS \"start_delegators_apy?\",\n                    ending_baker.id AS end_id,\n                    ending_baker.delegators_apy AS \"end_delegators_apy?\"\n                FROM starting_baker, ending_baker",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "start_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "start_delegators_apy?",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 2,
+        "name": "end_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "end_delegators_apy?",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "pool_open_status",
+            "kind": {
+              "Enum": [
+                "OpenForAll",
+                "ClosedForNew",
+                "ClosedForAll"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "876c24a969d4804e765884309d285c7ed9676b914dd7150d266383337cdf124e"
+}

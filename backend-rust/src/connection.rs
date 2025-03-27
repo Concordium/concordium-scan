@@ -89,16 +89,16 @@ impl From<i64> for DescendingI64 {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct Reversed<Cursor> {
-    pub inner: Cursor,
+    pub cursor: Cursor,
 }
 impl<C> Reversed<C> {
-    pub const fn new(inner: C) -> Self {
+    pub const fn new(cursor: C) -> Self {
         Self {
-            inner,
+            cursor,
         }
     }
 
-    pub fn into_inner(self) -> C { self.inner }
+    pub fn into_inner(self) -> C { self.cursor }
 }
 
 impl<C> ConnectionBounds for Reversed<C>
@@ -118,7 +118,7 @@ where
         C::decode_cursor(s).map(Reversed::new)
     }
 
-    fn encode_cursor(&self) -> String { self.inner.encode_cursor() }
+    fn encode_cursor(&self) -> String { self.cursor.encode_cursor() }
 }
 
 impl<C> PartialOrd for Reversed<C>
@@ -126,7 +126,7 @@ where
     C: PartialOrd,
 {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.inner.partial_cmp(&other.inner).map(|ord| ord.reverse())
+        self.cursor.partial_cmp(&other.cursor).map(|ord| ord.reverse())
     }
 }
 
@@ -134,11 +134,12 @@ impl<C> Ord for Reversed<C>
 where
     C: Ord,
 {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering { self.inner.cmp(&other.inner).reverse() }
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering { self.cursor.cmp(&other.cursor).reverse() }
 }
 
 /// Construct for combining two connection cursors into one, where the two
 /// connections are considered concatenated into one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum ConcatCursor<Fst, Snd> {
     First(Fst),
     Second(Snd),
@@ -177,9 +178,34 @@ where
 {
     type Error = ConcatCursorDecodeError<Fst::Error, Snd::Error>;
 
+    /// Decode the cursor from a string.
+    ///
+    /// The format of the cursor is `({before}:{after})` where `{before}` is
+    /// either `fst` or `snd` to represent either collections, and `{after}` is
+    /// the cursor for this collection.
     fn decode_cursor(value: &str) -> Result<Self, Self::Error> {
-        let (before, after): (&str, &str) =
-            value.split_once(':').ok_or(ConcatCursorDecodeError::NoSemicolon)?;
+        // First trim the `(` and `)`.
+        let value = &value[1..value.len() - 1];
+        // Search for the `:` but ignore any which are deeper nested in parenthesis,
+        // therefor we keep track of the level.
+        let mut level = 0;
+        let mut split = None;
+        for (i, c) in value.chars().enumerate() {
+            match c {
+                '(' => level += 1,
+                ')' => level -= 1,
+                ':' if level == 0 => {
+                    split = Some(i);
+                    break;
+                }
+                _ => {}
+            }
+        }
+        let split = split.ok_or(ConcatCursorDecodeError::NoSemicolon)?;
+        let (before, after): (&str, &str) = value.split_at(split);
+        // Since split_at, leaves the `:` in the `after` part, we trim the first
+        // character of this:
+        let after = &after[1..];
         match before {
             "fst" => {
                 let cursor =
@@ -197,8 +223,8 @@ where
 
     fn encode_cursor(&self) -> String {
         match self {
-            ConcatCursor::First(fst) => format!("fst:{}", fst.encode_cursor()),
-            ConcatCursor::Second(snd) => format!("snd:{}", snd.encode_cursor()),
+            ConcatCursor::First(fst) => format!("(fst:{})", fst.encode_cursor()),
+            ConcatCursor::Second(snd) => format!("(snd:{})", snd.encode_cursor()),
         }
     }
 }
@@ -223,6 +249,211 @@ where
     fn from(err: ConcatCursorDecodeError<F, S>) -> Self {
         ApiError::InvalidCursorFormat(err.to_string())
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NestedCursor<Outer, Inner> {
+    pub outer: Outer,
+    pub inner: Inner,
+}
+impl<Outer, Inner> ConnectionBounds for NestedCursor<Outer, Inner>
+where
+    Outer: ConnectionBounds,
+    Inner: ConnectionBounds,
+{
+    const END_BOUND: Self = Self {
+        outer: Outer::END_BOUND,
+        inner: Inner::END_BOUND,
+    };
+    const START_BOUND: Self = Self {
+        outer: Outer::START_BOUND,
+        inner: Inner::START_BOUND,
+    };
+}
+
+impl<Outer, Inner> connection::CursorType for NestedCursor<Outer, Inner>
+where
+    Outer: connection::CursorType,
+    Inner: connection::CursorType,
+{
+    type Error = NestedCursorDecodeError<Outer::Error, Inner::Error>;
+
+    /// Decode the cursor from a string.
+    ///
+    /// The format of the cursor is `({outer}:{inner})` where `{outer}` is
+    /// the outermost cursor and `{inner}` is the inner cursor.
+    fn decode_cursor(value: &str) -> Result<Self, Self::Error> {
+        // First trim the `(` and `)`.
+        let value = &value[1..value.len() - 1];
+        // Search for the `:` but ignore any which are deeper nested in parenthesis,
+        // therefor we keep track of the level.
+        let mut level = 0;
+        let mut split = None;
+        for (i, c) in value.chars().enumerate() {
+            match c {
+                '(' => level += 1,
+                ')' => level -= 1,
+                ':' if level == 0 => {
+                    split = Some(i);
+                    break;
+                }
+                _ => {}
+            }
+        }
+        let split = split.ok_or(NestedCursorDecodeError::NoSemicolon)?;
+        let (before, after): (&str, &str) = value.split_at(split);
+        // Since split_at, leaves the `:` in the `after` part, we trim the first
+        // character of this:
+        let after = &after[1..];
+        let outer = Outer::decode_cursor(before).map_err(NestedCursorDecodeError::OuterError)?;
+        let inner = Inner::decode_cursor(after).map_err(NestedCursorDecodeError::InnerError)?;
+        Ok(Self {
+            outer,
+            inner,
+        })
+    }
+
+    fn encode_cursor(&self) -> String {
+        format!("({}:{})", self.outer.encode_cursor(), self.inner.encode_cursor())
+    }
+}
+
+#[derive(Debug, thiserror::Error, Clone)]
+pub enum NestedCursorDecodeError<O, I> {
+    #[error("Must contain a semicolon")]
+    NoSemicolon,
+    #[error("Decode outer error: {0}")]
+    OuterError(O),
+    #[error("Decode inner error: {0}")]
+    InnerError(I),
+}
+
+impl<O, I> From<NestedCursorDecodeError<I, O>> for ApiError
+where
+    O: std::fmt::Display,
+    I: std::fmt::Display,
+{
+    fn from(err: NestedCursorDecodeError<I, O>) -> Self {
+        ApiError::InvalidCursorFormat(err.to_string())
+    }
+}
+
+impl<Outer, Inner> PartialOrd for NestedCursor<Outer, Inner>
+where
+    Outer: PartialOrd,
+    Inner: PartialOrd,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let ordering = self.outer.partial_cmp(&other.outer)?;
+        if let std::cmp::Ordering::Equal = ordering {
+            self.inner.partial_cmp(&other.inner)
+        } else {
+            Some(ordering)
+        }
+    }
+}
+
+impl<Outer, Inner> Ord for NestedCursor<Outer, Inner>
+where
+    Outer: Ord,
+    Inner: Ord,
+{
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let ordering = self.outer.cmp(&other.outer);
+        if let std::cmp::Ordering::Equal = ordering {
+            self.inner.cmp(&other.inner)
+        } else {
+            ordering
+        }
+    }
+}
+
+/// Cursor representing the empty collection.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct UnitCursor;
+
+impl ConnectionBounds for UnitCursor {
+    const END_BOUND: Self = Self;
+    const START_BOUND: Self = Self;
+}
+
+impl connection::CursorType for UnitCursor {
+    type Error = UnitCursorDecodeError;
+
+    fn decode_cursor(value: &str) -> Result<Self, Self::Error> {
+        if value == "unit" {
+            Ok(Self)
+        } else {
+            Err(UnitCursorDecodeError {
+                unexpected: value.to_string(),
+            })
+        }
+    }
+
+    fn encode_cursor(&self) -> String { "unit".to_string() }
+}
+#[derive(Debug, thiserror::Error)]
+#[error("Expected value 'unit' instead got {unexpected}")]
+pub struct UnitCursorDecodeError {
+    unexpected: String,
+}
+
+/// Cursor representing some optional cursor information.
+pub type OptionCursor<A> = ConcatCursor<A, UnitCursor>;
+
+impl<A> From<Option<A>> for OptionCursor<A> {
+    fn from(value: Option<A>) -> Self {
+        match value {
+            Some(a) => ConcatCursor::First(a),
+            None => ConcatCursor::Second(UnitCursor),
+        }
+    }
+}
+
+/// Wrapper around f64 providing a cursor implementation with total order.
+#[derive(Debug, Clone, Copy, derive_more::From, derive_more::Into)]
+#[repr(transparent)]
+pub struct F64Cursor {
+    pub value: f64,
+}
+impl F64Cursor {
+    pub const fn new(value: f64) -> Self {
+        Self {
+            value,
+        }
+    }
+}
+impl connection::CursorType for F64Cursor {
+    type Error = <f64 as connection::CursorType>::Error;
+
+    fn decode_cursor(s: &str) -> Result<Self, Self::Error> {
+        let value = f64::decode_cursor(s)?;
+        Ok(Self {
+            value,
+        })
+    }
+
+    fn encode_cursor(&self) -> String { self.value.encode_cursor() }
+}
+impl ConnectionBounds for F64Cursor {
+    const END_BOUND: Self = Self {
+        value: f64::MAX,
+    };
+    const START_BOUND: Self = Self {
+        value: f64::MIN,
+    };
+}
+
+impl PartialEq for F64Cursor {
+    fn eq(&self, other: &Self) -> bool { self.value.total_cmp(&other.value).is_eq() }
+}
+impl Eq for F64Cursor {}
+
+impl PartialOrd for F64Cursor {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) }
+}
+impl Ord for F64Cursor {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering { self.value.total_cmp(&other.value) }
 }
 
 /// Prepared query arguments for SQL query, based on arguments from a GraphQL
@@ -487,5 +718,68 @@ mod tests {
         assert!(result.edges.is_empty());
         assert!(!result.has_next_page);
         assert!(!result.has_previous_page);
+    }
+
+    #[test]
+    fn test_concat_cursor_order() {
+        let first_0 = ConcatCursor::First(0);
+        let first_10 = ConcatCursor::First(10);
+        let second_a = ConcatCursor::Second('a');
+
+        assert!(first_0 < first_10);
+        assert!(first_0 < second_a);
+        assert!(first_10 < second_a);
+    }
+
+    #[test]
+    fn test_nested_cursor_order() {
+        let nested_0_a = NestedCursor {
+            outer: 0,
+            inner: 'a',
+        };
+        let nested_10_a = NestedCursor {
+            outer: 10,
+            inner: 'a',
+        };
+        let nested_0_b = NestedCursor {
+            outer: 0,
+            inner: 'b',
+        };
+
+        assert!(nested_0_a < nested_0_b);
+        assert!(nested_0_a < nested_10_a);
+        assert!(nested_0_b < nested_10_a);
+    }
+
+    #[test]
+    fn test_reverse_cursor_order() {
+        let rev_0 = Reversed::new(0);
+        let rev_10 = Reversed::new(10);
+
+        assert!(rev_0 > rev_10);
+    }
+
+    #[test]
+    fn test_complex_cursor_order() {
+        type Cursor = NestedCursor<OptionCursor<Reversed<F64Cursor>>, Reversed<i64>>;
+        let end: Cursor = NestedCursor {
+            outer: ConcatCursor::Second(UnitCursor),
+            inner: Reversed {
+                cursor: 10,
+            },
+        };
+        let last: Cursor = NestedCursor {
+            outer: ConcatCursor::First(Reversed {
+                cursor: F64Cursor {
+                    value: 5.7180665077013275,
+                },
+            }),
+            inner: Reversed {
+                cursor: 204,
+            },
+        };
+        assert!(end > last);
+        assert!(end == end);
+        assert!(last == last);
     }
 }

@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT baker_apy, total_apy, delegators_apy\n                     FROM latest_baker_apy_30_days\n                     WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "baker_apy",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 1,
+        "name": "total_apy",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 2,
+        "name": "delegators_apy",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "1223f009f397bb80f7119ba9ab9eb0308726a1107679596b3e7639a496c11d67"
+}

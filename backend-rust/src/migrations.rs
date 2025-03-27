@@ -239,15 +239,16 @@ pub enum SchemaVersion {
     FixCorruptedPassiveDelegators,
     #[display("0023:Add input parameter to init transactions")]
     AddInputParameterToInitTransactions,
+    #[display("0024:Precompute validators APYs")]
+    BakerPeriodApyViews,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
-    /// Fails at startup if any breaking (destrutive) database schema versions
+    /// Fails at startup if any breaking (destructive) database schema versions
     /// have been introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
-        SchemaVersion::AddInputParameterToInitTransactions;
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::BakerPeriodApyViews;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::AddInputParameterToInitTransactions;
+    const LATEST: SchemaVersion = SchemaVersion::BakerPeriodApyViews;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -290,6 +291,7 @@ impl SchemaVersion {
             SchemaVersion::AmountSchedule => false,
             SchemaVersion::FixCorruptedPassiveDelegators => false,
             SchemaVersion::AddInputParameterToInitTransactions => false,
+            SchemaVersion::BakerPeriodApyViews => false,
         }
     }
 
@@ -323,6 +325,7 @@ impl SchemaVersion {
             SchemaVersion::AmountSchedule => false,
             SchemaVersion::FixCorruptedPassiveDelegators => false,
             SchemaVersion::AddInputParameterToInitTransactions => false,
+            SchemaVersion::BakerPeriodApyViews => false,
         }
     }
 
@@ -471,7 +474,15 @@ impl SchemaVersion {
                 )
                 .await?
             }
-            SchemaVersion::AddInputParameterToInitTransactions => unimplemented!(
+            SchemaVersion::AddInputParameterToInitTransactions => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0024-baker-apy-materialized-view.sql"
+                    )))
+                    .await?;
+                SchemaVersion::BakerPeriodApyViews
+            }
+            SchemaVersion::BakerPeriodApyViews => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
