@@ -111,9 +111,7 @@ pub fn events_from_summary(
                 data,
             } => {
                 vec![Event::ContractInitialized(smart_contracts::ContractInitialized {
-                    input_parameter:   data
-                        .parameter
-                        .map_or_else(Vec::new, |x| x.as_ref().to_vec()),
+                    input_parameter:   data.parameter.map(|x| x.as_ref().to_vec()),
                     module_ref:        data.origin_ref.to_string(),
                     contract_address:  data.address.into(),
                     amount:            data.amount.micro_ccd().into(),

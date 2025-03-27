@@ -58,19 +58,21 @@ pub struct ContractInitialized {
     pub amount:            Amount,
     pub init_name:         String,
     pub version:           ContractVersion,
-    pub input_parameter:   Vec<u8>,
+    pub input_parameter:   Option<Vec<u8>>,
     // All logged events by the smart contract during the transaction execution.
     pub contract_logs_raw: Vec<Vec<u8>>,
 }
 
 #[ComplexObject]
 impl ContractInitialized {
-    async fn message_as_hex(&self) -> ApiResult<String> { Ok(hex::encode(&self.input_parameter)) }
+    async fn message_as_hex(&self) -> ApiResult<Option<String>> {
+        Ok(self.input_parameter.as_ref().map(hex::encode))
+    }
 
     async fn message<'a>(&self, ctx: &Context<'a>) -> ApiResult<Option<String>> {
-        if self.input_parameter.is_empty() {
+        let Some(input_parameter)=&self.input_parameter  else {
             return Ok(None);
-        }
+        };
         let pool = get_pool(ctx)?;
         let row = sqlx::query!(
             "
@@ -104,7 +106,7 @@ impl ContractInitialized {
 
         let decoded_input_parameter = decode_value_with_schema(
             opt_init_param_schema.as_ref(),
-            &self.input_parameter,
+            input_parameter,
             SmartContractSchemaNames::InputParameterInitFunction,
         )?;
 
