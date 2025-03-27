@@ -68,6 +68,8 @@ impl QueryAccounts {
             config.account_connection_limit,
         )?;
 
+        let include_only_delegators = filter.map(|f| f.is_delegator).unwrap_or_default();
+
         let mut accounts = sqlx::query_as!(
             Account,
             r"SELECT * FROM (
@@ -139,18 +141,66 @@ impl QueryAccounts {
             matches!(order.field, AccountOrderField::Amount),           // $4
             matches!(order.field, AccountOrderField::TransactionCount), // $5
             matches!(order.field, AccountOrderField::DelegatedStake),   // $6
-            filter.map(|f| f.is_delegator).unwrap_or_default(),         // $6
-            query.is_last != matches!(order.dir, OrderDir::Desc),       // $7
-            query.limit,                                                // $8
-            matches!(order.dir, OrderDir::Desc),                        // $9
+            include_only_delegators,                                    // $7
+            query.is_last != matches!(order.dir, OrderDir::Desc),       // $8
+            query.limit,                                                // $9
+            matches!(order.dir, OrderDir::Desc),                        // $10
         )
         .fetch(pool);
 
-        // TODO Update page prev/next
         let mut connection = connection::Connection::new(true, true);
 
         while let Some(account) = accounts.try_next().await? {
             connection.edges.push(connection::Edge::new(order.cursor(&account), account));
+        }
+
+        if let (Some(edge_min_index), Some(edge_max_index)) =
+            (connection.edges.last(), connection.edges.first())
+        {
+            let result = sqlx::query!(
+                "
+                    SELECT 
+                        CASE 
+                            WHEN $1 AND $5 THEN MAX(index) 
+                            WHEN $1 AND NOT $5 THEN MIN(index) 
+                            WHEN $2 AND $5 THEN MAX(amount) 
+                            WHEN $2 AND NOT $5 THEN MIN(amount)
+                            WHEN $3 AND $5 THEN MAX(num_txs) 
+                            WHEN $3 AND NOT $5 THEN MIN(num_txs)
+                            WHEN $4 AND $5 THEN MAX(delegated_stake) 
+                            WHEN $4 AND NOT $5 THEN MIN(delegated_stake)
+                        END AS max_index,
+                        CASE 
+                            WHEN $1 AND $5 THEN MIN(index) 
+                            WHEN $1 AND NOT $5 THEN MAX(index) 
+                            WHEN $2 AND $5 THEN MIN(amount) 
+                            WHEN $2 AND NOT $5 THEN MAX(amount) 
+                            WHEN $3 AND $5 THEN MIN(num_txs) 
+                            WHEN $3 AND NOT $5 THEN MAX(num_txs) 
+                            WHEN $4 AND $5 THEN MIN(delegated_stake) 
+                            WHEN $5 AND NOT $5 THEN MAX(delegated_stake) 
+                        END AS min_index
+                    FROM accounts
+                    WHERE 
+                        -- Need to filter for only delegators if the user requests this.
+                        (NOT $6 OR delegated_stake > 0)
+                ",
+                matches!(order.field, AccountOrderField::Age), // $1
+                matches!(order.field, AccountOrderField::Amount), // $2
+                matches!(order.field, AccountOrderField::TransactionCount), // $3
+                matches!(order.field, AccountOrderField::DelegatedStake), // $4
+                matches!(order.dir, OrderDir::Desc),           // $5
+                include_only_delegators,                       // $6
+            )
+            .fetch_one(pool)
+            .await?;
+
+            connection.has_previous_page = result
+                .max_index
+                .map_or(false, |db_max| db_max > order.field_value(&edge_max_index.node));
+            connection.has_next_page = result
+                .min_index
+                .map_or(false, |db_min| db_min < order.field_value(&edge_min_index.node));
         }
 
         Ok(connection)
@@ -1010,6 +1060,16 @@ impl AccountOrder {
             AccountOrderField::DelegatedStake => account.delegated_stake,
         }
         .to_string()
+    }
+
+    fn field_value(&self, account: &Account) -> i64 {
+        match self.field {
+            // Index and age correspond monotonically.
+            AccountOrderField::Age => account.index,
+            AccountOrderField::Amount => account.amount,
+            AccountOrderField::TransactionCount => account.num_txs,
+            AccountOrderField::DelegatedStake => account.delegated_stake,
+        }
     }
 }
 
