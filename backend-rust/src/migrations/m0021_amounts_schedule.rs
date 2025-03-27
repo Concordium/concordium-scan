@@ -48,7 +48,7 @@ pub async fn run(
             .response;
         while let Some(summary) = block_summary.next().await.transpose()? {
             let BlockItemSummaryDetails::AccountTransaction(update) = &summary.details else {
-                continue
+                continue;
             };
             if !matches!(
                 update.transaction_type(),

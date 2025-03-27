@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "REFRESH MATERIALIZED VIEW CONCURRENTLY latest_baker_apy_30_days",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "ceae57e21ad2f6d1494de573b76946faf3da4d7f6106254e5c2040efe76a55dd"
+}

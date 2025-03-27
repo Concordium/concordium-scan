@@ -48,7 +48,7 @@ pub async fn run(
             .response;
         while let Some(summary) = block_summary.next().await.transpose()? {
             let BlockItemSummaryDetails::Update(_) = &summary.details else {
-                continue
+                continue;
             };
             let events = events_from_summary(summary.details, block_slot_time)?;
             let json = serde_json::to_value(events)?;

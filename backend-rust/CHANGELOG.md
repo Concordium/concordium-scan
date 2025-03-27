@@ -4,10 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-Database schema version: 23
+Database schema version: 24
 
 ### Added
 
+- Add database migration 24 precomputing the APYs for each validator pool over 30 days and 7 days.
+- Support for `Query::bakers` sorting options: validator APY and delegators APY.
 - Add database migration 23 adding the `input_parameter` to `ContractInitializedEvents`.
 - Expose the hex-encoded and schema-decoded input parameter of init functions via `ContractInitialized::message_as_hex` and `ContractInitialized::message` queries.
 
