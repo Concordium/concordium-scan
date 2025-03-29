@@ -6,6 +6,7 @@ use async_graphql::{types, Context, Object, SimpleObject};
 use chrono::Utc;
 use sqlx::{postgres::types::PgInterval, PgPool};
 use std::sync::Arc;
+use crate::scalar_types::Long;
 
 #[derive(Default)]
 pub(crate) struct QueryRewardMetrics;
@@ -27,6 +28,15 @@ impl QueryRewardMetrics {
         account_id: types::ID,
     ) -> ApiResult<RewardMetrics> {
         reward_metrics(period, Some(account_id), get_pool(ctx)?).await
+    }
+
+    async fn pool_reward_metrics_for_baker_pool<'a>(
+        &self,
+        ctx: &Context<'a>,
+        period: MetricsPeriod,
+        baker_id: types::ID,
+    ) -> ApiResult<PoolRewardMetrics> {
+        todo!()
     }
 }
 
@@ -94,9 +104,35 @@ pub struct RewardMetricsBuckets {
 }
 
 #[derive(SimpleObject)]
+pub struct PoolRewardMetricsBuckets {
+    /// The width (time interval) of each bucket.
+    bucket_width:  TimeSpan,
+    #[graphql(name = "x_Time")]
+    x_time:        Vec<DateTime>,
+    #[graphql(name = "y_SumTotalRewards")]
+    y_sum_total_rewards: Vec<Long>,
+    #[graphql(name = "y_SumBakerRewards")]
+    y_sum_baker_rewards: Vec<Long>,
+    #[graphql(name = "y_SumDelegatorsRewards")]
+    y_sum_delegators_rewards: Vec<Long>,
+}
+
+#[derive(SimpleObject)]
 pub struct RewardMetrics {
     /// Total rewards at the end of the interval
     sum_reward_amount: i64,
     /// Bucket-wise data for rewards
     buckets:           RewardMetricsBuckets,
+}
+
+#[derive(SimpleObject)]
+pub struct PoolRewardMetrics {
+    /// Total rewards at the end of the interval
+    sum_total_reward_amount: Long,
+    /// Baker rewards at the end of the interval
+    sum_baker_reward_amount: Long,
+    /// Delegator rewards at the end of the interval
+    sum_delegators_reward_amount: Long,
+    /// Bucket-wise data for rewards
+    buckets: PoolRewardMetricsBuckets,
 }
