@@ -2,8 +2,10 @@ use anyhow::Context;
 use async_graphql::{scalar, InputValueError, InputValueResult, Scalar, ScalarType, Value};
 use bigdecimal::BigDecimal;
 use num_traits::{FromPrimitive, ToPrimitive};
-use std::fmt;
-use std::ops::{Add, AddAssign};
+use std::{
+    fmt,
+    ops::{Add, AddAssign},
+};
 
 pub type Amount = UnsignedLong;
 pub type TokenId = String;
@@ -162,15 +164,11 @@ impl TryFrom<concordium_rust_sdk::types::BakerId> for Long {
 impl Add for Long {
     type Output = Self;
 
-    fn add(self, other: Self) -> Self {
-        Long(self.0 + other.0)
-    }
+    fn add(self, other: Self) -> Self { Long(self.0 + other.0) }
 }
 
 impl AddAssign for Long {
-    fn add_assign(&mut self, other: Self) {
-        self.0 += other.0;
-    }
+    fn add_assign(&mut self, other: Self) { self.0 += other.0; }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, derive_more::From)]
