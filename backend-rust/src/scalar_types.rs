@@ -3,6 +3,7 @@ use async_graphql::{scalar, InputValueError, InputValueResult, Scalar, ScalarTyp
 use bigdecimal::BigDecimal;
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::fmt;
+use std::ops::{Add, AddAssign};
 
 pub type Amount = UnsignedLong;
 pub type TokenId = String;
@@ -155,6 +156,20 @@ impl TryFrom<concordium_rust_sdk::types::BakerId> for Long {
 
     fn try_from(value: concordium_rust_sdk::types::BakerId) -> Result<Self, Self::Error> {
         value.id.index.try_into()
+    }
+}
+
+impl Add for Long {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Long(self.0 + other.0)
+    }
+}
+
+impl AddAssign for Long {
+    fn add_assign(&mut self, other: Self) {
+        self.0 += other.0;
     }
 }
 
