@@ -346,8 +346,8 @@ impl QueryAccounts {
                     (CASE WHEN $6     THEN delegated_stake END) ASC,
                     index ASC
                 ",
-                query.from.inner.account_id,                      // $1
-                query.to.inner.account_id,                        // $2
+                query.from.cursor.account_id,                     // $1
+                query.to.cursor.account_id,                       // $2
                 matches!(order.field, AccountOrderField::Age),    // $3
                 matches!(order.field, AccountOrderField::Amount), // $4
                 matches!(order.field, AccountOrderField::TransactionCount), // $5
@@ -355,8 +355,8 @@ impl QueryAccounts {
                 include_only_delegators,                          // $7
                 query.is_last != matches!(order.dir, OrderDir::Desc), // $8
                 query.limit,                                      // $9
-                query.from.inner.field,                           // $10
-                query.to.inner.field,                             // $11
+                query.from.cursor.field,                          // $10
+                query.to.cursor.field,                            // $11
             )
             .fetch(pool);
 
@@ -364,7 +364,7 @@ impl QueryAccounts {
 
             while let Some(account) = accounts.try_next().await? {
                 let cursor = Reversed::<AccountFieldDescCursor> {
-                    inner: AccountFieldDescCursor::new(order.field, &account),
+                    cursor: AccountFieldDescCursor::new(order.field, &account),
                 };
 
                 connection.edges.push(connection::Edge::new(cursor.encode_cursor(), account));
@@ -428,24 +428,24 @@ impl QueryAccounts {
                         (bounds.min_value, bounds.max_value, bounds.max_index, bounds.min_index)
                     {
                         let collection_start_cursor = Reversed::<AccountFieldDescCursor> {
-                            inner: AccountFieldDescCursor {
+                            cursor: AccountFieldDescCursor {
                                 account_id: min_index,
                                 field:      min_value,
                             },
                         };
 
                         let collection_end_cursor = Reversed::<AccountFieldDescCursor> {
-                            inner: AccountFieldDescCursor {
+                            cursor: AccountFieldDescCursor {
                                 account_id: max_index,
                                 field:      max_value,
                             },
                         };
 
                         let page_start_cursor = Reversed::<AccountFieldDescCursor> {
-                            inner: AccountFieldDescCursor::new(order.field, &edge_min_index.node),
+                            cursor: AccountFieldDescCursor::new(order.field, &edge_min_index.node),
                         };
                         let page_end_cursor = Reversed::<AccountFieldDescCursor> {
-                            inner: AccountFieldDescCursor::new(order.field, &edge_max_index.node),
+                            cursor: AccountFieldDescCursor::new(order.field, &edge_max_index.node),
                         };
 
                         connection.has_previous_page = collection_start_cursor < page_start_cursor;
@@ -597,7 +597,7 @@ impl AccountReleaseScheduleItem {
 struct AccountFieldDescCursor {
     /// The cursor value of the relevant sorting field.
     field:      i64,
-    /// The account id representing the pool of the cursor.
+    /// The account id of the cursor.
     account_id: i64,
 }
 impl AccountFieldDescCursor {
