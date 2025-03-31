@@ -70,7 +70,7 @@ impl ContractInitialized {
     }
 
     async fn message<'a>(&self, ctx: &Context<'a>) -> ApiResult<Option<String>> {
-        let Some(input_parameter)=&self.input_parameter  else {
+        let Some(input_parameter) = &self.input_parameter else {
             return Ok(None);
         };
         let pool = get_pool(ctx)?;

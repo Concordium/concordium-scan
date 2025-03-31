@@ -21,17 +21,17 @@ pub async fn run(
         sqlx::query_scalar("SELECT height FROM blocks ORDER BY height DESC LIMIT 1")
             .fetch_optional(tx.as_mut())
             .await?;
-    let Some(height) = latest_height else {
+    let Some(latest_height) = latest_height else {
         return Ok(NEXT_SCHEMA_VERSION);
     };
-    let block = BlockIdentifier::AbsoluteHeight(u64::try_from(height)?.into());
+    let latest_block = BlockIdentifier::AbsoluteHeight(u64::try_from(latest_height)?.into());
     let endpoint = endpoints.first().context(format!(
         "Migration '{}' must be provided access to a Concordium node",
         NEXT_SCHEMA_VERSION
     ))?;
     let mut client = v2::Client::new(endpoint.clone()).await?;
     let (addresses, stakes): (Vec<_>, Vec<_>) = client
-        .get_passive_delegators(block)
+        .get_passive_delegators(latest_block)
         .await?
         .response
         .map(|result| {
