@@ -2851,7 +2851,9 @@ enum BakerSort {
     BakerIdDesc,
     TotalStakedAmountDesc,
     DelegatorCountDesc,
+    #[graphql(name = "BAKER_APY30_DAYS_DESC")]
     BakerApy30DaysDesc,
+    #[graphql(name = "DELEGATOR_APY30_DAYS_DESC")]
     DelegatorApy30DaysDesc,
     /// Sort ascending by the current payday baking commission rate.
     BlockCommissionsAsc,
