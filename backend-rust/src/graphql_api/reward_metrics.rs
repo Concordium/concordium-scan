@@ -48,7 +48,7 @@ impl QueryRewardMetrics {
             r#"
             SELECT
                 bucket_time.bucket_start AS "bucket_time!",
-                COALESCE(sub.accumulated_baker_stake, 0)::BIGINT AS "accumulated_baker_stake!",
+                COALESCE(sub.accumulated_total_stake, 0)::BIGINT AS "accumulated_total_stake!",
                 COALESCE(sub.accumulated_delegators_stake, 0)::BIGINT AS "accumulated_delegators_stake!"
             FROM
                 date_bin_series(
@@ -58,14 +58,12 @@ impl QueryRewardMetrics {
                 ) AS bucket_time
             LEFT JOIN LATERAL (
                 SELECT
-                    baker_stake AS accumulated_baker_stake,
-                    delegators_stake AS accumulated_delegators_stake
-                FROM payday_baker_pool_stakes
-                LEFT JOIN blocks ON blocks.height = payday_block
-                WHERE blocks.slot_time <= bucket_time.bucket_start
-                  AND baker = $4
-                ORDER BY payday_block DESC
-                LIMIT 1
+                    SUM(payday_total_transaction_rewards + payday_total_baking_rewards + payday_total_finalization_rewards) AS accumulated_total_stake,
+                    SUM(payday_delegators_transaction_rewards + payday_delegators_finalization_rewards + payday_delegators_baking_rewards) AS accumulated_delegators_stake
+                FROM bakers_payday_pool_rewards
+                LEFT JOIN blocks ON blocks.height = payday_block_height
+                WHERE blocks.slot_time BETWEEN bucket_time.bucket_start AND bucket_time.bucket_end
+                  AND pool_owner = $4
             ) sub ON true;
             "#,
             end_time,
@@ -80,21 +78,22 @@ impl QueryRewardMetrics {
         let mut y_sum_baker_rewards: Vec<Long> = Vec::with_capacity(rows.len());
         let mut y_sum_delegators_rewards: Vec<Long> = Vec::with_capacity(rows.len());
         let mut y_sum_total_rewards: Vec<Long> = Vec::with_capacity(rows.len());
-        let mut sum_baker_reward_amount = Long(0);
+        let mut sum_total_reward_amount = Long(0);
         let mut sum_delegators_reward_amount = Long(0);
 
         for row in &rows {
             x_time.push(row.bucket_time);
-            let baker_stake = Long(row.accumulated_baker_stake);
-            y_sum_baker_rewards.push(baker_stake);
-            let delegator_stake = Long(row.accumulated_delegators_stake);
-            y_sum_delegators_rewards.push(delegator_stake);
-            y_sum_total_rewards.push(delegator_stake + baker_stake);
-            sum_baker_reward_amount += baker_stake;
-            sum_delegators_reward_amount += delegator_stake;
+            let accumulated_total_stake = Long(row.accumulated_total_stake);
+            let accumulated_delegator_stake = Long(row.accumulated_delegators_stake);
+
+            y_sum_total_rewards.push(accumulated_total_stake);
+            y_sum_baker_rewards.push(accumulated_total_stake - accumulated_delegator_stake);
+            y_sum_delegators_rewards.push(accumulated_delegator_stake);
+            sum_total_reward_amount += accumulated_total_stake;
+            sum_delegators_reward_amount += accumulated_delegator_stake;
         }
 
-        let sum_total_reward_amount = sum_baker_reward_amount + sum_delegators_reward_amount;
+        let sum_baker_reward_amount = sum_total_reward_amount - sum_delegators_reward_amount;
 
         Ok(PoolRewardMetrics {
             sum_baker_reward_amount,

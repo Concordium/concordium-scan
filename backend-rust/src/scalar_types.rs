@@ -4,7 +4,7 @@ use bigdecimal::BigDecimal;
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::{
     fmt,
-    ops::{Add, AddAssign},
+    ops::{Add, AddAssign, Sub, SubAssign},
 };
 
 pub type Amount = UnsignedLong;
@@ -159,6 +159,16 @@ impl TryFrom<concordium_rust_sdk::types::BakerId> for Long {
     fn try_from(value: concordium_rust_sdk::types::BakerId) -> Result<Self, Self::Error> {
         value.id.index.try_into()
     }
+}
+
+impl Sub for Long {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self { Long(self.0 - other.0) }
+}
+
+impl SubAssign for Long {
+    fn sub_assign(&mut self, other: Self) { self.0 -= other.0; }
 }
 
 impl Add for Long {
