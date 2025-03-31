@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix `Accounts` sorting and page information.
+
 ### Changed
 
 - Change query `useBakerPoolRewardMetrics` to use the new `rust-backend` API.
