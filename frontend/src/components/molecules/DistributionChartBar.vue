@@ -1,5 +1,5 @@
 <template>
-	<MetricCard class="w-96 lg:w-full" :is-loading="props.isLoading">
+	<MetricCard class="w-96 lg:w-full">
 		<header class="flex flex-col items-center">
 			<div class="absolute top-4 right-4 text-xs">
 				<slot name="topRight" />
@@ -8,23 +8,6 @@
 			<div class="text-sm text-theme-faded pt-4 w-72 text-center">
 				<slot name="title" />
 			</div>
-			<div
-				v-if="!props.isLoading"
-				class="text-xl text-theme-interactive flex flex-row gap-2"
-			>
-				<div class="w-6 h-6 mr-2 text-theme-interactive">
-					<slot name="icon" />
-				</div>
-				<div class="numerical">
-					<slot name="value" />
-				</div>
-				<div>
-					<slot name="unit" />
-				</div>
-				<Chip class="self-center">
-					<slot name="chip" />
-				</Chip>
-			</div>
 		</header>
 		<ClientOnly>
 			<ChartBarST
@@ -32,6 +15,7 @@
 				:y-values="chartData"
 				:x-values="chartLabels"
 				:begin-at-zero="true"
+				:type="chartType"
 			/>
 		</ClientOnly>
 	</MetricCard>
@@ -39,26 +23,27 @@
 
 <script lang="ts" setup>
 import MetricCard from '~/components/atoms/MetricCard.vue'
-import { defineProps, computed } from 'vue'
-
-// import type { StableCoinsQueryResponse } from '~/queries/useStableCoinQuery';
+import { computed, defineProps } from 'vue'
 import ChartBarST from '../Charts/ChartBarST.vue'
 
-type Props = {
-	stableCoinsData: unknown[] | undefined
-	isLoading?: boolean
-}
-const props = defineProps<Props>()
+import type { StablecoinResponse } from '~/queries/useStableCoinQuery'
 
-const chartLabels = computed(() => {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	return props.stableCoinsData?.map((item: any) => item.name)
-})
+// Define Props
+const props = defineProps<{
+	stableCoinsData?: StablecoinResponse
+	isLoading?: boolean
+	chartType?: 'supply' | 'uniqueHolders'
+}>()
+
+// Computed Properties
+const chartLabels = computed(
+	() => props.stableCoinsData?.stablecoins.map(item => item.symbol) || []
+)
 
 const chartData = computed(() => {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const data = props.stableCoinsData?.map((item: any) => item.value)
-
-	return data
+	if (!props.stableCoinsData) return []
+	return props.chartType === 'supply'
+		? props.stableCoinsData?.stablecoins.map(item => item.totalSupply)
+		: props.stableCoinsData?.stablecoins.map(item => item.totalUniqueHolder)
 })
 </script>

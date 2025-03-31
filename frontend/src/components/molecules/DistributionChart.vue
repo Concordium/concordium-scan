@@ -1,5 +1,5 @@
 <template>
-	<MetricCard class="w-96 lg:w-full" :is-loading="props.isLoading">
+	<MetricCard class="w-100 lg:w-full">
 		<header class="flex flex-col items-center">
 			<div class="absolute top-4 right-4 text-xs">
 				<slot name="topRight" />
@@ -8,7 +8,7 @@
 			<div class="text-sm text-theme-faded pt-4 w-72 text-center">
 				<slot name="title" />
 			</div>
-			<div
+			<!-- <div
 				v-if="!props.isLoading"
 				class="text-xl text-theme-interactive flex flex-row gap-2"
 			>
@@ -24,7 +24,7 @@
 				<Chip class="self-center">
 					<slot name="chip" />
 				</Chip>
-			</div>
+			</div> -->
 		</header>
 		<ClientOnly>
 			<DoughnutChart
@@ -41,50 +41,48 @@
 import MetricCard from '~/components/atoms/MetricCard.vue'
 import { defineProps, computed } from 'vue'
 
-// import type { StableCoinsQueryResponse } from '~/queries/useStableCoinQuery';
+import type { StablecoinResponse } from '~/queries/useStableCoinQuery'
+
 import DoughnutChart from '../Charts/DoughnutChart.vue'
 
-type Props = {
-	stableCoinsData: unknown[] | undefined
-	isLoading?: boolean
-}
-const props = defineProps<Props>()
 const baseColors = [
-	'#2CA783', // Darker & less saturated
-	'#33BF97', // Slightly darker
-	'#39DBAA', // Original color
-	'#4DE3B3', // Slightly lighter
-	'#66E8BC', // More vibrant, lighter
-	'#7DF0C5', // Even lighter
-	'#97F5CE', // Soft pastel shade
-	'#B2F9D8', // Very light, soft green
-	'#CCFDE2', // Near minty white
-	'#E6FFF0', // Faintest, almost white-green
+	'#FFB3BA', // Soft pastel pink
+	'#FFDFBA', // Warm pastel peach
+	'#FFFFBA', // Light pastel yellow
+	'#BAFFC9', // Mint pastel green
+	'#BAE1FF', // Light pastel blue
+	'#E0BBE4', // Soft lavender
+	'#D4A5A5', // Dusty rose
+	'#B5EAD7', // Light mint green
+	'#C7CEEA', // Pale periwinkle
+	'#F7C8E0', // Light blush pink
 ]
 
 const hoverColors = [
-	'#238769', // Hover for #2CA783
-	'#2AA380', // Hover for #33BF97
-	'#2FC295', // Hover for #39DBAA (original)
-	'#3DC09A', // Hover for #4DE3B3
-	'#55C4A3', // Hover for #66E8BC
-	'#6ACCAC', // Hover for #7DF0C5
-	'#7DDDB7', // Hover for #97F5CE
-	'#97E3C2', // Hover for #B2F9D8
-	'#AEEACC', // Hover for #CCFDE2
-	'#C4F0DB', // Hover for #E6FFF0
+	'#E89A9A', // Deeper pastel pink
+	'#E8C49A', // Soft warm peach
+	'#E8E49A', // Rich pastel yellow
+	'#9FD9B8', // Deeper mint green
+	'#9FC9E8', // Soft sky blue
+	'#C49CCF', // Deeper lavender
+	'#B08787', // Muted rose
+	'#92C5A5', // Subtle mint green
+	'#A6A8D1', // Muted periwinkle
+	'#DAA6BD', // Soft mauve pink
 ]
 
-const chartLabels = computed(() => {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	return props.stableCoinsData?.map((item: any) => item.name)
-})
+// Define Props
+const props = defineProps<{
+	stableCoinsData?: StablecoinResponse
+	isLoading?: boolean
+}>()
 
-const chartData = computed(() => {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const data = props.stableCoinsData?.map((item: any) => item.value)
-	// const totalColors = data?.length as number
+// Computed Properties
+const chartLabels = computed(
+	() => props.stableCoinsData?.map(item => item.symbol) || []
+)
 
-	return data
-})
+const chartData = computed(
+	() => props.stableCoinsData?.map(item => item.supplyPercentage) || []
+)
 </script>
