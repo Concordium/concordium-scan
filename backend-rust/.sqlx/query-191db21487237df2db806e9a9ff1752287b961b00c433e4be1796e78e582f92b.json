@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n                        min_account as (\n                            SELECT index, \n                                CASE \n                                    WHEN $2 THEN index \n                                    WHEN $3 THEN amount\n                                    WHEN $4 THEN num_txs\n                                    WHEN $5 THEN delegated_stake\n                                ELSE NULL \n                            END AS min_value\n                            FROM accounts\n                            WHERE \n                                -- Need to filter for only delegators if the user requests this.\n                                (NOT $1 OR delegated_stake > 0)\n                            ORDER BY min_value ASC, index ASC\n                            LIMIT 1\n                        ),\n                        max_account as (\n                            SELECT \n                                index,\n                                CASE \n                                    WHEN $2 THEN index \n                                    WHEN $3 THEN amount\n                                    WHEN $4 THEN num_txs\n                                    WHEN $5 THEN delegated_stake\n                                ELSE NULL \n                                END AS max_value\n                            FROM accounts\n                            WHERE \n                                -- Need to filter for only delegators if the user requests this.\n                                (NOT $1 OR delegated_stake > 0)\n                            ORDER BY max_value DESC, index DESC\n                            LIMIT 1\n                        )\n                    SELECT\n                        min_account.index AS min_index,\n                        min_account.min_value AS min_value,\n                        max_account.index AS max_index,\n                        max_account.max_value AS max_value\n                    FROM min_account, max_account",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "min_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "min_value",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "max_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "max_value",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false,
+      null
+    ]
+  },
+  "hash": "191db21487237df2db806e9a9ff1752287b961b00c433e4be1796e78e582f92b"
+}

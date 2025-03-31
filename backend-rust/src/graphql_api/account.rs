@@ -62,7 +62,10 @@ impl QueryAccounts {
 
         let order: AccountOrder = sort.into();
 
+        let include_only_delegators = filter.map(|f| f.is_delegator).unwrap_or_default();
+
         if matches!(order.dir, OrderDir::Desc) {
+            // Use a `descending` cursor.
             let query = ConnectionQuery::<AccountFieldDescCursor>::new(
                 first,
                 after,
@@ -71,11 +74,9 @@ impl QueryAccounts {
                 config.account_connection_limit,
             )?;
 
-            let include_only_delegators = filter.map(|f| f.is_delegator).unwrap_or_default();
-
             let mut accounts = sqlx::query_as!(
-            Account,
-            r"SELECT * FROM (
+                Account,
+                r"SELECT * FROM (
                 SELECT
                     index,
                     transaction_index,
@@ -92,26 +93,26 @@ impl QueryAccounts {
                     -- The first condition is true only if we don't order by that field.
                     -- Then the whole OR condition will be true, so the filter for that
                     -- field will be ignored.
-                    (NOT $3 OR index           > $1 AND index           < $2) AND
+                    (NOT $3 OR index < $1 AND index > $2) AND
                     (NOT $4 OR 
                         (
-                                amount           < $10 AND amount           > $11 OR 
-                                (amount = $11 AND accounts.index > $2)
-                                OR (amount = $10 AND accounts.index < $1)
+                            amount < $10 AND amount > $11 OR 
+                            (amount = $11 AND accounts.index > $2)
+                            OR (amount = $10 AND accounts.index < $1)
                         )
                     ) AND
                     (NOT $5 OR 
                         (
-                                num_txs           < $10 AND num_txs           > $11 OR 
-                                (num_txs = $11 AND accounts.index > $2)
-                                OR (num_txs = $10 AND accounts.index < $1)
+                            num_txs < $10 AND num_txs > $11 OR 
+                            (num_txs = $11 AND accounts.index > $2)
+                            OR (num_txs = $10 AND accounts.index < $1)
                         )
                     ) AND
                     (NOT $6 OR 
                         (
-                                delegated_stake           < $10 AND delegated_stake           > $11 OR 
-                                (delegated_stake = $11 AND accounts.index > $2)
-                                OR (delegated_stake = $10 AND accounts.index < $1)
+                            delegated_stake < $10 AND delegated_stake > $11 OR 
+                            (delegated_stake = $11 AND accounts.index > $2)
+                            OR (delegated_stake = $10 AND accounts.index < $1)
                         )
                     ) AND
                     -- Need to filter for only delegators if the user requests this.
@@ -154,25 +155,25 @@ impl QueryAccounts {
                 (CASE WHEN $6     THEN delegated_stake END) DESC,
                 index DESC
             ",
-            query.from.account_id,                                      // $1
-            query.to.account_id,                                        // $2
-            matches!(order.field, AccountOrderField::Age),              // $3
-            matches!(order.field, AccountOrderField::Amount),           // $4
-            matches!(order.field, AccountOrderField::TransactionCount), // $5
-            matches!(order.field, AccountOrderField::DelegatedStake),   // $6
-            include_only_delegators,                                    // $7
-            query.is_last != matches!(order.dir, OrderDir::Desc),       // $8
-            query.limit,                                                // $9
-            query.from.field,                                           // $10
-            query.to.field,                                             // $11
-        )
-        .fetch(pool);
+                query.from.account_id,                            // $1
+                query.to.account_id,                              // $2
+                matches!(order.field, AccountOrderField::Age),    // $3
+                matches!(order.field, AccountOrderField::Amount), // $4
+                matches!(order.field, AccountOrderField::TransactionCount), // $5
+                matches!(order.field, AccountOrderField::DelegatedStake), // $6
+                include_only_delegators,                          // $7
+                query.is_last != matches!(order.dir, OrderDir::Desc), // $8
+                query.limit,                                      // $9
+                query.from.field,                                 // $10
+                query.to.field,                                   // $11
+            )
+            .fetch(pool);
 
             let mut connection = connection::Connection::new(false, false);
 
             while let Some(account) = accounts.try_next().await? {
-                // TODO: Use equivalent to `delegated_stake` for the four cases.
-                let cursor = AccountFieldDescCursor::delegated_stake(&account);
+                let cursor = AccountFieldDescCursor::new(order.field, &account);
+
                 connection.edges.push(connection::Edge::new(cursor.encode_cursor(), account));
             }
 
@@ -243,19 +244,19 @@ impl QueryAccounts {
                             field:      max_value,
                         };
 
-                        // TODO: Use equivalent to `delegated_stake` for the four cases.
-                        connection.has_previous_page = collection_start_cursor
-                            < AccountFieldDescCursor::delegated_stake(&edge_min_index.node);
+                        let page_start_cursor =
+                            AccountFieldDescCursor::new(order.field, &edge_min_index.node);
+                        let page_end_cursor =
+                            AccountFieldDescCursor::new(order.field, &edge_max_index.node);
 
-                        // TODO: Use equivalent to `delegated_stake` for the four cases.
-                        connection.has_next_page = collection_end_cursor
-                            > AccountFieldDescCursor::delegated_stake(&edge_max_index.node);
+                        connection.has_previous_page = collection_start_cursor < page_start_cursor;
+                        connection.has_next_page = collection_end_cursor > page_end_cursor;
                     }
                 }
             }
             Ok(connection)
         } else {
-            // TODO the `else case`
+            // Use a `ascending` cursor.
             let query = ConnectionQuery::<Reversed<AccountFieldDescCursor>>::new(
                 first,
                 after,
@@ -264,101 +265,108 @@ impl QueryAccounts {
                 config.account_connection_limit,
             )?;
 
-            let include_only_delegators = filter.map(|f| f.is_delegator).unwrap_or_default();
-
             let mut accounts = sqlx::query_as!(
-            Account,
-            r"SELECT * FROM (
-                SELECT
-                    index,
-                    transaction_index,
-                    address,
-                    amount,
-                    delegated_stake,
-                    num_txs,
-                    delegated_restake_earnings,
-                    delegated_target_baker_id
-                FROM accounts
-                WHERE
-                    -- Filter for only the accounts that are within the
-                    -- range that correspond to the requested page.
-                    -- The first condition is true only if we don't order by that field.
-                    -- Then the whole OR condition will be true, so the filter for that
-                    -- field will be ignored.
-                    (NOT $3 OR index           > $1 AND index           < $2) AND
-                    (NOT $4 OR amount          > $1 AND amount          < $2) AND
-                    (NOT $5 OR num_txs         > $1 AND num_txs         < $2) AND
-                    (NOT $6 OR 
-                        (
-                                delegated_stake           > $11 AND delegated_stake           < $12 OR 
-                                (delegated_stake = $12 AND accounts.index > $14)
-                                OR (delegated_stake = $11 AND accounts.index < $13)
-                        )
-                    ) AND
-                    -- Need to filter for only delegators if the user requests this.
-                    (NOT $7 OR delegated_stake > 0)
+                Account,
+                r"SELECT * FROM (
+                    SELECT
+                        index,
+                        transaction_index,
+                        address,
+                        amount,
+                        delegated_stake,
+                        num_txs,
+                        delegated_restake_earnings,
+                        delegated_target_baker_id
+                    FROM accounts
+                    WHERE
+                        -- Filter for only the accounts that are within the
+                        -- range that correspond to the requested page.
+                        -- The first condition is true only if we don't order by that field.
+                        -- Then the whole OR condition will be true, so the filter for that
+                        -- field will be ignored.
+                        (NOT $3 OR index > $1 AND index < $2) AND
+                        (NOT $4 OR 
+                            (
+                                amount > $10 AND amount < $11 OR 
+                                (amount = $11 AND accounts.index > $2)
+                                OR (amount = $10 AND accounts.index < $1)
+                            )
+                        ) AND
+                        (NOT $5 OR 
+                            (
+                                num_txs > $10 AND num_txs < $11 OR 
+                                (num_txs = $11 AND accounts.index > $2)
+                                OR (num_txs = $10 AND accounts.index < $1)
+                            )
+                        ) AND
+                        (NOT $6 OR 
+                            (
+                                delegated_stake > $10 AND delegated_stake < $11 OR 
+                                (delegated_stake = $11 AND accounts.index < $2)
+                                OR (delegated_stake = $10 AND accounts.index > $1)
+                            )
+                        ) AND
+                        -- Need to filter for only delegators if the user requests this.
+                        (NOT $7 OR delegated_stake > 0)
+                    ORDER BY
+                        -- Order by the field requested. Depending on the order of the collection
+                        -- and whether it is the first or last being queried, this sub-query must
+                        -- order by:
+                        --
+                        -- | Collection | Operation | Sub-query |
+                        -- |------------|-----------|-----------|
+                        -- | ASC        | first     | ASC       |
+                        -- | DESC       | first     | DESC      |
+                        -- | ASC        | last      | DESC      |
+                        -- | DESC       | last      | ASC       |
+                        --
+                        -- Note that `$8` below represents `is_desc != is_last`.
+                        --
+                        -- The first condition is true if we order by that field.
+                        -- Otherwise false, which makes the CASE null, which means
+                        -- it will not affect the ordering at all.
+                        (CASE WHEN $3 AND $8     THEN index           END) DESC,
+                        (CASE WHEN $3 AND NOT $8 THEN index           END) ASC,
+                        (CASE WHEN $4 AND $8     THEN amount          END) DESC,
+                        (CASE WHEN $4 AND NOT $8 THEN amount          END) ASC,
+                        (CASE WHEN $5 AND $8     THEN num_txs         END) DESC,
+                        (CASE WHEN $5 AND NOT $8 THEN num_txs         END) ASC,
+                        (CASE WHEN $6 AND $8     THEN delegated_stake END) DESC,
+                        (CASE WHEN $6 AND NOT $8 THEN delegated_stake END) ASC
+                    LIMIT $9
+                )
+                -- We need to order each page still, as we only use the DESC/ASC ordering above
+                -- to select page items from the start/end of the range.
+                -- Each page must still independently be ordered.
+                -- See also https://relay.dev/graphql/connections.htm#sec-Edge-order
                 ORDER BY
-                    -- Order by the field requested. Depending on the order of the collection
-                    -- and whether it is the first or last being queried, this sub-query must
-                    -- order by:
-                    --
-                    -- | Collection | Operation | Sub-query |
-                    -- |------------|-----------|-----------|
-                    -- | ASC        | first     | ASC       |
-                    -- | DESC       | first     | DESC      |
-                    -- | ASC        | last      | DESC      |
-                    -- | DESC       | last      | ASC       |
-                    --
-                    -- Note that `$8` below represents `is_desc != is_last`.
-                    --
-                    -- The first condition is true if we order by that field.
-                    -- Otherwise false, which makes the CASE null, which means
-                    -- it will not affect the ordering at all.
-                    (CASE WHEN $3 AND $8     THEN index           END) DESC,
-                    (CASE WHEN $3 AND NOT $8 THEN index           END) ASC,
-                    (CASE WHEN $4 AND $8     THEN amount          END) DESC,
-                    (CASE WHEN $4 AND NOT $8 THEN amount          END) ASC,
-                    (CASE WHEN $5 AND $8     THEN num_txs         END) DESC,
-                    (CASE WHEN $5 AND NOT $8 THEN num_txs         END) ASC,
-                    (CASE WHEN $6 AND $8     THEN delegated_stake END) DESC,
-                    (CASE WHEN $6 AND NOT $8 THEN delegated_stake END) ASC
-                LIMIT $9
-            )
-            -- We need to order each page still, as we only use the DESC/ASC ordering above
-            -- to select page items from the start/end of the range.
-            -- Each page must still independently be ordered.
-            -- See also https://relay.dev/graphql/connections.htm#sec-Edge-order
-            ORDER BY
-                (CASE WHEN $3 AND $10     THEN index           END) DESC,
-                (CASE WHEN $3 AND NOT $10 THEN index           END) ASC,
-                (CASE WHEN $4 AND $10     THEN amount          END) DESC,
-                (CASE WHEN $4 AND NOT $10 THEN amount          END) ASC,
-                (CASE WHEN $5 AND $10     THEN num_txs         END) DESC,
-                (CASE WHEN $5 AND NOT $10 THEN num_txs         END) ASC,
-                (CASE WHEN $6 AND $10     THEN delegated_stake END) DESC,
-                (CASE WHEN $6 AND NOT $10 THEN delegated_stake END) ASC
+                    (CASE WHEN $3     THEN index           END) ASC,
+                    (CASE WHEN $4     THEN amount          END) ASC,
+                    (CASE WHEN $5     THEN num_txs         END) ASC,
+                    (CASE WHEN $6     THEN delegated_stake END) ASC,
+                    index ASC
                 ",
-            query.from.inner.account_id,                                                 // $1
-            query.to.inner.account_id,                                                   // $2
-            matches!(order.field, AccountOrderField::Age),              // $3
-            matches!(order.field, AccountOrderField::Amount),           // $4
-            matches!(order.field, AccountOrderField::TransactionCount), // $5
-            matches!(order.field, AccountOrderField::DelegatedStake),   // $6
-            include_only_delegators,                                    // $7
-            query.is_last != matches!(order.dir, OrderDir::Desc),       // $8
-            query.limit,                                                // $9
-            matches!(order.dir, OrderDir::Desc),                        // $10
-            query.from.inner.field,                                                 // $11
-            query.to.inner.field,                                                   // $12
-            query.from.inner.account_id,                                                 // $13
-            query.to.inner.account_id,                                                   // $14
-        )
-        .fetch(pool);
+                query.from.inner.account_id,                      // $1
+                query.to.inner.account_id,                        // $2
+                matches!(order.field, AccountOrderField::Age),    // $3
+                matches!(order.field, AccountOrderField::Amount), // $4
+                matches!(order.field, AccountOrderField::TransactionCount), // $5
+                matches!(order.field, AccountOrderField::DelegatedStake), // $6
+                include_only_delegators,                          // $7
+                query.is_last != matches!(order.dir, OrderDir::Desc), // $8
+                query.limit,                                      // $9
+                query.from.inner.field,                           // $10
+                query.to.inner.field,                             // $11
+            )
+            .fetch(pool);
 
-            let mut connection = connection::Connection::new(true, true);
+            let mut connection = connection::Connection::new(false, false);
 
             while let Some(account) = accounts.try_next().await? {
-                let cursor = AccountFieldDescCursor::delegated_stake(&account);
+                let cursor = Reversed::<AccountFieldDescCursor> {
+                    inner: AccountFieldDescCursor::new(order.field, &account),
+                };
+
                 connection.edges.push(connection::Edge::new(cursor.encode_cursor(), account));
             }
 
@@ -367,49 +375,82 @@ impl QueryAccounts {
             {
                 let bounds = sqlx::query!(
                     "WITH
-                    min_account as (
-                        SELECT index, delegated_stake FROM accounts
-                        WHERE 
-                            -- Need to filter for only delegators if the user requests this.
-                            (NOT $1 OR delegated_stake > 0)
-                        ORDER BY delegated_stake DESC, index DESC
-                        LIMIT 1
-                    ),
-                    max_account as (
-                        SELECT index, delegated_stake FROM accounts
-                        WHERE 
-                            -- Need to filter for only delegators if the user requests this.
-                            (NOT $1 OR delegated_stake > 0)
-                        ORDER BY delegated_stake ASC, index ASC
-                        LIMIT 1
-                    )
-                SELECT
-                    min_account.index AS min_index,
-                    min_account.delegated_stake AS min_value,
-                    max_account.index AS max_index,
-                    max_account.delegated_stake AS max_value
-                FROM min_account, max_account",
-                    include_only_delegators
+                        min_account as (
+                            SELECT index, 
+                                CASE 
+                                    WHEN $2 THEN index 
+                                    WHEN $3 THEN amount
+                                    WHEN $4 THEN num_txs
+                                    WHEN $5 THEN delegated_stake
+                                ELSE NULL 
+                            END AS min_value
+                            FROM accounts
+                            WHERE 
+                                -- Need to filter for only delegators if the user requests this.
+                                (NOT $1 OR delegated_stake > 0)
+                            ORDER BY min_value ASC, index ASC
+                            LIMIT 1
+                        ),
+                        max_account as (
+                            SELECT 
+                                index,
+                                CASE 
+                                    WHEN $2 THEN index 
+                                    WHEN $3 THEN amount
+                                    WHEN $4 THEN num_txs
+                                    WHEN $5 THEN delegated_stake
+                                ELSE NULL 
+                                END AS max_value
+                            FROM accounts
+                            WHERE 
+                                -- Need to filter for only delegators if the user requests this.
+                                (NOT $1 OR delegated_stake > 0)
+                            ORDER BY max_value DESC, index DESC
+                            LIMIT 1
+                        )
+                    SELECT
+                        min_account.index AS min_index,
+                        min_account.min_value AS min_value,
+                        max_account.index AS max_index,
+                        max_account.max_value AS max_value
+                    FROM min_account, max_account",
+                    include_only_delegators,                          // $1
+                    matches!(order.field, AccountOrderField::Age),    // $2
+                    matches!(order.field, AccountOrderField::Amount), // $3
+                    matches!(order.field, AccountOrderField::TransactionCount), // $4
+                    matches!(order.field, AccountOrderField::DelegatedStake), // $5
                 )
                 .fetch_optional(pool)
                 .await?;
 
                 if let Some(bounds) = bounds {
-                    let collection_start_cursor = AccountFieldDescCursor {
-                        account_id: bounds.min_index,
-                        field:      bounds.min_value,
-                    };
+                    if let (Some(min_value), Some(max_value), max_index, min_index) =
+                        (bounds.min_value, bounds.max_value, bounds.max_index, bounds.min_index)
+                    {
+                        let collection_start_cursor = Reversed::<AccountFieldDescCursor> {
+                            inner: AccountFieldDescCursor {
+                                account_id: min_index,
+                                field:      min_value,
+                            },
+                        };
 
-                    let collection_end_cursor = AccountFieldDescCursor {
-                        account_id: bounds.max_index,
-                        field:      bounds.max_value,
-                    };
+                        let collection_end_cursor = Reversed::<AccountFieldDescCursor> {
+                            inner: AccountFieldDescCursor {
+                                account_id: max_index,
+                                field:      max_value,
+                            },
+                        };
 
-                    connection.has_previous_page = collection_start_cursor
-                        < AccountFieldDescCursor::delegated_stake(&edge_min_index.node);
+                        let page_start_cursor = Reversed::<AccountFieldDescCursor> {
+                            inner: AccountFieldDescCursor::new(order.field, &edge_min_index.node),
+                        };
+                        let page_end_cursor = Reversed::<AccountFieldDescCursor> {
+                            inner: AccountFieldDescCursor::new(order.field, &edge_max_index.node),
+                        };
 
-                    connection.has_next_page = collection_end_cursor
-                        > AccountFieldDescCursor::delegated_stake(&edge_max_index.node);
+                        connection.has_previous_page = collection_start_cursor < page_start_cursor;
+                        connection.has_next_page = collection_end_cursor > page_end_cursor;
+                    }
                 }
             }
             Ok(connection)
@@ -550,13 +591,13 @@ impl AccountReleaseScheduleItem {
     async fn amount(&self) -> ApiResult<Amount> { Ok(self.amount.try_into()?) }
 }
 
-/// Cursor for `Query::bakers` when sorting by the baker/validator by some
-/// field, like the delegator count or the total staked amount.
+/// Cursor for `Query::accounts` when sorting by the account by some
+/// field, like the `delegated_stake`, `transaction_count` or `amount`.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 struct AccountFieldDescCursor {
     /// The cursor value of the relevant sorting field.
     field:      i64,
-    /// The baker id representing the pool of the cursor.
+    /// The account id representing the pool of the cursor.
     account_id: i64,
 }
 impl AccountFieldDescCursor {
@@ -567,27 +608,35 @@ impl AccountFieldDescCursor {
         }
     }
 
-    // TODO
-    // fn index(row: &Account) -> Self {
-    //     AccountFieldDescCursor {
-    //         field: row.index,
-    //         account_id: row.index,
-    //     }
-    // }
+    fn index(row: &Account) -> Self {
+        AccountFieldDescCursor {
+            field:      row.index,
+            account_id: row.index,
+        }
+    }
 
-    // fn amount(row: &Account) -> Self {
-    //     AccountFieldDescCursor {
-    //         field: row.amount,
-    //         account_id: row.index,
-    //     }
-    // }
+    fn amount(row: &Account) -> Self {
+        AccountFieldDescCursor {
+            field:      row.amount,
+            account_id: row.index,
+        }
+    }
 
-    // fn num_txs(row: &Account) -> Self {
-    //     AccountFieldDescCursor {
-    //         field: row.num_txs,
-    //         account_id: row.index,
-    //     }
-    // }
+    fn transaction_count(row: &Account) -> Self {
+        AccountFieldDescCursor {
+            field:      row.num_txs,
+            account_id: row.index,
+        }
+    }
+
+    fn new(field: AccountOrderField, node: &Account) -> Self {
+        match field {
+            AccountOrderField::Age => Self::index(node),
+            AccountOrderField::Amount => Self::amount(node),
+            AccountOrderField::TransactionCount => Self::transaction_count(node),
+            AccountOrderField::DelegatedStake => Self::delegated_stake(node),
+        }
+    }
 }
 
 impl connection::CursorType for AccountFieldDescCursor {
