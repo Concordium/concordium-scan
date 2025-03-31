@@ -15,6 +15,13 @@ To run the services, the following dependencies are required to be available on 
 
 - PostgreSQL server 16 or higher
 
+## Deploying new versions into production
+
+A new database schema is either `destructive` (e.g. removing existing columns/tables) or `non-destructive` (e.g. adding new columns/tables).
+
+If the new version of the services introduced a new database schema that is `non-destructive`, update the `indexer` service to the new version and run the database migration, then update all `api` services. 
+If the new version of the services introduced a new database schema that is `destructive`, update all `api` services to the new version, then update the `indexer` service to the new version and run the database migration.
+
 ## Run the Indexer Service
 
 The indexer talks to a Concordium node in order to gather data about the chain, which it then inserts into a PostgreSQL database.
@@ -192,9 +199,10 @@ Database migrations are tracked in the `src/migrations.rs` file and every versio
 
 To introduce a new database schema version:
 
-#. Extend the `SchemaVersion` enum with a variant representing changes since previous version.
-#. Extend functions found in `impl SchemaVersion`. Every required function should produce compile-time errors for the now missing variant.
-#. Enable by setting `SchemaVersion::LATEST` to this new variant.
+- Extend the `SchemaVersion` enum with a variant representing changes since previous version.
+- Extend functions found in `impl SchemaVersion`. Every required function should produce compile-time errors for the now missing variant.
+- Enable the new schema by setting `SchemaVersion::LATEST` to the new variant.
+- Evaluate if the minimum `SchemaVersion::API_SUPPORTED_SCHEMA_VERSION` needs to be set to the new variant (update only if the API service was updated and is not compatible with older database schemas anymore).
 
 ### Compile-time checked queries feature
 

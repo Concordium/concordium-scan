@@ -16,6 +16,7 @@ mod m0015_pool_rewards;
 mod m0019_payday_stake_information;
 mod m0020_chain_update_events;
 mod m0021_amounts_schedule;
+mod m0023_add_init_parameter;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.
@@ -236,14 +237,18 @@ pub enum SchemaVersion {
     AmountSchedule,
     #[display("0022:Fix corrupted passive delegators")]
     FixCorruptedPassiveDelegators,
+    #[display("0023:Add input parameter to init transactions")]
+    AddInputParameterToInitTransactions,
+    #[display("0024:Precompute validators APYs")]
+    BakerPeriodApyViews,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
-    /// Fails at startup if any breaking database schema versions have been
-    /// introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::AmountSchedule;
+    /// Fails at startup if any breaking (destructive) database schema versions
+    /// have been introduced since this version.
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::BakerPeriodApyViews;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::FixCorruptedPassiveDelegators;
+    const LATEST: SchemaVersion = SchemaVersion::BakerPeriodApyViews;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -256,6 +261,10 @@ impl SchemaVersion {
 
     /// Whether introducing the database schema version is destructive, meaning
     /// not backwards compatible.
+    /// Note: We use match statements here to catch missing variants at
+    /// compile-time. This enforces explicit evaluation when adding a new
+    /// database schema, ensuring awareness of whether the change is
+    /// destructive.
     fn is_destructive(self) -> bool {
         match self {
             SchemaVersion::Empty => false,
@@ -281,10 +290,15 @@ impl SchemaVersion {
             SchemaVersion::ChainUpdateEvents => false,
             SchemaVersion::AmountSchedule => false,
             SchemaVersion::FixCorruptedPassiveDelegators => false,
+            SchemaVersion::AddInputParameterToInitTransactions => false,
+            SchemaVersion::BakerPeriodApyViews => false,
         }
     }
 
     /// Whether the database schema version is a partial migration.
+    /// Note: We use match statements here to catch missing variants at
+    /// compile-time. This enforces explicit evaluation when adding a new
+    /// database schema, ensuring awareness of whether the change is partial.
     fn is_partial(self) -> bool {
         match self {
             SchemaVersion::Empty => false,
@@ -310,6 +324,8 @@ impl SchemaVersion {
             SchemaVersion::ChainUpdateEvents => false,
             SchemaVersion::AmountSchedule => false,
             SchemaVersion::FixCorruptedPassiveDelegators => false,
+            SchemaVersion::AddInputParameterToInitTransactions => false,
+            SchemaVersion::BakerPeriodApyViews => false,
         }
     }
 
@@ -450,7 +466,23 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::FixCorruptedPassiveDelegators
             }
-            SchemaVersion::FixCorruptedPassiveDelegators => unimplemented!(
+            SchemaVersion::FixCorruptedPassiveDelegators => {
+                m0023_add_init_parameter::run(
+                    &mut tx,
+                    endpoints,
+                    SchemaVersion::AddInputParameterToInitTransactions,
+                )
+                .await?
+            }
+            SchemaVersion::AddInputParameterToInitTransactions => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0024-baker-apy-materialized-view.sql"
+                    )))
+                    .await?;
+                SchemaVersion::BakerPeriodApyViews
+            }
+            SchemaVersion::BakerPeriodApyViews => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),

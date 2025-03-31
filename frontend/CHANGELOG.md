@@ -4,8 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.7.9] - 2025-03-27
+
 ### Changed
 
+- Change queries `useTransactionReleaseSchedule` and `useTransactionQuery` to use the new `rust-backend` API.
+- Change query `usePassiveDelegationQuery` to use the new `rust-backend` API.
 - Change queries `useVersionsQuery`, `useTopDelegatorsQuery` and `usePaydayStatusQuery` to use the new `rust-backend` API.
 
 ## [1.7.8] - 2025-03-21

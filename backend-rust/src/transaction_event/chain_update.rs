@@ -54,7 +54,7 @@ pub enum ChainUpdatePayload {
     CooldownParameters(CooldownParametersChainUpdatePayload),
     PoolParameters(PoolParametersChainUpdatePayload),
     TimeParameters(TimeParametersChainUpdatePayload),
-    ValidatorScoreParameters(ValidatorScoreParametersChainUpdatePayload),
+    ValidatorScoreParameters(ValidatorScoreParametersUpdate),
 }
 
 #[derive(SimpleObject, Serialize, Deserialize)]
@@ -210,8 +210,8 @@ pub struct MintDistributionV1ChainUpdatePayload {
 }
 
 #[derive(SimpleObject, Serialize, Deserialize)]
-pub struct ValidatorScoreParametersChainUpdatePayload {
-    maxiumum_missed_rounds: UnsignedLong,
+pub struct ValidatorScoreParametersUpdate {
+    maximum_missed_rounds: UnsignedLong,
 }
 
 /// Implement conversion from the Concordium SDK's UpdatePayload type to the
@@ -391,11 +391,9 @@ impl From<UpdatePayload> for ChainUpdatePayload {
                 )
             }
             UpdatePayload::ValidatorScoreParametersCPV3(update) => {
-                ChainUpdatePayload::ValidatorScoreParameters(
-                    ValidatorScoreParametersChainUpdatePayload {
-                        maxiumum_missed_rounds: UnsignedLong(update.max_missed_rounds),
-                    },
-                )
+                ChainUpdatePayload::ValidatorScoreParameters(ValidatorScoreParametersUpdate {
+                    maximum_missed_rounds: UnsignedLong(update.max_missed_rounds),
+                })
             }
         }
     }

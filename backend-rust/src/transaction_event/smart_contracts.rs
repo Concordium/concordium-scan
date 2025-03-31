@@ -58,12 +58,61 @@ pub struct ContractInitialized {
     pub amount:            Amount,
     pub init_name:         String,
     pub version:           ContractVersion,
+    pub input_parameter:   Option<Vec<u8>>,
     // All logged events by the smart contract during the transaction execution.
     pub contract_logs_raw: Vec<Vec<u8>>,
 }
 
 #[ComplexObject]
 impl ContractInitialized {
+    async fn message_as_hex(&self) -> ApiResult<Option<String>> {
+        Ok(self.input_parameter.as_ref().map(hex::encode))
+    }
+
+    async fn message<'a>(&self, ctx: &Context<'a>) -> ApiResult<Option<String>> {
+        let Some(input_parameter)=&self.input_parameter  else {
+            return Ok(None);
+        };
+        let pool = get_pool(ctx)?;
+        let row = sqlx::query!(
+            "
+            SELECT
+                name as contract_name,
+                schema as display_schema
+            FROM contracts
+            JOIN smart_contract_modules ON smart_contract_modules.module_reference = \
+             contracts.module_reference
+            WHERE index = $1 AND sub_index = $2
+            ",
+            self.contract_address.index.0 as i64,
+            self.contract_address.sub_index.0 as i64
+        )
+        .fetch_optional(pool)
+        .await?
+        .ok_or(ApiError::NotFound)?;
+
+        // Get the init param schema if it exists.
+        let opt_init_param_schema = if let Some(schema) = row.display_schema.as_ref() {
+            let versioned_schema = VersionedModuleSchema::new(schema, &None).map_err(|_| {
+                ApiError::InternalError(
+                    "Database bytes should be a valid VersionedModuleSchema".to_string(),
+                )
+            })?;
+
+            versioned_schema.get_init_param_schema(&row.contract_name).ok()
+        } else {
+            None
+        };
+
+        let decoded_input_parameter = decode_value_with_schema(
+            opt_init_param_schema.as_ref(),
+            input_parameter,
+            SmartContractSchemaNames::InputParameterInitFunction,
+        )?;
+
+        Ok(Some(decoded_input_parameter))
+    }
+
     async fn events_as_hex(&self) -> ApiResult<connection::Connection<String, String>> {
         let mut connection = connection::Connection::new(true, true);
 
@@ -364,12 +413,17 @@ struct SchemaName {
 enum SmartContractSchemaNames {
     Event,
     InputParameterReceiveFunction,
+    InputParameterInitFunction,
 }
 
 impl SmartContractSchemaNames {
     pub const EVENT: SchemaName = SchemaName {
         type_name:  "event",
         value_name: "contract log",
+    };
+    pub const INPUT_PARAMETER_INIT_FUNCTION: SchemaName = SchemaName {
+        type_name:  "init parameter",
+        value_name: "input parameter of init function",
     };
     pub const INPUT_PARAMETER_RECEIVE_FUNCTION: SchemaName = SchemaName {
         type_name:  "receive parameter",
@@ -382,6 +436,9 @@ impl SmartContractSchemaNames {
             SmartContractSchemaNames::InputParameterReceiveFunction => {
                 Self::INPUT_PARAMETER_RECEIVE_FUNCTION.value_name
             }
+            SmartContractSchemaNames::InputParameterInitFunction => {
+                Self::INPUT_PARAMETER_INIT_FUNCTION.value_name
+            }
         }
     }
 
@@ -390,6 +447,9 @@ impl SmartContractSchemaNames {
             SmartContractSchemaNames::Event => Self::EVENT.type_name,
             SmartContractSchemaNames::InputParameterReceiveFunction => {
                 Self::INPUT_PARAMETER_RECEIVE_FUNCTION.type_name
+            }
+            SmartContractSchemaNames::InputParameterInitFunction => {
+                Self::INPUT_PARAMETER_INIT_FUNCTION.type_name
             }
         }
     }

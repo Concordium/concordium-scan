@@ -4,10 +4,44 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.43] - 2025-03-27
+
 ### Fixed
 
+- Fix issue for database migration 23 where it failed when processing a transaction containing a rejected smart contract initialization.
+
+## [0.1.42] - 2025-03-27
+
+Database schema version: 24
+
+### Added
+
+- Add database migration 24 precomputing the APYs for each validator pool over 30 days and 7 days.
+- Support for `Query::bakers` sorting options: validator APY and delegators APY.
+- Add database migration 23 adding the `input_parameter` to `ContractInitializedEvents`.
+- Expose the hex-encoded and schema-decoded input parameter of init functions via `ContractInitialized::message_as_hex` and `ContractInitialized::message` queries.
+
+## [0.1.41] - 2025-03-26
+
+Database schema version: 22
+
+### Added
+
+- `baker_id` to `AccountAddress` in transaction events.
+
+### Fixed
+
+- Fixed bug when setting `--log-level` causing some project logs to be filtered out, and filter dependencies to `info` level. This behavior can be overwritten using `RUST_LOG`.
+
+## [0.1.40] - 2025-03-26
+
+Database schema version: 22
+
+### Fixed
+
+- Rename `ValidatorScoreParametersChainUpdatePayload` to `ValidatorScoreParametersUpdate` for backwards compatibility on dotnet
 - Fix the `AccountByAddress::transactionCount` query to return the number of transactions the account has been involved in or
-affected by. Expose the `AccountByAddress::nonce` query to return the account nonce.
+  affected by. Expose the `AccountByAddress::nonce` query to return the account nonce.
 
 ## [0.1.39] - 2025-03-25
 
