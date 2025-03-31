@@ -5,13 +5,7 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import {
-	Chart,
-	registerables,
-	type Scale,
-	type ChartOptions,
-	type TooltipItem,
-} from 'chart.js/dist/chart.esm'
+import { Chart, registerables, type TooltipItem } from 'chart.js/dist/chart.esm'
 import type { LabelFormatterFunc } from './ChartUtils'
 import { prettyFormatBucketDuration } from '~/utils/format'
 
@@ -31,16 +25,26 @@ const chartData = {
 	datasets: [
 		{
 			label: '',
+			borderWidth: 0,
 			data: props.yValues?.filter(x => x !== undefined) || [],
-			borderColor: '#39DBAA',
 			fill: 'start',
 			tension: 0.1,
 			spanGaps: false,
-			borderRadius: 4,
+			borderRadius: 8,
 			pointRadius: 0, // Disables the small points
-			// pointHitRadius: 10, // Disables the tooltip
 			hoverBackgroundColor: '#FFFFFF',
-			backgroundColor: '#39DBAA',
+			backgroundColor: [
+				'#2AE8B8', // Bright Mint
+				'#3C8AFF', // Vivid Blue
+				'#FFD116', // Gold Yellow
+				'#FFB21D', // Rich Amber
+				'#4FD1FF', // Aqua Blue
+				'#1CC6AE', // Electric Teal
+				'#A393FF', // Periwinkle
+				'#FF6B6B', // Coral Red
+				'#D9D9D9', // Silver Grey
+				'#FFA3D7', // Soft Pink
+			],
 		},
 	],
 }
@@ -64,18 +68,15 @@ watch(props, () => {
 })
 
 const defaultOptions = ref({
-	indexAxis: 'y', // Makes the bar chart horizontal
+	indexAxis: 'y', // Horizontal bar chart
 	plugins: {
 		legend: {
 			display: false,
-			title: {
-				display: false,
-			},
-			datalabels: {
-				anchor: 'end', // Position at the top of each bar
-				align: 'top',
-				color: '#fff', // Set text color to white
-			},
+		},
+		datalabels: {
+			anchor: 'end',
+			align: 'top',
+			color: '#fff',
 		},
 		tooltip: {
 			callbacks: {
@@ -97,11 +98,8 @@ const defaultOptions = ref({
 
 	responsive: true,
 	maintainAspectRatio: false,
-	tooltip: {
-		mode: 'label',
-	},
 	layout: {
-		padding: { left: 10, right: 10, top: 10, bottom: 10 }, // Add spacing
+		padding: { left: 10, right: 40, top: 10, bottom: 10 },
 	},
 	interaction: {
 		mode: 'nearest',
@@ -110,53 +108,85 @@ const defaultOptions = ref({
 	},
 	scales: {
 		x: {
-			display: false,
-			grid: { display: false, drawBorder: false },
+			grid: {
+				display: false, // Ensure horizontal grid lines are visible
+				color: 'red', // Grid line color (change as needed)
+				lineWidth: 2, // Make grid lines more visible
+			},
 			ticks: {
-				autoSkip: false, // Ensure all x-axis labels are shown
+				display: false, // Hide x-axis labels, but keep grid lines
 			},
 		},
-		xAxes: {
-			display: false,
-			ticks: {
-				display: false,
-			},
-		},
-
 		y: {
 			beginAtZero: props.beginAtZero,
-			axis: 'y',
-			display: false,
-			grid: { display: false, drawBorder: false },
+			grid: {
+				display: true, // Ensure horizontal grid lines are visible
+				color: '#FFFFFF', // Grid line color (change as needed)
+				lineWidth: 0.1, // Make grid lines more visible
+			}, // Hide vertical grid lines
 			ticks: {
-				display: true,
+				display: true, // Ensure Y-axis labels are visible
 				color: '#ffffff',
-				mirror: true,
-				position: 'right',
-				padding: 0,
-				margin: 2,
-				labelOffset: -5,
 				autoSkip: false,
-				suggestedMin: 0,
 			},
-			padding: 0,
-			margin: 0,
-			afterFit: (axis: Scale) => {
-				axis.paddingBottom = 0
-			},
-		},
-		yAxes: {
-			display: true,
 		},
 	},
 })
+
+const formatNumber = (num?: number): string => {
+	if (typeof num !== 'number' || isNaN(num)) return '$0'
+
+	const format = (value: number, suffix: string) =>
+		value % 1 === 0 ? `$${value}${suffix}` : `$${value.toFixed(1)}${suffix}`
+
+	return num >= 1e12
+		? format(num / 1e12, 'T')
+		: num >= 1e9
+		? format(num / 1e9, 'B')
+		: num >= 1e6
+		? format(num / 1e6, 'M')
+		: num >= 1e3
+		? format(num / 1e3, 'K')
+		: `$${num}`
+}
+
 let chartInstance: Chart
 onMounted(() => {
 	chartInstance = new Chart(canvasRef.value, {
-		data: chartData,
-
 		type: 'bar',
-		options: defaultOptions.value as ChartOptions<'bar'>,
+		data: chartData,
+		options: {
+			...defaultOptions.value,
+			animation: {
+				onComplete: function () {
+					if (!chartInstance) return
+
+					const ctx = chartInstance.ctx
+					if (!ctx) return
+
+					ctx.font = '11px'
+					ctx.fillStyle = '#FFFFFF'
+					ctx.textAlign = 'center'
+					ctx.textBaseline = 'bottom'
+
+					chartInstance.data.datasets.forEach((dataset, i) => {
+						const meta = chartInstance.getDatasetMeta(i)
+						meta.data.forEach((bar, index) => {
+							const rawValue = dataset.data[index]
+							if (rawValue !== null) {
+								const formattedValue = formatNumber(rawValue)
+								const x = bar.x + 10 + 10
+								const y = bar.y + 5
+								ctx.fillText(formattedValue, x, y)
+							}
+						})
+					})
+				},
+			},
+		},
 	})
+
+	// Ensure chartInstance is properly assigned
+	chartInstance.update()
 })
 </script>

@@ -33,6 +33,7 @@ const chartData = computed(() => ({
 	datasets: [
 		{
 			data: props.data || [],
+			borderWidth: 0,
 			backgroundColor: props.backgroundColors || [
 				'#39DBAA',
 				'#FF6384',
@@ -46,7 +47,6 @@ const chartData = computed(() => ({
 			],
 			hoverBorderColor: props.hoverBorderColor || '#FFFFFF',
 			hoverOffset: 4,
-			borderWidth: 1,
 		},
 	],
 }))
@@ -61,6 +61,7 @@ const defaultOptions: ChartOptions<'doughnut'> = {
 				pointStyle: 'circle', // Ensures legends appear as circles
 				padding: 10, // Adds space between legend items
 				color: '#ffffff',
+				borderWidth: 0,
 			},
 		},
 		tooltip: {
@@ -71,7 +72,8 @@ const defaultOptions: ChartOptions<'doughnut'> = {
 						0
 					)
 					const value = context.raw as number
-					const percentage = ((value / total) * 100).toFixed(2) + '%'
+					const percentage =
+						total > 0 ? ((value / total) * 100).toFixed(2) + '%' : '0%'
 					return props.labelFormatter
 						? props.labelFormatter(context)
 						: `${context.label}: ${context.parsed} (${percentage})`
