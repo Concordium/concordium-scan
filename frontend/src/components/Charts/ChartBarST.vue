@@ -1,7 +1,7 @@
 ﻿<template>
-	<div class="relative w-full h-[300px]" style="height: 300px">
+	<div class="relative w-full h-[450px]" style="height: 450px">
 		<!-- Adjust height -->
-		<canvas ref="canvasRef" />
+		<canvas ref="canvasRef" width="450" height="450" />
 	</div>
 </template>
 <script lang="ts" setup>
@@ -35,8 +35,8 @@ const chartData = {
 			borderColor: '#39DBAA',
 			fill: 'start',
 			tension: 0.1,
-			spanGaps: true,
-			borderRadius: 0,
+			spanGaps: false,
+			borderRadius: 4,
 			pointRadius: 0, // Disables the small points
 			// pointHitRadius: 10, // Disables the tooltip
 			hoverBackgroundColor: '#FFFFFF',
@@ -70,6 +70,11 @@ const defaultOptions = ref({
 			display: false,
 			title: {
 				display: false,
+			},
+			datalabels: {
+				anchor: 'end', // Position at the top of each bar
+				align: 'top',
+				color: '#fff', // Set text color to white
 			},
 		},
 		tooltip: {

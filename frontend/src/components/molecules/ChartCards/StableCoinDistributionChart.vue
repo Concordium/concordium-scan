@@ -2,19 +2,55 @@
 	<div>
 		<DistributionChart
 			:is-loading="isLoading"
-			:stable-coins-data="stableCoinsData"
+			:stable-coins-data="delayedSupplyPercentage"
 		>
 			<template #title> Distribution Supply StableCoin </template>
 		</DistributionChart>
 	</div>
 </template>
+
 <script lang="ts" setup>
-// import type { StableCoinsQueryResponse } from '~/queries/useStableCoinQuery';
+import { ref, watchEffect, defineProps } from 'vue'
+import type { StablecoinResponse } from '~/queries/useStableCoinQuery'
 import DistributionChart from '../DistributionChart.vue'
+
+type StableCoin = {
+	totalSupply?: number
+	symbol?: string
+	supplyPercentage?: string
+	totalUniqueHolder?: number
+}
+
 type Props = {
-	stableCoinsData: Array<unknown> | undefined
+	stableCoinsData?: StablecoinResponse
 	isLoading?: boolean
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+
+const delayedSupplyPercentage = ref<StableCoin[]>([])
+
+watchEffect(() => {
+	const stablecoins = props.stableCoinsData?.stablecoins || []
+
+	if (stablecoins.length === 0) {
+		delayedSupplyPercentage.value = []
+		return
+	}
+
+	setTimeout(() => {
+		const totalSupplySum = stablecoins.reduce(
+			(sum, coin) => sum + (coin.totalSupply || 0),
+			0
+		)
+
+		delayedSupplyPercentage.value = stablecoins.map(coin => ({
+			...coin,
+			supplyPercentage:
+				totalSupplySum > 0
+					? ((coin.totalSupply! / totalSupplySum) * 100).toFixed(2)
+					: '0',
+		}))
+	}, 1000)
+})
 </script>

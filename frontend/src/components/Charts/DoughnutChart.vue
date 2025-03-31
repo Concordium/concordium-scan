@@ -1,6 +1,6 @@
 <template>
 	<div class="relative">
-		<canvas ref="canvasRef" />
+		<canvas ref="canvasRef" width="450" height="450" />
 	</div>
 </template>
 
@@ -54,7 +54,14 @@ const chartData = computed(() => ({
 const defaultOptions: ChartOptions<'doughnut'> = {
 	plugins: {
 		legend: {
-			display: false,
+			display: true,
+			position: 'left', // Adjust position if needed
+			labels: {
+				usePointStyle: true, // Enables circular legends
+				pointStyle: 'circle', // Ensures legends appear as circles
+				padding: 10, // Adds space between legend items
+				color: '#ffffff',
+			},
 		},
 		tooltip: {
 			callbacks: {

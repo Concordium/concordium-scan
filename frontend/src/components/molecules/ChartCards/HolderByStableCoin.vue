@@ -2,9 +2,9 @@
 	<div>
 		<DistributionChartBar
 			:stable-coins-data="stableCoinsData"
-			chart-type="supply"
+			chart-type="uniqueHolders"
 		>
-			<template #title> StableCoin Supply </template>
+			<template #title> Holder by Stablecoin </template>
 		</DistributionChartBar>
 	</div>
 </template>
