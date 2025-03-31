@@ -4,8 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+Database schema version: 25
+
 ### Fixed
 
+- Add database migration 25 reindexing the stake for delegators to the passive pool.
+  The stakes for these delegators got offset by a bug in migration 13, which did not update the passive delegators properly.
+  This was fixed again in migration 22, but the passive delegators with restake_earnings enabled missed their increase in stake due to this.
 - Fixed `PassiveDelegation::delegators` sorting and page information.
 - Fix accidental breaking change due to typo in `BakerSort` variants `BAKER_APY30_DAYS_DESC` and `DELEGATOR_APY30_DAYS_DESC`.
 

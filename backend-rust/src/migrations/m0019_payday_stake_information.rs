@@ -3,7 +3,6 @@
 //! This is then used to compute the APY.
 
 use std::time::Duration;
-
 use super::{SchemaVersion, Transaction};
 use anyhow::Context;
 use concordium_rust_sdk::{common::types::Amount, types::AbsoluteBlockHeight, v2};
