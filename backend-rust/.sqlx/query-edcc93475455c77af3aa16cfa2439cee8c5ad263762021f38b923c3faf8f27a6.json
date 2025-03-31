@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT \n                    COUNT(*) AS delegator_count,\n                    SUM(delegated_stake) AS delegated_stake,\n                    MAX(payday_transaction_commission) as payday_transaction_commission,\n                    MAX(payday_baking_commission) as payday_baking_commission,             \n                    MAX(payday_finalization_commission) as payday_finalization_commission\n                FROM accounts \n                    CROSS JOIN passive_delegation_payday_commission_rates\n                WHERE delegated_target_baker_id IS NULL AND\n                    delegated_stake != 0\n            ",
+  "query": "\n                SELECT\n                    COUNT(*) AS delegator_count,\n                    SUM(delegated_stake) AS delegated_stake,\n                    MAX(payday_transaction_commission) as payday_transaction_commission,\n                    MAX(payday_baking_commission) as payday_baking_commission,\n                    MAX(payday_finalization_commission) as payday_finalization_commission\n                FROM accounts\n                    CROSS JOIN passive_delegation_payday_commission_rates\n                WHERE delegated_target_baker_id IS NULL AND\n                    delegated_stake != 0\n            ",
   "describe": {
     "columns": [
       {
@@ -40,5 +40,5 @@
       null
     ]
   },
-  "hash": "7a24f337f351e6bc1df87397853f09e2895b6f6cc1f2bb7a1a10039c8f2d027e"
+  "hash": "edcc93475455c77af3aa16cfa2439cee8c5ad263762021f38b923c3faf8f27a6"
 }

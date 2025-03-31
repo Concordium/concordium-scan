@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Fixed `PassiveDelegation::delegators` sorting and page information.
 - Fix accidental breaking change due to typo in `BakerSort` variants `BAKER_APY30_DAYS_DESC` and `DELEGATOR_APY30_DAYS_DESC`.
 
 ## [0.1.43] - 2025-03-27
