@@ -1,6 +1,6 @@
 [package]
 name = "concordium-scan"
-version = "0.1.38"
+version = "0.1.43"
 edition = "2021"
 description = "CCDScan: Indexer and API for the Concordium blockchain"
 authors = ["Concordium <developers@concordium.com>"]
@@ -30,7 +30,7 @@ thiserror = "1.0"
 tokio = { version = "1.37", features = ["rt-multi-thread", "sync", "signal"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
 tracing = "0.1"
-tracing-subscriber = "0.3"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 rust_decimal = "1.35"
 iso8601-duration = { version = "0.2", features = ["chrono"] }
 tokio-util = "0.7"

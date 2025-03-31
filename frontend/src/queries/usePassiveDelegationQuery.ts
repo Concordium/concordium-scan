@@ -108,6 +108,7 @@ export const usePassiveDelegationQuery = (
 	pagingVariables: PassiveDelegationQueryVariables
 ) => {
 	const { data, fetching, error } = useQuery({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: PassiveDelegationQuery,
 		requestPolicy: 'cache-first',
 		variables: {

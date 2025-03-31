@@ -4,12 +4,12 @@ use anyhow::{anyhow, Context};
 use async_graphql::futures_util::StreamExt;
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
-    types::{AbsoluteBlockHeight, BlockItemSummaryDetails},
+    types::{AbsoluteBlockHeight, AccountTransactionEffects, BlockItemSummaryDetails},
     v2::{self},
 };
 
 /// Performs a migration that alters the events types for transactions of type
-/// Update
+/// `Account::InitializeSmartContractInstance`
 pub async fn run(
     tx: &mut Transaction,
     endpoints: &[v2::Endpoint],
@@ -29,7 +29,7 @@ pub async fn run(
                 (SELECT slot_time FROM blocks WHERE height = block_height) as block_slot_time,
                 COUNT(*) AS update_count
             FROM transactions
-            WHERE type = 'Update'
+            WHERE type = 'Account' AND type_account = 'InitializeSmartContractInstance' AND success
             GROUP BY block_height
             ",
     )
@@ -47,9 +47,16 @@ pub async fn run(
             .await?
             .response;
         while let Some(summary) = block_summary.next().await.transpose()? {
-            let BlockItemSummaryDetails::Update(_) = &summary.details else {
-                continue
+            let BlockItemSummaryDetails::AccountTransaction(details) = &summary.details else {
+                continue;
             };
+            let AccountTransactionEffects::ContractInitialized {
+                data: _,
+            } = details.effects
+            else {
+                continue;
+            };
+
             let events = events_from_summary(summary.details, block_slot_time)?;
             let json = serde_json::to_value(events)?;
             let hash = summary.hash.to_string();

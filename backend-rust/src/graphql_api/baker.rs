@@ -6,11 +6,11 @@ use super::{
     ApiError, ApiResult, ApiServiceConfig, ApyPeriod, ConnectionQuery,
 };
 use crate::{
-    connection::{ConcatCursor, ConnectionBounds, DescendingI64, Reversed},
-    graphql_api::{
-        node_status::{NodeInfoReceiver, NodeStatus},
-        todo_api,
+    connection::{
+        ConcatCursor, ConnectionBounds, DescendingI64, F64Cursor, NestedCursor, OptionCursor,
+        Reversed,
     },
+    graphql_api::node_status::{NodeInfoReceiver, NodeStatus},
     scalar_types::{Amount, BakerId, DateTime, Decimal, MetadataUrl},
     transaction_event::{baker::BakerPoolOpenStatus, Event},
     transaction_reject::TransactionRejectReason,
@@ -26,7 +26,7 @@ use async_graphql::{
 use bigdecimal::BigDecimal;
 use concordium_rust_sdk::types::AmountFraction;
 use futures::TryStreamExt;
-use sqlx::{postgres::types::PgInterval, PgPool};
+use sqlx::PgPool;
 use std::cmp::{max, min, Ordering};
 
 #[derive(Default)]
@@ -118,8 +118,32 @@ impl QueryBaker {
                 )
                 .await
             }
-            BakerSort::BakerApy30DaysDesc => todo_api!(),
-            BakerSort::DelegatorApy30DaysDesc => todo_api!(),
+            BakerSort::BakerApy30DaysDesc => {
+                Baker::baker_apy_desc_connection(
+                    config,
+                    pool,
+                    first,
+                    after,
+                    last,
+                    before,
+                    open_status_filter,
+                    include_removed_filter,
+                )
+                .await
+            }
+            BakerSort::DelegatorApy30DaysDesc => {
+                Baker::delegator_apy_desc_connection(
+                    config,
+                    pool,
+                    first,
+                    after,
+                    last,
+                    before,
+                    open_status_filter,
+                    include_removed_filter,
+                )
+                .await
+            }
             BakerSort::BlockCommissionsAsc => {
                 Baker::block_commission_asc_connection(
                     config,
@@ -342,8 +366,12 @@ impl Baker {
                     payday_ranking_by_lottery_powers as "payday_ranking_by_lottery_powers?",
                     (SELECT MAX(payday_ranking_by_lottery_powers) FROM bakers_payday_lottery_powers) as "payday_total_ranking_by_lottery_powers?",
                     pool_total_staked,
-                    pool_delegator_count
+                    pool_delegator_count,
+                    baker_apy,
+                    delegators_apy
                 FROM bakers
+                    LEFT JOIN latest_baker_apy_30_days
+                        ON latest_baker_apy_30_days.id = bakers.id
                     LEFT JOIN bakers_payday_commission_rates
                         ON bakers_payday_commission_rates.id = bakers.id
                     LEFT JOIN bakers_payday_lottery_powers
@@ -494,8 +522,12 @@ impl Baker {
                     payday_ranking_by_lottery_powers as "payday_ranking_by_lottery_powers?",
                     (SELECT MAX(payday_ranking_by_lottery_powers) FROM bakers_payday_lottery_powers) as "payday_total_ranking_by_lottery_powers?",
                     pool_total_staked,
-                    pool_delegator_count
+                    pool_delegator_count,
+                    baker_apy,
+                    delegators_apy
                 FROM bakers
+                    LEFT JOIN latest_baker_apy_30_days
+                        ON latest_baker_apy_30_days.id = bakers.id
                     LEFT JOIN bakers_payday_commission_rates
                         ON bakers_payday_commission_rates.id = bakers.id
                     LEFT JOIN bakers_payday_lottery_powers
@@ -509,8 +541,8 @@ impl Baker {
                     (CASE WHEN NOT $3 THEN bakers.id END) DESC
                 LIMIT $4
             ) ORDER BY id DESC"#,
-            &query.from.inner,                                 // $1
-            &query.to.inner,                                   // $2
+            &query.from.cursor,                                // $1
+            &query.to.cursor,                                  // $2
             query.is_last,                                     // $3
             query.limit,                                       // $4
             open_status_filter as Option<BakerPoolOpenStatus>  // $5
@@ -537,8 +569,8 @@ impl Baker {
                         (CASE WHEN NOT $3 THEN id END) DESC
                     LIMIT $4
                 ) ORDER BY id DESC",
-                query.from.inner,
-                query.to.inner,
+                query.from.cursor,
+                query.to.cursor,
                 query.is_last,
                 query.limit,
             )
@@ -643,8 +675,12 @@ impl Baker {
                     payday_ranking_by_lottery_powers as "payday_ranking_by_lottery_powers?",
                     (SELECT MAX(payday_ranking_by_lottery_powers) FROM bakers_payday_lottery_powers) as "payday_total_ranking_by_lottery_powers?",
                     pool_total_staked,
-                    pool_delegator_count
+                    pool_delegator_count,
+                    baker_apy,
+                    delegators_apy
                 FROM bakers
+                    LEFT JOIN latest_baker_apy_30_days
+                        ON latest_baker_apy_30_days.id = bakers.id
                     LEFT JOIN bakers_payday_commission_rates
                         ON bakers_payday_commission_rates.id = bakers.id
                     LEFT JOIN bakers_payday_lottery_powers
@@ -704,8 +740,8 @@ impl Baker {
                         (CASE WHEN NOT $3 THEN id END) DESC
                     LIMIT $4
                 ) ORDER BY id DESC",
-                query.from.inner,
-                query.to.inner,
+                query.from.cursor,
+                query.to.cursor,
                 query.is_last,
                 query.limit,
             )
@@ -890,8 +926,12 @@ impl Baker {
                     payday_ranking_by_lottery_powers as "payday_ranking_by_lottery_powers?",
                     (SELECT MAX(payday_ranking_by_lottery_powers) FROM bakers_payday_lottery_powers) as "payday_total_ranking_by_lottery_powers?",
                     pool_total_staked,
-                    pool_delegator_count
+                    pool_delegator_count,
+                    baker_apy,
+                    delegators_apy
                 FROM bakers
+                    LEFT JOIN latest_baker_apy_30_days
+                        ON latest_baker_apy_30_days.id = bakers.id
                     LEFT JOIN bakers_payday_commission_rates
                         ON bakers_payday_commission_rates.id = bakers.id
                     LEFT JOIN bakers_payday_lottery_powers
@@ -951,8 +991,8 @@ impl Baker {
                         (CASE WHEN NOT $3 THEN id END) DESC
                     LIMIT $4
                 ) ORDER BY id DESC",
-                query.from.inner,
-                query.to.inner,
+                query.from.cursor,
+                query.to.cursor,
                 query.is_last,
                 query.limit,
             )
@@ -1138,8 +1178,12 @@ impl Baker {
                     payday_ranking_by_lottery_powers as "payday_ranking_by_lottery_powers?",
                     (SELECT MAX(payday_ranking_by_lottery_powers) FROM bakers_payday_lottery_powers) as "payday_total_ranking_by_lottery_powers?",
                     pool_total_staked,
-                    pool_delegator_count
+                    pool_delegator_count,
+                    baker_apy,
+                    delegators_apy
                 FROM bakers
+                    LEFT JOIN latest_baker_apy_30_days
+                        ON latest_baker_apy_30_days.id = bakers.id
                     LEFT JOIN bakers_payday_commission_rates
                         ON bakers_payday_commission_rates.id = bakers.id
                     LEFT JOIN bakers_payday_lottery_powers
@@ -1201,8 +1245,8 @@ impl Baker {
                         (CASE WHEN NOT $3 THEN id END) DESC
                     LIMIT $4
                 ) ORDER BY id DESC",
-                query.from.inner,
-                query.to.inner,
+                query.from.cursor,
+                query.to.cursor,
                 query.is_last,
                 query.limit,
             )
@@ -1400,8 +1444,12 @@ impl Baker {
                     payday_ranking_by_lottery_powers as "payday_ranking_by_lottery_powers?",
                     (SELECT MAX(payday_ranking_by_lottery_powers) FROM bakers_payday_lottery_powers) as "payday_total_ranking_by_lottery_powers?",
                     pool_total_staked,
-                    pool_delegator_count
+                    pool_delegator_count,
+                    baker_apy,
+                    delegators_apy
                 FROM bakers
+                    LEFT JOIN latest_baker_apy_30_days
+                        ON latest_baker_apy_30_days.id = bakers.id
                     LEFT JOIN bakers_payday_commission_rates
                         ON bakers_payday_commission_rates.id = bakers.id
                     LEFT JOIN bakers_payday_lottery_powers
@@ -1420,10 +1468,10 @@ impl Baker {
                     (CASE WHEN NOT $5 THEN bakers.id                END) ASC
                 LIMIT $6
             ) ORDER BY "payday_baking_commission?" ASC NULLS FIRST, id ASC"#,
-                query.from.inner.field,                                  // $1
-                query.to.inner.field,                                    // $2
-                query.from.inner.baker_id,                               // $3
-                query.to.inner.baker_id,                                 // $4
+                query.from.cursor.field,                           // $1
+                query.to.cursor.field,                             // $2
+                query.from.cursor.baker_id,                        // $3
+                query.to.cursor.baker_id,                          // $4
                 query.is_last,                                     // $5
                 query.limit,                                       // $6
                 open_status_filter as Option<BakerPoolOpenStatus>  // $7
@@ -1621,6 +1669,600 @@ impl Baker {
         }
         Ok(connection)
     }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn baker_apy_desc_connection(
+        config: &ApiServiceConfig,
+        pool: &PgPool,
+        first: Option<u64>,
+        after: Option<String>,
+        last: Option<u64>,
+        before: Option<String>,
+        open_status_filter: Option<BakerPoolOpenStatus>,
+        include_removed_filter: bool,
+    ) -> ApiResult<connection::Connection<String, Baker>> {
+        /// Cursor type for the representing the removed validators ordered
+        /// descendingly by ID.
+        type RemovedBakerCursor = Reversed<BakerIdCursor>;
+        /// Cursor type for the current validators.
+        /// Ordered firstly by the optional bakers APY in descending order,
+        /// putting the bakers without an APY in the end. Secondly
+        /// ordered by the validators ID descendingly.
+        type BakerCursor = NestedCursor<OptionCursor<Reversed<F64Cursor>>, Reversed<BakerIdCursor>>;
+        /// Cursor type for this connection, which is the concatenation of the
+        /// current validators then followed by the removed validators (when
+        /// `include_removed_filter` is `true`).
+        type Cursor = ConcatCursor<BakerCursor, RemovedBakerCursor>;
+
+        /// Internal helper function for querying the current bakers sorted
+        /// by the apy in descending order.
+        async fn query_current_bakers(
+            query: ConnectionQuery<BakerCursor>,
+            open_status_filter: Option<BakerPoolOpenStatus>,
+            connection: &mut connection::Connection<String, Baker>,
+            pool: &PgPool,
+        ) -> ApiResult<()> {
+            let mut row_stream = sqlx::query_as!(
+                CurrentBaker,
+                r#"
+SELECT * FROM (SELECT
+    bakers.id AS id,
+    staked,
+    restake_earnings,
+    open_status as "open_status: BakerPoolOpenStatus",
+    metadata_url,
+    transaction_commission,
+    baking_commission,
+    finalization_commission,
+    payday_transaction_commission as "payday_transaction_commission?",
+    payday_baking_commission as "payday_baking_commission?",
+    payday_finalization_commission as "payday_finalization_commission?",
+    payday_lottery_power as "payday_lottery_power?",
+    payday_ranking_by_lottery_powers as "payday_ranking_by_lottery_powers?",
+    (SELECT MAX(payday_ranking_by_lottery_powers) FROM bakers_payday_lottery_powers)
+        AS "payday_total_ranking_by_lottery_powers?",
+    pool_total_staked,
+    pool_delegator_count,
+    self_suspended,
+    inactive_suspended,
+    primed_for_suspension,
+    baker_apy AS "baker_apy?",
+    delegators_apy AS "delegators_apy?"
+FROM bakers
+    LEFT JOIN latest_baker_apy_30_days ON latest_baker_apy_30_days.id = bakers.id
+    LEFT JOIN bakers_payday_lottery_powers ON bakers_payday_lottery_powers.id = bakers.id
+    LEFT JOIN bakers_payday_commission_rates ON bakers_payday_commission_rates.id = bakers.id
+WHERE
+    (
+      (($2::FLOAT8 IS NULL OR baker_apy > $2) AND ($1::FLOAT8 IS NULL OR baker_apy < $1))
+      OR ($1 IS NOT NULL AND baker_apy = $1    AND bakers.id < $3)
+      OR ($1 IS NULL     AND baker_apy IS NULL AND bakers.id < $3)
+      OR ($2 IS NOT NULL AND baker_apy = $2    AND bakers.id > $4)
+      OR ($2 IS NULL     AND baker_apy IS NULL AND bakers.id > $4)
+    )
+    -- filter if provided
+    AND ($7::pool_open_status IS NULL OR open_status = $7::pool_open_status)
+ORDER BY
+    (CASE WHEN $5     THEN baker_apy END) ASC NULLS FIRST,
+    (CASE WHEN $5     THEN bakers.id END) ASC,
+    (CASE WHEN NOT $5 THEN baker_apy END) DESC NULLS LAST,
+    (CASE WHEN NOT $5 THEN bakers.id END) DESC
+LIMIT $6
+) ORDER BY "baker_apy?" DESC NULLS LAST, id DESC"#,
+                query.from.outer.first().map(|b| b.cursor.value), // $1
+                query.to.outer.first().map(|b| b.cursor.value),   // $2
+                query.from.inner.cursor,                          // $3
+                query.to.inner.cursor,                            // $4
+                query.is_last,                                    // $5
+                query.limit,                                      // $6
+                open_status_filter as Option<BakerPoolOpenStatus>  // $7
+            )
+            .fetch(pool);
+            while let Some(row) = row_stream.try_next().await? {
+                let cursor: Cursor = ConcatCursor::First(BakerCursor {
+                    outer: row.baker_apy.map(|apy| Reversed::new(F64Cursor::new(apy))).into(),
+                    inner: Reversed::new(row.id),
+                });
+                connection.edges.push(connection::Edge::new(
+                    cursor.encode_cursor(),
+                    Baker::Current(Box::new(row)),
+                ));
+            }
+            Ok(())
+        }
+
+        /// Internal helper function for querying the removed bakers sorted
+        /// by the baker ID in descending order.
+        async fn query_removed_baker(
+            query: ConnectionQuery<Reversed<BakerIdCursor>>,
+            connection: &mut connection::Connection<String, Baker>,
+            pool: &PgPool,
+        ) -> ApiResult<()> {
+            let mut row_stream = sqlx::query_as!(
+                PreviouslyBaker,
+                "SELECT * FROM (
+                    SELECT
+                        id,
+                        slot_time AS removed_at
+                    FROM bakers_removed
+                        JOIN transactions
+                            ON transactions.index = bakers_removed.removed_by_tx_index
+                        JOIN blocks ON blocks.height = transactions.block_height
+                    WHERE id > $2 AND id < $1
+                    ORDER BY
+                        (CASE WHEN $3     THEN id END) ASC,
+                        (CASE WHEN NOT $3 THEN id END) DESC
+                    LIMIT $4
+                ) ORDER BY id DESC",
+                query.from.cursor,
+                query.to.cursor,
+                query.is_last,
+                query.limit,
+            )
+            .fetch(pool);
+            while let Some(row) = row_stream.try_next().await? {
+                let cursor: Cursor = Cursor::Second(Reversed::new(row.id));
+                connection
+                    .edges
+                    .push(connection::Edge::new(cursor.encode_cursor(), Baker::Previously(row)));
+            }
+            Ok(())
+        }
+
+        let query = ConnectionQuery::<Cursor>::new(
+            first,
+            after,
+            last,
+            before,
+            config.baker_connection_limit,
+        )?;
+        let mut connection = connection::Connection::new(false, false);
+
+        // In this connection there are potentially two collections/tables involved,
+        // firstly the current bakers sorted by some field, secondly removed bakers when
+        // enabled. The strategy is then to query one collection and if the result is
+        // below the limit, we query the second collection. The order of which
+        // collection to query first and second will depend on the whether the
+        // `last` parameter was provided in the top level query.
+        if query.is_last {
+            if include_removed_filter {
+                if let Some(removed_baker_query) = query.subquery_second() {
+                    query_removed_baker(removed_baker_query, &mut connection, pool).await?;
+                }
+            }
+            let remains_to_limit = query.limit - i64::try_from(connection.edges.len())?;
+            if remains_to_limit > 0 {
+                if let Some(current_baker_query) = query.subquery_first_with_limit(remains_to_limit)
+                {
+                    query_current_bakers(
+                        current_baker_query,
+                        open_status_filter,
+                        &mut connection,
+                        pool,
+                    )
+                    .await?;
+                }
+            }
+            if include_removed_filter {
+                // Since we might already have some removed bakers in the page, we sort to make
+                // sure these are last after adding current bakers.
+                connection.edges.sort_by_key(|edge| {
+                    Cursor::decode_cursor(edge.cursor.as_str()).expect("Invalid cursor encoding")
+                });
+            }
+        } else {
+            if let Some(current_baker_query) = query.subquery_first() {
+                query_current_bakers(
+                    current_baker_query,
+                    open_status_filter,
+                    &mut connection,
+                    pool,
+                )
+                .await?;
+            }
+            let remains_to_limit = query.limit - i64::try_from(connection.edges.len())?;
+            if include_removed_filter && remains_to_limit > 0 {
+                if let Some(removed_baker_query) =
+                    query.subquery_second_with_limit(remains_to_limit)
+                {
+                    query_removed_baker(removed_baker_query, &mut connection, pool).await?;
+                }
+            }
+        }
+
+        let (Some(first_item), Some(last_item)) =
+            (connection.edges.first(), connection.edges.last())
+        else {
+            // No items so we just return without updating next/prev page info.
+            return Ok(connection);
+        };
+
+        {
+            let collection_ends = sqlx::query!(
+                r#"WITH
+                    starting_baker as (
+                        SELECT
+                            bakers.id,
+                            baker_apy
+                        FROM bakers
+                        LEFT JOIN latest_baker_apy_30_days
+                             ON latest_baker_apy_30_days.id = bakers.id
+                        WHERE $1::pool_open_status IS NULL OR open_status = $1::pool_open_status
+                        ORDER BY baker_apy DESC NULLS LAST, id DESC
+                        LIMIT 1
+                    ),
+                    ending_baker as (
+                        SELECT
+                            bakers.id,
+                            baker_apy
+                        FROM bakers
+                        LEFT JOIN latest_baker_apy_30_days
+                             ON latest_baker_apy_30_days.id = bakers.id
+                        WHERE $1::pool_open_status IS NULL OR open_status = $1::pool_open_status
+                        ORDER BY baker_apy ASC NULLS FIRST, id ASC
+                        LIMIT 1
+                    )
+                SELECT
+                    starting_baker.id AS start_id,
+                    starting_baker.baker_apy AS "start_baker_apy?",
+                    ending_baker.id AS end_id,
+                    ending_baker.baker_apy AS "end_baker_apy?"
+                FROM starting_baker, ending_baker"#,
+                open_status_filter as Option<BakerPoolOpenStatus>
+            )
+            .fetch_optional(pool)
+            .await?;
+            if let Some(collection_ends) = collection_ends {
+                connection.has_previous_page = if let Baker::Current(first_item) = &first_item.node
+                {
+                    let collection_start_cursor: Cursor = ConcatCursor::First(NestedCursor {
+                        outer: collection_ends
+                            .start_baker_apy
+                            .map(|apy| Reversed::new(F64Cursor::new(apy)))
+                            .into(),
+                        inner: Reversed::new(collection_ends.start_id),
+                    });
+                    let page_first_item_cursor: Cursor = ConcatCursor::First(NestedCursor {
+                        outer: first_item
+                            .baker_apy
+                            .map(|apy| Reversed::new(F64Cursor::new(apy)))
+                            .into(),
+                        inner: Reversed::new(first_item.id),
+                    });
+                    collection_start_cursor < page_first_item_cursor
+                } else {
+                    true
+                };
+                connection.has_next_page = if let Baker::Current(last_item) = &last_item.node {
+                    let collection_end_cursor: Cursor = ConcatCursor::First(NestedCursor {
+                        outer: collection_ends
+                            .end_baker_apy
+                            .map(|apy| Reversed::new(F64Cursor::new(apy)))
+                            .into(),
+                        inner: Reversed::new(collection_ends.end_id),
+                    });
+                    let page_last_item_cursor: Cursor = ConcatCursor::First(NestedCursor {
+                        outer: last_item
+                            .baker_apy
+                            .map(|apy| Reversed::new(F64Cursor::new(apy)))
+                            .into(),
+                        inner: Reversed::new(last_item.id),
+                    });
+                    collection_end_cursor > page_last_item_cursor
+                } else {
+                    true
+                }
+            }
+        }
+
+        if include_removed_filter {
+            let min_removed_baker_id =
+                sqlx::query_scalar!("SELECT MIN(id) FROM bakers_removed").fetch_one(pool).await?;
+            connection.has_next_page = if let Some(min_removed_baker_id) = min_removed_baker_id {
+                last_item.node.get_id() != min_removed_baker_id
+            } else {
+                false
+            }
+        }
+        Ok(connection)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn delegator_apy_desc_connection(
+        config: &ApiServiceConfig,
+        pool: &PgPool,
+        first: Option<u64>,
+        after: Option<String>,
+        last: Option<u64>,
+        before: Option<String>,
+        open_status_filter: Option<BakerPoolOpenStatus>,
+        include_removed_filter: bool,
+    ) -> ApiResult<connection::Connection<String, Baker>> {
+        /// Cursor type for the representing the removed validators ordered
+        /// descendingly by ID.
+        type RemovedBakerCursor = Reversed<BakerIdCursor>;
+        /// Cursor type for the current validators.
+        /// Ordered firstly by the optional delegators APY in descending order,
+        /// putting the bakers without an APY in the end.
+        /// Secondly ordered by the validators ID descendingly.
+        type BakerCursor = NestedCursor<OptionCursor<Reversed<F64Cursor>>, Reversed<BakerIdCursor>>;
+        /// Cursor type for this connection, which is the concatenation of the
+        /// current validators then followed by the removed validators (when
+        /// `include_removed_filter` is `true`).
+        type Cursor = ConcatCursor<BakerCursor, RemovedBakerCursor>;
+
+        /// Internal helper function for querying the current bakers sorted
+        /// by the delegator apy in descending order.
+        async fn query_current_bakers(
+            query: ConnectionQuery<BakerCursor>,
+            open_status_filter: Option<BakerPoolOpenStatus>,
+            connection: &mut connection::Connection<String, Baker>,
+            pool: &PgPool,
+        ) -> ApiResult<()> {
+            let mut row_stream = sqlx::query_as!(
+                CurrentBaker,
+                r#"
+SELECT * FROM (SELECT
+    bakers.id AS id,
+    staked,
+    restake_earnings,
+    open_status as "open_status: BakerPoolOpenStatus",
+    metadata_url,
+    transaction_commission,
+    baking_commission,
+    finalization_commission,
+    payday_transaction_commission as "payday_transaction_commission?",
+    payday_baking_commission as "payday_baking_commission?",
+    payday_finalization_commission as "payday_finalization_commission?",
+    payday_lottery_power as "payday_lottery_power?",
+    payday_ranking_by_lottery_powers as "payday_ranking_by_lottery_powers?",
+    (SELECT MAX(payday_ranking_by_lottery_powers) FROM bakers_payday_lottery_powers)
+        AS "payday_total_ranking_by_lottery_powers?",
+    pool_total_staked,
+    pool_delegator_count,
+    self_suspended,
+    inactive_suspended,
+    primed_for_suspension,
+    baker_apy AS "baker_apy?",
+    delegators_apy AS "delegators_apy?"
+FROM bakers
+    LEFT JOIN latest_baker_apy_30_days ON latest_baker_apy_30_days.id = bakers.id
+    LEFT JOIN bakers_payday_lottery_powers ON bakers_payday_lottery_powers.id = bakers.id
+    LEFT JOIN bakers_payday_commission_rates ON bakers_payday_commission_rates.id = bakers.id
+WHERE
+    (
+      (($2::FLOAT8 IS NULL OR delegators_apy > $2) AND ($1::FLOAT8 IS NULL OR delegators_apy < $1))
+      OR ($1 IS NOT NULL AND delegators_apy = $1    AND bakers.id < $3)
+      OR ($1 IS NULL     AND delegators_apy IS NULL AND bakers.id < $3)
+      OR ($2 IS NOT NULL AND delegators_apy = $2    AND bakers.id > $4)
+      OR ($2 IS NULL     AND delegators_apy IS NULL AND bakers.id > $4)
+    )
+    -- filter if provided
+    AND ($7::pool_open_status IS NULL OR open_status = $7::pool_open_status)
+ORDER BY
+    (CASE WHEN $5     THEN delegators_apy END) ASC NULLS FIRST,
+    (CASE WHEN $5     THEN bakers.id END) ASC,
+    (CASE WHEN NOT $5 THEN delegators_apy END) DESC NULLS LAST,
+    (CASE WHEN NOT $5 THEN bakers.id END) DESC
+LIMIT $6
+) ORDER BY "delegators_apy?" DESC NULLS LAST, id DESC"#,
+                query.from.outer.first().map(|b| b.cursor.value), // $1
+                query.to.outer.first().map(|b| b.cursor.value),   // $2
+                query.from.inner.cursor,                          // $3
+                query.to.inner.cursor,                            // $4
+                query.is_last,                                    // $5
+                query.limit,                                      // $6
+                open_status_filter as Option<BakerPoolOpenStatus>  // $7
+            )
+            .fetch(pool);
+            while let Some(row) = row_stream.try_next().await? {
+                let cursor: Cursor = ConcatCursor::First(BakerCursor {
+                    outer: row.delegators_apy.map(|apy| Reversed::new(F64Cursor::new(apy))).into(),
+                    inner: Reversed::new(row.id),
+                });
+                connection.edges.push(connection::Edge::new(
+                    cursor.encode_cursor(),
+                    Baker::Current(Box::new(row)),
+                ));
+            }
+            Ok(())
+        }
+
+        /// Internal helper function for querying the removed bakers sorted
+        /// by the baker ID in descending order.
+        async fn query_removed_baker(
+            query: ConnectionQuery<Reversed<BakerIdCursor>>,
+            connection: &mut connection::Connection<String, Baker>,
+            pool: &PgPool,
+        ) -> ApiResult<()> {
+            let mut row_stream = sqlx::query_as!(
+                PreviouslyBaker,
+                "SELECT * FROM (
+                    SELECT
+                        id,
+                        slot_time AS removed_at
+                    FROM bakers_removed
+                        JOIN transactions
+                            ON transactions.index = bakers_removed.removed_by_tx_index
+                        JOIN blocks ON blocks.height = transactions.block_height
+                    WHERE id > $2 AND id < $1
+                    ORDER BY
+                        (CASE WHEN $3     THEN id END) ASC,
+                        (CASE WHEN NOT $3 THEN id END) DESC
+                    LIMIT $4
+                ) ORDER BY id DESC",
+                query.from.cursor,
+                query.to.cursor,
+                query.is_last,
+                query.limit,
+            )
+            .fetch(pool);
+            while let Some(row) = row_stream.try_next().await? {
+                let cursor: Cursor = Cursor::Second(Reversed::new(row.id));
+                connection
+                    .edges
+                    .push(connection::Edge::new(cursor.encode_cursor(), Baker::Previously(row)));
+            }
+            Ok(())
+        }
+
+        let query = ConnectionQuery::<Cursor>::new(
+            first,
+            after,
+            last,
+            before,
+            config.baker_connection_limit,
+        )?;
+        let mut connection = connection::Connection::new(false, false);
+
+        // In this connection there are potentially two collections/tables involved,
+        // firstly the current bakers sorted by some field, secondly removed bakers when
+        // enabled. The strategy is then to query one collection and if the result is
+        // below the limit, we query the second collection. The order of which
+        // collection to query first and second will depend on the whether the
+        // `last` parameter was provided in the top level query.
+        if query.is_last {
+            if include_removed_filter {
+                if let Some(removed_baker_query) = query.subquery_second() {
+                    query_removed_baker(removed_baker_query, &mut connection, pool).await?;
+                }
+            }
+            let remains_to_limit = query.limit - i64::try_from(connection.edges.len())?;
+            if remains_to_limit > 0 {
+                if let Some(current_baker_query) = query.subquery_first_with_limit(remains_to_limit)
+                {
+                    query_current_bakers(
+                        current_baker_query,
+                        open_status_filter,
+                        &mut connection,
+                        pool,
+                    )
+                    .await?;
+                }
+            }
+            if include_removed_filter {
+                // Since we might already have some removed bakers in the page, we sort to make
+                // sure these are last after adding current bakers.
+                connection.edges.sort_by_key(|edge| {
+                    Cursor::decode_cursor(edge.cursor.as_str()).expect("Invalid cursor encoding")
+                });
+            }
+        } else {
+            if let Some(current_baker_query) = query.subquery_first() {
+                query_current_bakers(
+                    current_baker_query,
+                    open_status_filter,
+                    &mut connection,
+                    pool,
+                )
+                .await?;
+            }
+            let remains_to_limit = query.limit - i64::try_from(connection.edges.len())?;
+            if include_removed_filter && remains_to_limit > 0 {
+                if let Some(removed_baker_query) =
+                    query.subquery_second_with_limit(remains_to_limit)
+                {
+                    query_removed_baker(removed_baker_query, &mut connection, pool).await?;
+                }
+            }
+        }
+
+        let (Some(first_item), Some(last_item)) =
+            (connection.edges.first(), connection.edges.last())
+        else {
+            // No items so we just return without updating next/prev page info.
+            return Ok(connection);
+        };
+
+        {
+            let collection_ends = sqlx::query!(
+                r#"WITH
+                    starting_baker as (
+                        SELECT
+                            bakers.id,
+                            delegators_apy
+                        FROM bakers
+                        LEFT JOIN latest_baker_apy_30_days
+                             ON latest_baker_apy_30_days.id = bakers.id
+                        WHERE $1::pool_open_status IS NULL OR open_status = $1::pool_open_status
+                        ORDER BY delegators_apy DESC NULLS LAST, id DESC
+                        LIMIT 1
+                    ),
+                    ending_baker as (
+                        SELECT
+                            bakers.id,
+                            delegators_apy
+                        FROM bakers
+                        LEFT JOIN latest_baker_apy_30_days
+                             ON latest_baker_apy_30_days.id = bakers.id
+                        WHERE $1::pool_open_status IS NULL OR open_status = $1::pool_open_status
+                        ORDER BY delegators_apy ASC NULLS FIRST, id ASC
+                        LIMIT 1
+                    )
+                SELECT
+                    starting_baker.id AS start_id,
+                    starting_baker.delegators_apy AS "start_delegators_apy?",
+                    ending_baker.id AS end_id,
+                    ending_baker.delegators_apy AS "end_delegators_apy?"
+                FROM starting_baker, ending_baker"#,
+                open_status_filter as Option<BakerPoolOpenStatus>
+            )
+            .fetch_optional(pool)
+            .await?;
+            if let Some(collection_ends) = collection_ends {
+                connection.has_previous_page = if let Baker::Current(first_item) = &first_item.node
+                {
+                    let collection_start_cursor: Cursor = ConcatCursor::First(NestedCursor {
+                        outer: collection_ends
+                            .start_delegators_apy
+                            .map(|apy| Reversed::new(F64Cursor::new(apy)))
+                            .into(),
+                        inner: Reversed::new(collection_ends.start_id),
+                    });
+                    let page_first_item_cursor: Cursor = ConcatCursor::First(NestedCursor {
+                        outer: first_item
+                            .delegators_apy
+                            .map(|apy| Reversed::new(F64Cursor::new(apy)))
+                            .into(),
+                        inner: Reversed::new(first_item.id),
+                    });
+                    collection_start_cursor < page_first_item_cursor
+                } else {
+                    true
+                };
+                connection.has_next_page = if let Baker::Current(last_item) = &last_item.node {
+                    let collection_end_cursor: Cursor = ConcatCursor::First(NestedCursor {
+                        outer: collection_ends
+                            .end_delegators_apy
+                            .map(|apy| Reversed::new(F64Cursor::new(apy)))
+                            .into(),
+                        inner: Reversed::new(collection_ends.end_id),
+                    });
+                    let page_last_item_cursor: Cursor = ConcatCursor::First(NestedCursor {
+                        outer: last_item
+                            .delegators_apy
+                            .map(|apy| Reversed::new(F64Cursor::new(apy)))
+                            .into(),
+                        inner: Reversed::new(last_item.id),
+                    });
+                    collection_end_cursor > page_last_item_cursor
+                } else {
+                    true
+                }
+            }
+        }
+
+        if include_removed_filter {
+            let min_removed_baker_id =
+                sqlx::query_scalar!("SELECT MIN(id) FROM bakers_removed").fetch_one(pool).await?;
+            connection.has_next_page = if let Some(min_removed_baker_id) = min_removed_baker_id {
+                last_item.node.get_id() != min_removed_baker_id
+            } else {
+                false
+            }
+        }
+        Ok(connection)
+    }
 }
 
 #[derive(Debug)]
@@ -1677,6 +2319,10 @@ pub struct CurrentBaker {
     payday_total_ranking_by_lottery_powers: Option<i64>,
     pool_total_staked: i64,
     pool_delegator_count: i64,
+    // 30 days period APY for bakers.
+    baker_apy: Option<f64>,
+    // 30 days period APY for delegators.
+    delegators_apy: Option<f64>,
 }
 impl CurrentBaker {
     /// Get the current payday baking commission rate.
@@ -1705,8 +2351,11 @@ impl CurrentBaker {
                 payday_ranking_by_lottery_powers as "payday_ranking_by_lottery_powers?",
                 (SELECT MAX(payday_ranking_by_lottery_powers) FROM bakers_payday_lottery_powers) as "payday_total_ranking_by_lottery_powers?",
                 pool_total_staked,
-                pool_delegator_count
+                pool_delegator_count,
+                baker_apy,
+                delegators_apy
             FROM bakers
+                LEFT JOIN latest_baker_apy_30_days ON latest_baker_apy_30_days.id = bakers.id
                 LEFT JOIN bakers_payday_commission_rates ON bakers_payday_commission_rates.id = bakers.id
                 LEFT JOIN bakers_payday_lottery_powers ON bakers_payday_lottery_powers.id = bakers.id
             WHERE bakers.id = $1;
@@ -2202,7 +2851,9 @@ enum BakerSort {
     BakerIdDesc,
     TotalStakedAmountDesc,
     DelegatorCountDesc,
+    #[graphql(name = "BAKER_APY30_DAYS_DESC")]
     BakerApy30DaysDesc,
+    #[graphql(name = "DELEGATOR_APY30_DAYS_DESC")]
     DelegatorApy30DaysDesc,
     /// Sort ascending by the current payday baking commission rate.
     BlockCommissionsAsc,
@@ -2464,65 +3115,35 @@ impl<'a> BakerPool<'a> {
 
     async fn apy(&self, ctx: &Context<'_>, period: ApyPeriod) -> ApiResult<PoolApy> {
         let pool = get_pool(ctx)?;
-        let interval = PgInterval::try_from(period)?;
-        let apy = sqlx::query_as!(
-            PoolApy,
-            r#"WITH chain_parameter AS (
-                 SELECT
-                      id,
-                      ((EXTRACT('epoch' from '1 year'::INTERVAL) * 1000)
-                          / (epoch_duration * reward_period_length))::FLOAT8
-                          AS paydays_per_year
-                 FROM current_chain_parameters
-                 WHERE id = true
-             ) SELECT
-                 geometric_mean(apy(
-                     (payday_total_transaction_rewards
-                       + payday_total_baking_rewards
-                       + payday_total_finalization_rewards)::FLOAT8,
-                     (baker_stake + delegators_stake)::FLOAT8,
-                     paydays_per_year
-                 )) AS total_apy,
-                 geometric_mean(
-                     CASE
-                         WHEN delegators_stake = 0 THEN NULL
-                         ELSE apy(
-                                (payday_delegators_transaction_rewards
-                                 + payday_delegators_baking_rewards
-                                 + payday_delegators_finalization_rewards)::FLOAT8,
-                             delegators_stake::FLOAT8,
-                             paydays_per_year)
-                     END
-                 ) AS delegators_apy,
-                 geometric_mean(apy(
-                     (payday_total_transaction_rewards
-                        - payday_delegators_transaction_rewards
-                        + payday_total_baking_rewards
-                        - payday_delegators_baking_rewards
-                        + payday_total_finalization_rewards
-                        - payday_delegators_finalization_rewards)::FLOAT8,
-                     baker_stake::FLOAT8,
-                     paydays_per_year
-                 )) AS baker_apy
-             FROM payday_baker_pool_stakes
-             JOIN blocks ON blocks.height = payday_baker_pool_stakes.payday_block
-             JOIN bakers_payday_pool_rewards
-                 ON blocks.height = bakers_payday_pool_rewards.payday_block_height
-                 AND pool_owner_for_primary_key = $1
-             JOIN chain_parameter ON chain_parameter.id = true
-             WHERE
-                 payday_baker_pool_stakes.baker = $1
-                 AND blocks.slot_time > NOW() - $2::INTERVAL"#,
-            self.id,
-            interval
-        )
-        .fetch_one(pool)
-        .await?;
-        Ok(apy)
+        let apy = match period {
+            ApyPeriod::Last7Days => {
+                sqlx::query_as!(
+                    PoolApy,
+                    "SELECT baker_apy, total_apy, delegators_apy
+                     FROM latest_baker_apy_7_days
+                     WHERE id = $1",
+                    self.id
+                )
+                .fetch_optional(pool)
+                .await?
+            }
+            ApyPeriod::Last30Days => {
+                sqlx::query_as!(
+                    PoolApy,
+                    "SELECT baker_apy, total_apy, delegators_apy
+                     FROM latest_baker_apy_30_days
+                     WHERE id = $1",
+                    self.id
+                )
+                .fetch_optional(pool)
+                .await?
+            }
+        };
+        Ok(apy.unwrap_or_default())
     }
 }
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, Default)]
 struct PoolApy {
     total_apy:      Option<f64>,
     baker_apy:      Option<f64>,

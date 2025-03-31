@@ -5005,6 +5005,8 @@ struct PreparedPayDayBlock {
     /// Represents the passive pool stake locked for reward period after this
     /// payday.
     passive_pool_stake: PreparedPaydayPassivePoolStake,
+    /// Recompute the latest baker APYs.
+    refresh_latest_baker_apy_view: RefreshLatestBakerApy,
 }
 
 impl PreparedPayDayBlock {
@@ -5072,6 +5074,7 @@ impl PreparedPayDayBlock {
             payday_bakers_lottery_powers,
             baker_pool_stakes,
             passive_pool_stake,
+            refresh_latest_baker_apy_view: RefreshLatestBakerApy,
         })
     }
 
@@ -5102,6 +5105,10 @@ impl PreparedPayDayBlock {
             .save(tx)
             .await
             .context("Failed inserting the reward period passive pool stake")?;
+        self.refresh_latest_baker_apy_view
+            .save(tx)
+            .await
+            .context("Failed to refresh baker APY materialized views")?;
         Ok(())
     }
 }
@@ -5403,6 +5410,27 @@ impl PreparedPaydayPassivePoolStake {
         )
         .execute(tx.as_mut())
         .await?;
+        Ok(())
+    }
+}
+
+/// Represent the database operation refreshing the materialized views
+/// precomputing the APYs of each baker.
+/// Assumes the bakers payday stake and rewards have already been updated in the
+/// database.
+struct RefreshLatestBakerApy;
+
+impl RefreshLatestBakerApy {
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        sqlx::query!("REFRESH MATERIALIZED VIEW CONCURRENTLY latest_baker_apy_30_days")
+            .execute(tx.as_mut())
+            .await?;
+        sqlx::query!("REFRESH MATERIALIZED VIEW CONCURRENTLY latest_baker_apy_7_days")
+            .execute(tx.as_mut())
+            .await?;
         Ok(())
     }
 }
