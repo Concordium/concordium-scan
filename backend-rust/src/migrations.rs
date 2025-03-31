@@ -17,6 +17,7 @@ mod m0019_payday_stake_information;
 mod m0020_chain_update_events;
 mod m0021_amounts_schedule;
 mod m0023_add_init_parameter;
+mod m0025_fix_passive_delegator_stake;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.
@@ -241,6 +242,8 @@ pub enum SchemaVersion {
     AddInputParameterToInitTransactions,
     #[display("0024:Precompute validators APYs")]
     BakerPeriodApyViews,
+    #[display("0025:Fix passive delegators stake")]
+    FixPassiveDelegatorsStake,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -248,7 +251,7 @@ impl SchemaVersion {
     /// have been introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::BakerPeriodApyViews;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::BakerPeriodApyViews;
+    const LATEST: SchemaVersion = SchemaVersion::FixPassiveDelegatorsStake;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -292,6 +295,7 @@ impl SchemaVersion {
             SchemaVersion::FixCorruptedPassiveDelegators => false,
             SchemaVersion::AddInputParameterToInitTransactions => false,
             SchemaVersion::BakerPeriodApyViews => false,
+            SchemaVersion::FixPassiveDelegatorsStake => false,
         }
     }
 
@@ -326,6 +330,7 @@ impl SchemaVersion {
             SchemaVersion::FixCorruptedPassiveDelegators => false,
             SchemaVersion::AddInputParameterToInitTransactions => false,
             SchemaVersion::BakerPeriodApyViews => false,
+            SchemaVersion::FixPassiveDelegatorsStake => false,
         }
     }
 
@@ -482,7 +487,10 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::BakerPeriodApyViews
             }
-            SchemaVersion::BakerPeriodApyViews => unimplemented!(
+            SchemaVersion::BakerPeriodApyViews => {
+                m0025_fix_passive_delegator_stake::run(&mut tx, endpoints).await?
+            }
+            SchemaVersion::FixPassiveDelegatorsStake => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
