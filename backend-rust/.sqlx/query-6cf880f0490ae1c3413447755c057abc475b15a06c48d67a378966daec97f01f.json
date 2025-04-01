@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n                starting as (\n                    SELECT\n                        index AS start_index,\n                        delegated_stake AS start_stake\n                    FROM accounts\n                    WHERE\n                        -- Only delegators.\n                        -- This is only NULL for accounts which are not delegating.\n                        delegated_restake_earnings IS NOT NULL\n                        -- Target NULL represents the passive pool.\n                        AND delegated_target_baker_id IS NULL\n                    ORDER BY\n                        delegated_stake DESC,\n                        index DESC\n                    LIMIT 1\n                ),\n                ending as (\n                    SELECT\n                        index AS end_index,\n                        delegated_stake AS end_stake\n                    FROM accounts\n                    WHERE\n                        -- Only delegators.\n                        -- This is only NULL for accounts which are not delegating.\n                        delegated_restake_earnings IS NOT NULL\n                        -- Target NULL represents the passive pool.\n                        AND delegated_target_baker_id IS NULL\n                    ORDER BY\n                        delegated_stake ASC,\n                        index ASC\n                    LIMIT 1\n                )\n           SELECT * FROM starting, ending",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "start_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "start_stake",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "end_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "end_stake",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "6cf880f0490ae1c3413447755c057abc475b15a06c48d67a378966daec97f01f"
+}
