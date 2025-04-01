@@ -3,80 +3,80 @@
             "name": "USD Tether",
             "symbol": "USDT",
             "decimal": 6,
-            "total_supply": 95000000000,
-            "circulating_supply": 92000000000,
+            "total_supply": 90000000000,
+            "circulating_supply": 86500000000,
             "value_in_doller": 0.99
         },
         {
             "name": "USD Coin",
             "symbol": "USDC",
             "decimal": 6,
-            "total_supply": 55000000000,
-            "circulating_supply": 53000000000,
+            "total_supply": 52000000000,
+            "circulating_supply": 50000000000,
             "value_in_doller": 1.0
         },
         {
             "name": "Dai",
             "symbol": "DAI",
             "decimal": 18,
-            "total_supply": 6000000000,
-            "circulating_supply": 5900000000,
+            "total_supply": 5800000000,
+            "circulating_supply": 5750000000,
             "value_in_doller": 1.0
         },
         {
             "name": "Binance USD",
             "symbol": "BUSD",
             "decimal": 18,
-            "total_supply": 1200000000,
-            "circulating_supply": 1100000000,
+            "total_supply": 1000000000,
+            "circulating_supply": 900000000,
             "value_in_doller": 1.0
         },
         {
             "name": "TrueUSD",
             "symbol": "TUSD",
             "decimal": 18,
-            "total_supply": 1500000000,
-            "circulating_supply": 1400000000,
+            "total_supply": 1200000000,
+            "circulating_supply": 1150000000,
             "value_in_doller": 1.0
         },
         {
             "name": "Pax Dollar",
             "symbol": "USDP",
             "decimal": 18,
-            "total_supply": 1000000000,
-            "circulating_supply": 950000000,
+            "total_supply": 945000000,
+            "circulating_supply": 900000000,
             "value_in_doller": 1.0
         },
         {
             "name": "Gemini Dollar",
             "symbol": "GUSD",
             "decimal": 2,
-            "total_supply": 300000000,
-            "circulating_supply": 280000000,
+            "total_supply": 200000000,
+            "circulating_supply": 180000000,
             "value_in_doller": 1.0
         },
         {
             "name": "Fei USD",
             "symbol": "FEI",
             "decimal": 18,
-            "total_supply": 500000000,
-            "circulating_supply": 480000000,
+            "total_supply": 425000000,
+            "circulating_supply": 400000000,
             "value_in_doller": 0.98
         },
         {
             "name": "Frax",
             "symbol": "FRAX",
             "decimal": 18,
-            "total_supply": 2500000000,
-            "circulating_supply": 2400000000,
+            "total_supply": 2200000000,
+            "circulating_supply": 2100000000,
             "value_in_doller": 1.0
         },
         {
             "name": "Stable USD",
             "symbol": "USDS",
             "decimal": 18,
-            "total_supply": 15000000,
-            "circulating_supply": 14000000,
+            "total_supply": 10000000,
+            "circulating_supply": 9500000,
             "value_in_doller": 1.0
         }
     ]
