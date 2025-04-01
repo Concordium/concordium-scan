@@ -12,6 +12,7 @@ Database schema version: 26
 
 ### Fixed
 
+- Fix `Query::bakers` when sorted by block commission rate (both ascending and descending) to include bakers, which does not have a block commission for the current reward period.
 - Add database migration 26 updating pool information for the ones missing.
   Since the baker/validator pool concept was introduced as part of Concordium protocol version 4, bakers/validators prior to this protocol version implicitly became pools and until now the indexer did not update the pool information for these.
 - Add database migration 25 reindexing the stake for delegators to the passive pool.
