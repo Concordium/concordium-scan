@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-Database schema version: 25
+Database schema version: 26
 
 ### Added
 
@@ -12,6 +12,8 @@ Database schema version: 25
 
 ### Fixed
 
+- Add database migration 26 updating pool information for the ones missing.
+  Since the baker/validator pool concept was introduced as part of Concordium protocol version 4, bakers/validators prior to this protocol version implicitly became pools and until now the indexer did not update the pool information for these.
 - Add database migration 25 reindexing the stake for delegators to the passive pool.
   The stakes for these delegators got offset by a bug in migration 13, which did not update the passive delegators properly.
   This was fixed again in migration 22, but the passive delegators with restake_earnings enabled missed their increase in stake due to this.

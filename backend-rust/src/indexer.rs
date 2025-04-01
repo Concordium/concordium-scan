@@ -624,6 +624,9 @@ impl ProcessEvent for BlockProcessor {
         let mut new_context = self.current_context.clone();
         PreparedBlock::batch_save(batch, &mut new_context, &mut tx).await?;
         for block in batch {
+            if let Some(migration) = block.protocol_update_migration.as_ref() {
+                migration.save(&mut tx).await?;
+            }
             for item in block.prepared_block_items.iter() {
                 item.save(&mut tx).await.with_context(|| {
                     format!(
@@ -867,6 +870,9 @@ struct PreparedBlock {
     baker_unmark_suspended: PreparedUnmarkPrimedForSuspension,
     /// Statistics gathered about frequency of events
     statistics: Statistics,
+    /// Optional data migration for when this is the first block after a
+    /// protocol update.
+    protocol_update_migration: Option<ProtocolUpdateMigration>,
 }
 
 impl PreparedBlock {
@@ -900,6 +906,10 @@ impl PreparedBlock {
         )
         .await?;
         let baker_unmark_suspended = PreparedUnmarkPrimedForSuspension::prepare(data)?;
+        let protocol_update_migration =
+            ProtocolUpdateMigration::prepare(node_client, data)
+                .await
+                .context("Failed to prepare for data migation caused by protocol update")?;
         Ok(Self {
             hash,
             height,
@@ -912,6 +922,7 @@ impl PreparedBlock {
             special_transaction_outcomes,
             baker_unmark_suspended,
             statistics,
+            protocol_update_migration,
         })
     }
 
@@ -1061,6 +1072,154 @@ impl PreparedBlock {
         if let Some(cumulative_finalization_time) = new_last_cumulative_finalization_time {
             context.last_cumulative_finalization_time = cumulative_finalization_time;
         }
+        Ok(())
+    }
+}
+
+/// Represents a data migration due to an update of the protocol.
+#[derive(Debug)]
+enum ProtocolUpdateMigration {
+    P4(P4ProtocolUpdateMigration),
+}
+impl ProtocolUpdateMigration {
+    async fn prepare(
+        node_client: &mut v2::Client,
+        data: &BlockData,
+    ) -> anyhow::Result<Option<Self>> {
+        if data.block_info.era_block_height != sdk_types::BlockHeight::from(0) {
+            // Not the first block in a new protocol version (era).
+            return Ok(None);
+        }
+        let migration = match data.block_info.protocol_version {
+            ProtocolVersion::P4 => Some(ProtocolUpdateMigration::P4(
+                P4ProtocolUpdateMigration::prepare(node_client, data).await?,
+            )),
+            _ => None,
+        };
+        Ok(migration)
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        match self {
+            Self::P4(migration) => {
+                migration.save(tx).await.context("Failed Protocol version 4 data migration")
+            }
+        }
+    }
+}
+
+/// Data migration for the first block in Concordium protocol version 4.
+#[derive(Debug)]
+struct P4ProtocolUpdateMigration {
+    baker_ids:                     Vec<i64>,
+    open_statuses:                 Vec<BakerPoolOpenStatus>,
+    metadata_urls:                 Vec<String>,
+    transaction_commission_rates:  Vec<i64>,
+    baking_commission_rates:       Vec<i64>,
+    finalization_commission_rates: Vec<i64>,
+}
+impl P4ProtocolUpdateMigration {
+    async fn prepare(node_client: &mut v2::Client, data: &BlockData) -> anyhow::Result<Self> {
+        let block_height = data.finalized_block_info.height;
+        let (
+            baker_ids,
+            (
+                open_statuses,
+                (
+                    metadata_urls,
+                    (
+                        transaction_commission_rates,
+                        (baking_commission_rates, finalization_commission_rates),
+                    ),
+                ),
+            ),
+        ) = node_client
+            .get_baker_list(block_height)
+            .await?
+            .response
+            .map_err(anyhow::Error::from)
+            .and_then(|baker_id| {
+                let mut client = node_client.clone();
+                async move {
+                    let pool_info = client.get_pool_info(block_height, baker_id).await?.response;
+                    let status = pool_info
+                        .active_baker_pool_status
+                        .context("Unexpected missing pool info during P4 migration")?;
+                    let pool = status.pool_info;
+                    let validator_id: i64 = baker_id.id.index.try_into()?;
+                    let status = BakerPoolOpenStatus::from(pool.open_status);
+                    let metadata_url = String::from(pool.metadata_url);
+                    let transaction_rate = i64::from(u32::from(PartsPerHundredThousands::from(
+                        pool.commission_rates.transaction,
+                    )));
+                    let baking_rate = i64::from(u32::from(PartsPerHundredThousands::from(
+                        pool.commission_rates.baking,
+                    )));
+                    let finalization_rate = i64::from(u32::from(PartsPerHundredThousands::from(
+                        pool.commission_rates.finalization,
+                    )));
+
+                    anyhow::Ok((
+                        validator_id,
+                        (
+                            status,
+                            (metadata_url, (transaction_rate, (baking_rate, finalization_rate))),
+                        ),
+                    ))
+                }
+            })
+            .try_collect()
+            .await?;
+
+        Ok(Self {
+            baker_ids,
+            open_statuses,
+            metadata_urls,
+            transaction_commission_rates,
+            baking_commission_rates,
+            finalization_commission_rates,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            "UPDATE bakers SET
+             open_status = status,
+             metadata_url = url,
+             transaction_commission = transaction,
+             baking_commission = baking,
+             finalization_commission = finalization
+         FROM UNNEST(
+             $1::BIGINT[],
+             $2::pool_open_status[],
+             $3::TEXT[],
+             $4::BIGINT[],
+             $5::BIGINT[],
+             $6::BIGINT[]
+         ) AS input(
+             id,
+             status,
+             url,
+             transaction,
+             baking,
+             finalization
+         ) WHERE bakers.id = input.id",
+            self.baker_ids.as_slice(),
+            self.open_statuses.as_slice() as &[BakerPoolOpenStatus],
+            self.metadata_urls.as_slice(),
+            self.transaction_commission_rates.as_slice(),
+            self.baking_commission_rates.as_slice(),
+            self.finalization_commission_rates.as_slice()
+        )
+        .execute(tx.as_mut())
+        .await?
+        .ensure_affected_rows(self.baker_ids.len().try_into()?)?;
         Ok(())
     }
 }

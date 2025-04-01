@@ -1,0 +1,37 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE bakers SET\n             open_status = status,\n             metadata_url = url,\n             transaction_commission = transaction,\n             baking_commission = baking,\n             finalization_commission = finalization\n         FROM UNNEST(\n             $1::BIGINT[],\n             $2::pool_open_status[],\n             $3::TEXT[],\n             $4::BIGINT[],\n             $5::BIGINT[],\n             $6::BIGINT[]\n         ) AS input(\n             id,\n             status,\n             url,\n             transaction,\n             baking,\n             finalization\n         ) WHERE bakers.id = input.id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8Array",
+        {
+          "Custom": {
+            "name": "pool_open_status[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "pool_open_status",
+                  "kind": {
+                    "Enum": [
+                      "OpenForAll",
+                      "ClosedForNew",
+                      "ClosedForAll"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "TextArray",
+        "Int8Array",
+        "Int8Array",
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d32b36ee99c60d4e79bac1ff9419cdfc10c60cc29254401478cb0969c3578b87"
+}
