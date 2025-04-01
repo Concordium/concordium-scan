@@ -16,7 +16,7 @@ use futures::TryStreamExt;
 /// Resulting database schema version from running this migration.
 const NEXT_SCHEMA_VERSION: SchemaVersion = SchemaVersion::UpdateGenesisValidatorInfo;
 
-///
+/// Migration updating pool information those bakers where this is missing.
 pub async fn run(
     tx: &mut Transaction,
     endpoints: &[v2::Endpoint],
@@ -44,11 +44,10 @@ pub async fn run(
             return Ok(NEXT_SCHEMA_VERSION);
         }
     }
+    type UnzippedInfo =
+        (Vec<i64>, (Vec<BakerPoolOpenStatus>, (Vec<String>, (Vec<i64>, (Vec<i64>, Vec<i64>)))));
 
-    let (ids, (statuses, (metadata_urls, (transaction_rates, (baking_rates, finalization_rates))))): (
-        Vec<_>,
-        (Vec<_>, (Vec<_>, (Vec<_>, (Vec<_>, Vec<_>)))),
-    ) = sqlx::query_scalar(
+    let (ids, (statuses, (metadata_urls, (transaction_rates, (baking_rates, finalization_rates))))): UnzippedInfo = sqlx::query_scalar(
         "SELECT
              id
          FROM bakers
