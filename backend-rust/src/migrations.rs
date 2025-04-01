@@ -18,6 +18,7 @@ mod m0020_chain_update_events;
 mod m0021_amounts_schedule;
 mod m0023_add_init_parameter;
 mod m0025_fix_passive_delegator_stake;
+mod m0026_update_genesis_validator_info;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.
@@ -244,6 +245,8 @@ pub enum SchemaVersion {
     BakerPeriodApyViews,
     #[display("0025:Fix passive delegators stake")]
     FixPassiveDelegatorsStake,
+    #[display("0026:Update information for genesis validators")]
+    UpdateGenesisValidatorInfo,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -251,7 +254,7 @@ impl SchemaVersion {
     /// have been introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::BakerPeriodApyViews;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::FixPassiveDelegatorsStake;
+    const LATEST: SchemaVersion = SchemaVersion::UpdateGenesisValidatorInfo;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -296,6 +299,7 @@ impl SchemaVersion {
             SchemaVersion::AddInputParameterToInitTransactions => false,
             SchemaVersion::BakerPeriodApyViews => false,
             SchemaVersion::FixPassiveDelegatorsStake => false,
+            SchemaVersion::UpdateGenesisValidatorInfo => false,
         }
     }
 
@@ -331,6 +335,7 @@ impl SchemaVersion {
             SchemaVersion::AddInputParameterToInitTransactions => false,
             SchemaVersion::BakerPeriodApyViews => false,
             SchemaVersion::FixPassiveDelegatorsStake => false,
+            SchemaVersion::UpdateGenesisValidatorInfo => false,
         }
     }
 
@@ -490,7 +495,10 @@ impl SchemaVersion {
             SchemaVersion::BakerPeriodApyViews => {
                 m0025_fix_passive_delegator_stake::run(&mut tx, endpoints).await?
             }
-            SchemaVersion::FixPassiveDelegatorsStake => unimplemented!(
+            SchemaVersion::FixPassiveDelegatorsStake => {
+                m0026_update_genesis_validator_info::run(&mut tx, endpoints).await?
+            }
+            SchemaVersion::UpdateGenesisValidatorInfo => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
