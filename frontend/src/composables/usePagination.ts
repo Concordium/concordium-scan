@@ -6,6 +6,15 @@ export const PAGE_SIZE_SMALL = 10
 export type PaginationTarget = 'first' | 'previous' | 'next' | 'last'
 
 /**
+ * CURRIED: Navigation handler to modify query variables
+ * @param { PageInfo } pageInfo - Most recent pageInfo
+ * @param { PaginationTarget } target - The target (e.g. "next")
+ */
+export type PaginationGoToPage = (
+	pageInfo: PageInfo
+) => (target: PaginationTarget) => void
+
+/**
  * Hook to control pagination state and actions
  * Returns query variables and a curried navigation handler
  */
