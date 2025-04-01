@@ -13,7 +13,7 @@ The service is split to allow for running several instances of the GraphQL API a
 
 To run the services, the following dependencies are required to be available on the system:
 
-- PostgreSQL server 16 or higher
+- PostgreSQL server 16
 
 ## Deploying new versions into production
 
@@ -155,7 +155,7 @@ Make sure to enable compile-time checked quries by uncommenting the `DATABASE_UR
 To quickly get a PostgreSQL database instance running using [docker.io](https://www.docker.com/) the following command can be used:
 
 ```
-docker run -p 5432:5432 -e POSTGRES_PASSWORD=password -e POSTGRES_DB="ccdscan" --rm postgres
+docker run -p 5432:5432 -e POSTGRES_PASSWORD=password -e POSTGRES_DB="ccdscan" --rm postgres:16
 ```
 
 ### Running database migrations
