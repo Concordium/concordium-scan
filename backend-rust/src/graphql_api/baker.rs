@@ -1189,9 +1189,9 @@ impl Baker {
                     LEFT JOIN bakers_payday_lottery_powers
                         ON bakers_payday_lottery_powers.id = bakers.id
                 WHERE (
-                        (payday_baking_commission > $2 AND payday_baking_commission < $1)
-                        OR (payday_baking_commission = $2 AND bakers.id > $4)
-                        OR (payday_baking_commission = $1 AND bakers.id < $3)
+                        (COALESCE(payday_baking_commission, 0) > $2 AND COALESCE(payday_baking_commission, 0) < $1)
+                        OR (COALESCE(payday_baking_commission, 0) = $2 AND bakers.id > $4)
+                        OR (COALESCE(payday_baking_commission, 0) = $1 AND bakers.id < $3)
                     )
                     -- filter if provided
                     AND ($7::pool_open_status IS NULL OR open_status = $7::pool_open_status)
@@ -1412,7 +1412,8 @@ impl Baker {
         include_removed_filter: bool,
     ) -> ApiResult<connection::Connection<String, Baker>> {
         type RemovedBakerCursor = BakerIdCursor;
-        type Cursor = ConcatCursor<RemovedBakerCursor, Reversed<BakerFieldDescCursor>>;
+        type BakerCursor = Reversed<BakerFieldDescCursor>;
+        type Cursor = ConcatCursor<RemovedBakerCursor, BakerCursor>;
 
         /// Internal helper function for querying the current bakers sorted
         /// by the block_commission in ascending order.
@@ -1454,10 +1455,11 @@ impl Baker {
                         ON bakers_payday_commission_rates.id = bakers.id
                     LEFT JOIN bakers_payday_lottery_powers
                         ON bakers_payday_lottery_powers.id = bakers.id
-                WHERE (
-                        (payday_baking_commission > $1 AND payday_baking_commission < $2)
-                        OR (payday_baking_commission = $1 AND bakers.id > $3)
-                        OR (payday_baking_commission = $2 AND bakers.id < $4)
+                WHERE
+                    (
+                        (COALESCE(payday_baking_commission, 0) > $1 AND COALESCE(payday_baking_commission, 0) < $2)
+                        OR (COALESCE(payday_baking_commission, 0) = $1    AND bakers.id > $3)
+                        OR (COALESCE(payday_baking_commission, 0) = $2    AND bakers.id < $4)
                     )
                     -- filter if provided
                     AND ($7::pool_open_status IS NULL OR open_status = $7::pool_open_status)
