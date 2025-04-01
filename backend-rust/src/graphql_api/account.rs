@@ -118,7 +118,7 @@ impl QueryAccounts {
                     -- Need to filter for only delegators if the user requests this.
                     (NOT $7 OR delegated_stake > 0)
                 ORDER BY
-                    -- Order by the field requested. Depending on the order of the collection
+                    -- Order primarily by the field requested. Depending on the order of the collection
                     -- and whether it is the first or last being queried, this sub-query must
                     -- order by:
                     --
@@ -134,14 +134,19 @@ impl QueryAccounts {
                     -- The first condition is true if we order by that field.
                     -- Otherwise false, which makes the CASE null, which means
                     -- it will not affect the ordering at all.
-                    (CASE WHEN $3 AND $8     THEN index           END) DESC,
-                    (CASE WHEN $3 AND NOT $8 THEN index           END) ASC,
+                    -- The `AccountOrderField::Age` is not mention here because its 
+                    -- sorting instruction is equivallent and would be repeated in the next step.
                     (CASE WHEN $4 AND $8     THEN amount          END) DESC,
                     (CASE WHEN $4 AND NOT $8 THEN amount          END) ASC,
                     (CASE WHEN $5 AND $8     THEN num_txs         END) DESC,
                     (CASE WHEN $5 AND NOT $8 THEN num_txs         END) ASC,
                     (CASE WHEN $6 AND $8     THEN delegated_stake END) DESC,
-                    (CASE WHEN $6 AND NOT $8 THEN delegated_stake END) ASC
+                    (CASE WHEN $6 AND NOT $8 THEN delegated_stake END) ASC,
+                    -- Since after the ordring above, there may exists elements with the same field value,
+                    -- apply a second ordering by the unique `account_id` (index) in addition. 
+                    -- This ensures a strict ordering of elements as the `AccountFieldDescCursor` defines. 
+                    (CASE WHEN $8     THEN index           END) DESC,
+                    (CASE WHEN NOT $8 THEN index           END) ASC
                 LIMIT $9
             )
             -- We need to order each page still, as we only use the DESC/ASC ordering above
@@ -162,7 +167,7 @@ impl QueryAccounts {
                 matches!(order.field, AccountOrderField::TransactionCount), // $5
                 matches!(order.field, AccountOrderField::DelegatedStake), // $6
                 include_only_delegators,                          // $7
-                query.is_last != matches!(order.dir, OrderDir::Desc), // $8
+                query.is_last != true,                            // $8
                 query.limit,                                      // $9
                 query.from.field,                                 // $10
                 query.to.field,                                   // $11
@@ -182,45 +187,45 @@ impl QueryAccounts {
             {
                 let bounds = sqlx::query!(
                     "WITH
-                    min_account as (
-                        SELECT index, 
-                            CASE 
-                                WHEN $2 THEN index 
-                                WHEN $3 THEN amount
-                                WHEN $4 THEN num_txs
-                                WHEN $5 THEN delegated_stake
-                            ELSE NULL 
-                        END AS min_value
-                        FROM accounts
-                        WHERE 
-                            -- Need to filter for only delegators if the user requests this.
-                            (NOT $1 OR delegated_stake > 0)
-                        ORDER BY min_value DESC, index DESC
-                        LIMIT 1
-                    ),
-                    max_account as (
-                        SELECT 
-                            index,
-                            CASE 
-                                WHEN $2 THEN index 
-                                WHEN $3 THEN amount
-                                WHEN $4 THEN num_txs
-                                WHEN $5 THEN delegated_stake
-                            ELSE NULL 
-                            END AS max_value
-                        FROM accounts
-                        WHERE 
-                            -- Need to filter for only delegators if the user requests this.
-                            (NOT $1 OR delegated_stake > 0)
-                        ORDER BY max_value ASC, index ASC
-                        LIMIT 1
-                    )
-                SELECT
-                    min_account.index AS min_index,
-                    min_account.min_value AS min_value,
-                    max_account.index AS max_index,
-                    max_account.max_value AS max_value
-                FROM min_account, max_account",
+                        min_account as (
+                            SELECT index, 
+                                CASE 
+                                    WHEN $2 THEN index 
+                                    WHEN $3 THEN amount
+                                    WHEN $4 THEN num_txs
+                                    WHEN $5 THEN delegated_stake
+                                ELSE NULL 
+                            END AS min_value
+                            FROM accounts
+                            WHERE 
+                                -- Need to filter for only delegators if the user requests this.
+                                (NOT $1 OR delegated_stake > 0)
+                            ORDER BY min_value DESC, index DESC
+                            LIMIT 1
+                        ),
+                        max_account as (
+                            SELECT 
+                                index,
+                                CASE 
+                                    WHEN $2 THEN index 
+                                    WHEN $3 THEN amount
+                                    WHEN $4 THEN num_txs
+                                    WHEN $5 THEN delegated_stake
+                                ELSE NULL 
+                                END AS max_value
+                            FROM accounts
+                            WHERE 
+                                -- Need to filter for only delegators if the user requests this.
+                                (NOT $1 OR delegated_stake > 0)
+                            ORDER BY max_value ASC, index ASC
+                            LIMIT 1
+                        )
+                    SELECT
+                        min_account.index AS min_index,
+                        min_account.min_value AS min_value,
+                        max_account.index AS max_index,
+                        max_account.max_value AS max_value
+                    FROM min_account, max_account",
                     include_only_delegators,                          // $1
                     matches!(order.field, AccountOrderField::Age),    // $2
                     matches!(order.field, AccountOrderField::Amount), // $3
@@ -309,7 +314,7 @@ impl QueryAccounts {
                         -- Need to filter for only delegators if the user requests this.
                         (NOT $7 OR delegated_stake > 0)
                     ORDER BY
-                        -- Order by the field requested. Depending on the order of the collection
+                        -- Order primarily by the field requested. Depending on the order of the collection
                         -- and whether it is the first or last being queried, this sub-query must
                         -- order by:
                         --
@@ -325,14 +330,19 @@ impl QueryAccounts {
                         -- The first condition is true if we order by that field.
                         -- Otherwise false, which makes the CASE null, which means
                         -- it will not affect the ordering at all.
-                        (CASE WHEN $3 AND $8     THEN index           END) DESC,
-                        (CASE WHEN $3 AND NOT $8 THEN index           END) ASC,
+                        -- The `AccountOrderField::Age` is not mention here because its 
+                        -- sorting instruction is equivallent and would be repeated in the next step.
                         (CASE WHEN $4 AND $8     THEN amount          END) DESC,
                         (CASE WHEN $4 AND NOT $8 THEN amount          END) ASC,
                         (CASE WHEN $5 AND $8     THEN num_txs         END) DESC,
                         (CASE WHEN $5 AND NOT $8 THEN num_txs         END) ASC,
                         (CASE WHEN $6 AND $8     THEN delegated_stake END) DESC,
-                        (CASE WHEN $6 AND NOT $8 THEN delegated_stake END) ASC
+                        (CASE WHEN $6 AND NOT $8 THEN delegated_stake END) ASC,
+                        -- Since after the ordring above, there may exists elements with the same field value,
+                        -- apply a second ordering by the unique `account_id` (index) in addition. 
+                        -- This ensures a strict ordering of elements as the `AccountFieldDescCursor` defines. 
+                        (CASE WHEN $8     THEN index           END) DESC,
+                        (CASE WHEN NOT $8 THEN index           END) ASC
                     LIMIT $9
                 )
                 -- We need to order each page still, as we only use the DESC/ASC ordering above
@@ -353,7 +363,7 @@ impl QueryAccounts {
                 matches!(order.field, AccountOrderField::TransactionCount), // $5
                 matches!(order.field, AccountOrderField::DelegatedStake), // $6
                 include_only_delegators,                          // $7
-                query.is_last != matches!(order.dir, OrderDir::Desc), // $8
+                query.is_last != false,                           // $8
                 query.limit,                                      // $9
                 query.from.cursor.field,                          // $10
                 query.to.cursor.field,                            // $11
@@ -639,6 +649,12 @@ impl AccountFieldDescCursor {
     }
 }
 
+/// Decode the cursor from a string.
+///
+/// The format of the cursor is `({before}:{after})` where `{before}` is
+/// the `field` to represent the `Age`, `Amount`, `TransactionCount`
+/// or `DelegatedStake`, and `{after}` is
+/// the cursor for `account_id` which is unique.
 impl connection::CursorType for AccountFieldDescCursor {
     type Error = DecodeAccountFieldCursor;
 
@@ -680,6 +696,12 @@ impl PartialOrd for AccountFieldDescCursor {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) }
 }
 
+/// The cursor contains a `field` to represent the `Age`, `Amount`,
+/// `TransactionCount` or `DelegatedStake` which is NOT unique and an
+/// `account_id` which is unique. The primary ording is defined by the field
+/// value. Among elements with the same field value, the unique `account_id`
+/// defines the ordering. Since the `account_id` is unique, a strict ordering of
+/// elements in the `AccountFieldDescCursor` is defined.
 impl Ord for AccountFieldDescCursor {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         let ordering = other.field.cmp(&self.field);
