@@ -1141,7 +1141,7 @@ impl P4ProtocolUpdateMigration {
             .await?
             .response
             .map_err(anyhow::Error::from)
-            .try_filter_map(|baker_id| {
+            .and_then(|baker_id| {
                 let mut client = node_client.clone();
                 async move {
                     let pool_info = client.get_pool_info(block_height, baker_id).await?.response;
@@ -1162,13 +1162,13 @@ impl P4ProtocolUpdateMigration {
                         pool.commission_rates.finalization,
                     )));
 
-                    anyhow::Ok(Some((
+                    anyhow::Ok((
                         validator_id,
                         (
                             status,
                             (metadata_url, (transaction_rate, (baking_rate, finalization_rate))),
                         ),
-                    )))
+                    ))
                 }
             })
             .try_collect()

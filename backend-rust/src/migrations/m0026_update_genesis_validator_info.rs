@@ -26,7 +26,7 @@ pub async fn run(
             .fetch_optional(tx.as_mut())
             .await?;
     let Some(latest_height) = latest_height else {
-        // No blocks processed yet, so data to migrate.
+        // No blocks processed yet, meaning no data to migrate.
         return Ok(NEXT_SCHEMA_VERSION);
     };
     let latest_block = BlockIdentifier::AbsoluteHeight(u64::try_from(latest_height)?.into());
