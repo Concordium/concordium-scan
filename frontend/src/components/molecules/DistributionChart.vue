@@ -46,29 +46,29 @@ import type { StablecoinResponse } from '~/queries/useStableCoinQuery'
 import DoughnutChart from '../Charts/DoughnutChart.vue'
 
 const baseColors = [
-	'#FFB3BA', // Soft pastel pink
-	'#FFDFBA', // Warm pastel peach
-	'#FFFFBA', // Light pastel yellow
-	'#BAFFC9', // Mint pastel green
-	'#BAE1FF', // Light pastel blue
-	'#E0BBE4', // Soft lavender
-	'#D4A5A5', // Dusty rose
-	'#B5EAD7', // Light mint green
-	'#C7CEEA', // Pale periwinkle
-	'#F7C8E0', // Light blush pink
+	'#2AE8B8', // Bright Mint
+	'#3C8AFF', // Vivid Blue
+	'#FFD116', // Gold Yellow
+	'#FFB21D', // Rich Amber
+	'#4FD1FF', // Aqua Blue
+	'#1CC6AE', // Electric Teal
+	'#A393FF', // Periwinkle
+	'#FF6B6B', // Coral Red
+	'#D9D9D9', // Silver Grey
+	'#FFA3D7', // Soft Pink
 ]
 
 const hoverColors = [
-	'#E89A9A', // Deeper pastel pink
-	'#E8C49A', // Soft warm peach
-	'#E8E49A', // Rich pastel yellow
-	'#9FD9B8', // Deeper mint green
-	'#9FC9E8', // Soft sky blue
-	'#C49CCF', // Deeper lavender
-	'#B08787', // Muted rose
-	'#92C5A5', // Subtle mint green
-	'#A6A8D1', // Muted periwinkle
-	'#DAA6BD', // Soft mauve pink
+	'#2AE8B8', // Bright Mint
+	'#3C8AFF', // Vivid Blue
+	'#FFD116', // Gold Yellow
+	'#FFB21D', // Rich Amber
+	'#4FD1FF', // Aqua Blue
+	'#1CC6AE', // Electric Teal
+	'#A393FF', // Periwinkle
+	'#FF6B6B', // Coral Red
+	'#D9D9D9', // Silver Grey
+	'#FFA3D7', // Soft Pink
 ]
 
 // Define Props
