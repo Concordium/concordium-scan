@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Change query `useBakerPoolRewardMetrics` to use the new `rust-backend` API.
+
 ## [1.7.9] - 2025-03-27
 
 ### Changed

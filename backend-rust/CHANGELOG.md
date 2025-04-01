@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 Database schema version: 25
 
+### Added
+
+- Add query `Query::poolRewardMetricsForBakerPool`
+
 ### Fixed
 
 - Add database migration 25 reindexing the stake for delegators to the passive pool.
