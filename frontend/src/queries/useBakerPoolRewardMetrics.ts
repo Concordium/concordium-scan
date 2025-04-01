@@ -28,6 +28,7 @@ export const useBakerPoolRewardMetrics = (
 	period: Ref<MetricsPeriod>
 ) => {
 	const { data, executeQuery, fetching } = useQuery({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: PoolRewardMetricsForBakerPoolQuery,
 		requestPolicy: 'cache-and-network',
 		variables: { bakerId, period },
