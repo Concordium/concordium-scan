@@ -121,12 +121,12 @@ const defaultOptions = ref({
 			beginAtZero: props.beginAtZero,
 			grid: {
 				display: true, // Ensure horizontal grid lines are visible
-				color: '#FFFFFF', // Grid line color (change as needed)
+				color: '#d1d5db', // Grid line color (change as needed)
 				lineWidth: 0.1, // Make grid lines more visible
 			}, // Hide vertical grid lines
 			ticks: {
 				display: true, // Ensure Y-axis labels are visible
-				color: '#ffffff',
+				color: '#d1d5db',
 				autoSkip: false,
 			},
 		},
@@ -165,7 +165,7 @@ onMounted(() => {
 					if (!ctx) return
 
 					ctx.font = '11px'
-					ctx.fillStyle = '#FFFFFF'
+					ctx.fillStyle = '#d1d5db'
 					ctx.textAlign = 'center'
 					ctx.textBaseline = 'bottom'
 
