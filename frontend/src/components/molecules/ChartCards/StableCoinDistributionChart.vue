@@ -45,7 +45,7 @@ watchEffect(() => {
 		)
 
 		delayedSupplyPercentage.value = stablecoins.map(coin => ({
-			...coin,
+			symbol: coin.symbol,
 			supplyPercentage:
 				totalSupplySum > 0
 					? ((coin.totalSupply! / totalSupplySum) * 100).toFixed(2)

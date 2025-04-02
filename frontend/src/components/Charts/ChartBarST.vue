@@ -15,6 +15,7 @@ type Props = {
 	bucketWidth?: string
 	beginAtZero?: boolean
 	labelFormatter?: LabelFormatterFunc
+	showSign?: string
 }
 const canvasRef = ref()
 Chart.register(...registerables)
@@ -134,10 +135,12 @@ const defaultOptions = ref({
 })
 
 const formatNumber = (num?: number): string => {
-	if (typeof num !== 'number' || isNaN(num)) return '$0'
+	if (typeof num !== 'number' || isNaN(num)) return `${props.showSign}0`
 
 	const format = (value: number, suffix: string) =>
-		value % 1 === 0 ? `$${value}${suffix}` : `$${value.toFixed(1)}${suffix}`
+		value % 1 === 0
+			? `${props.showSign}${value}${suffix}`
+			: `${props.showSign}${value.toFixed(1)}${suffix}`
 
 	return num >= 1e12
 		? format(num / 1e12, 'T')
@@ -147,7 +150,7 @@ const formatNumber = (num?: number): string => {
 		? format(num / 1e6, 'M')
 		: num >= 1e3
 		? format(num / 1e3, 'K')
-		: `$${num}`
+		: `${props.showSign}${num}`
 }
 
 let chartInstance: Chart
