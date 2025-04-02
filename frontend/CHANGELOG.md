@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.7.10] - 2025-04-02
+
 ### Fixed
 
 - Fix `Accounts` sorting and page information.
