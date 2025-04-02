@@ -16,10 +16,14 @@
 						:is-loading="false"
 					>
 						<template #title>Total Market Cap</template>
-						<template #value>{{
-							'$' +
-							formatNumber(overviewData?.stablecoinOverview?.totalMarketcap)
-						}}</template>
+						<template #value
+							><p class="font-bold text-2xl mt-2">
+								{{
+									'$' +
+									formatNumber(overviewData?.stablecoinOverview?.totalMarketcap)
+								}}
+							</p></template
+						>
 					</KeyValueChartCard>
 				</CarouselSlide>
 				<CarouselSlide class="w-full lg:h-full">
@@ -29,9 +33,11 @@
 						:is-loading="false"
 					>
 						<template #title>Unique Holder</template>
-						<template #value>{{
-							overviewData?.stablecoinOverview?.numberOfUniqueHolder
-						}}</template>
+						<template #value
+							><p class="font-bold text-2xl mt-2">
+								{{ overviewData?.stablecoinOverview?.numberOfUniqueHolder }}
+							</p></template
+						>
 					</KeyValueChartCard>
 				</CarouselSlide>
 				<CarouselSlide class="w-full lg:h-full">
@@ -41,9 +47,11 @@
 						:is-loading="false"
 					>
 						<template #title>No. of Txs Transfer 24h</template>
-						<template #value>{{
-							overviewData?.stablecoinOverview?.noOfTxnLast24H
-						}}</template>
+						<template #value
+							><p class="font-bold text-2xl mt-2">
+								{{ overviewData?.stablecoinOverview?.noOfTxnLast24H }}
+							</p></template
+						>
 					</KeyValueChartCard>
 				</CarouselSlide>
 				<CarouselSlide class="w-full lg:h-full">
@@ -53,12 +61,16 @@
 						:is-loading="false"
 					>
 						<template #title>Total Values Transfer 24h</template>
-						<template #value>{{
-							'$' +
-							formatNumber(
-								overviewData?.stablecoinOverview?.valuesTransferdLast24H
-							)
-						}}</template>
+						<template #value
+							><p class="font-bold text-2xl mt-2">
+								{{
+									'$' +
+									formatNumber(
+										overviewData?.stablecoinOverview?.valuesTransferdLast24H
+									)
+								}}
+							</p></template
+						>
 					</KeyValueChartCard>
 				</CarouselSlide>
 			</FtbCarousel>
