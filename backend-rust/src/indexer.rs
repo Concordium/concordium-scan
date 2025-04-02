@@ -1328,8 +1328,14 @@ impl PreparedBlockItem {
     ) -> anyhow::Result<Self> {
         let block_height = i64::try_from(data.finalized_block_info.height.height)?;
         let block_item_hash = item_summary.hash.to_string();
-        let ccd_cost =
-            i64::try_from(data.chain_parameters.ccd_cost(item_summary.energy_cost).micro_ccd)?;
+        let ccd_cost = if let BlockItemSummaryDetails::AccountCreation(_) = item_summary.details {
+            // Account creation does not involve any transaction fees, but still have a
+            // non-zero energy_cost.
+            0
+        } else {
+            i64::try_from(data.chain_parameters.ccd_cost(item_summary.energy_cost).micro_ccd)?
+        };
+
         let energy_cost = i64::try_from(item_summary.energy_cost.energy)?;
         let sender = item_summary.sender_account().map(|a| a.to_string());
         let (transaction_type, account_type, credential_type, update_type) =

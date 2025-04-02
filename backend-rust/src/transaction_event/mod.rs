@@ -560,9 +560,15 @@ pub fn events_from_summary(
             }
         },
         BlockItemSummaryDetails::AccountCreation(details) => {
-            vec![Event::AccountCreated(credentials::AccountCreated {
-                account_address: details.address.into(),
-            })]
+            vec![
+                Event::CredentialDeployed(credentials::CredentialDeployed {
+                    reg_id:          details.reg_id.to_string(),
+                    account_address: details.address.into(),
+                }),
+                Event::AccountCreated(credentials::AccountCreated {
+                    account_address: details.address.into(),
+                }),
+            ]
         }
         BlockItemSummaryDetails::Update(details) => {
             let effective_time = details.effective_time.seconds;
