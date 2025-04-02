@@ -19,6 +19,7 @@ mod m0021_amounts_schedule;
 mod m0023_add_init_parameter;
 mod m0025_fix_passive_delegator_stake;
 mod m0026_update_genesis_validator_info;
+mod m0027_reindex_credential_deployments;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.
@@ -247,6 +248,8 @@ pub enum SchemaVersion {
     FixPassiveDelegatorsStake,
     #[display("0026:Update information for genesis validators")]
     UpdateGenesisValidatorInfo,
+    #[display("0027:Reindex credential deployments, adjusting cost and missing information")]
+    ReindexCredentialDeployment,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -254,7 +257,7 @@ impl SchemaVersion {
     /// have been introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::BakerPeriodApyViews;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::UpdateGenesisValidatorInfo;
+    const LATEST: SchemaVersion = SchemaVersion::ReindexCredentialDeployment;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -300,6 +303,7 @@ impl SchemaVersion {
             SchemaVersion::BakerPeriodApyViews => false,
             SchemaVersion::FixPassiveDelegatorsStake => false,
             SchemaVersion::UpdateGenesisValidatorInfo => false,
+            SchemaVersion::ReindexCredentialDeployment => false,
         }
     }
 
@@ -336,6 +340,7 @@ impl SchemaVersion {
             SchemaVersion::BakerPeriodApyViews => false,
             SchemaVersion::FixPassiveDelegatorsStake => false,
             SchemaVersion::UpdateGenesisValidatorInfo => false,
+            SchemaVersion::ReindexCredentialDeployment => false,
         }
     }
 
@@ -498,7 +503,10 @@ impl SchemaVersion {
             SchemaVersion::FixPassiveDelegatorsStake => {
                 m0026_update_genesis_validator_info::run(&mut tx, endpoints).await?
             }
-            SchemaVersion::UpdateGenesisValidatorInfo => unimplemented!(
+            SchemaVersion::UpdateGenesisValidatorInfo => {
+                m0027_reindex_credential_deployments::run(&mut tx, endpoints).await?
+            }
+            SchemaVersion::ReindexCredentialDeployment => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
