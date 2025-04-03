@@ -110,7 +110,7 @@ const defaultOptions: ChartOptions<'bar'> = {
 		'right-axis': {
 			position: 'right',
 			ticks: {
-				callback: value => `${value}B`,
+				callback: value => `${value / 1_000_000_000}B`,
 				color: '#d1d5db',
 			},
 			title: {
