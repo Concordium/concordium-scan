@@ -45,7 +45,7 @@
 										"
 										text-class="text-theme-body"
 									>
-										{{
+										${{
 											(
 												coin.holdings[0].quantity *
 												dataPerStablecoin?.stablecoin?.valueInDoller
