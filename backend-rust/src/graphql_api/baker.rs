@@ -2121,14 +2121,21 @@ FROM bakers
     LEFT JOIN bakers_payday_commission_rates ON bakers_payday_commission_rates.id = bakers.id
 WHERE
     (
-      (COALESCE(delegators_apy, 0) > $2::FLOAT8 AND COALESCE(delegators_apy, 0) < $1::FLOAT8)
+      -- Start outer bound for page
+      (COALESCE(delegators_apy, 0) < $1::FLOAT8
+      -- End outer bound for page
+      AND COALESCE(delegators_apy, 0) > $2::FLOAT8)
+      -- When outer bounds are not equal, filter separate for each inner bound.
       OR (
-          $1 > $2
+          $1 != $2
           AND (
+               -- Start inner bound for page.
                (COALESCE(delegators_apy, 0) = $1 AND bakers.id < $3)
-                OR (COALESCE(delegators_apy, 0) = $2 AND bakers.id > $4)
+               -- End inner bound for page.
+               OR (COALESCE(delegators_apy, 0) = $2 AND bakers.id > $4)
           )
       )
+      -- When outer bounds are equal, use one filter for both bounds.
       OR (
           $1 = $2
           AND (COALESCE(delegators_apy, 0) = $1
