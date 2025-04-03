@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.7.10] - 2025-04-02
+
+### Fixed
+
+- Fix `Accounts` sorting and page information.
+
+### Changed
+
+- Change query `useBakerPoolRewardMetrics` to use the new `rust-backend` API.
+
+### Added
+
+- Support pagination for list of all suspended validators and the list of all primed for suspension validators in `Suspended Validators` drawer.
+
 ## [1.7.9] - 2025-03-27
 
 ### Changed

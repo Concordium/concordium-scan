@@ -4,8 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.44] - 2025-04-02
+
+Database schema version: 27
+
+### Added
+
+- Add query `Query::poolRewardMetricsForBakerPool`
+
 ### Fixed
 
+- Fixed issue when computing of `ActiveBakerState::delegated_stake_cap` where the order of operations were wrong, resulting in a cap of `0` for some validator pools.
+- Add database migration 27 reindexing credential deployments to include the Credential Registration ID in the events and to update the fee cost to 0.
+- Fix `Query::bakers` when sorted by block commission rate (both ascending and descending) to include bakers, which does not have a block commission for the current reward period.
+- Add database migration 26 updating pool information for the ones missing.
+  Since the baker/validator pool concept was introduced as part of Concordium protocol version 4, bakers/validators prior to this protocol version implicitly became pools and until now the indexer did not update the pool information for these.
+- Add database migration 25 reindexing the stake for delegators to the passive pool.
+  The stakes for these delegators got offset by a bug in migration 13, which did not update the passive delegators properly.
+  This was fixed again in migration 22, but the passive delegators with restake_earnings enabled missed their increase in stake due to this.
+- Fixed `PassiveDelegation::delegators` sorting and page information.
 - Fix accidental breaking change due to typo in `BakerSort` variants `BAKER_APY30_DAYS_DESC` and `DELEGATOR_APY30_DAYS_DESC`.
 
 ## [0.1.43] - 2025-03-27

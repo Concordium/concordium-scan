@@ -151,22 +151,6 @@ describe('Button', () => {
 })
 ```
 
-### Git hooks
-
-We're using [Husky](https://typicode.github.io/husky/#/) to write our git hooks. We only have one git hook; **pre-commit**. It will make sure, that when committing, the staged code is linted (using ESLint), formatted (using Prettier) and typechecked.
-
-Husky should be installed together with the rest of the dependencies, but if it isn't, you can install it manually:
-
-```sh
-npx husky install
-```
-
-Furthermore, it might complain that the hook cannot be run. If this is the case, you need to give Husky access to execute the file:
-
-```sh
-chmod +x .husky/pre-commit
-```
-
 ### Type generation
 
 We are using [GraphQL Code Generator](https://www.graphql-code-generator.com/) to generate types from our GraphQL schema. Whenever there is a change in the schema, you can run the below commands which will generate a new set of types in `types/generated.ts` file. You should not edit this file manually, as the codegen will simply overwrite changes.

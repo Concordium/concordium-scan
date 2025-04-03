@@ -1,6 +1,6 @@
 use crate::{
     graphql_api::{get_pool, ApiError, ApiResult, MetricsPeriod},
-    scalar_types::{DateTime, TimeSpan},
+    scalar_types::{DateTime, Long, TimeSpan},
 };
 use async_graphql::{types, Context, Object, SimpleObject};
 use chrono::Utc;
@@ -27,6 +27,86 @@ impl QueryRewardMetrics {
         account_id: types::ID,
     ) -> ApiResult<RewardMetrics> {
         reward_metrics(period, Some(account_id), get_pool(ctx)?).await
+    }
+
+    async fn pool_reward_metrics_for_baker_pool<'a>(
+        &self,
+        ctx: &Context<'a>,
+        period: MetricsPeriod,
+        baker_id: types::ID,
+    ) -> ApiResult<PoolRewardMetrics> {
+        let pool = get_pool(ctx)?;
+        let end_time = Utc::now();
+        let before_time = end_time - period.as_duration();
+        let bucket_width = period.bucket_width();
+
+        let bucket_interval: PgInterval =
+            bucket_width.try_into().map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))?;
+        let value: i64 = baker_id.try_into().map_err(ApiError::InvalidIdInt)?;
+
+        let rows = sqlx::query!(
+            r#"
+            SELECT
+                bucket_time.bucket_start AS "bucket_time!",
+                COALESCE(sub.accumulated_total_stake, 0)::BIGINT AS "accumulated_total_stake!",
+                COALESCE(sub.accumulated_delegators_stake, 0)::BIGINT AS "accumulated_delegators_stake!"
+            FROM
+                date_bin_series(
+                    $3::interval,
+                    $2,
+                    $1
+                ) AS bucket_time
+            LEFT JOIN LATERAL (
+                SELECT
+                    SUM(payday_total_transaction_rewards + payday_total_baking_rewards + payday_total_finalization_rewards) AS accumulated_total_stake,
+                    SUM(payday_delegators_transaction_rewards + payday_delegators_finalization_rewards + payday_delegators_baking_rewards) AS accumulated_delegators_stake
+                FROM bakers_payday_pool_rewards
+                LEFT JOIN blocks ON blocks.height = payday_block_height
+                WHERE blocks.slot_time BETWEEN bucket_time.bucket_start AND bucket_time.bucket_end
+                  AND pool_owner = $4
+            ) sub ON true;
+            "#,
+            end_time,
+            before_time,
+            bucket_interval,
+            value
+        )
+        .fetch_all(pool)
+        .await?;
+
+        let mut x_time = Vec::with_capacity(rows.len());
+        let mut y_sum_baker_rewards: Vec<Long> = Vec::with_capacity(rows.len());
+        let mut y_sum_delegators_rewards: Vec<Long> = Vec::with_capacity(rows.len());
+        let mut y_sum_total_rewards: Vec<Long> = Vec::with_capacity(rows.len());
+        let mut sum_total_reward_amount = Long(0);
+        let mut sum_delegators_reward_amount = Long(0);
+
+        for row in &rows {
+            x_time.push(row.bucket_time);
+            let accumulated_total_stake = Long(row.accumulated_total_stake);
+            let accumulated_delegator_stake = Long(row.accumulated_delegators_stake);
+
+            y_sum_total_rewards.push(accumulated_total_stake);
+            y_sum_baker_rewards.push(accumulated_total_stake - accumulated_delegator_stake);
+            y_sum_delegators_rewards.push(accumulated_delegator_stake);
+            sum_total_reward_amount += accumulated_total_stake;
+            sum_delegators_reward_amount += accumulated_delegator_stake;
+        }
+
+        let sum_baker_reward_amount = sum_total_reward_amount - sum_delegators_reward_amount;
+
+        Ok(PoolRewardMetrics {
+            sum_baker_reward_amount,
+            sum_delegators_reward_amount,
+            sum_total_reward_amount,
+            buckets: PoolRewardMetricsBuckets {
+                bucket_width: TimeSpan(bucket_width),
+                x_time,
+                y_sum_baker_rewards,
+                y_sum_delegators_rewards,
+                y_sum_total_rewards,
+            },
+        })
     }
 }
 
@@ -94,9 +174,35 @@ pub struct RewardMetricsBuckets {
 }
 
 #[derive(SimpleObject)]
+pub struct PoolRewardMetricsBuckets {
+    /// The width (time interval) of each bucket.
+    bucket_width:             TimeSpan,
+    #[graphql(name = "x_Time")]
+    x_time:                   Vec<DateTime>,
+    #[graphql(name = "y_SumTotalRewards")]
+    y_sum_total_rewards:      Vec<Long>,
+    #[graphql(name = "y_SumBakerRewards")]
+    y_sum_baker_rewards:      Vec<Long>,
+    #[graphql(name = "y_SumDelegatorsRewards")]
+    y_sum_delegators_rewards: Vec<Long>,
+}
+
+#[derive(SimpleObject)]
 pub struct RewardMetrics {
     /// Total rewards at the end of the interval
     sum_reward_amount: i64,
     /// Bucket-wise data for rewards
     buckets:           RewardMetricsBuckets,
+}
+
+#[derive(SimpleObject)]
+pub struct PoolRewardMetrics {
+    /// Total rewards at the end of the interval
+    sum_total_reward_amount: Long,
+    /// Baker rewards at the end of the interval
+    sum_baker_reward_amount: Long,
+    /// Delegator rewards at the end of the interval
+    sum_delegators_reward_amount: Long,
+    /// Bucket-wise data for rewards
+    buckets: PoolRewardMetricsBuckets,
 }
