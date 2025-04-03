@@ -51,8 +51,7 @@ const chartData = computed(() => ({
 			yAxisID: 'right-axis',
 			order: 1,
 			tension: 0.4,
-			pointRadius: 4,
-			cubicInterpolationMode: 'monotone',
+			pointRadius: 0,
 		},
 	],
 }))
