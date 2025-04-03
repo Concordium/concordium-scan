@@ -1,24 +1,26 @@
 <template>
-	<MetricCard class="w-96 lg:w-full">
-		<header class="flex flex-col items-center">
-			<div class="absolute top-4 right-4 text-xs">
-				<slot name="topRight" />
-			</div>
+	<div>
+		<MetricCard class="w-96 lg:w-full">
+			<header class="flex flex-col items-center">
+				<div class="absolute top-4 right-4 text-xs">
+					<slot name="topRight" />
+				</div>
 
-			<div class="text-sm text-theme-faded pt-4 w-72 text-center">
-				Token Transfer
-			</div>
-		</header>
-		<ClientOnly>
-			<ChartBarLine
-				:bar-data="barGraphValues"
-				:line-data="lineGraphValues"
-				:labels="chartLabels"
-				:background-colors="baseColors"
-				:hover-background-colors="hoverColors"
-			/>
-		</ClientOnly>
-	</MetricCard>
+				<div class="text-sm text-theme-faded pt-4 w-72 text-center">
+					Token Transfer
+				</div>
+			</header>
+			<ClientOnly>
+				<ChartBarLine
+					:bar-data="barGraphValues"
+					:line-data="lineGraphValues"
+					:labels="chartLabels"
+					:background-colors="baseColors"
+					:hover-background-colors="hoverColors"
+				/>
+			</ClientOnly>
+		</MetricCard>
+	</div>
 </template>
 <script lang="ts" setup>
 import MetricCard from '~/components/atoms/MetricCard.vue'

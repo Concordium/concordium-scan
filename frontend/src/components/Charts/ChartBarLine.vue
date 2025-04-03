@@ -51,7 +51,7 @@ const chartData = computed(() => ({
 			yAxisID: 'right-axis',
 			order: 1,
 			tension: 0.4,
-			pointRadius: 4,
+			pointRadius: 2,
 			cubicInterpolationMode: 'monotone',
 		},
 	],
@@ -97,7 +97,7 @@ const defaultOptions: ChartOptions<'bar'> = {
 		'left-axis': {
 			position: 'left',
 			ticks: {
-				callback: value => `${value}M`,
+				callback: value => `${value}`,
 				color: '#d1d5db',
 			},
 			title: {
@@ -110,7 +110,7 @@ const defaultOptions: ChartOptions<'bar'> = {
 		'right-axis': {
 			position: 'right',
 			ticks: {
-				callback: value => `${value}B`,
+				callback: value => `${value / 1_000_000_000}B`,
 				color: '#d1d5db',
 			},
 			title: {
