@@ -69,6 +69,23 @@ const defaultOptions: ChartOptions<'bar'> = {
 				color: '#d1d5db',
 				borderWidth: 0,
 			},
+			onClick: (e, legendItem, legend) => {
+				const chart = legend.chart
+				const datasetIndex = legendItem.datasetIndex
+				const meta = chart.getDatasetMeta(datasetIndex)
+				meta.hidden =
+					meta.hidden === null
+						? !chart.data.datasets[datasetIndex].hidden
+						: null
+
+				const isLeftAxisVisible = chart.isDatasetVisible(0)
+				const isRightAxisVisible = chart.isDatasetVisible(1)
+
+				chart.options.scales['left-axis'].display = isLeftAxisVisible
+				chart.options.scales['right-axis'].display = isRightAxisVisible
+
+				chart.update()
+			},
 		},
 	},
 	responsive: true,

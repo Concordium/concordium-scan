@@ -16,6 +16,7 @@
 				:x-values="chartLabels"
 				:begin-at-zero="true"
 				:type="chartType"
+				:show-sign="showSign"
 			/>
 		</ClientOnly>
 	</MetricCard>
@@ -32,6 +33,7 @@ import type { StablecoinResponse } from '~/queries/useStableCoinQuery'
 const props = defineProps<{
 	stableCoinsData?: StablecoinResponse
 	isLoading?: boolean
+	showSign?: string
 	chartType?: 'supply' | 'uniqueHolders'
 }>()
 

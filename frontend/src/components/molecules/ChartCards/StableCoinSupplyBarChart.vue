@@ -3,6 +3,7 @@
 		<DistributionChartBar
 			:stable-coins-data="stableCoinsData"
 			chart-type="supply"
+			show-sign="$"
 		>
 			<template #title> StableCoin Supply </template>
 		</DistributionChartBar>

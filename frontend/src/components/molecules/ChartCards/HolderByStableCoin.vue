@@ -3,6 +3,7 @@
 		<DistributionChartBar
 			:stable-coins-data="stableCoinsData"
 			chart-type="uniqueHolders"
+			show-sign=""
 		>
 			<template #title> Holder by Stablecoin </template>
 		</DistributionChartBar>

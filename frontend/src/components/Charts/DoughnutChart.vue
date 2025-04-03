@@ -67,13 +67,15 @@ const defaultOptions: ChartOptions<'doughnut'> = {
 		tooltip: {
 			callbacks: {
 				label: function (context) {
-					const total = context.dataset.data.reduce(
-						(sum, value) => sum + (value as number),
-						0
-					)
+					const datasetData = context.dataset.data as number[]
+					const total = datasetData.length
+						? datasetData.reduce((sum, value) => sum + value, 0)
+						: 1 // Prevent division by zero
+
 					const value = context.raw as number
 					const percentage =
 						total > 0 ? ((value / total) * 100).toFixed(2) + '%' : '0%'
+
 					return props.labelFormatter
 						? props.labelFormatter(context)
 						: `${context.label}: ${context.parsed} (${percentage})`

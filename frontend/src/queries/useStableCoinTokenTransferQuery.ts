@@ -13,6 +13,8 @@ const STABLECOIN_TOKEN_TRANSFER = gql`
 			totalSupply
 			totalUniqueHolder
 			valueInDoller
+			decimal
+			symbol
 		}
 		transferSummary(assetName: $symbol, days: $days) {
 			dailySummary {
