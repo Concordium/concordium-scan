@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            bucket_time.bucket_start AS \"bucket_time!\",\n            (SELECT COALESCE(SUM(amount), 0)\n                FROM metrics_rewards\n                WHERE\n                    block_slot_time > bucket_time.bucket_start\n                    AND block_slot_time <= bucket_time.bucket_end\n                    AND (\n                        $4::BIGINT IS NULL\n                        OR account_index = $4::BIGINT\n                    )\n            )::BIGINT AS \"accumulated_amount!\"\n        FROM\n            date_bin_series(\n                $3::interval,\n                $2,\n                $1\n            ) AS bucket_time\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "bucket_time!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 1,
+        "name": "accumulated_amount!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Timestamptz",
+        "Interval",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "69a186a21eb956cdcec124f96b89c4e471a75ae4948955c3483b74d0b1da6f4e"
+}

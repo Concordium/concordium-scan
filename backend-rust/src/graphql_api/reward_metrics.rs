@@ -62,8 +62,10 @@ impl QueryRewardMetrics {
                     SUM(payday_delegators_transaction_rewards + payday_delegators_finalization_rewards + payday_delegators_baking_rewards) AS accumulated_delegators_stake
                 FROM bakers_payday_pool_rewards
                 LEFT JOIN blocks ON blocks.height = payday_block_height
-                WHERE blocks.slot_time BETWEEN bucket_time.bucket_start AND bucket_time.bucket_end
-                  AND pool_owner = $4
+                WHERE
+                    blocks.slot_time > bucket_time.bucket_start
+                    AND blocks.slot_time <= bucket_time.bucket_end
+                    AND pool_owner = $4
             ) sub ON true;
             "#,
             end_time,
