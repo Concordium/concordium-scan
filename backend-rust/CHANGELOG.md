@@ -9,6 +9,7 @@ Database schema version: 27
 ### Fixed
 
 - Fix pagination issue for `Query::bakers` when page bounds start and end with the same value for the selected sorting, it would include an overlap for the nested sorting (usually the validator ID).
+- Fix double counting of rewards in `Query::poolRewardMetricsForBakerPool` when paydays are exactly on the edge of two buckets.
 
 ## [0.1.44] - 2025-04-02
 
