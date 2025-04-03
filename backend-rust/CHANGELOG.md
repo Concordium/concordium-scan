@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+Database schema version: 27
+
+### Fixed
+
+- Fix pagination issue for `Query::bakers` when page bounds start and end with the same value for the selected sorting, it would include an overlap for the nested sorting (usually the validator ID).
+
 ## [0.1.44] - 2025-04-02
 
 Database schema version: 27

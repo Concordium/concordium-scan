@@ -783,4 +783,32 @@ mod tests {
         assert!(first == first);
         assert!(last == last);
     }
+
+    #[test]
+    fn test_complex_cursor_encode_decode() {
+        type Cursor = NestedCursor<OptionCursor<Reversed<F64Cursor>>, Reversed<i64>>;
+        let first: Cursor = NestedCursor {
+            outer: ConcatCursor::First(Reversed {
+                cursor: F64Cursor {
+                    value: 5.7180665077013275,
+                },
+            }),
+            inner: Reversed {
+                cursor: 204,
+            },
+        };
+        let last: Cursor = NestedCursor {
+            outer: ConcatCursor::Second(UnitCursor),
+            inner: Reversed {
+                cursor: 10,
+            },
+        };
+
+        let first_encode_decode = Cursor::decode_cursor(first.encode_cursor().as_str())
+            .expect("Failed to decode own encoding");
+        let last_encode_decode = Cursor::decode_cursor(last.encode_cursor().as_str())
+            .expect("Failed to decode own encoding");
+        assert_eq!(first, first_encode_decode);
+        assert_eq!(last, last_encode_decode);
+    }
 }
