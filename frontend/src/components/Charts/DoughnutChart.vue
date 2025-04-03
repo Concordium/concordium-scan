@@ -69,7 +69,7 @@ const defaultOptions: ChartOptions<'doughnut'> = {
 				label: function (context) {
 					const datasetData = context.dataset.data as number[]
 					const total = datasetData.length
-						? datasetData.reduce((sum, value) => sum + value, 0)
+						? datasetData.reduce((sum, value) => Number(sum) + Number(value), 0)
 						: 1 // Prevent division by zero
 
 					const value = context.raw as number
