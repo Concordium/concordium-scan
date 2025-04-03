@@ -1,6 +1,6 @@
 <template>
-	<div class="relative">
-		<canvas ref="canvasRef" width="450" height="450" />
+	<div class="relative w-full h-[450px]" style="height: 450px">
+		<canvas ref="canvasRef" />
 	</div>
 </template>
 
@@ -86,6 +86,9 @@ const defaultOptions: ChartOptions<'doughnut'> = {
 	responsive: true,
 	maintainAspectRatio: false,
 	cutout: props.cutout || '60%',
+	layout: {
+		padding: { left: 40, right: 40, top: 10, bottom: 10 },
+	},
 }
 
 let chartInstance: Chart<'doughnut'> | null = null

@@ -1,6 +1,6 @@
 <template>
-	<div class="relative">
-		<canvas ref="canvasRef" width="450" height="400" />
+	<div class="relative w-full h-[450px]" style="height: 450px">
+		<canvas ref="canvasRef" />
 	</div>
 </template>
 
@@ -91,7 +91,7 @@ const defaultOptions: ChartOptions<'bar'> = {
 	responsive: true,
 	maintainAspectRatio: false,
 	layout: {
-		padding: { left: 10, right: 10, top: 10, bottom: 10 },
+		padding: { left: 40, right: 40, top: 10, bottom: 10 },
 	},
 	scales: {
 		'left-axis': {

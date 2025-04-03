@@ -1,5 +1,5 @@
 <template>
-	<MetricCard class="w-100 lg:w-full">
+	<MetricCard class="w-96 lg:w-full">
 		<header class="flex flex-col items-center">
 			<div class="absolute top-4 right-4 text-xs">
 				<slot name="topRight" />
@@ -8,23 +8,6 @@
 			<div class="text-sm text-theme-faded pt-4 w-72 text-center">
 				<slot name="title" />
 			</div>
-			<!-- <div
-				v-if="!props.isLoading"
-				class="text-xl text-theme-interactive flex flex-row gap-2"
-			>
-				<div class="w-6 h-6 mr-2 text-theme-interactive">
-					<slot name="icon" />
-				</div>
-				<div class="numerical">
-					<slot name="value" />
-				</div>
-				<div>
-					<slot name="unit" />
-				</div>
-				<Chip class="self-center">
-					<slot name="chip" />
-				</Chip>
-			</div> -->
 		</header>
 		<ClientOnly>
 			<DoughnutChart
