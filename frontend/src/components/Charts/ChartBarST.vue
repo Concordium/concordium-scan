@@ -100,7 +100,7 @@ const defaultOptions = ref({
 	responsive: true,
 	maintainAspectRatio: false,
 	layout: {
-		padding: { left: 10, right: 40, top: 10, bottom: 10 },
+		padding: { left: 40, right: 50, top: 10, bottom: 10 },
 	},
 	interaction: {
 		mode: 'nearest',

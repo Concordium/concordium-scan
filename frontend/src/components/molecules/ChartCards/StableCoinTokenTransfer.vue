@@ -1,9 +1,10 @@
 <template>
-	<MetricCard class="w-100 lg:w-full">
+	<MetricCard class="w-96 lg:w-full">
 		<header class="flex flex-col items-center">
 			<div class="absolute top-4 right-4 text-xs">
 				<slot name="topRight" />
 			</div>
+
 			<div class="text-sm text-theme-faded pt-4 w-72 text-center">
 				Token Transfer
 			</div>
