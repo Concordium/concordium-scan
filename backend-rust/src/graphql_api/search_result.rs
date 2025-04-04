@@ -1,6 +1,8 @@
 use super::{
-    baker, block::Block, contract, get_config, get_pool, todo_api, token, ApiError, ApiResult,
-    ConnectionQuery,
+    baker,
+    block::Block,
+    contract::{self, Contract, ContractSnapshot},
+    get_config, get_pool, todo_api, token, ApiError, ApiResult, ConnectionQuery,
 };
 use crate::{
     connection::DescendingI64,
@@ -28,30 +30,146 @@ pub struct SearchResult {
 impl SearchResult {
     async fn contracts<'a>(
         &self,
-        _ctx: &Context<'a>,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<i32>,
+        ctx: &Context<'a>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        _after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        _before: Option<String>,
+        before: Option<String>,
     ) -> ApiResult<connection::Connection<String, contract::Contract>> {
-        todo_api!()
+        let contract_index_regex: Regex = Regex::new(r"^[0-9]$")
+            .map_err(|e| ApiError::InternalError(format!("Invalid regex: {}", e)))?;
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+        let query = ConnectionQuery::<i64>::new(
+            first,
+            after,
+            last,
+            before,
+            config.contract_connection_limit,
+        )?;
+        let connection = connection::Connection::new(false, false);
+        if !contract_index_regex.is_match(&self.query) {
+            return Ok(connection);
+        }
+        let lower_case_query = self.query.to_lowercase();
+
+        let mut row_stream = sqlx::query!(
+            "SELECT * FROM (
+                SELECT
+                    contracts.index as index,
+                    sub_index,
+                    module_reference,
+                    name as contract_name,
+                    contracts.amount,
+                    blocks.slot_time as block_slot_time,
+                    transactions.block_height,
+                    transactions.hash as transaction_hash,
+                    accounts.address as creator
+                FROM contracts
+                    JOIN transactions ON transaction_index = transactions.index
+                    JOIN blocks ON transactions.block_height = blocks.height
+                    JOIN accounts ON transactions.sender_index = accounts.index
+                WHERE 
+                    contracts.index = $5 AND
+                    contracts.index < $1 AND 
+                    contracts.index > $2
+                ORDER BY
+                    (CASE WHEN $4 THEN contracts.index END) ASC,
+                    (CASE WHEN NOT $4 THEN contracts.index END) DESC
+                LIMIT $3
+            ) AS contract_data
+            ORDER BY contract_data.index DESC",
+            i64::from(query.from),
+            i64::from(query.to),
+            query.limit,
+            query.is_last,
+            lower_case_query.parse::<i64>().ok(),
+        )
+        .fetch(pool);
+
+        let mut connection = connection::Connection::new(false, false);
+        let mut page_max_index = None;
+        let mut page_min_index = None;
+
+        while let Some(row) = row_stream.try_next().await? {
+            let contract_address_index =
+                row.index.try_into().map_err(|e: <u64 as TryFrom<i64>>::Error| {
+                    ApiError::InternalError(e.to_string())
+                })?;
+            let contract_address_sub_index =
+                row.sub_index.try_into().map_err(|e: <u64 as TryFrom<i64>>::Error| {
+                    ApiError::InternalError(e.to_string())
+                })?;
+
+            let snapshot = ContractSnapshot {
+                block_height: row.block_height,
+                contract_address_index,
+                contract_address_sub_index,
+                contract_name: row.contract_name,
+                module_reference: row.module_reference,
+                amount: row.amount.try_into()?,
+            };
+
+            let contract = Contract {
+                contract_address_index,
+                contract_address_sub_index,
+                contract_address: format!(
+                    "<{},{}>",
+                    contract_address_index, contract_address_sub_index
+                ),
+                creator: row.creator.into(),
+                block_height: row.block_height,
+                transaction_hash: row.transaction_hash,
+                block_slot_time: row.block_slot_time,
+                snapshot,
+            };
+            page_max_index = Some(match page_max_index {
+                None => row.index,
+                Some(current_max) => max(current_max, row.index),
+            });
+
+            page_min_index = Some(match page_min_index {
+                None => row.index,
+                Some(current_min) => min(current_min, row.index),
+            });
+
+            connection
+                .edges
+                .push(connection::Edge::new(contract.contract_address_index.to_string(), contract));
+        }
+
+        if let (Some(page_min_id), Some(page_max_id)) = (page_min_index, page_max_index) {
+            let result = sqlx::query!(
+                "
+                    SELECT MAX(index) as db_max_index, MIN(index) as db_min_index
+                    FROM contracts
+                "
+            )
+            .fetch_one(pool)
+            .await?;
+
+            connection.has_previous_page =
+                result.db_max_index.map_or(false, |db_max| db_max > page_max_id);
+            connection.has_next_page =
+                result.db_min_index.map_or(false, |db_min| db_min < page_min_id);
+        }
+
+        Ok(connection)
     }
 
-    //    async fn modules(
-    //        &self,
-    //        #[graphql(desc = "Returns the first _n_ elements from the list.")]
-    // _first: Option<i32>,        #[graphql(desc = "Returns the elements in the
-    //     list that come after the specified cursor.")]
-    //        _after: Option<String>,
-    //        #[graphql(desc = "Returns the last _n_ elements from the list.")]
-    // _last: Option<i32>,        #[graphql(desc = "Returns the elements in the
-    // list that come before the     specified cursor.")]
-    //        _before: Option<String>,
-    //    ) -> ApiResult<connection::Connection<String, Module>> {
-    //        todo_api!()
-    //    }
+    // async fn modules(
+    //     &self,
+    //     #[graphql(desc = "Returns the first _n_ elements from the list.")]
+    // _first: Option<i32>,     #[graphql(desc = "Returns the elements in the
+    // list that come after the specified cursor.")]     _after: Option<String>,
+    //     #[graphql(desc = "Returns the last _n_ elements from the list.")] _last:
+    // Option<i32>,     #[graphql(desc = "Returns the elements in the list that
+    // come before the     specified cursor.")]     _before: Option<String>,
+    // ) -> ApiResult<connection::Connection<String, Module>> {
+    //     todo_api!()
+    // }
 
     async fn blocks(
         &self,
