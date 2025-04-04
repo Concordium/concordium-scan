@@ -532,19 +532,6 @@ impl BaseQuery {
             query,
         }
     }
-
-    // rewardMetrics(period: MetricsPeriod!): RewardMetrics!
-
-    // rewardMetricsForAccount(accountId: ID! period: MetricsPeriod!):
-    // RewardMetrics!
-
-    // poolRewardMetricsForPassiveDelegation(period: MetricsPeriod!):
-    // PoolRewardMetrics!
-
-    // poolRewardMetricsForBakerPool(bakerId: ID! period: MetricsPeriod!):
-    // PoolRewardMetrics!
-
-    // passiveDelegation: PassiveDelegation
 }
 
 pub struct Subscription {

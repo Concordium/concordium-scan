@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Add query `Query::poolRewardMetricsForPassiveDelegation`.
+
 ## [0.1.45] - 2025-04-03
 
 Database schema version: 27
@@ -19,7 +23,7 @@ Database schema version: 27
 
 ### Added
 
-- Add query `Query::poolRewardMetricsForBakerPool`
+- Add query `Query::poolRewardMetricsForBakerPool`.
 
 ### Fixed
 

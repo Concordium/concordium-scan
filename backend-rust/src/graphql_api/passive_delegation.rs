@@ -16,7 +16,7 @@ pub struct QueryPassiveDelegation;
 
 #[Object]
 impl QueryPassiveDelegation {
-    async fn passive_delegation<'a>(&self, ctx: &Context<'a>) -> ApiResult<PassiveDelegation> {
+    async fn passive_delegation(&self, ctx: &Context<'_>) -> ApiResult<PassiveDelegation> {
         let pool = get_pool(ctx)?;
 
         // The `passive_delegation_payday_commission_rates` table has at most one row.
