@@ -218,11 +218,11 @@ const currentMonth = NOW.value
 const chosenMonth = ref(toMonthInput(currentMonth))
 
 const {
-	public: { apiUrl },
+	public: { apiUrlRust },
 } = useRuntimeConfig()
 
 function exportUrl(accountAddress: string, rawMonth: string) {
-	const url = new URL(apiUrl)
+	const url = new URL(apiUrlRust)
 	url.pathname = 'rest/export/statement' // setting pathname discards any existing path in 'apiUrl'
 	url.searchParams.append('accountAddress', accountAddress)
 	if (rawMonth && !isNaN(new Date(rawMonth).getTime())) {

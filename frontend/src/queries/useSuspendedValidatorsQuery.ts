@@ -78,7 +78,6 @@ export const useSuspendedValidatorsQuery = (
 	pagingVariables: SuspendedValidatorQueryVariables
 ) => {
 	const { data, fetching, error } = useQuery({
-		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: SuspendedValidatorQuery,
 		requestPolicy: 'cache-first',
 		variables: {

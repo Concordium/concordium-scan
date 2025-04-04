@@ -92,7 +92,6 @@ const BakerQuery = gql<BakerListResponse>`
 
 export const useBakerListQuery = (variables: BakerListVariables) => {
 	const { data } = useQuery({
-		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: BakerQuery,
 		requestPolicy: 'cache-and-network',
 		variables,

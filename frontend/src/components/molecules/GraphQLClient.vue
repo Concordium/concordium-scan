@@ -14,10 +14,10 @@ import {
 import { SubscriptionClient } from 'subscriptions-transport-ws'
 
 const {
-	public: { apiUrl, wsUrl, enableUrqlDevtools },
+	public: { apiUrlRust, wsUrlRust, enableUrqlDevtools },
 } = useRuntimeConfig()
 
-const subscriptionClient = new SubscriptionClient(wsUrl, {
+const subscriptionClient = new SubscriptionClient(wsUrlRust, {
 	reconnect: true,
 })
 
@@ -34,7 +34,7 @@ if (enableUrqlDevtools) {
 }
 
 const client = createClient({
-	url: apiUrl,
+	url: apiUrlRust,
 	exchanges,
 })
 
