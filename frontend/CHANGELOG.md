@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Move remaining queries to use the new `rust-backend` API.
+  - `useSearchQuery`
+  - `usePassiveDelegationPoolRewardMetrics`
+  - `useBakerTransactionsQuery`
+  - `useBakerRewardsQuery`
+  - `useBakerDelegatorsQuery`
+  - `useAccountsMetricsQuery`
+  - `useAccountRewardMetricsQuery`
+  - `useAccountQuery`
+  - `useAccountsListQuery`
+  - `useAccountsUpdatedSubscription`
+  - `useBlockSubscription`
+- Move account statement export to use `rust-backend` API.
+
 ## [1.7.10] - 2025-04-02
 
 ### Fixed
