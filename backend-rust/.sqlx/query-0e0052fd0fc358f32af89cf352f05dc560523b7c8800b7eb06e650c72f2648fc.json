@@ -1,0 +1,37 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                bucket_time.bucket_start AS \"bucket_time!\",\n                COALESCE(sub.accumulated_total_stake, 0)::BIGINT AS \"accumulated_total_stake!\",\n                COALESCE(sub.accumulated_delegators_stake, 0)::BIGINT AS \"accumulated_delegators_stake!\"\n            FROM\n                date_bin_series(\n                    $3::interval,\n                    $2,\n                    $1\n                ) AS bucket_time\n            LEFT JOIN LATERAL (\n                SELECT\n                    SUM(payday_total_transaction_rewards + payday_total_baking_rewards + payday_total_finalization_rewards) AS accumulated_total_stake,\n                    SUM(payday_delegators_transaction_rewards + payday_delegators_finalization_rewards + payday_delegators_baking_rewards) AS accumulated_delegators_stake\n                FROM bakers_payday_pool_rewards\n                LEFT JOIN blocks ON blocks.height = payday_block_height\n                WHERE\n                    blocks.slot_time > bucket_time.bucket_start\n                    AND blocks.slot_time <= bucket_time.bucket_end\n                    AND pool_owner_for_primary_key = $4\n            ) sub ON true;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "bucket_time!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 1,
+        "name": "accumulated_total_stake!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "accumulated_delegators_stake!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Timestamptz",
+        "Interval",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "0e0052fd0fc358f32af89cf352f05dc560523b7c8800b7eb06e650c72f2648fc"
+}
