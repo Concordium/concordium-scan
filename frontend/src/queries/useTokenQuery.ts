@@ -153,7 +153,6 @@ export const useTokenQuery = ({
 	fetching: Ref<boolean>
 } => {
 	const { data, fetching, error } = useQuery<TokenQueryResponse>({
-		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: TokenQuery,
 		requestPolicy: 'cache-first',
 		variables: {

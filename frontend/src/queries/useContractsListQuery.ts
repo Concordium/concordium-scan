@@ -46,7 +46,6 @@ export const useContractsListQuery = (
 	variables: Variables
 ): { data: Ref<ContractListResponse | undefined> } => {
 	const { data } = useQuery({
-		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: Query,
 		requestPolicy: 'cache-and-network',
 		variables,
