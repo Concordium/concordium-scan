@@ -288,7 +288,7 @@ pub enum Baker {
 }
 
 impl Baker {
-    fn get_id(&self) -> i64 {
+    pub fn get_id(&self) -> i64 {
         match self {
             Baker::Current(existing_baker) => existing_baker.id,
             Baker::Previously(removed) => removed.id,
@@ -2404,29 +2404,29 @@ impl PreviouslyBaker {
 /// Database information for a current baker.
 #[derive(Debug)]
 pub struct CurrentBaker {
-    id: i64,
-    staked: i64,
-    restake_earnings: bool,
-    open_status: Option<BakerPoolOpenStatus>,
-    metadata_url: Option<MetadataUrl>,
-    self_suspended: Option<i64>,
-    inactive_suspended: Option<i64>,
-    primed_for_suspension: Option<i64>,
-    transaction_commission: Option<i64>,
-    baking_commission: Option<i64>,
-    finalization_commission: Option<i64>,
-    payday_transaction_commission: Option<i64>,
-    payday_baking_commission: Option<i64>,
-    payday_finalization_commission: Option<i64>,
-    payday_lottery_power: Option<BigDecimal>,
-    payday_ranking_by_lottery_powers: Option<i64>,
-    payday_total_ranking_by_lottery_powers: Option<i64>,
-    pool_total_staked: i64,
-    pool_delegator_count: i64,
+    pub id: i64,
+    pub staked: i64,
+    pub restake_earnings: bool,
+    pub open_status: Option<BakerPoolOpenStatus>,
+    pub metadata_url: Option<MetadataUrl>,
+    pub self_suspended: Option<i64>,
+    pub inactive_suspended: Option<i64>,
+    pub primed_for_suspension: Option<i64>,
+    pub transaction_commission: Option<i64>,
+    pub baking_commission: Option<i64>,
+    pub finalization_commission: Option<i64>,
+    pub payday_transaction_commission: Option<i64>,
+    pub payday_baking_commission: Option<i64>,
+    pub payday_finalization_commission: Option<i64>,
+    pub payday_lottery_power: Option<BigDecimal>,
+    pub payday_ranking_by_lottery_powers: Option<i64>,
+    pub payday_total_ranking_by_lottery_powers: Option<i64>,
+    pub pool_total_staked: i64,
+    pub pool_delegator_count: i64,
     // 30 days period APY for bakers.
-    baker_apy: Option<f64>,
+    pub baker_apy: Option<f64>,
     // 30 days period APY for delegators.
-    delegators_apy: Option<f64>,
+    pub delegators_apy: Option<f64>,
 }
 impl CurrentBaker {
     /// Get the current payday baking commission rate.
