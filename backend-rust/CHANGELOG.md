@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - Add query `Query::poolRewardMetricsForPassiveDelegation`.
 - Add REST API `/rest/export/statement` for exporting account statements as CSV.
+- Add `ccdscan-api` option `--statement-timeout-secs` (env `CCDSCAN_API_DATABASE_STATEMENT_TIMEOUT_SECS`) for configuring a statement timeout the database connections and abort any statement that takes more than the specified amount of time. Defaults to 30 seconds.
 
 ## [0.1.45] - 2025-04-03
 

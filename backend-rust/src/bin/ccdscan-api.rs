@@ -13,7 +13,7 @@ use prometheus_client::{
 };
 use reqwest::Client;
 use serde_json::json;
-use sqlx::postgres::PgPoolOptions;
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use std::{net::SocketAddr, path::PathBuf, time::Duration};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
@@ -36,6 +36,10 @@ struct Cli {
     /// Maximum number of connections in the pool.
     #[arg(long, env = "CCDSCAN_API_DATABASE_MAX_CONNECTIONS", default_value_t = 10)]
     max_connections: u32,
+    /// Database statement timeout. Abort any statement that takes more than the
+    /// specified amount of time. Set to 0 to disable.
+    #[arg(long, env = "CCDSCAN_API_DATABASE_STATEMENT_TIMEOUT_SECS", default_value_t = 30)]
+    statement_timeout_secs: u64,
     /// Outputs the GraphQL Schema for the API and then exits. The output is
     /// stored as a file at the provided path or to stdout when '-' is
     /// provided.
@@ -135,10 +139,14 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
+    let connection_options: PgConnectOptions = cli.database_url.parse()?;
     let pool = PgPoolOptions::new()
         .min_connections(cli.min_connections)
         .max_connections(cli.max_connections)
-        .connect(&cli.database_url)
+        .connect_with(
+            connection_options
+                .options([("statement_timeout", format!("{}s", cli.statement_timeout_secs))]),
+        )
         .await
         .context("Failed constructing database connection pool")?;
     // Ensure the database schema is compatible with supported schema version.
