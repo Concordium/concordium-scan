@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - Add query `Query::poolRewardMetricsForPassiveDelegation`.
+- Add REST API `/rest/export/statement` for exporting account statements as CSV.
 
 ## [0.1.45] - 2025-04-03
 

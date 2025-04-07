@@ -1,6 +1,7 @@
 pub mod graphql_api;
 pub mod indexer;
 pub mod migrations;
+pub mod rest_api;
 pub mod router;
 
 mod address;
