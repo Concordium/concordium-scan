@@ -43,7 +43,7 @@ impl Service {
         Query(params): Query<ExportAccountStatement>,
         State(pool): State<PgPool>,
     ) -> ApiResult<(AppendHeaders<[(HeaderName, String); 2]>, String)> {
-        let to = params.to_time.unwrap_or_else(|| chrono::Utc::now());
+        let to = params.to_time.unwrap_or_else(Utc::now);
         let from = params.from_time.unwrap_or_else(|| to - TimeDelta::days(EXPORT_MAX_DAYS));
         if to - from > TimeDelta::days(EXPORT_MAX_DAYS) {
             return Err(ApiError::ExceedsMaxAllowed);
@@ -62,8 +62,8 @@ impl Service {
                     ON blocks.height = account_statements.block_height
             WHERE
                 accounts.address = $1
-                AND slot_time > $2
-                AND slot_time < $3
+                AND slot_time >= $2
+                AND slot_time <= $3
             ORDER BY slot_time DESC"#,
             params.account_address.to_string(),
             from,
