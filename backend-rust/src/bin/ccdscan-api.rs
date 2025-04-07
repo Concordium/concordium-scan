@@ -5,7 +5,7 @@ use concordium_scan::{
     graphql_api::{self, node_status::NodeInfoReceiver},
     migrations,
     migrations::SchemaVersion,
-    router,
+    rest_api, router,
 };
 use prometheus_client::{
     metrics::{family::Family, gauge::Gauge},
@@ -185,19 +185,28 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let mut queries_task = {
-        let pool = pool.clone();
-        let service = graphql_api::Service::new(
+        let graphql_service = graphql_api::Service::new(
             subscription,
             &mut registry,
-            pool,
+            pool.clone(),
             cli.api_config,
             nodes_status_receiver,
         );
+        let rest_service = rest_api::Service::new(pool.clone());
         let tcp_listener =
             TcpListener::bind(cli.listen).await.context("Parsing TCP listener address failed")?;
         let stop_signal = cancel_token.child_token();
         info!("Server is running at {:?}", cli.listen);
-        tokio::spawn(async move { service.serve(tcp_listener, stop_signal).await })
+        tokio::spawn(async move {
+            axum::serve(
+                tcp_listener,
+                axum::Router::new()
+                    .merge(graphql_service.as_router())
+                    .merge(rest_service.as_router()),
+            )
+            .with_graceful_shutdown(stop_signal.cancelled_owned())
+            .await
+        })
     };
     let mut node_collector_task = {
         let stop_signal = cancel_token.child_token();

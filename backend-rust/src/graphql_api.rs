@@ -52,10 +52,7 @@ use node_status::NodeStatus;
 use prometheus_client::registry::Registry;
 use sqlx::PgPool;
 use std::{error::Error, str::FromStr, sync::Arc};
-use tokio::{
-    net::TcpListener,
-    sync::{broadcast, watch::Receiver},
-};
+use tokio::sync::{broadcast, watch::Receiver};
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_util::sync::CancellationToken;
 use tower_http::cors::{Any, CorsLayer};
@@ -216,28 +213,20 @@ impl Service {
         schema.sdl_with_options(SDLExportOptions::new().prefer_single_line_descriptions())
     }
 
-    pub async fn serve(
-        self,
-        tcp_listener: TcpListener,
-        stop_signal: CancellationToken,
-    ) -> anyhow::Result<()> {
+    /// Convert service into an axum router.
+    pub fn as_router(self) -> axum::Router {
         let cors_layer = CorsLayer::new()
             .allow_origin(Any)  // Open access to selected route
             .allow_methods(Any)
             .allow_headers(Any);
-        let app = axum::Router::new()
+        axum::Router::new()
             .route("/", axum::routing::get(Self::graphiql))
             .route(
                 "/api/graphql",
                 axum::routing::post_service(async_graphql_axum::GraphQL::new(self.schema.clone())),
             )
             .route_service("/ws/graphql", GraphQLSubscription::new(self.schema))
-            .layer(cors_layer);
-
-        axum::serve(tcp_listener, app)
-            .with_graceful_shutdown(stop_signal.cancelled_owned())
-            .await?;
-        Ok(())
+            .layer(cors_layer)
     }
 
     async fn graphiql() -> impl axum::response::IntoResponse {
@@ -249,6 +238,7 @@ impl Service {
         )
     }
 }
+
 /// Module containing types and logic for building an async_graphql extension
 /// which allows for monitoring of the service.
 mod monitor {
