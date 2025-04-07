@@ -22,10 +22,7 @@ use async_graphql::{
 };
 use futures::TryStreamExt;
 use regex::Regex;
-use std::{
-    cmp::{max, min},
-    str::FromStr,
-};
+use std::str::FromStr;
 
 pub struct SearchResult {
     pub query: String,
@@ -43,7 +40,7 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, contract::Contract>> {
-        let contract_index_regex: Regex = Regex::new(r"^[0-9]$")
+        let contract_index_regex: Regex = Regex::new("^[0-9]+$")
             .map_err(|e| ApiError::InternalError(format!("Invalid regex: {}", e)))?;
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
@@ -78,8 +75,8 @@ impl SearchResult {
                     JOIN accounts ON transactions.sender_index = accounts.index
                 WHERE 
                     contracts.index = $5 AND
-                    contracts.index < $1 AND 
-                    contracts.index > $2
+                    contracts.index > $1 AND 
+                    contracts.index < $2
                 ORDER BY
                     (CASE WHEN $4 THEN contracts.index END) ASC,
                     (CASE WHEN NOT $4 THEN contracts.index END) DESC
@@ -93,9 +90,6 @@ impl SearchResult {
             lower_case_query.parse::<i64>().ok(),
         )
         .fetch(pool);
-
-        let mut page_max_index = None;
-        let mut page_min_index = None;
 
         while let Some(row) = row_stream.try_next().await? {
             let contract_address_index =
@@ -129,22 +123,15 @@ impl SearchResult {
                 block_slot_time: row.block_slot_time,
                 snapshot,
             };
-            page_max_index = Some(match page_max_index {
-                None => row.index,
-                Some(current_max) => max(current_max, row.index),
-            });
-
-            page_min_index = Some(match page_min_index {
-                None => row.index,
-                Some(current_min) => min(current_min, row.index),
-            });
 
             connection
                 .edges
                 .push(connection::Edge::new(contract.contract_address_index.to_string(), contract));
         }
 
-        if let (Some(page_min_id), Some(page_max_id)) = (page_min_index, page_max_index) {
+        if let (Some(page_min_id), Some(page_max_id)) =
+            (connection.edges.first(), connection.edges.last())
+        {
             let result = sqlx::query!(
                 "
                     SELECT MAX(index) as db_max_index, MIN(index) as db_min_index
@@ -156,10 +143,19 @@ impl SearchResult {
             .fetch_one(pool)
             .await?;
 
+            let page_max: i64 =
+                page_max_id.node.contract_address_index.0.try_into().map_err(|e| {
+                    ApiError::InternalError(format!("A contract index is too large: {}", e))
+                })?;
+            let page_min: i64 =
+                page_min_id.node.contract_address_index.0.try_into().map_err(|e| {
+                    ApiError::InternalError(format!("A contract index is too large: {}", e))
+                })?;
+
             connection.has_previous_page =
-                result.db_max_index.map_or(false, |db_max| db_max > page_max_id);
+                result.db_max_index.map_or(false, |db_max| db_max > page_max);
             connection.has_next_page =
-                result.db_min_index.map_or(false, |db_min| db_min < page_min_id);
+                result.db_min_index.map_or(false, |db_min| db_min < page_min);
         }
 
         Ok(connection)
@@ -229,22 +225,13 @@ impl SearchResult {
         )
         .fetch(pool);
 
-        let mut min_height = None;
-        let mut max_height = None;
         while let Some(block) = rows.try_next().await? {
-            min_height = Some(match min_height {
-                None => block.height,
-                Some(current_min) => min(current_min, block.height),
-            });
-
-            max_height = Some(match max_height {
-                None => block.height,
-                Some(current_max) => max(current_max, block.height),
-            });
             connection.edges.push(connection::Edge::new(block.height.to_string(), block));
         }
 
-        if let (Some(page_min_height), Some(page_max_height)) = (min_height, max_height) {
+        if let (Some(page_min_height), Some(page_max_height)) =
+            (connection.edges.first(), connection.edges.last())
+        {
             let result = sqlx::query!(
                 r#"
                     SELECT MAX(height) as max_height, MIN(height) as min_height
@@ -258,10 +245,11 @@ impl SearchResult {
             )
             .fetch_one(pool)
             .await?;
+
             connection.has_previous_page =
-                result.max_height.map_or(false, |db_max| db_max > page_max_height);
+                result.max_height.map_or(false, |db_max| db_max > page_max_height.node.height);
             connection.has_next_page =
-                result.min_height.map_or(false, |db_min| db_min < page_min_height);
+                result.min_height.map_or(false, |db_min| db_min < page_min_height.node.height);
         }
         Ok(connection)
     }
@@ -433,22 +421,13 @@ impl SearchResult {
         .fetch_all(pool)
         .await?;
 
-        let mut min_index = None;
-        let mut max_index = None;
         for account in accounts {
-            min_index = Some(match min_index {
-                None => account.index,
-                Some(current_min) => min(current_min, account.index),
-            });
-
-            max_index = Some(match max_index {
-                None => account.index,
-                Some(current_max) => max(current_max, account.index),
-            });
             connection.edges.push(connection::Edge::new(account.index.to_string(), account));
         }
 
-        if let (Some(page_min_id), Some(page_max_id)) = (min_index, max_index) {
+        if let (Some(page_min_id), Some(page_max_id)) =
+            (connection.edges.first(), connection.edges.last())
+        {
             let result = sqlx::query!(
                 r#"
                     SELECT MAX(index) as max_id, MIN(index) as min_id
@@ -462,8 +441,9 @@ impl SearchResult {
             .await?;
 
             connection.has_previous_page =
-                result.min_id.map_or(false, |db_min| db_min < page_min_id);
-            connection.has_next_page = result.max_id.map_or(false, |db_max| db_max > page_max_id);
+                result.min_id.map_or(false, |db_min| db_min < page_min_id.node.index);
+            connection.has_next_page =
+                result.max_id.map_or(false, |db_max| db_max > page_max_id.node.index);
         }
         Ok(connection)
     }
@@ -478,7 +458,7 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, baker::Baker>> {
-        let baker_index_regex: Regex = Regex::new("^[0-9]$")
+        let baker_index_regex: Regex = Regex::new("^[0-9]+$")
             .map_err(|e| ApiError::InternalError(format!("Invalid regex: {}", e)))?;
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;

@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Add `SearchResult::bakers` and `SearchResult::contracts`.
 - Add query `Query::poolRewardMetricsForPassiveDelegation`.
 
 ## [0.1.45] - 2025-04-03
