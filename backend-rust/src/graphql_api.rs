@@ -61,11 +61,11 @@ use transaction::Transaction;
 
 const VERSION: &str = clap::crate_version!();
 
-#[derive(clap::Args)]
+#[derive(Debug, clap::Args)]
 pub struct ApiServiceConfig {
     /// Account(s) that should not be considered in circulation.
     #[arg(long, env = "CCDSCAN_API_CONFIG_NON_CIRCULATING_ACCOUNTS", value_delimiter = ',')]
-    non_circulating_account: Vec<sdk_types::AccountAddress>,
+    pub non_circulating_account: Vec<sdk_types::AccountAddress>,
     /// The most transactions which can be queried at once.
     #[arg(long, env = "CCDSCAN_API_CONFIG_TRANSACTION_CONNECTION_LIMIT", default_value = "100")]
     transaction_connection_limit: u64,
@@ -191,7 +191,7 @@ impl Service {
         subscription: Subscription,
         registry: &mut Registry,
         pool: PgPool,
-        config: ApiServiceConfig,
+        config: Arc<ApiServiceConfig>,
         receiver: Receiver<Option<Vec<NodeStatus>>>,
     ) -> Self {
         let schema = Schema::build(Query::default(), EmptyMutation, subscription)
