@@ -39,13 +39,15 @@ const props = defineProps<{
 
 // Computed Properties
 const chartLabels = computed(
-	() => props.stableCoinsData?.stablecoins.map(item => item.symbol) || []
+	() => props.stableCoinsData?.stablecoins.map(item => item.symbol ?? '') || []
 )
 
 const chartData = computed(() => {
-	if (!props.stableCoinsData) return []
-	return props.chartType === 'supply'
-		? props.stableCoinsData?.stablecoins.map(item => item.totalSupply)
-		: props.stableCoinsData?.stablecoins.map(item => item.totalUniqueHolder)
+	const coins = props.stableCoinsData?.stablecoins ?? []
+	return coins.map(item =>
+		props.chartType === 'supply'
+			? item.totalSupply ?? null
+			: item.totalUniqueHolder ?? null
+	)
 })
 </script>

@@ -3,7 +3,7 @@
 		<Title>CCDScan | Stable Coin</Title>
 		<div class="">
 			<div
-				class="flex flex-row justify-center< lg:place-content-end mb-4 lg:mb-0"
+				class="flex flex-row justify-center lg:place-content-end mb-4 lg:mb-0"
 			></div>
 			<header class="flex justify-between items-center mb-4">
 				<h1 class="text-xl">Overview</h1>
@@ -79,10 +79,7 @@
 			</header>
 			<FtbCarousel non-carousel-classes="grid-cols-2">
 				<CarouselSlide class="w-full lg:h-full">
-					<StableCoinSupplyBarChart
-						:stable-coins-data="stableCoinsData"
-						chart-type="supply"
-					/>
+					<StableCoinSupplyBarChart :stable-coins-data="stableCoinsData" />
 				</CarouselSlide>
 				<CarouselSlide class="w-full lg:h-full">
 					<StableCoinDistributionChart :stable-coins-data="stableCoinsData" />

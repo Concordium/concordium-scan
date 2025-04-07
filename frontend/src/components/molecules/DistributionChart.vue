@@ -8,23 +8,6 @@
 			<div class="text-sm text-theme-faded pt-4 w-72 text-center">
 				<slot name="title" />
 			</div>
-			<!-- <div
-				v-if="!props.isLoading"
-				class="text-xl text-theme-interactive flex flex-row gap-2"
-			>
-				<div class="w-6 h-6 mr-2 text-theme-interactive">
-					<slot name="icon" />
-				</div>
-				<div class="numerical">
-					<slot name="value" />
-				</div>
-				<div>
-					<slot name="unit" />
-				</div>
-				<Chip class="self-center">
-					<slot name="chip" />
-				</Chip>
-			</div> -->
 		</header>
 		<ClientOnly>
 			<DoughnutChart
@@ -41,7 +24,7 @@
 import MetricCard from '~/components/atoms/MetricCard.vue'
 import { defineProps, computed } from 'vue'
 
-import type { StablecoinResponse } from '~/queries/useStableCoinQuery'
+import type { Stablecoin } from '~/queries/useStableCoinQuery'
 
 import DoughnutChart from '../Charts/DoughnutChart.vue'
 
@@ -73,16 +56,20 @@ const hoverColors = [
 
 // Define Props
 const props = defineProps<{
-	stableCoinsData?: StablecoinResponse
+	stableCoinsData?: Stablecoin[]
 	isLoading?: boolean
 }>()
 
 // Computed Properties
 const chartLabels = computed(
-	() => props.stableCoinsData?.map(item => item.symbol) || []
+	() => props.stableCoinsData?.map(item => item.symbol ?? 'undefined') || []
 )
 
-const chartData = computed(
-	() => props.stableCoinsData?.map(item => item.supplyPercentage) || []
+const chartData = computed<number[]>(
+	() =>
+		props.stableCoinsData?.map(item => {
+			const value = Number(item.supplyPercentage)
+			return isNaN(value) ? 0 : value
+		}) || []
 )
 </script>

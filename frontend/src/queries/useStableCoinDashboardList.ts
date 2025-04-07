@@ -3,6 +3,7 @@ import { useQuery, gql } from '@urql/vue'
 export type Holder = {
 	address?: string
 	holdings?: Holding[]
+	symbol?: string
 }
 
 export type Holding = {
@@ -45,7 +46,13 @@ const STABLECOIN_DASHBOARD_LIST_QUERY = gql`
 	}
 `
 
-export const useStableCoinDashboardList = (symbol, topHolder) => {
+export const useStableCoinDashboardList = ({
+	symbol,
+	topHolder,
+}: {
+	symbol: string
+	topHolder: number
+}) => {
 	const { data } = useQuery<StableCoinDashboardListResponse>({
 		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: STABLECOIN_DASHBOARD_LIST_QUERY,
