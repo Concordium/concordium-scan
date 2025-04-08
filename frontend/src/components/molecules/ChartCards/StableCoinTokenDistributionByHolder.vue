@@ -21,7 +21,10 @@ type Props = {
 
 const props = defineProps<Props>()
 
-const distributionValues = ref<{ address: string; percentage: number }[]>([])
+const isLoading = ref(true)
+const distributionValues = ref<
+	{ address: string; percentage: string; symbol: string }[]
+>([])
 
 watchEffect(() => {
 	const holders = props.tokenTransferData?.stablecoin?.holding || []
@@ -34,8 +37,10 @@ watchEffect(() => {
 	setTimeout(() => {
 		distributionValues.value = holders.map(ele => ({
 			address: shortenHash(ele.address),
-			percentage: ele.holdings[0]?.percentage || 0,
+			symbol: ele.symbol || '',
+			percentage: (ele.holdings?.[0]?.percentage ?? 0).toFixed(2), // <-- formatted to 2 decimals
 		}))
+		isLoading.value = false
 	}, 1000)
 })
 </script>

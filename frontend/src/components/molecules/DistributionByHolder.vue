@@ -24,7 +24,7 @@
 import MetricCard from '~/components/atoms/MetricCard.vue'
 import { defineProps, computed } from 'vue'
 
-import type { StablecoinResponse } from '~/queries/useStableCoinQuery'
+import type { Stablecoin } from '~/queries/useStableCoinQuery'
 
 import DoughnutChart from '../Charts/DoughnutChart.vue'
 
@@ -56,16 +56,20 @@ const hoverColors = [
 
 // Define Props
 const props = defineProps<{
-	distributionValues?: StablecoinResponse
+	distributionValues?: Stablecoin[]
 	isLoading?: boolean
 }>()
 
 // Computed Properties
 const chartLabels = computed(
-	() => props.distributionValues?.map(item => item.address) || []
+	() => props.distributionValues?.map(item => item.address ?? 'undefined') || []
 )
 
-const chartData = computed(
-	() => props.distributionValues?.map(item => item.percentage) || []
+const chartData = computed<number[]>(
+	() =>
+		props.distributionValues?.map(item => {
+			const value = Number(item.percentage)
+			return isNaN(value) ? 0 : value
+		}) || []
 )
 </script>

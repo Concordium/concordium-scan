@@ -61,7 +61,6 @@ const defaultOptions: ChartOptions<'doughnut'> = {
 				pointStyle: 'circle', // Ensures legends appear as circles
 				padding: 10, // Adds space between legend items
 				color: '#ffffff',
-				borderWidth: 0,
 			},
 		},
 		tooltip: {
