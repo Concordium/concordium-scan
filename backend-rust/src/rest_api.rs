@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::graphql_api::AccountStatementEntryType;
+use crate::graphql_api::{AccountStatementEntryType, ApiServiceConfig};
 use axum::{
     extract::{Query, State},
     http::HeaderName,
@@ -15,16 +15,19 @@ use reqwest::StatusCode;
 use sqlx::PgPool;
 use tower_http::cors::{Any, CorsLayer};
 
+#[derive(Debug, Clone)]
 pub struct Service {
-    pool: PgPool,
+    pool:   PgPool,
+    config: Arc<ApiServiceConfig>,
 }
 
 const EXPORT_MAX_DAYS: i64 = 31;
 
 impl Service {
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(pool: PgPool, config: Arc<ApiServiceConfig>) -> Self {
         Self {
             pool,
+            config,
         }
     }
 
@@ -34,14 +37,59 @@ impl Service {
             .allow_methods(Any)
             .allow_headers(Any);
         Router::new()
+            .route("/rest/balance-statistics/latest", get(Self::latest_balance_statistics))
             .route("/rest/export/statement", get(Self::export_account_statements))
             .layer(cors_layer)
-            .with_state(self.pool)
+            .with_state(self)
+    }
+
+    async fn latest_balance_statistics(
+        Query(params): Query<LatestBalanceStatistics>,
+        State(state): State<Self>,
+    ) -> ApiResult<String> {
+        let amount = match params.field {
+            Balance::TotalAmount | Balance::TotalAmountUnlocked => {
+                sqlx::query_scalar!("SELECT total_amount FROM blocks ORDER BY height DESC LIMIT 1")
+                    .fetch_optional(&state.pool)
+                    .await?
+            }
+            Balance::TotalAmountCirculating => {
+                let non_circulating_accounts = state
+                    .config
+                    .non_circulating_account
+                    .iter()
+                    .map(|a| a.to_string())
+                    .collect::<Vec<_>>();
+                sqlx::query_scalar!(
+                    "WITH non_circulating_accounts AS (
+                         SELECT
+                             COALESCE(SUM(amount), 0)::BIGINT AS total_amount
+                         FROM accounts
+                         WHERE address = ANY($1)
+                     )
+                     SELECT
+                         (blocks.total_amount
+                             - non_circulating_accounts.total_amount)::BIGINT
+                     FROM blocks, non_circulating_accounts
+                     ORDER BY height DESC
+                     LIMIT 1",
+                    &non_circulating_accounts
+                )
+                .fetch_one(&state.pool)
+                .await?
+            }
+        };
+        let amount = u64::try_from(amount.ok_or(ApiError::NotFound)?)?;
+        let amount = match params.unit {
+            Unit::Ccd => amount / 1_000_000,
+            Unit::MicroCcd => amount,
+        };
+        Ok(amount.to_string())
     }
 
     async fn export_account_statements(
         Query(params): Query<ExportAccountStatement>,
-        State(pool): State<PgPool>,
+        State(state): State<Self>,
     ) -> ApiResult<(AppendHeaders<[(HeaderName, String); 2]>, String)> {
         let to = params.to_time.unwrap_or_else(Utc::now);
         let from = params.from_time.unwrap_or_else(|| to - TimeDelta::days(EXPORT_MAX_DAYS));
@@ -69,7 +117,7 @@ impl Service {
             from,
             to
         )
-        .fetch(&pool);
+        .fetch(&state.pool);
         let mut csv = String::from("Time,Amount (CCD),Balance (CCD),Label\n");
         while let Some(row) = rows.try_next().await? {
             let amount = Amount::from_micro_ccd(row.amount.try_into()?);
@@ -117,8 +165,31 @@ struct ExportAccountStatementEntry {
     entry_type:      AccountStatementEntryType,
 }
 
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+struct LatestBalanceStatistics {
+    field: Balance,
+    unit:  Unit,
+}
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+#[allow(clippy::enum_variant_names)]
+enum Balance {
+    TotalAmount,
+    TotalAmountCirculating,
+    TotalAmountUnlocked,
+}
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum Unit {
+    Ccd,
+    MicroCcd,
+}
+
 #[derive(Debug, thiserror::Error, Clone)]
 enum ApiError {
+    #[error("Information was not found.")]
+    NotFound,
     #[error("Chosen time span exceeds max allowed days: '{EXPORT_MAX_DAYS}'")]
     ExceedsMaxAllowed,
     #[error("Internal error (FailedDatabaseQuery): {0}")]
@@ -138,6 +209,7 @@ impl IntoResponse for ApiError {
             ApiError::ExceedsMaxAllowed => StatusCode::BAD_REQUEST,
             ApiError::FailedDatabaseQuery(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ApiError::InvalidInt(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ApiError::NotFound => StatusCode::NOT_FOUND,
         };
         (status, self.to_string()).into_response()
     }

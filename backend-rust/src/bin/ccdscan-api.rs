@@ -14,7 +14,7 @@ use prometheus_client::{
 use reqwest::Client;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use std::{net::SocketAddr, path::PathBuf, time::Duration};
+use std::{net::SocketAddr, path::PathBuf, sync::Arc, time::Duration};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
@@ -193,14 +193,15 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let mut queries_task = {
+        let config = Arc::new(cli.api_config);
         let graphql_service = graphql_api::Service::new(
             subscription,
             &mut registry,
             pool.clone(),
-            cli.api_config,
+            config.clone(),
             nodes_status_receiver,
         );
-        let rest_service = rest_api::Service::new(pool.clone());
+        let rest_service = rest_api::Service::new(pool.clone(), config);
         let tcp_listener =
             TcpListener::bind(cli.listen).await.context("Parsing TCP listener address failed")?;
         let stop_signal = cancel_token.child_token();
