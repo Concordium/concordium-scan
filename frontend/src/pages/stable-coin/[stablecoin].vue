@@ -17,13 +17,21 @@
 						<div class="flex justify-between pt-4">
 							<p class="text-xl text-theme-faded">Market Cap</p>
 							<p class="font-bold text-xl text-theme-interactive">
-								{{ formatNumber(dataTransferSummary?.stablecoin?.totalSupply) }}
+								{{
+									formatNumber(
+										Number(dataTransferSummary?.stablecoin?.totalSupply)
+									)
+								}}
 							</p>
 						</div>
 						<div class="flex justify-between pt-4">
 							<p class="text-xl text-theme-faded">Current Supply</p>
 							<p class="font-bold text-xl text-theme-interactive">
-								{{ formatNumber(dataTransferSummary?.stablecoin?.totalSupply) }}
+								{{
+									formatNumber(
+										Number(dataTransferSummary?.stablecoin?.totalSupply)
+									)
+								}}
 							</p>
 						</div>
 						<div class="flex justify-between pt-4">
@@ -104,7 +112,10 @@ import Analytics from '~/components/StableCoin/Analytics.vue'
 import { useRoute } from 'vue-router'
 const route = useRoute()
 
-const coinId = computed(() => route.params.stablecoin)
+const coinId = computed(() => {
+	const id = route.params.stablecoin
+	return Array.isArray(id) ? id[0] : id || ''
+})
 
 watch(
 	() => coinId.value,
@@ -121,16 +132,17 @@ const { data: dataTransferSummary } = useStableCoinTokenTransferQuery(
 const selectedTab = ref('holders')
 const handleSelectTab = (tabId: string) => (selectedTab.value = tabId)
 
-const formatNumber = (num?: number): string => {
-	if (typeof num !== 'number' || isNaN(num)) return '0'
-	return num >= 1e12
-		? (num / 1e12).toFixed(2) + 'T'
-		: num >= 1e9
-		? (num / 1e9).toFixed(2) + 'B'
-		: num >= 1e6
-		? (num / 1e6).toFixed(2) + 'M'
-		: num >= 1e3
-		? (num / 1e3).toFixed(2) + 'K'
-		: num.toFixed(2)
+const formatNumber = (num?: number | string): string => {
+	const parsedNum = typeof num === 'string' ? parseFloat(num) : num
+	if (typeof parsedNum !== 'number' || isNaN(parsedNum)) return '0'
+	return parsedNum >= 1e12
+		? (parsedNum / 1e12).toFixed(2) + 'T'
+		: parsedNum >= 1e9
+		? (parsedNum / 1e9).toFixed(2) + 'B'
+		: parsedNum >= 1e6
+		? (parsedNum / 1e6).toFixed(2) + 'M'
+		: parsedNum >= 1e3
+		? (parsedNum / 1e3).toFixed(2) + 'K'
+		: parsedNum.toFixed(2)
 }
 </script>

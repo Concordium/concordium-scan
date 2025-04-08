@@ -54,6 +54,12 @@ const hoverColors = [
 	'#FFA3D7', // Soft Pink
 ]
 
+interface DailySummaryItem {
+	date: string
+	transactionCount: number
+	totalAmount: string
+}
+
 // Define Props
 const props = defineProps<{
 	transferSummary?: StableCoinTokenTransferResponse
@@ -64,21 +70,37 @@ const props = defineProps<{
 const chartLabels = computed(
 	() =>
 		props.transferSummary?.transferSummary?.dailySummary?.map(
-			item => item.date
+			({ date }: DailySummaryItem) => date
 		) || []
 )
 
-const barGraphValues = computed(
+// const barGraphValues = computed(
+// 	() =>
+// 		props.transferSummary?.transferSummary?.dailySummary?.map(
+//     (item: DailySummaryItem) => item.transactionCount
+//   ) || []
+// )
+
+// const lineGraphValues = computed(
+// 	() =>
+// 		props.transferSummary?.transferSummary?.dailySummary?.map(
+//     (item: DailySummaryItem) => item.totalAmount
+//   ) || []
+// )
+
+const barGraphValues = computed<number[]>(
 	() =>
-		props.transferSummary?.transferSummary?.dailySummary?.map(
-			item => item.transactionCount
-		) || []
+		props.transferSummary?.transferSummary?.dailySummary?.map(item => {
+			const value = Number(item.transactionCount)
+			return isNaN(value) ? 0 : value
+		}) || []
 )
 
-const lineGraphValues = computed(
+const lineGraphValues = computed<number[]>(
 	() =>
-		props.transferSummary?.transferSummary?.dailySummary?.map(
-			item => item.totalAmount
-		) || []
+		props.transferSummary?.transferSummary?.dailySummary?.map(item => {
+			const value = Number(item.totalAmount)
+			return isNaN(value) ? 0 : value
+		}) || []
 )
 </script>

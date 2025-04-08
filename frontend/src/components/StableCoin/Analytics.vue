@@ -25,6 +25,7 @@ import CarouselSlide from '~/components/molecules/CarouselSlide.vue'
 import StableCoinTokenTransfer from '~/components/molecules/ChartCards/StableCoinTokenTransfer.vue'
 import StableCoinTokenDistributionByHolder from '~/components/molecules/ChartCards/StableCoinTokenDistributionByHolder.vue'
 import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
+
 // Define Props
 const props = defineProps<{
 	coinId?: string
@@ -33,13 +34,17 @@ const props = defineProps<{
 // Loading state
 const isLoading = ref(true)
 
+// Handle undefined props
+const coinId = props.coinId?.toUpperCase() ?? 'USDC'
+
 // Fetch Data
-const { data: dataPerStablecoin } = useStableCoinDashboardList(
-	props.coinId.toUpperCase() ?? 'USDC',
-	12
-)
+const { data: dataPerStablecoin } = useStableCoinDashboardList({
+	symbol: coinId,
+	topHolder: 12,
+})
+
 const { data: dataTransferSummary } = useStableCoinTokenTransferQuery(
-	props.coinId.toUpperCase() ?? 'USDC',
+	coinId,
 	12
 )
 

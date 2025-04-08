@@ -9,10 +9,14 @@ export type Stablecoin = {
 	valueInDoller?: number
 	totalUniqueHolder?: number
 	supplyPercentage?: string
+	percentage?: string
+	address?: string
 }
 
 export type StablecoinResponse = {
 	stablecoins: Stablecoin[]
+	address?: string
+	percentage?: number
 }
 
 const STABLECOIN_QUERY = gql`

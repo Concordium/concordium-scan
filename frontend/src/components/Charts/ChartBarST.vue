@@ -5,7 +5,12 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import { Chart, registerables, type TooltipItem } from 'chart.js/dist/chart.esm'
+import {
+	Chart,
+	registerables,
+	type TooltipItem,
+	type ChartOptions,
+} from 'chart.js/dist/chart.esm'
 import type { LabelFormatterFunc } from './ChartUtils'
 import { prettyFormatBucketDuration } from '~/utils/format'
 
@@ -68,16 +73,11 @@ watch(props, () => {
 	chartInstance.update()
 })
 
-const defaultOptions = ref({
+const defaultOptions = ref<ChartOptions<'bar'>>({
 	indexAxis: 'y', // Horizontal bar chart
 	plugins: {
 		legend: {
 			display: false,
-		},
-		datalabels: {
-			anchor: 'end',
-			align: 'top',
-			color: '#fff',
 		},
 		tooltip: {
 			callbacks: {
@@ -155,11 +155,11 @@ const formatNumber = (num?: number): string => {
 
 let chartInstance: Chart
 onMounted(() => {
-	chartInstance = new Chart(canvasRef.value, {
+	chartInstance = new Chart(canvasRef.value as HTMLCanvasElement, {
 		type: 'bar',
 		data: chartData,
 		options: {
-			...defaultOptions.value,
+			...(defaultOptions.value as ChartOptions<'bar'>),
 			animation: {
 				onComplete: function () {
 					if (!chartInstance) return
@@ -176,7 +176,7 @@ onMounted(() => {
 						const meta = chartInstance.getDatasetMeta(i)
 						meta.data.forEach((bar, index) => {
 							const rawValue = dataset.data[index]
-							if (rawValue !== null) {
+							if (rawValue !== null && typeof rawValue === 'number') {
 								const formattedValue = formatNumber(rawValue)
 								const x = bar.x + 10 + 10
 								const y = bar.y + 5
