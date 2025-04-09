@@ -11,7 +11,11 @@ import MobileNavigation from './MobileNavigation.vue'
 import DesktopNavigation from './DesktopNavigation.vue'
 import type { Route } from '~/types/route'
 
-const routes: Route[] = [
+const {
+	public: { enablePltFeatures },
+} = useRuntimeConfig()
+
+const allRoutes: Route[] = [
 	{
 		title: 'Home',
 		path: '/',
@@ -49,4 +53,9 @@ const routes: Route[] = [
 		path: '/stable-coin',
 	},
 ]
+
+// Now, filter it based on env
+const routes = enablePltFeatures
+	? allRoutes
+	: allRoutes.filter(route => route.title !== 'Stable Coin')
 </script>
