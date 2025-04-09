@@ -106,6 +106,10 @@ import StableCoinDistributionChart from '~/components/molecules/ChartCards/Stabl
 import StableCoinSupplyBarChart from '~/components/molecules/ChartCards/StableCoinSupplyBarChart.vue'
 import HolderByStableCoin from '~/components/molecules/ChartCards/HolderByStableCoin.vue'
 
+definePageMeta({
+	middleware: 'plt-features-guard',
+})
+
 const { data: stableCoinsData } = useStableCoinsQuery()
 
 const { data: overviewData } = useStablecoinOverviewQuery()

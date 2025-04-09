@@ -112,6 +112,10 @@ import Analytics from '~/components/StableCoin/Analytics.vue'
 import { useRoute } from 'vue-router'
 const route = useRoute()
 
+definePageMeta({
+	middleware: 'plt-features-guard',
+})
+
 const coinId = computed(() => {
 	const id = route.params.stablecoin
 	return Array.isArray(id) ? id[0] : id || ''
