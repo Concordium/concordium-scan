@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.47]
+
+### Fixed
+
+- Fix issue where `ccdscan-api` GraphQL resolvers fail to load the config from the context.
+
 ## [0.1.46] - 2025-04-10
 
 ### Added

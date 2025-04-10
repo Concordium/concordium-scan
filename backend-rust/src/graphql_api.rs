@@ -431,7 +431,8 @@ pub fn get_pool<'a>(ctx: &Context<'a>) -> ApiResult<&'a PgPool> {
 
 /// Get service configuration from the context.
 pub fn get_config<'a>(ctx: &Context<'a>) -> ApiResult<&'a ApiServiceConfig> {
-    ctx.data::<ApiServiceConfig>().map_err(ApiError::NoServiceConfig)
+    let config = ctx.data::<Arc<ApiServiceConfig>>().map_err(ApiError::NoServiceConfig)?;
+    Ok(config.as_ref())
 }
 
 #[derive(Default)]
