@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.7.12] - 2025-04-10
+
+### Fixed
+
+- `useRewardMetrics` to be using `rust-backend` endpoint
+
 ## [1.7.11] - 2025-04-07
 
 ### Fixed

@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.46] - 2025-04-10
+
 ### Added
 
 - Add `SearchResult::bakers` and `SearchResult::contracts`.
@@ -12,6 +14,9 @@ All notable changes to this project will be documented in this file.
 - Add REST API `rest/balance-statistics/latest` for querying total amount in the network, used by external parties.
 - Add `ccdscan-api` option `--statement-timeout-secs` (env `CCDSCAN_API_DATABASE_STATEMENT_TIMEOUT_SECS`) for configuring a statement timeout the database connections and abort any statement that takes more than the specified amount of time. Defaults to 30 seconds.
 
+### Fixed
+
+- Alternate leading index on reward metrics
 
 ## [0.1.45] - 2025-04-03
 
