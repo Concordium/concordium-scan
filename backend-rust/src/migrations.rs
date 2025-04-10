@@ -517,7 +517,7 @@ impl SchemaVersion {
                     )))
                     .await?;
                 SchemaVersion::ReindexRewardMetrics
-            },
+            }
             SchemaVersion::ReindexRewardMetrics => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
