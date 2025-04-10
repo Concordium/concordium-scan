@@ -281,11 +281,11 @@ mod monitor {
     #[derive(Clone)]
     pub struct MonitorExtension {
         /// Metric for tracking current number of requests in-flight.
-        in_flight_requests: Family<QueryLabels, Gauge>,
+        in_flight_requests:   Family<QueryLabels, Gauge>,
         /// Metric for counting total number of requests.
-        total_requests: Family<QueryLabels, Counter>,
+        total_requests:       Family<QueryLabels, Counter>,
         /// Metric for collecting execution duration for requests.
-        request_duration: Family<QueryLabels, Histogram>,
+        request_duration:     Family<QueryLabels, Histogram>,
         /// Metric tracking current open subscriptions.
         active_subscriptions: Gauge,
     }
@@ -327,9 +327,7 @@ mod monitor {
         }
     }
     impl async_graphql::extensions::ExtensionFactory for MonitorExtension {
-        fn create(&self) -> Arc<dyn async_graphql::extensions::Extension> {
-            Arc::new(self.clone())
-        }
+        fn create(&self) -> Arc<dyn async_graphql::extensions::Extension> { Arc::new(self.clone()) }
     }
     #[async_trait]
     impl async_graphql::extensions::Extension for MonitorExtension {
@@ -366,7 +364,7 @@ mod monitor {
     }
     /// Wrapper around a stream to update metrics when it gets dropped.
     struct WrappedStream<'s> {
-        inner: stream::BoxStream<'s, async_graphql::Response>,
+        inner:                stream::BoxStream<'s, async_graphql::Response>,
         active_subscriptions: Gauge,
     }
     impl<'s> WrappedStream<'s> {
@@ -392,9 +390,7 @@ mod monitor {
         }
     }
     impl std::ops::Drop for WrappedStream<'_> {
-        fn drop(&mut self) {
-            self.active_subscriptions.dec();
-        }
+        fn drop(&mut self) { self.active_subscriptions.dec(); }
     }
 }
 
@@ -436,9 +432,7 @@ pub enum ApiError {
 }
 
 impl From<sqlx::Error> for ApiError {
-    fn from(value: sqlx::Error) -> Self {
-        ApiError::FailedDatabaseQuery(Arc::new(value))
-    }
+    fn from(value: sqlx::Error) -> Self { ApiError::FailedDatabaseQuery(Arc::new(value)) }
 }
 
 pub type ApiResult<A> = Result<A, ApiError>;
@@ -557,7 +551,7 @@ impl BaseQuery {
 }
 
 pub struct Subscription {
-    block_added: broadcast::Receiver<Block>,
+    block_added:      broadcast::Receiver<Block>,
     accounts_updated: broadcast::Receiver<AccountsUpdatedSubscriptionItem>,
 }
 
@@ -622,9 +616,9 @@ impl Subscription {
 }
 
 pub struct SubscriptionContext {
-    block_added_sender: broadcast::Sender<Block>,
+    block_added_sender:      broadcast::Sender<Block>,
     accounts_updated_sender: broadcast::Sender<AccountsUpdatedSubscriptionItem>,
-    retry_delay_sec: u64,
+    retry_delay_sec:         u64,
 }
 
 impl SubscriptionContext {
@@ -722,16 +716,16 @@ pub enum LatestChainParameters {
 }
 
 pub struct CurrentChainParameters {
-    reward_period_length: i64,
-    epoch_duration: i64,
+    reward_period_length:         i64,
+    epoch_duration:               i64,
     opt_last_payday_block_height: Option<i64>,
-    last_payday_block_slot_time: chrono::DateTime<Utc>,
+    last_payday_block_slot_time:  chrono::DateTime<Utc>,
 }
 
 #[derive(SimpleObject)]
 #[graphql(complex)]
 pub struct PaydayStatus {
-    next_payday_time: DateTime,
+    next_payday_time:             DateTime,
     #[graphql(skip)]
     opt_last_payday_block_height: Option<i64>,
 }
@@ -748,9 +742,7 @@ impl PaydayStatus {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         _after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<u64>,
-        #[graphql(
-            desc = "Returns the elements in the list that come before the specified cursor."
-        )]
+        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         _before: Option<String>,
     ) -> ApiResult<connection::Connection<String, PaydaySummary>> {
         let mut connection = connection::Connection::new(false, false);
@@ -803,7 +795,7 @@ struct Versions {
 struct CollectionSegmentInfo {
     /// Indicates whether more items exist following the set defined by the
     /// clients arguments.
-    has_next_page: bool,
+    has_next_page:     bool,
     /// Indicates whether more items exist prior the set defined by the clients
     /// arguments.
     has_previous_page: bool,
@@ -811,7 +803,7 @@ struct CollectionSegmentInfo {
 
 #[derive(SimpleObject)]
 struct Ranking {
-    rank: i32,
+    rank:  i32,
     total: i32,
 }
 

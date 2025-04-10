@@ -1,67 +1,69 @@
 use async_graphql::{Context, Object, SimpleObject};
 use chrono::{Duration, Utc};
 use serde::Deserialize;
-use std::collections::{HashMap, HashSet};
-use std::fs::File;
-use std::io::BufReader;
+use std::{
+    collections::{HashMap, HashSet},
+    fs::File,
+    io::BufReader,
+};
 
 #[derive(Debug, Clone, Deserialize, SimpleObject)]
 pub struct StableCoin {
-    name: String,
-    symbol: String,
-    decimal: u8,
-    total_supply: i64,
-    circulating_supply: i64,
-    value_in_doller: f64,
+    name:                String,
+    symbol:              String,
+    decimal:             u8,
+    total_supply:        i64,
+    circulating_supply:  i64,
+    value_in_doller:     f64,
     total_unique_holder: Option<i64>,
-    transfers: Option<Vec<Transfer>>, // Transfers sorted by date
-    holding: Option<Vec<Holding>>,
+    transfers:           Option<Vec<Transfer>>, // Transfers sorted by date
+    holding:             Option<Vec<Holding>>,
 }
 
 #[derive(Debug, Clone, Deserialize, SimpleObject)]
 pub struct StableCoinOverview {
-    total_marketcap: f64,
-    number_of_unique_holder: f64,
-    no_of_txn: f64,
-    values_transferd: f64,
-    no_of_txn_last24h: f64,
+    total_marketcap:          f64,
+    number_of_unique_holder:  f64,
+    no_of_txn:                f64,
+    values_transferd:         f64,
+    no_of_txn_last24h:        f64,
     values_transferd_last24h: f64,
 }
 
 #[derive(Debug, Clone, Deserialize, SimpleObject)]
 pub struct Transfer {
-    from: String,
-    to: String,
+    from:       String,
+    to:         String,
     asset_name: String,
-    date: String,
-    amount: f64,
+    date:       String,
+    amount:     f64,
 }
 
 #[derive(Debug, Clone, Deserialize, SimpleObject)]
 pub struct AssetInHold {
     asset_name: String,
-    quantity: f64,
+    quantity:   f64,
     percentage: f32,
 }
 
 #[derive(Debug, Clone, Deserialize, SimpleObject)]
 pub struct Holding {
-    address: String,
+    address:  String,
     holdings: Option<Vec<AssetInHold>>,
 }
 
 #[derive(Debug, Clone, SimpleObject)]
 pub struct TransferSummary {
-    date: String,
-    total_amount: f64,
+    date:              String,
+    total_amount:      f64,
     transaction_count: usize,
 }
 
 #[derive(Debug, Clone, SimpleObject)]
 pub struct TransferSummaryResponse {
-    daily_summary: Vec<TransferSummary>,
+    daily_summary:   Vec<TransferSummary>,
     total_txn_count: usize,
-    total_value: f64,
+    total_value:     f64,
 }
 
 impl StableCoin {
@@ -142,7 +144,7 @@ impl QueryStableCoins {
 
                     if !filtered_assets.is_empty() {
                         Some(Holding {
-                            address: holding.address.clone(),
+                            address:  holding.address.clone(),
                             holdings: Some(filtered_assets),
                         })
                     } else {
@@ -207,19 +209,20 @@ impl QueryStableCoins {
     ) -> TransferSummaryResponse {
         let transfers = Self::load_transfers();
         let now = Utc::now();
-        let days=days.unwrap_or(7);
+        let days = days.unwrap_or(7);
         let last_n_days = now - Duration::days(days);
-    
+
         let mut summary: HashMap<String, (f64, usize)> = HashMap::new();
         let mut total_value = 0.0;
         let mut total_txn_count = 0;
-    
+
         for transfer in transfers.iter().filter(|t| t.asset_name == asset_name) {
-            let transfer_date = match chrono::NaiveDateTime::parse_from_str(&transfer.date, "%Y-%m-%d %H:%M:%S") {
-                Ok(date) => date,
-                Err(_) => continue, // Skip invalid date format
-            };
-    
+            let transfer_date =
+                match chrono::NaiveDateTime::parse_from_str(&transfer.date, "%Y-%m-%d %H:%M:%S") {
+                    Ok(date) => date,
+                    Err(_) => continue, // Skip invalid date format
+                };
+
             // Filter transactions within the last `days`
             if transfer_date >= last_n_days.naive_utc() {
                 let date_str = transfer_date.format("%Y-%m-%d").to_string();
@@ -230,7 +233,7 @@ impl QueryStableCoins {
                 total_txn_count += 1;
             }
         }
-    
+
         let mut summary_vec: Vec<TransferSummary> = summary
             .into_iter()
             .map(|(date, (total_amount, transaction_count))| TransferSummary {
@@ -239,17 +242,17 @@ impl QueryStableCoins {
                 transaction_count,
             })
             .collect();
-    
+
         // Sort in ascending order (earliest date first)
         summary_vec.sort_by(|a, b| a.date.cmp(&b.date));
-    
+
         TransferSummaryResponse {
             daily_summary: summary_vec,
             total_txn_count,
             total_value,
         }
     }
-    
+
     async fn stablecoin_overview<'a>(&self, _ctx: &Context<'a>) -> StableCoinOverview {
         let stablecoins = Self::load_data();
         let transfers = Self::load_transfers();
@@ -277,11 +280,11 @@ impl QueryStableCoins {
             .fold((0.0, 0), |(total_val, count), t| (total_val + t.amount, count + 1));
 
         StableCoinOverview {
-            total_marketcap: stablecoins.iter().map(|coin| coin.total_supply as f64).sum(),
-            number_of_unique_holder: unique_holders.len() as f64,
-            no_of_txn: transfers.len() as f64,
-            values_transferd: transfers.iter().map(|t| t.amount as f64).sum(),
-            no_of_txn_last24h: no_of_txn_last_24h as f64,
+            total_marketcap:          stablecoins.iter().map(|coin| coin.total_supply as f64).sum(),
+            number_of_unique_holder:  unique_holders.len() as f64,
+            no_of_txn:                transfers.len() as f64,
+            values_transferd:         transfers.iter().map(|t| t.amount).sum(),
+            no_of_txn_last24h:        no_of_txn_last_24h as f64,
             values_transferd_last24h: values_transferd_last_24h,
         }
     }
