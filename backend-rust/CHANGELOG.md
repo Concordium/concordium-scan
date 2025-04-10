@@ -16,7 +16,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-- Alternate leading index on reward metrics
+- Reordered the primary key on the `reward_metrics` table from (account_index, block_slot_time) to (block_slot_time, account_index) to improve query performance.
 
 ## [0.1.45] - 2025-04-03
 
