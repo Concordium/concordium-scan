@@ -1,6 +1,6 @@
 [package]
 name = "concordium-scan"
-version = "0.1.46"
+version = "0.1.47"
 edition = "2021"
 description = "CCDScan: Indexer and API for the Concordium blockchain"
 authors = ["Concordium <developers@concordium.com>"]
