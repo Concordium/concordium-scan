@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM (\n                SELECT\n                    bakers.id AS id,\n                    staked,\n                    restake_earnings,\n                    open_status as \"open_status: _\",\n                    metadata_url,\n                    self_suspended,\n                    inactive_suspended,\n                    primed_for_suspension,\n                    transaction_commission,\n                    baking_commission,\n                    finalization_commission,\n                    payday_transaction_commission as \"payday_transaction_commission?\",\n                    payday_baking_commission as \"payday_baking_commission?\",\n                    payday_finalization_commission as \"payday_finalization_commission?\",\n                    payday_lottery_power as \"payday_lottery_power?\",\n                    payday_ranking_by_lottery_powers as \"payday_ranking_by_lottery_powers?\",\n                    (SELECT MAX(payday_ranking_by_lottery_powers) FROM bakers_payday_lottery_powers) as \"payday_total_ranking_by_lottery_powers?\",\n                    pool_total_staked,\n                    pool_delegator_count,\n                    baker_apy,\n                    delegators_apy\n                FROM bakers\n                    LEFT JOIN latest_baker_apy_30_days\n                        ON latest_baker_apy_30_days.id = bakers.id\n                    LEFT JOIN bakers_payday_commission_rates\n                        ON bakers_payday_commission_rates.id = bakers.id\n                    LEFT JOIN bakers_payday_lottery_powers\n                        ON bakers_payday_lottery_powers.id = bakers.id\n                WHERE\n                    ((pool_total_staked > $2 AND pool_total_staked < $1)\n                        OR (pool_total_staked = $2 AND bakers.id > $4)\n                        OR (pool_total_staked = $1 AND bakers.id < $3))\n                    -- filter if provided\n                    AND ($7::pool_open_status IS NULL OR open_status = $7::pool_open_status)\n                ORDER BY\n                    (CASE WHEN $5     THEN pool_total_staked END) ASC,\n                    (CASE WHEN $5     THEN bakers.id            END) ASC,\n                    (CASE WHEN NOT $5 THEN pool_total_staked END) DESC,\n                    (CASE WHEN NOT $5 THEN bakers.id            END) DESC\n                LIMIT $6\n            ) ORDER BY pool_total_staked DESC, id DESC",
+  "query": "SELECT * FROM (\n                SELECT\n                    bakers.id AS id,\n                    staked,\n                    restake_earnings,\n                    open_status as \"open_status: _\",\n                    metadata_url,\n                    self_suspended,\n                    inactive_suspended,\n                    primed_for_suspension,\n                    transaction_commission,\n                    baking_commission,\n                    finalization_commission,\n                    payday_transaction_commission as \"payday_transaction_commission?\",\n                    payday_baking_commission as \"payday_baking_commission?\",\n                    payday_finalization_commission as \"payday_finalization_commission?\",\n                    payday_lottery_power as \"payday_lottery_power?\",\n                    payday_ranking_by_lottery_powers as \"payday_ranking_by_lottery_powers?\",\n                    (SELECT MAX(payday_ranking_by_lottery_powers) FROM bakers_payday_lottery_powers) as \"payday_total_ranking_by_lottery_powers?\",\n                    pool_total_staked,\n                    pool_delegator_count,\n                    baker_apy,\n                    delegators_apy\n                FROM bakers\n                    LEFT JOIN latest_baker_apy_30_days\n                        ON latest_baker_apy_30_days.id = bakers.id\n                    LEFT JOIN bakers_payday_commission_rates\n                        ON bakers_payday_commission_rates.id = bakers.id\n                    LEFT JOIN bakers_payday_lottery_powers\n                        ON bakers_payday_lottery_powers.id = bakers.id\n                WHERE\n                    bakers.id = $5 AND\n                    (bakers.id > $1 AND \n                    bakers.id < $2)\n                ORDER BY\n                    (CASE WHEN $3     THEN bakers.id END) DESC,\n                    (CASE WHEN NOT $3 THEN bakers.id END) ASC\n                LIMIT $4\n            ) ORDER BY id ASC",
   "describe": {
     "columns": [
       {
@@ -124,22 +124,9 @@
       "Left": [
         "Int8",
         "Int8",
-        "Int8",
-        "Int8",
         "Bool",
         "Int8",
-        {
-          "Custom": {
-            "name": "pool_open_status",
-            "kind": {
-              "Enum": [
-                "OpenForAll",
-                "ClosedForNew",
-                "ClosedForAll"
-              ]
-            }
-          }
-        }
+        "Int8"
       ]
     },
     "nullable": [
@@ -166,5 +153,5 @@
       true
     ]
   },
-  "hash": "026731bde184e5e6e1b0745fbccad4dce20252810048d1847637e83412ace357"
+  "hash": "70d6ffee6279732a9c95e3eb5fe7ad7f832be1fcc8a91d8fdc0d0717f65523b0"
 }

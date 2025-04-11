@@ -9,7 +9,6 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Added environment config `enablePltFeatures` to control stable coin menu display.
 
-
 ## [1.7.12] - 2025-04-10
 
 ### Fixed
@@ -21,7 +20,6 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - `useRewardMetrics` to be using legacy endpoint
-
 
 ## [1.7.10] - 2025-04-02
 

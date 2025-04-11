@@ -5,7 +5,7 @@ use concordium_scan::{
     graphql_api::{self, node_status::NodeInfoReceiver},
     migrations,
     migrations::SchemaVersion,
-    router,
+    rest_api, router,
 };
 use prometheus_client::{
     metrics::{family::Family, gauge::Gauge},
@@ -13,8 +13,8 @@ use prometheus_client::{
 };
 use reqwest::Client;
 use serde_json::json;
-use sqlx::postgres::PgPoolOptions;
-use std::{net::SocketAddr, path::PathBuf, time::Duration};
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use std::{net::SocketAddr, path::PathBuf, sync::Arc, time::Duration};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
@@ -36,6 +36,10 @@ struct Cli {
     /// Maximum number of connections in the pool.
     #[arg(long, env = "CCDSCAN_API_DATABASE_MAX_CONNECTIONS", default_value_t = 10)]
     max_connections: u32,
+    /// Database statement timeout. Abort any statement that takes more than the
+    /// specified amount of time. Set to 0 to disable.
+    #[arg(long, env = "CCDSCAN_API_DATABASE_STATEMENT_TIMEOUT_SECS", default_value_t = 30)]
+    statement_timeout_secs: u64,
     /// Outputs the GraphQL Schema for the API and then exits. The output is
     /// stored as a file at the provided path or to stdout when '-' is
     /// provided.
@@ -135,10 +139,14 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
+    let connection_options: PgConnectOptions = cli.database_url.parse()?;
     let pool = PgPoolOptions::new()
         .min_connections(cli.min_connections)
         .max_connections(cli.max_connections)
-        .connect(&cli.database_url)
+        .connect_with(
+            connection_options
+                .options([("statement_timeout", format!("{}s", cli.statement_timeout_secs))]),
+        )
         .await
         .context("Failed constructing database connection pool")?;
     // Ensure the database schema is compatible with supported schema version.
@@ -185,19 +193,29 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let mut queries_task = {
-        let pool = pool.clone();
-        let service = graphql_api::Service::new(
+        let config = Arc::new(cli.api_config);
+        let graphql_service = graphql_api::Service::new(
             subscription,
             &mut registry,
-            pool,
-            cli.api_config,
+            pool.clone(),
+            config.clone(),
             nodes_status_receiver,
         );
+        let rest_service = rest_api::Service::new(pool.clone(), config);
         let tcp_listener =
             TcpListener::bind(cli.listen).await.context("Parsing TCP listener address failed")?;
         let stop_signal = cancel_token.child_token();
         info!("Server is running at {:?}", cli.listen);
-        tokio::spawn(async move { service.serve(tcp_listener, stop_signal).await })
+        tokio::spawn(async move {
+            axum::serve(
+                tcp_listener,
+                axum::Router::new()
+                    .merge(graphql_service.as_router())
+                    .merge(rest_service.as_router()),
+            )
+            .with_graceful_shutdown(stop_signal.cancelled_owned())
+            .await
+        })
     };
     let mut node_collector_task = {
         let stop_signal = cancel_token.child_token();

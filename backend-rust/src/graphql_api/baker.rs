@@ -288,7 +288,7 @@ pub enum Baker {
 }
 
 impl Baker {
-    fn get_id(&self) -> i64 {
+    pub fn get_id(&self) -> i64 {
         match self {
             Baker::Current(existing_baker) => existing_baker.id,
             Baker::Previously(removed) => removed.id,
@@ -686,9 +686,28 @@ impl Baker {
                     LEFT JOIN bakers_payday_lottery_powers
                         ON bakers_payday_lottery_powers.id = bakers.id
                 WHERE
-                    ((pool_total_staked > $2 AND pool_total_staked < $1)
-                        OR (pool_total_staked = $2 AND bakers.id > $4)
-                        OR (pool_total_staked = $1 AND bakers.id < $3))
+                    (
+                       -- Start outer bound for page
+                       (pool_total_staked < $1
+                       -- End outer bound for page
+                       AND pool_total_staked > $2)
+                       -- When outer bounds are not equal, filter separate for each inner bound.
+                       OR (
+                           $1 != $2
+                           AND (
+                                -- Start inner bound for page.
+                                (pool_total_staked = $1 AND bakers.id < $3)
+                                -- End inner bound for page.
+                                 OR (pool_total_staked = $2 AND bakers.id > $4)
+                           )
+                       )
+                       -- When outer bounds are equal, use one filter for both bounds.
+                       OR (
+                           $1 = $2
+                           AND (pool_total_staked = $1
+                           AND bakers.id < $3 AND bakers.id > $4))
+
+                    )
                     -- filter if provided
                     AND ($7::pool_open_status IS NULL OR open_status = $7::pool_open_status)
                 ORDER BY
@@ -937,9 +956,27 @@ impl Baker {
                     LEFT JOIN bakers_payday_lottery_powers
                         ON bakers_payday_lottery_powers.id = bakers.id
                 WHERE
-                    ((pool_delegator_count > $2 AND pool_delegator_count < $1)
-                        OR (pool_delegator_count = $2 AND bakers.id > $4)
-                        OR (pool_delegator_count = $1 AND bakers.id < $3))
+                   (
+                       -- Start outer bound for page
+                       (pool_delegator_count < $1
+                       -- End outer bound for page
+                       AND pool_delegator_count > $2)
+                       -- When outer bounds are not equal, filter separate for each inner bound.
+                       OR (
+                           $1 != $2
+                           AND (
+                                -- Start inner bound for page.
+                                (pool_delegator_count = $1 AND bakers.id < $3)
+                                -- End inner bound for page.
+                                 OR (pool_delegator_count = $2 AND bakers.id > $4)
+                           )
+                       )
+                       -- When outer bounds are equal, use one filter for both bounds.
+                       OR (
+                           $1 = $2
+                           AND (pool_delegator_count = $1
+                           AND bakers.id < $3 AND bakers.id > $4))
+                    )
                     -- filter if provided
                     AND ($7::pool_open_status IS NULL OR open_status = $7::pool_open_status)
                 ORDER BY
@@ -1189,9 +1226,25 @@ impl Baker {
                     LEFT JOIN bakers_payday_lottery_powers
                         ON bakers_payday_lottery_powers.id = bakers.id
                 WHERE (
-                        (COALESCE(payday_baking_commission, 0) > $2 AND COALESCE(payday_baking_commission, 0) < $1)
-                        OR (COALESCE(payday_baking_commission, 0) = $2 AND bakers.id > $4)
-                        OR (COALESCE(payday_baking_commission, 0) = $1 AND bakers.id < $3)
+                       -- Start outer bound for page
+                       (COALESCE(payday_baking_commission, 0) < $1
+                       -- End outer bound for page
+                       AND COALESCE(payday_baking_commission, 0) > $2)
+                       -- When outer bounds are not equal, filter separate for each inner bound.
+                       OR (
+                           $1 != $2
+                           AND (
+                                -- Start inner bound for page.
+                                (COALESCE(payday_baking_commission, 0) = $1 AND bakers.id < $3)
+                                -- End inner bound for page.
+                                 OR (COALESCE(payday_baking_commission, 0) = $2 AND bakers.id > $4)
+                           )
+                       )
+                       -- When outer bounds are equal, use one filter for both bounds.
+                       OR (
+                           $1 = $2
+                           AND (COALESCE(payday_baking_commission, 0) = $1
+                           AND bakers.id < $3 AND bakers.id > $4))
                     )
                     -- filter if provided
                     AND ($7::pool_open_status IS NULL OR open_status = $7::pool_open_status)
@@ -1457,9 +1510,25 @@ impl Baker {
                         ON bakers_payday_lottery_powers.id = bakers.id
                 WHERE
                     (
-                        (COALESCE(payday_baking_commission, 0) > $1 AND COALESCE(payday_baking_commission, 0) < $2)
-                        OR (COALESCE(payday_baking_commission, 0) = $1    AND bakers.id > $3)
-                        OR (COALESCE(payday_baking_commission, 0) = $2    AND bakers.id < $4)
+                       -- Start outer bound for page
+                       (COALESCE(payday_baking_commission, 0) > $1
+                       -- End outer bound for page
+                       AND COALESCE(payday_baking_commission, 0) < $2)
+                       -- When outer bounds are not equal, filter separate for each inner bound.
+                       OR (
+                           $1 != $2
+                           AND (
+                                -- Start inner bound for page.
+                                (COALESCE(payday_baking_commission, 0) = $1 AND bakers.id > $3)
+                                -- End inner bound for page.
+                                 OR (COALESCE(payday_baking_commission, 0) = $2 AND bakers.id < $4)
+                           )
+                       )
+                       -- When outer bounds are equal, use one filter for both bounds.
+                       OR (
+                           $1 = $2
+                           AND (COALESCE(payday_baking_commission, 0) = $1
+                           AND bakers.id > $3 AND bakers.id < $4))
                     )
                     -- filter if provided
                     AND ($7::pool_open_status IS NULL OR open_status = $7::pool_open_status)
@@ -1704,6 +1773,11 @@ impl Baker {
             connection: &mut connection::Connection<String, Baker>,
             pool: &PgPool,
         ) -> ApiResult<()> {
+            let from_apy = query.from.outer.first().map_or(0.0, |b| b.cursor.value);
+            let to_apy = query.to.outer.first().map_or(0.0, |b| b.cursor.value);
+            let from_baker_id = query.from.inner.cursor;
+            let to_baker_id = query.to.inner.cursor;
+
             let mut row_stream = sqlx::query_as!(
                 CurrentBaker,
                 r#"
@@ -1736,11 +1810,25 @@ FROM bakers
     LEFT JOIN bakers_payday_commission_rates ON bakers_payday_commission_rates.id = bakers.id
 WHERE
     (
-      (($2::FLOAT8 IS NULL OR baker_apy > $2) AND ($1::FLOAT8 IS NULL OR baker_apy < $1))
-      OR ($1 IS NOT NULL AND baker_apy = $1    AND bakers.id < $3)
-      OR ($1 IS NULL     AND baker_apy IS NULL AND bakers.id < $3)
-      OR ($2 IS NOT NULL AND baker_apy = $2    AND bakers.id > $4)
-      OR ($2 IS NULL     AND baker_apy IS NULL AND bakers.id > $4)
+      -- Start outer bound for page
+      (COALESCE(baker_apy, 0) < $1::FLOAT8
+      -- End outer bound for page
+      AND COALESCE(baker_apy, 0) > $2::FLOAT8)
+      -- When outer bounds are not equal, filter separate for each inner bound.
+      OR (
+          $1 != $2
+          AND (
+               -- Start inner bound for page.
+               (COALESCE(baker_apy, 0) = $1 AND bakers.id < $3)
+               -- End inner bound for page.
+                OR (COALESCE(baker_apy, 0) = $2 AND bakers.id > $4)
+          )
+      )
+      -- When outer bounds are equal, use one filter for both bounds.
+      OR (
+          $1 = $2
+          AND (COALESCE(baker_apy, 0) = $1
+          AND bakers.id < $3 AND bakers.id > $4))
     )
     -- filter if provided
     AND ($7::pool_open_status IS NULL OR open_status = $7::pool_open_status)
@@ -1751,12 +1839,12 @@ ORDER BY
     (CASE WHEN NOT $5 THEN bakers.id END) DESC
 LIMIT $6
 ) ORDER BY "baker_apy?" DESC NULLS LAST, id DESC"#,
-                query.from.outer.first().map(|b| b.cursor.value), // $1
-                query.to.outer.first().map(|b| b.cursor.value),   // $2
-                query.from.inner.cursor,                          // $3
-                query.to.inner.cursor,                            // $4
-                query.is_last,                                    // $5
-                query.limit,                                      // $6
+                from_apy,                                          // $1
+                to_apy,                                            // $2
+                from_baker_id,                                     // $3
+                to_baker_id,                                       // $4
+                query.is_last,                                     // $5
+                query.limit,                                       // $6
                 open_status_filter as Option<BakerPoolOpenStatus>  // $7
             )
             .fetch(pool);
@@ -2033,11 +2121,25 @@ FROM bakers
     LEFT JOIN bakers_payday_commission_rates ON bakers_payday_commission_rates.id = bakers.id
 WHERE
     (
-      (($2::FLOAT8 IS NULL OR delegators_apy > $2) AND ($1::FLOAT8 IS NULL OR delegators_apy < $1))
-      OR ($1 IS NOT NULL AND delegators_apy = $1    AND bakers.id < $3)
-      OR ($1 IS NULL     AND delegators_apy IS NULL AND bakers.id < $3)
-      OR ($2 IS NOT NULL AND delegators_apy = $2    AND bakers.id > $4)
-      OR ($2 IS NULL     AND delegators_apy IS NULL AND bakers.id > $4)
+      -- Start outer bound for page
+      (COALESCE(delegators_apy, 0) < $1::FLOAT8
+      -- End outer bound for page
+      AND COALESCE(delegators_apy, 0) > $2::FLOAT8)
+      -- When outer bounds are not equal, filter separate for each inner bound.
+      OR (
+          $1 != $2
+          AND (
+               -- Start inner bound for page.
+               (COALESCE(delegators_apy, 0) = $1 AND bakers.id < $3)
+               -- End inner bound for page.
+               OR (COALESCE(delegators_apy, 0) = $2 AND bakers.id > $4)
+          )
+      )
+      -- When outer bounds are equal, use one filter for both bounds.
+      OR (
+          $1 = $2
+          AND (COALESCE(delegators_apy, 0) = $1
+          AND bakers.id < $3 AND bakers.id > $4))
     )
     -- filter if provided
     AND ($7::pool_open_status IS NULL OR open_status = $7::pool_open_status)
@@ -2048,13 +2150,13 @@ ORDER BY
     (CASE WHEN NOT $5 THEN bakers.id END) DESC
 LIMIT $6
 ) ORDER BY "delegators_apy?" DESC NULLS LAST, id DESC"#,
-                query.from.outer.first().map(|b| b.cursor.value), // $1
-                query.to.outer.first().map(|b| b.cursor.value),   // $2
-                query.from.inner.cursor,                          // $3
-                query.to.inner.cursor,                            // $4
-                query.is_last,                                    // $5
-                query.limit,                                      // $6
-                open_status_filter as Option<BakerPoolOpenStatus>  // $7
+                query.from.outer.first().map_or(0.0, |b| b.cursor.value), // $1
+                query.to.outer.first().map_or(0.0, |b| b.cursor.value),   // $2
+                query.from.inner.cursor,                                  // $3
+                query.to.inner.cursor,                                    // $4
+                query.is_last,                                            // $5
+                query.limit,                                              // $6
+                open_status_filter as Option<BakerPoolOpenStatus>         // $7
             )
             .fetch(pool);
             while let Some(row) = row_stream.try_next().await? {
@@ -2302,29 +2404,29 @@ impl PreviouslyBaker {
 /// Database information for a current baker.
 #[derive(Debug)]
 pub struct CurrentBaker {
-    id: i64,
-    staked: i64,
-    restake_earnings: bool,
-    open_status: Option<BakerPoolOpenStatus>,
-    metadata_url: Option<MetadataUrl>,
-    self_suspended: Option<i64>,
-    inactive_suspended: Option<i64>,
-    primed_for_suspension: Option<i64>,
-    transaction_commission: Option<i64>,
-    baking_commission: Option<i64>,
-    finalization_commission: Option<i64>,
-    payday_transaction_commission: Option<i64>,
-    payday_baking_commission: Option<i64>,
-    payday_finalization_commission: Option<i64>,
-    payday_lottery_power: Option<BigDecimal>,
-    payday_ranking_by_lottery_powers: Option<i64>,
-    payday_total_ranking_by_lottery_powers: Option<i64>,
-    pool_total_staked: i64,
-    pool_delegator_count: i64,
+    pub id: i64,
+    pub staked: i64,
+    pub restake_earnings: bool,
+    pub open_status: Option<BakerPoolOpenStatus>,
+    pub metadata_url: Option<MetadataUrl>,
+    pub self_suspended: Option<i64>,
+    pub inactive_suspended: Option<i64>,
+    pub primed_for_suspension: Option<i64>,
+    pub transaction_commission: Option<i64>,
+    pub baking_commission: Option<i64>,
+    pub finalization_commission: Option<i64>,
+    pub payday_transaction_commission: Option<i64>,
+    pub payday_baking_commission: Option<i64>,
+    pub payday_finalization_commission: Option<i64>,
+    pub payday_lottery_power: Option<BigDecimal>,
+    pub payday_ranking_by_lottery_powers: Option<i64>,
+    pub payday_total_ranking_by_lottery_powers: Option<i64>,
+    pub pool_total_staked: i64,
+    pub pool_delegator_count: i64,
     // 30 days period APY for bakers.
-    baker_apy: Option<f64>,
+    pub baker_apy: Option<f64>,
     // 30 days period APY for delegators.
-    delegators_apy: Option<f64>,
+    pub delegators_apy: Option<f64>,
 }
 impl CurrentBaker {
     /// Get the current payday baking commission rate.

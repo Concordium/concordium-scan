@@ -250,6 +250,8 @@ pub enum SchemaVersion {
     UpdateGenesisValidatorInfo,
     #[display("0027:Reindex credential deployments, adjusting cost and missing information")]
     ReindexCredentialDeployment,
+    #[display("0028:Reindex reward metrics, using time as leading column")]
+    ReindexRewardMetrics,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -257,7 +259,7 @@ impl SchemaVersion {
     /// have been introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::BakerPeriodApyViews;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::ReindexCredentialDeployment;
+    const LATEST: SchemaVersion = SchemaVersion::ReindexRewardMetrics;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -304,6 +306,7 @@ impl SchemaVersion {
             SchemaVersion::FixPassiveDelegatorsStake => false,
             SchemaVersion::UpdateGenesisValidatorInfo => false,
             SchemaVersion::ReindexCredentialDeployment => false,
+            SchemaVersion::ReindexRewardMetrics => false,
         }
     }
 
@@ -341,6 +344,7 @@ impl SchemaVersion {
             SchemaVersion::FixPassiveDelegatorsStake => false,
             SchemaVersion::UpdateGenesisValidatorInfo => false,
             SchemaVersion::ReindexCredentialDeployment => false,
+            SchemaVersion::ReindexRewardMetrics => false,
         }
     }
 
@@ -506,7 +510,15 @@ impl SchemaVersion {
             SchemaVersion::UpdateGenesisValidatorInfo => {
                 m0027_reindex_credential_deployments::run(&mut tx, endpoints).await?
             }
-            SchemaVersion::ReindexCredentialDeployment => unimplemented!(
+            SchemaVersion::ReindexCredentialDeployment => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0028_reindex_reward_metrics.sql"
+                    )))
+                    .await?;
+                SchemaVersion::ReindexRewardMetrics
+            }
+            SchemaVersion::ReindexRewardMetrics => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),

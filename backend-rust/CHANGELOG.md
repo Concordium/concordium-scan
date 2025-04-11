@@ -4,13 +4,42 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.47]
+
+### Fixed
+
+- Fix issue where `ccdscan-api` GraphQL resolvers fail to load the config from the context.
+
+## [0.1.46] - 2025-04-10
+
+### Added
+
+- Add `SearchResult::bakers` and `SearchResult::contracts`.
+- Add query `Query::poolRewardMetricsForPassiveDelegation`.
+- Add REST API `/rest/export/statement` for exporting account statements as CSV.
+- Add REST API `rest/balance-statistics/latest` for querying total amount in the network, used by external parties.
+- Add `ccdscan-api` option `--statement-timeout-secs` (env `CCDSCAN_API_DATABASE_STATEMENT_TIMEOUT_SECS`) for configuring a statement timeout the database connections and abort any statement that takes more than the specified amount of time. Defaults to 30 seconds.
+
+### Fixed
+
+- Reordered the primary key on the `reward_metrics` table from (account_index, block_slot_time) to (block_slot_time, account_index) to improve query performance.
+
+## [0.1.45] - 2025-04-03
+
+Database schema version: 27
+
+### Fixed
+
+- Fix pagination issue for `Query::bakers` when page bounds start and end with the same value for the selected sorting, it would include an overlap for the nested sorting (usually the validator ID).
+- Fix double counting of rewards in `Query::poolRewardMetricsForBakerPool` when paydays are exactly on the edge of two buckets.
+
 ## [0.1.44] - 2025-04-02
 
 Database schema version: 27
 
 ### Added
 
-- Add query `Query::poolRewardMetricsForBakerPool`
+- Add query `Query::poolRewardMetricsForBakerPool`.
 
 ### Fixed
 

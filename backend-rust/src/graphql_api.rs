@@ -54,10 +54,7 @@ use node_status::NodeStatus;
 use prometheus_client::registry::Registry;
 use sqlx::PgPool;
 use std::{error::Error, str::FromStr, sync::Arc};
-use tokio::{
-    net::TcpListener,
-    sync::{broadcast, watch::Receiver},
-};
+use tokio::sync::{broadcast, watch::Receiver};
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_util::sync::CancellationToken;
 use tower_http::cors::{Any, CorsLayer};
@@ -66,11 +63,11 @@ use transaction::Transaction;
 
 const VERSION: &str = clap::crate_version!();
 
-#[derive(clap::Args)]
+#[derive(Debug, clap::Args)]
 pub struct ApiServiceConfig {
     /// Account(s) that should not be considered in circulation.
     #[arg(long, env = "CCDSCAN_API_CONFIG_NON_CIRCULATING_ACCOUNTS", value_delimiter = ',')]
-    non_circulating_account: Vec<sdk_types::AccountAddress>,
+    pub non_circulating_account: Vec<sdk_types::AccountAddress>,
     /// The most transactions which can be queried at once.
     #[arg(long, env = "CCDSCAN_API_CONFIG_TRANSACTION_CONNECTION_LIMIT", default_value = "100")]
     transaction_connection_limit: u64,
@@ -197,7 +194,7 @@ impl Service {
         subscription: Subscription,
         registry: &mut Registry,
         pool: PgPool,
-        config: ApiServiceConfig,
+        config: Arc<ApiServiceConfig>,
         receiver: Receiver<Option<Vec<NodeStatus>>>,
     ) -> Self {
         let schema = Schema::build(Query::default(), EmptyMutation, subscription)
@@ -219,28 +216,20 @@ impl Service {
         schema.sdl_with_options(SDLExportOptions::new().prefer_single_line_descriptions())
     }
 
-    pub async fn serve(
-        self,
-        tcp_listener: TcpListener,
-        stop_signal: CancellationToken,
-    ) -> anyhow::Result<()> {
+    /// Convert service into an axum router.
+    pub fn as_router(self) -> axum::Router {
         let cors_layer = CorsLayer::new()
             .allow_origin(Any)  // Open access to selected route
             .allow_methods(Any)
             .allow_headers(Any);
-        let app = axum::Router::new()
+        axum::Router::new()
             .route("/", axum::routing::get(Self::graphiql))
             .route(
                 "/api/graphql",
                 axum::routing::post_service(async_graphql_axum::GraphQL::new(self.schema.clone())),
             )
             .route_service("/ws/graphql", GraphQLSubscription::new(self.schema))
-            .layer(cors_layer);
-
-        axum::serve(tcp_listener, app)
-            .with_graceful_shutdown(stop_signal.cancelled_owned())
-            .await?;
-        Ok(())
+            .layer(cors_layer)
     }
 
     async fn graphiql() -> impl axum::response::IntoResponse {
@@ -252,6 +241,7 @@ impl Service {
         )
     }
 }
+
 /// Module containing types and logic for building an async_graphql extension
 /// which allows for monitoring of the service.
 mod monitor {
@@ -444,7 +434,8 @@ pub fn get_pool<'a>(ctx: &Context<'a>) -> ApiResult<&'a PgPool> {
 
 /// Get service configuration from the context.
 pub fn get_config<'a>(ctx: &Context<'a>) -> ApiResult<&'a ApiServiceConfig> {
-    ctx.data::<ApiServiceConfig>().map_err(ApiError::NoServiceConfig)
+    let config = ctx.data::<Arc<ApiServiceConfig>>().map_err(ApiError::NoServiceConfig)?;
+    Ok(config.as_ref())
 }
 
 #[derive(Default)]
@@ -535,19 +526,6 @@ impl BaseQuery {
             query,
         }
     }
-
-    // rewardMetrics(period: MetricsPeriod!): RewardMetrics!
-
-    // rewardMetricsForAccount(accountId: ID! period: MetricsPeriod!):
-    // RewardMetrics!
-
-    // poolRewardMetricsForPassiveDelegation(period: MetricsPeriod!):
-    // PoolRewardMetrics!
-
-    // poolRewardMetricsForBakerPool(bakerId: ID! period: MetricsPeriod!):
-    // PoolRewardMetrics!
-
-    // passiveDelegation: PassiveDelegation
 }
 
 pub struct Subscription {
