@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.7.13] - 2025-04-11
+
+### Added
+- Added environment config `enablePltFeatures` to control stable coin menu display.
+
 ## [1.7.12] - 2025-04-10
 
 ### Fixed

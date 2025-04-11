@@ -79,7 +79,12 @@ const mockLocation = (overrides?: Partial<Location>) => {
 		},
 	})
 
-	const locationCleanup = () => (window.location = oldWindowLocation)
+	const locationCleanup = () => {
+		Object.defineProperty(window, 'location', {
+			writable: true,
+			value: oldWindowLocation,
+		})
+	}
 
 	return {
 		locationAssignSpy,
