@@ -36,8 +36,6 @@ const handleOnClick = (nodeId: string) => {
 	} catch (error) {
 		// If decoding fails, assume nodeId was not base64 encoded and keep the original value.
 	}
-
-	// Pass the updated nodeId under the correct key.
 	drawer.push({ entityTypeName: 'node', nodeId: actualNodeId });
 }
 </script>
