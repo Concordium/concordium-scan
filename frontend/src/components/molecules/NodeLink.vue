@@ -33,7 +33,7 @@ const handleOnClick = (nodeId: string) => {
 				actualNodeId = trimmedNodeId.substring(1).trim()
 			}
 		}
-	} catch (_) {
+	} catch {
 		// If decoding fails, assume nodeId was not base64 encoded and keep the original value.
 	}
 	drawer.push({ entityTypeName: 'node', nodeId: actualNodeId })
