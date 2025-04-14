@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-- Support `node_statuses` id format of fungy backend when obtaining legacy backend id format on NodeLink
+- Support `node_statuses` id format of fungy backend when obtaining legacy backend id format in `NodeLink` component
 
 ## [1.7.12] - 2025-04-10
 
