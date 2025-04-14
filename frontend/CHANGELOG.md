@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.7.12] - 2025-04-14
+
+### Fixed
+
+- Revert `useNodeQuery` and `useNodeDetailQuery` to be using dotnet backend while finishing SearchResults
+
 ## [1.7.12] - 2025-04-10
 
 ### Fixed
