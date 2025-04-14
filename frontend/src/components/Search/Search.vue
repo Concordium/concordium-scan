@@ -233,6 +233,26 @@
 						</div>
 					</SearchResultCategory>
 
+					<SearchResultCategory
+						v-if="resultCount.nodeStatuses"
+						title="Nodes"
+						:has-more-results="data.search.nodeStatuses.pageInfo.hasNextPage"
+					>
+						<div
+							v-for="node in data.search.nodeStatuses.nodes"
+							:key="node.id"
+							:class="$style.searchColumns"
+						>
+							<NodeLink :node="node" @blur="lostFocusOnSearch" />
+							<div :class="$style.threeColumns" />
+							<div :class="$style.twoColumns">
+								<BakerLink
+									v-if="Number.isInteger(node.consensusBakerId)"
+									:id="node.consensusBakerId"
+								/>
+							</div>
+						</div>
+					</SearchResultCategory>
 				</div>
 			</div>
 		</div>

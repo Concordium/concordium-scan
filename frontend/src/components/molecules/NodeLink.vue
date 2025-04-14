@@ -1,9 +1,7 @@
 ﻿<template>
 	<div class="inline-block">
 		<NodeIcon class="h-4 inline align-text-top" :class="iconClass" />
-		<LinkButton class="px-2" @click="() => handleOnClick(node.id)">
-			{{ node.nodeName }}
-		</LinkButton>
+		{{ node.nodeName }}
 	</div>
 </template>
 
