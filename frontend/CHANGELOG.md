@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-- Revert `useNodeQuery` and `useNodeDetailQuery` to be using dotnet backend while finishing SearchResults
+- Temporarily remove `node_statuses` from search results
 
 ## [1.7.12] - 2025-04-10
 
