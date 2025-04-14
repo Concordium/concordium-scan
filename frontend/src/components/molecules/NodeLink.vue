@@ -23,7 +23,7 @@ defineProps<Props>()
 const drawer = useDrawer()
 
 const handleOnClick = (nodeId: string) => {
-	// TODO: This is a temporarily fix to ensure new backend is compatible with dotnet backend
+	// TODO: This is a temporarily fix to ensure new backend is compatible with dotnet backend id format
 	let actualNodeId: string = nodeId;
 	try {
 		const decoded = atob(nodeId);
