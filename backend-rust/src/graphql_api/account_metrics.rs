@@ -89,10 +89,7 @@ impl QueryAccountMetrics {
         .fetch_all(pool)
         .await?;
 
-        let x_time = rows
-            .iter()
-            .map(|r| r.bucket_time)
-            .collect();
+        let x_time = rows.iter().map(|r| r.bucket_time).collect();
         let y_last_cumulative_accounts_created =
             rows.iter().map(|r| r.end_index.expect("coalesced")).collect();
         let y_accounts_created = rows
