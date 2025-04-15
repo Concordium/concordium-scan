@@ -18,6 +18,23 @@ pub struct StableCoin {
     total_unique_holder: Option<i64>,
     transfers:           Option<Vec<Transfer>>, // Transfers sorted by date
     holding:             Option<Vec<Holding>>,
+    metadata:            Option<Metadata>,
+    transactions:        Option<Vec<TransactionM>>,
+}
+#[derive(Debug, Clone, Deserialize, SimpleObject)]
+pub struct TransactionM {
+    from:       String,
+    to:         String,
+    asset_name: String,
+    date:       String,
+    amount:     f64,
+    value:      f64,
+    signature:  String,
+}
+
+#[derive(Debug, Clone, Deserialize, SimpleObject)]
+pub struct Metadata {
+    icon_url: String,
 }
 
 #[derive(Debug, Clone, Deserialize, SimpleObject)]
@@ -94,6 +111,16 @@ impl StableCoin {
         let top_n = top_holder.unwrap_or(200);
         Some(holders.into_iter().take(top_n).collect())
     }
+
+    pub fn last_n_transactions(
+        &self,
+        last_n_transactions: Option<usize>,
+    ) -> Option<Vec<TransactionM>> {
+        let mut transactions = self.transactions.clone()?;
+        transactions.sort_by(|a, b| b.date.cmp(&a.date));
+        let last_n = last_n_transactions.unwrap_or(20);
+        Some(transactions.into_iter().take(last_n).collect())
+    }
 }
 
 #[derive(Default)]
@@ -122,10 +149,17 @@ impl QueryStableCoins {
         serde_json::from_reader(reader).unwrap()
     }
 
+    fn load_transactions() -> Vec<TransactionM> {
+        let file = File::open("transaction.json").unwrap();
+        let reader = BufReader::new(file);
+        serde_json::from_reader(reader).unwrap()
+    }
+
     fn merge_transfers(
         mut stablecoins: Vec<StableCoin>,
         transfers: Vec<Transfer>,
         holdings: Vec<Holding>,
+        transactions: Vec<TransactionM>,
     ) -> Vec<StableCoin> {
         for coin in &mut stablecoins {
             coin.transfers =
@@ -164,6 +198,9 @@ impl QueryStableCoins {
                 relevant_holdings.iter().map(|h| h.address.clone()).collect();
 
             coin.total_unique_holder = Some(unique_holders.len() as i64);
+            coin.transactions = Some(
+                transactions.iter().filter(|txn| txn.asset_name == coin.symbol).cloned().collect(),
+            );
         }
         stablecoins
     }
@@ -177,17 +214,28 @@ impl QueryStableCoins {
         symbol: String,
         top_holder: Option<usize>,
         min_quantity: Option<f64>,
+        last_n_transactions: Option<usize>,
     ) -> Option<StableCoin> {
-        let mut stablecoins =
-            Self::merge_transfers(Self::load_data(), Self::load_transfers(), Self::load_holdings());
-        let coin = stablecoins.iter_mut().find(|coin| coin.symbol == symbol)?;
+        let mut stablecoins = Self::merge_transfers(
+            Self::load_data(),
+            Self::load_transfers(),
+            Self::load_holdings(),
+            Self::load_transactions(),
+        );
+        let coin = stablecoins.iter_mut().find(|coin: &&mut StableCoin| coin.symbol == symbol)?;
 
         coin.holding = coin.top_holders(top_holder, min_quantity);
+        coin.transactions = coin.last_n_transactions(last_n_transactions);
         Some(coin.clone())
     }
 
     async fn stablecoins<'a>(&self, _ctx: &Context<'a>) -> Vec<StableCoin> {
-        Self::merge_transfers(Self::load_data(), Self::load_transfers(), Self::load_holdings())
+        Self::merge_transfers(
+            Self::load_data(),
+            Self::load_transfers(),
+            Self::load_holdings(),
+            Self::load_transactions(),
+        )
     }
 
     async fn stablecoins_by_supply<'a>(
@@ -195,10 +243,15 @@ impl QueryStableCoins {
         _ctx: &Context<'a>,
         min_supply: i64,
     ) -> Vec<StableCoin> {
-        Self::merge_transfers(Self::load_data(), Self::load_transfers(), Self::load_holdings())
-            .into_iter()
-            .filter(|coin| coin.total_supply >= min_supply)
-            .collect()
+        Self::merge_transfers(
+            Self::load_data(),
+            Self::load_transfers(),
+            Self::load_holdings(),
+            Self::load_transactions(),
+        )
+        .into_iter()
+        .filter(|coin| coin.total_supply >= min_supply)
+        .collect()
     }
 
     async fn transfer_summary<'a>(

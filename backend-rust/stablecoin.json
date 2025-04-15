@@ -1,82 +1,200 @@
  [
-        {
-            "name": "USD Tether",
-            "symbol": "USDT",
-            "decimal": 6,
-            "total_supply": 90000000000,
-            "circulating_supply": 86500000000,
-            "value_in_doller": 0.99
-        },
-        {
-            "name": "USD Coin",
-            "symbol": "USDC",
-            "decimal": 6,
-            "total_supply": 52000000000,
-            "circulating_supply": 50000000000,
-            "value_in_doller": 1.0
-        },
-        {
-            "name": "Dai",
-            "symbol": "DAI",
-            "decimal": 18,
-            "total_supply": 5800000000,
-            "circulating_supply": 5750000000,
-            "value_in_doller": 1.0
-        },
-        {
-            "name": "Binance USD",
-            "symbol": "BUSD",
-            "decimal": 18,
-            "total_supply": 1000000000,
-            "circulating_supply": 900000000,
-            "value_in_doller": 1.0
-        },
-        {
-            "name": "TrueUSD",
-            "symbol": "TUSD",
-            "decimal": 18,
-            "total_supply": 1200000000,
-            "circulating_supply": 1150000000,
-            "value_in_doller": 1.0
-        },
-        {
-            "name": "Pax Dollar",
-            "symbol": "USDP",
-            "decimal": 18,
-            "total_supply": 945000000,
-            "circulating_supply": 900000000,
-            "value_in_doller": 1.0
-        },
-        {
-            "name": "Gemini Dollar",
-            "symbol": "GUSD",
-            "decimal": 2,
-            "total_supply": 200000000,
-            "circulating_supply": 180000000,
-            "value_in_doller": 1.0
-        },
-        {
-            "name": "Fei USD",
-            "symbol": "FEI",
-            "decimal": 18,
-            "total_supply": 425000000,
-            "circulating_supply": 400000000,
-            "value_in_doller": 0.98
-        },
-        {
-            "name": "Frax",
-            "symbol": "FRAX",
-            "decimal": 18,
-            "total_supply": 2200000000,
-            "circulating_supply": 2100000000,
-            "value_in_doller": 1.0
-        },
-        {
-            "name": "Stable USD",
-            "symbol": "USDS",
-            "decimal": 18,
-            "total_supply": 10000000,
-            "circulating_supply": 9500000,
-            "value_in_doller": 1.0
-        }
-    ]
+      {
+          "name": "USD Tether",
+          "symbol": "USDT",
+          "decimal": 6,
+          "total_supply": 90000000000,
+          "circulating_supply": 86500000000,
+          "value_in_doller": 0.99,
+          "metadata": {
+              "icon_url": "https://cryptologos.cc/logos/tether-usdt-logo.png"
+          }
+      },
+      {
+          "name": "USD Coin",
+          "symbol": "USDC",
+          "decimal": 6,
+          "total_supply": 52000000000,
+          "circulating_supply": 50000000000,
+          "value_in_doller": 1.0,
+          "metadata": {
+              "icon_url": "https://cryptologos.cc/logos/usd-coin-usdc-logo.png"
+          }
+      },
+      {
+          "name": "Dai",
+          "symbol": "DAI",
+          "decimal": 18,
+          "total_supply": 5800000000,
+          "circulating_supply": 5750000000,
+          "value_in_doller": 1.0,
+          "metadata": {
+              "icon_url": "https://cryptologos.cc/logos/multi-collateral-dai-dai-logo.png"
+          }
+      },
+      {
+          "name": "Binance USD",
+          "symbol": "BUSD",
+          "decimal": 18,
+          "total_supply": 1000000000,
+          "circulating_supply": 900000000,
+          "value_in_doller": 1.0,
+          "metadata": {
+              "icon_url": "https://cryptologos.cc/logos/binance-usd-busd-logo.png"
+          }
+      },
+      {
+          "name": "TrueUSD",
+          "symbol": "TUSD",
+          "decimal": 18,
+          "total_supply": 1200000000,
+          "circulating_supply": 1150000000,
+          "value_in_doller": 1.0,
+          "metadata": {
+              "icon_url": "https://cryptologos.cc/logos/trueusd-tusd-logo.png"
+          }
+      },
+      {
+          "name": "Pax Dollar",
+          "symbol": "USDP",
+          "decimal": 18,
+          "total_supply": 945000000,
+          "circulating_supply": 900000000,
+          "value_in_doller": 1.0,
+          "metadata": {
+              "icon_url": "https://cryptologos.cc/logos/paxos-standard-pax-logo.png"
+          }
+      },
+      {
+          "name": "Gemini Dollar",
+          "symbol": "GUSD",
+          "decimal": 2,
+          "total_supply": 200000000,
+          "circulating_supply": 180000000,
+          "value_in_doller": 1.0,
+          "metadata": {
+              "icon_url": "https://cryptologos.cc/logos/gemini-dollar-gusd-logo.png"
+          }
+      },
+      {
+          "name": "Fei USD",
+          "symbol": "FEI",
+          "decimal": 18,
+          "total_supply": 425000000,
+          "circulating_supply": 400000000,
+          "value_in_doller": 0.98,
+          "metadata": {
+              "icon_url": "https://cryptologos.cc/logos/fei-protocol-fei-logo.png"
+          }
+      },
+      {
+          "name": "Frax",
+          "symbol": "FRAX",
+          "decimal": 18,
+          "total_supply": 2200000000,
+          "circulating_supply": 2100000000,
+          "value_in_doller": 1.0,
+          "metadata": {
+              "icon_url": "https://cryptologos.cc/logos/frax-frax-logo.png"
+          }
+      },
+      {
+          "name": "Stable USD",
+          "symbol": "USDS",
+          "decimal": 18,
+          "total_supply": 10000000,
+          "circulating_supply": 9500000,
+          "value_in_doller": 1.0,
+          "metadata": {
+              "icon_url": "https://cryptologos.cc/logos/stably-usds-logo.png"
+          }
+      },
+      {
+          "name": "Stasis Euro",
+          "symbol": "EURS",
+          "decimal": 2,
+          "total_supply": 124000000,
+          "circulating_supply": 120000000,
+          "value_in_doller": 1.09,
+          "metadata": {
+              "icon_url": "https://cryptologos.cc/logos/stasis-eurs-logo.png"
+          }
+      },
+      {
+          "name": "Angle Euro",
+          "symbol": "agEUR",
+          "decimal": 18,
+          "total_supply": 50000000,
+          "circulating_supply": 48000000,
+          "value_in_doller": 1.09,
+          "metadata": {
+              "icon_url": "https://app.angle.money/images/tokens/agEUR.svg"
+          }
+      },
+      {
+          "name": "EUROe",
+          "symbol": "EUROe",
+          "decimal": 18,
+          "total_supply": 20000000,
+          "circulating_supply": 18000000,
+          "value_in_doller": 1.09,
+          "metadata": {
+              "icon_url": "https://euroe.com/assets/logo.svg"
+          }
+      },
+      {
+          "name": "Poundtoken",
+          "symbol": "GBPT",
+          "decimal": 18,
+          "total_supply": 5000000,
+          "circulating_supply": 4500000,
+          "value_in_doller": 1.25,
+          "metadata": {
+              "icon_url": "https://poundtoken.io/wp-content/uploads/2022/11/logo-dark.svg"
+          }
+      },
+      {
+          "name": "JPY Coin",
+          "symbol": "JPYC",
+          "decimal": 18,
+          "total_supply": 1000000000,
+          "circulating_supply": 980000000,
+          "value_in_doller": 0.0067,
+          "metadata": {
+              "icon_url": "https://jpyc.jp/logo/jpyc_logo.png"
+          }
+      },
+      {
+          "name": "AUDD",
+          "symbol": "AUDD",
+          "decimal": 18,
+          "total_supply": 5000000,
+          "circulating_supply": 4500000,
+          "value_in_doller": 0.65,
+          "metadata": {
+              "icon_url": "https://cdn.audd.io/logo.png"
+          }
+      },
+      {
+          "name": "Tether Gold",
+          "symbol": "XAUT",
+          "decimal": 18,
+          "total_supply": 1000000,
+          "circulating_supply": 950000,
+          "value_in_doller": 1860,
+          "metadata": {
+              "icon_url": "https://cryptologos.cc/logos/tether-gold-xaut-logo.png"
+          }
+      },
+      {
+          "name": "Paxos Gold",
+          "symbol": "PAXG",
+          "decimal": 18,
+          "total_supply": 500000,
+          "circulating_supply": 450000,
+          "value_in_doller": 1850,
+          "metadata": {
+              "icon_url": "https://cryptologos.cc/logos/paxos-gold-paxg-logo.png"
+          }
+      }
+  ]
