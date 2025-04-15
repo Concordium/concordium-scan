@@ -23,6 +23,19 @@ defineProps<Props>()
 const drawer = useDrawer()
 
 const handleOnClick = (nodeId: string) => {
-	drawer.push({ entityTypeName: 'node', nodeId })
+	// TODO: This is a temporarily fix to ensure new backend is compatible with dotnet backend id format
+	let actualNodeId: string = nodeId
+	try {
+		const decoded = atob(nodeId)
+		if (decoded.startsWith('NodeStatus')) {
+			const trimmedNodeId = decoded.substring('NodeStatus'.length).trim()
+			if (trimmedNodeId.startsWith('d')) {
+				actualNodeId = trimmedNodeId.substring(1).trim()
+			}
+		}
+	} catch {
+		// If decoding fails, assume nodeId was not base64 encoded and keep the original value.
+	}
+	drawer.push({ entityTypeName: 'node', nodeId: actualNodeId })
 }
 </script>

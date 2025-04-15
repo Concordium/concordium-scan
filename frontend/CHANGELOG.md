@@ -4,9 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [1.7.13] - 2025-04-11
+## [1.7.13] - 2025-04-14
+
+### Fixed
+
+- Support `node_statuses` id format of fungy backend when obtaining legacy backend id format in `NodeLink` component
 
 ### Added
+
 - Added environment config `enablePltFeatures` to control stable coin menu display.
 
 ## [1.7.12] - 2025-04-10
