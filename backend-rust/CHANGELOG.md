@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Optimise `Account::transactions` performance
+- Fix potential issue on `accountMetrics`
+
 ## [0.1.47]
 
 ### Fixed
