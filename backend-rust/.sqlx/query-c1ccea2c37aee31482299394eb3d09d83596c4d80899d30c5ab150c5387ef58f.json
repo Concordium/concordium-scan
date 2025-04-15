@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM (\n                SELECT\n                    index,\n                    block_height,\n                    hash,\n                    ccd_cost,\n                    energy_cost,\n                    sender_index,\n                    type as \"tx_type: DbTransactionType\",\n                    type_account as \"type_account: AccountTransactionType\",\n                    type_credential_deployment as \"type_credential_deployment: CredentialDeploymentTransactionType\",\n                    type_update as \"type_update: UpdateTransactionType\",\n                    success,\n                    events as \"events: sqlx::types::Json<Vec<Event>>\",\n                    reject as \"reject: sqlx::types::Json<TransactionRejectReason>\"\n                FROM transactions\n                WHERE\n                    $1 IN (\n                        SELECT account_index\n                        FROM affected_accounts\n                        WHERE transaction_index = index\n                    )\n                    AND $2 < index\n                    AND index < $3\n                ORDER BY\n                    (CASE WHEN $4 THEN index END) DESC,\n                    (CASE WHEN NOT $4 THEN index END) ASC\n                LIMIT $5\n            ) ORDER BY index ASC\n            ",
+  "query": "SELECT * FROM (\n                SELECT\n                    index,\n                    block_height,\n                    hash,\n                    ccd_cost,\n                    energy_cost,\n                    sender_index,\n                    type as \"tx_type: DbTransactionType\",\n                    type_account as \"type_account: AccountTransactionType\",\n                    type_credential_deployment as \"type_credential_deployment: CredentialDeploymentTransactionType\",\n                    type_update as \"type_update: UpdateTransactionType\",\n                    success,\n                    events as \"events: sqlx::types::Json<Vec<Event>>\",\n                    reject as \"reject: sqlx::types::Json<TransactionRejectReason>\"\n                FROM transactions t\n                LEFT JOIN (\n                    SELECT transaction_index\n                    FROM affected_accounts\n                    WHERE account_index = $1\n                ) a ON a.transaction_index = t.index\n                WHERE\n                    $2 < index\n                    AND index < $3\n                ORDER BY\n                    (CASE WHEN $4 THEN index END) DESC,\n                    (CASE WHEN NOT $4 THEN index END) ASC\n                LIMIT $5\n            ) ORDER BY index ASC\n            ",
   "describe": {
     "columns": [
       {
@@ -176,5 +176,5 @@
       true
     ]
   },
-  "hash": "77367c4413ca21e88a84a83b1ae698e181d083fdd347f0b0d0fca1792babb1be"
+  "hash": "c1ccea2c37aee31482299394eb3d09d83596c4d80899d30c5ab150c5387ef58f"
 }

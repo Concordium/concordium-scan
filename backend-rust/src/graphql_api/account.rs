@@ -982,14 +982,14 @@ impl Account {
                     success,
                     events as "events: sqlx::types::Json<Vec<Event>>",
                     reject as "reject: sqlx::types::Json<TransactionRejectReason>"
-                FROM transactions
+                FROM transactions t
+                LEFT JOIN (
+                    SELECT transaction_index
+                    FROM affected_accounts
+                    WHERE account_index = $1
+                ) a ON a.transaction_index = t.index
                 WHERE
-                    $1 IN (
-                        SELECT account_index
-                        FROM affected_accounts
-                        WHERE transaction_index = index
-                    )
-                    AND $2 < index
+                    $2 < index
                     AND index < $3
                 ORDER BY
                     (CASE WHEN $4 THEN index END) DESC,
