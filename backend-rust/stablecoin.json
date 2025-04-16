@@ -1,11 +1,11 @@
- [
+[
         {
             "name": "USD Tether",
             "symbol": "USDT",
             "decimal": 6,
             "total_supply": 90000000000,
             "circulating_supply": 86500000000,
-            "value_in_doller": 0.99
+            "value_in_dollar": 0.99
         },
         {
             "name": "USD Coin",
@@ -13,7 +13,7 @@
             "decimal": 6,
             "total_supply": 52000000000,
             "circulating_supply": 50000000000,
-            "value_in_doller": 1.0
+            "value_in_dollar": 1.0
         },
         {
             "name": "Dai",
@@ -21,7 +21,7 @@
             "decimal": 18,
             "total_supply": 5800000000,
             "circulating_supply": 5750000000,
-            "value_in_doller": 1.0
+            "value_in_dollar": 1.0
         },
         {
             "name": "Binance USD",
@@ -29,7 +29,7 @@
             "decimal": 18,
             "total_supply": 1000000000,
             "circulating_supply": 900000000,
-            "value_in_doller": 1.0
+            "value_in_dollar": 1.0
         },
         {
             "name": "TrueUSD",
@@ -37,7 +37,7 @@
             "decimal": 18,
             "total_supply": 1200000000,
             "circulating_supply": 1150000000,
-            "value_in_doller": 1.0
+            "value_in_dollar": 1.0
         },
         {
             "name": "Pax Dollar",
@@ -45,7 +45,8 @@
             "decimal": 18,
             "total_supply": 945000000,
             "circulating_supply": 900000000,
-            "value_in_doller": 1.0
+            "value_in_dollar": 1.0
+
         },
         {
             "name": "Gemini Dollar",
@@ -53,7 +54,7 @@
             "decimal": 2,
             "total_supply": 200000000,
             "circulating_supply": 180000000,
-            "value_in_doller": 1.0
+            "value_in_dollar": 1.0
         },
         {
             "name": "Fei USD",
@@ -61,7 +62,8 @@
             "decimal": 18,
             "total_supply": 425000000,
             "circulating_supply": 400000000,
-            "value_in_doller": 0.98
+            "value_in_dollar": 0.98
+
         },
         {
             "name": "Frax",
@@ -69,7 +71,7 @@
             "decimal": 18,
             "total_supply": 2200000000,
             "circulating_supply": 2100000000,
-            "value_in_doller": 1.0
+            "value_in_dollar": 1.0
         },
         {
             "name": "Stable USD",
@@ -77,6 +79,72 @@
             "decimal": 18,
             "total_supply": 10000000,
             "circulating_supply": 9500000,
-            "value_in_doller": 1.0
+            "value_in_dollar": 1.0
+        },
+        {
+            "name": "Stasis Euro",
+            "symbol": "EURS",
+            "decimal": 2,
+            "total_supply": 124000000,
+            "circulating_supply": 120000000,
+            "value_in_dollar": 1.09
+        },
+        {
+            "name": "Angle Euro",
+            "symbol": "agEUR",
+            "decimal": 18,
+            "total_supply": 50000000,
+            "circulating_supply": 48000000,
+            "value_in_dollar": 1.09
+        },
+        {
+            "name": "EUROe",
+            "symbol": "EUROe",
+            "decimal": 18,
+            "total_supply": 20000000,
+            "circulating_supply": 18000000,
+            "value_in_dollar": 1.09
+        },
+        {
+            "name": "Poundtoken",
+            "symbol": "GBPT",
+            "decimal": 18,
+            "total_supply": 5000000,
+            "circulating_supply": 4500000,
+            "value_in_dollar": 1.25
+        },
+        {
+            "name": "JPY Coin",
+            "symbol": "JPYC",
+            "decimal": 18,
+            "total_supply": 1000000000,
+            "circulating_supply": 980000000,
+            "value_in_dollar": 0.0067
+        },
+        {
+            "name": "AUDD",
+            "symbol": "AUDD",
+            "decimal": 18,
+            "total_supply": 5000000,
+            "circulating_supply": 4500000,
+            "value_in_dollar": 0.65
+           
+        },
+        {
+            "name": "Tether Gold",
+            "symbol": "XAUT",
+            "decimal": 18,
+            "total_supply": 1000000,
+            "circulating_supply": 950000,
+            "value_in_dollar": 1860.0
+            
+        },
+        {
+            "name": "Paxos Gold",
+            "symbol": "PAXG",
+            "decimal": 18,
+            "total_supply": 500000,
+            "circulating_supply": 450000,
+            "value_in_dollar": 1850.0
         }
     ]
