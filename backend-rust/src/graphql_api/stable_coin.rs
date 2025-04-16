@@ -20,6 +20,7 @@ pub struct StableCoin {
     holding:             Option<Vec<Holding>>,
     metadata:            Option<Metadata>,
     transactions:        Option<Vec<TransactionM>>,
+    issuer:              String,
 }
 #[derive(Debug, Clone, Deserialize, SimpleObject)]
 pub struct TransactionM {
@@ -29,7 +30,7 @@ pub struct TransactionM {
     date:       String,
     amount:     f64,
     value:      f64,
-    signature:  String,
+    transaction_hash:  String,
 }
 
 #[derive(Debug, Clone, Deserialize, SimpleObject)]

@@ -8,7 +8,8 @@
             "value_in_doller": 0.99,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/325/standard/Tether.png"
-            }
+            },
+            "issuer": "3jtv5pBMNrCKBPpR5JJiMKKSvCfMconkJBP1VG5tg15REcj3fm"
         },
         {
             "name": "USD Coin",
@@ -19,7 +20,8 @@
             "value_in_doller": 1.0,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/6319/standard/usdc.png"
-            }
+            },
+            "issuer": "3TByZVYFY2EEhkxsaRRK1ddxLMCt1ghVp252HzVvc9B5u4BfpD"
         },
         {
             "name": "Dai",
@@ -30,7 +32,8 @@
             "value_in_doller": 1.0,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/9956/standard/Badge_Dai.png"
-            }
+            },
+            "issuer": "48RzmkRVLNFwsyu6RLfsEykgUvz6QYpDimpk5NYm13Q4zWQown"
         },
         {
             "name": "Binance USD",
@@ -41,7 +44,8 @@
             "value_in_doller": 1.0,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/31273/standard/new_binance-peg-busd.png"
-            }
+            },
+            "issuer": "32WtTj8soenfXvArRi2sR4kuzjNhfXDdr1LG66QVt5wSq6GSb4"
         },
         {
             "name": "TrueUSD",
@@ -52,7 +56,8 @@
             "value_in_doller": 1.0,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/3449/standard/tusd.png"
-            }
+            },
+            "issuer": "3ztNhCMD16j23iHHsWRWdzhZMhT1gTvYN8qcSz2wQitqVWaAtJ"
         },
         {
             "name": "Pax Dollar",
@@ -63,7 +68,8 @@
             "value_in_doller": 1.0,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/6013/standard/Pax_Dollar.png"
-            }
+            },
+            "issuer": "4BfX9mwbsm5qu9Gjv34UbhWGDkSmK8JVFAHDaDyCZTyuDd2kDZ"
         },
         {
             "name": "Gemini Dollar",
@@ -74,7 +80,8 @@
             "value_in_doller": 1.0,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/5992/standard/gemini-dollar-gusd.png"
-            }
+            },
+            "issuer": "441zGQKXWqJiSoV7iUaNbbSQUgLqt38MeVg7ku1tEt9tCFXDD7"
         },
         {
             "name": "Fei USD",
@@ -85,7 +92,8 @@
             "value_in_doller": 0.98,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/14570/standard/ZqsF51Re_400x400.png"
-            }
+            },
+            "issuer": "3gMy52rWxGYc1NgmydsRKjKgYYmf8dYWtJBis8vpEY4kj6kMb5"
         },
         {
             "name": "Frax",
@@ -96,7 +104,8 @@
             "value_in_doller": 1.0,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/13422/standard/frax-logo.png"
-            }
+            },
+            "issuer": "3iiJzkecDA8xtF3rbaY7fdwjAspuJAgjdh5sDA7K8272tb41k4"
         },
         {
             "name": "Stable USD",
@@ -107,7 +116,8 @@
             "value_in_doller": 1.0,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/39926/standard/usds.webp"
-            }
+            },
+            "issuer": "4d42BioydvR57XL1NVREvSTX21JtdG27oGJbHoFYN4audcvoAr"
         },
         {
             "name": "Stasis Euro",
@@ -118,7 +128,8 @@
             "value_in_doller": 1.09,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/5164/standard/EURS_300x300.png"
-            }
+            },
+            "issuer": "4DV3iM496uhz94wNmGH6CkEzVhZ86KUogB167na5HeSDX5vVnt"
         },
         {
             "name": "Angle Euro",
@@ -129,7 +140,8 @@
             "value_in_doller": 1.09,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/32925/standard/eur.png"
-            }
+            },
+            "issuer": "3wBo9NYvSqoihFJZbVnXc8NzEwrAjWMqTtJF1ETFVGNtEdHTsH"
         },
         {
             "name": "EUROe",
@@ -140,7 +152,8 @@
             "value_in_doller": 1.09,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/28913/standard/euroe-200x200-round.png"
-            }
+            },
+            "issuer": "3MsfAESfrWemD1TPn9BPWyb2yVTeVPnY6ZBrXW1QzRJPvbWd1u"
         },
         {
             "name": "Poundtoken",
@@ -151,7 +164,8 @@
             "value_in_doller": 1.25,
             "metadata": {
                 "icon_url": "https://s2.coinmarketcap.com/static/img/coins/64x64/21145.png"
-            }
+            },
+            "issuer": "3nKhChiSzSsUV6TMk1xqyBvUonffKUGRxP88U5tgxwLT9LYrgF"
         },
         {
             "name": "JPY Coin",
@@ -162,7 +176,8 @@
             "value_in_doller": 0.0067,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/25971/standard/JPYC_Prepaid.png"
-            }
+            },
+            "issuer": "35ghcGxQyBy6jsRVuUPGwkcbHkKfjTs3vBfNownGG3PjiZvBoT"
         },
         {
             "name": "AUDD",
@@ -173,7 +188,8 @@
             "value_in_doller": 0.65,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/33263/standard/AUDD-Logo-Blue_512.png"
-            }
+            },
+            "issuer": "4oiCAoKWvrfMP6AGayX6GbCaBBhnFqpJmRKH3QPTamc6A5rzk5"
         },
         {
             "name": "Tether Gold",
@@ -184,7 +200,8 @@
             "value_in_doller": 1860,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/10481/standard/Tether_Gold.png"
-            }
+            },
+            "issuer": "2xsMXpqQEaKLTYEMHUccZ2Qho6rfzdPJ7GjKXwyHLrmrUoFJdK"
         },
         {
             "name": "Paxos Gold",
@@ -195,6 +212,7 @@
             "value_in_doller": 1850,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/9519/standard/paxgold.png?1696509604"
-            }
+            },
+            "issuer": "4GGirYfc8hwHtGPGvdVe1S747LjtgDeRHXAkviNdqbExtkGUnn"
         }
     ]
