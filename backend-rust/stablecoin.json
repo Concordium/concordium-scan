@@ -7,7 +7,7 @@
             "circulating_supply": 86500000000,
             "value_in_doller": 0.99,
             "metadata": {
-                "icon_url": "https://cryptologos.cc/logos/tether-usdt-logo.png"
+                "icon_url": "https://assets.coingecko.com/coins/images/325/standard/Tether.png"
             }
         },
         {
@@ -18,7 +18,7 @@
             "circulating_supply": 50000000000,
             "value_in_doller": 1.0,
             "metadata": {
-                "icon_url": "https://cryptologos.cc/logos/usd-coin-usdc-logo.png"
+                "icon_url": "https://assets.coingecko.com/coins/images/6319/standard/usdc.png"
             }
         },
         {
@@ -29,7 +29,7 @@
             "circulating_supply": 5750000000,
             "value_in_doller": 1.0,
             "metadata": {
-                "icon_url": "https://cryptologos.cc/logos/multi-collateral-dai-dai-logo.png"
+                "icon_url": "https://assets.coingecko.com/coins/images/9956/standard/Badge_Dai.png"
             }
         },
         {
@@ -40,7 +40,7 @@
             "circulating_supply": 900000000,
             "value_in_doller": 1.0,
             "metadata": {
-                "icon_url": "https://cryptologos.cc/logos/binance-usd-busd-logo.png"
+                "icon_url": "https://assets.coingecko.com/coins/images/31273/standard/new_binance-peg-busd.png"
             }
         },
         {
@@ -51,7 +51,7 @@
             "circulating_supply": 1150000000,
             "value_in_doller": 1.0,
             "metadata": {
-                "icon_url": "https://cryptologos.cc/logos/trueusd-tusd-logo.png"
+                "icon_url": "https://assets.coingecko.com/coins/images/3449/standard/tusd.png"
             }
         },
         {
@@ -62,7 +62,7 @@
             "circulating_supply": 900000000,
             "value_in_doller": 1.0,
             "metadata": {
-                "icon_url": "https://cryptologos.cc/logos/paxos-standard-pax-logo.png"
+                "icon_url": "https://assets.coingecko.com/coins/images/6013/standard/Pax_Dollar.png"
             }
         },
         {
@@ -73,7 +73,7 @@
             "circulating_supply": 180000000,
             "value_in_doller": 1.0,
             "metadata": {
-                "icon_url": "https://cryptologos.cc/logos/gemini-dollar-gusd-logo.png"
+                "icon_url": "https://assets.coingecko.com/coins/images/5992/standard/gemini-dollar-gusd.png"
             }
         },
         {
@@ -84,7 +84,7 @@
             "circulating_supply": 400000000,
             "value_in_doller": 0.98,
             "metadata": {
-                "icon_url": "https://cryptologos.cc/logos/fei-protocol-fei-logo.png"
+                "icon_url": "https://assets.coingecko.com/coins/images/14570/standard/ZqsF51Re_400x400.png"
             }
         },
         {
@@ -95,7 +95,7 @@
             "circulating_supply": 2100000000,
             "value_in_doller": 1.0,
             "metadata": {
-                "icon_url": "https://cryptologos.cc/logos/frax-frax-logo.png"
+                "icon_url": "https://assets.coingecko.com/coins/images/13422/standard/frax-logo.png"
             }
         },
         {
@@ -106,7 +106,7 @@
             "circulating_supply": 9500000,
             "value_in_doller": 1.0,
             "metadata": {
-                "icon_url": "https://cryptologos.cc/logos/stably-usds-logo.png"
+                "icon_url": "https://assets.coingecko.com/coins/images/39926/standard/usds.webp"
             }
         },
         {
@@ -117,7 +117,7 @@
             "circulating_supply": 120000000,
             "value_in_doller": 1.09,
             "metadata": {
-                "icon_url": "https://cryptologos.cc/logos/stasis-eurs-logo.png"
+                "icon_url": "https://assets.coingecko.com/coins/images/5164/standard/EURS_300x300.png"
             }
         },
         {
@@ -128,7 +128,7 @@
             "circulating_supply": 48000000,
             "value_in_doller": 1.09,
             "metadata": {
-                "icon_url": "https://app.angle.money/images/tokens/agEUR.svg"
+                "icon_url": "https://assets.coingecko.com/coins/images/32925/standard/eur.png"
             }
         },
         {
@@ -139,7 +139,7 @@
             "circulating_supply": 18000000,
             "value_in_doller": 1.09,
             "metadata": {
-                "icon_url": "https://euroe.com/assets/logo.svg"
+                "icon_url": "https://assets.coingecko.com/coins/images/28913/standard/euroe-200x200-round.png"
             }
         },
         {
@@ -150,7 +150,7 @@
             "circulating_supply": 4500000,
             "value_in_doller": 1.25,
             "metadata": {
-                "icon_url": "https://poundtoken.io/wp-content/uploads/2022/11/logo-dark.svg"
+                "icon_url": "https://s2.coinmarketcap.com/static/img/coins/64x64/21145.png"
             }
         },
         {
@@ -161,7 +161,7 @@
             "circulating_supply": 980000000,
             "value_in_doller": 0.0067,
             "metadata": {
-                "icon_url": "https://jpyc.jp/logo/jpyc_logo.png"
+                "icon_url": "https://assets.coingecko.com/coins/images/25971/standard/JPYC_Prepaid.png"
             }
         },
         {
@@ -172,7 +172,7 @@
             "circulating_supply": 4500000,
             "value_in_doller": 0.65,
             "metadata": {
-                "icon_url": "https://cdn.audd.io/logo.png"
+                "icon_url": "https://assets.coingecko.com/coins/images/33263/standard/AUDD-Logo-Blue_512.png"
             }
         },
         {
@@ -183,7 +183,7 @@
             "circulating_supply": 950000,
             "value_in_doller": 1860,
             "metadata": {
-                "icon_url": "https://cryptologos.cc/logos/tether-gold-xaut-logo.png"
+                "icon_url": "https://assets.coingecko.com/coins/images/10481/standard/Tether_Gold.png"
             }
         },
         {
@@ -194,7 +194,7 @@
             "circulating_supply": 450000,
             "value_in_doller": 1850,
             "metadata": {
-                "icon_url": "https://cryptologos.cc/logos/paxos-gold-paxg-logo.png"
+                "icon_url": "https://assets.coingecko.com/coins/images/9519/standard/paxgold.png?1696509604"
             }
         }
     ]
