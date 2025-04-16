@@ -28,11 +28,15 @@ pub struct StableCoin {
 
 #[derive(Debug, Clone, Deserialize, SimpleObject)]
 pub struct StableCoinOverview {
+    // Total market cap = Total supply * Value in dollar
+    // For Our mockdata we are skipping the calculation of market cap
+    // and just using the total supply as market cap
     total_marketcap:            f64,
-    number_of_unique_holders:   f64,
-    no_of_txn:                  f64,
+    // Number of unique holders = Number of unique addresses holding the token
+    number_of_unique_holders:   usize,
+    no_of_txn:                  usize,
     values_transferred:         f64,
-    no_of_txn_last24h:          f64,
+    no_of_txn_last24h:          usize,
     values_transferred_last24h: f64,
 }
 
@@ -290,10 +294,10 @@ impl QueryStableCoins {
                 .iter()
                 .map(|coin| coin.total_supply as f64)
                 .sum(),
-            number_of_unique_holders:   unique_holders.len() as f64,
-            no_of_txn:                  transfers.len() as f64,
+            number_of_unique_holders:   unique_holders.len(),
+            no_of_txn:                  transfers.len(),
             values_transferred:         transfers.iter().map(|t| t.amount).sum(),
-            no_of_txn_last24h:          no_of_txn_last_24h as f64,
+            no_of_txn_last24h:          no_of_txn_last_24h,
             values_transferred_last24h: values_transferred_last_24h,
         }
     }
