@@ -23,7 +23,7 @@ pub struct StableCoin {
     value_in_dollar:      f64,
     total_unique_holders: Option<i64>,
     transfers:            Option<Vec<Transfer>>, // Transfers sorted by date
-    holdings:             Option<Vec<Holding>>,
+    holdings:             Option<Vec<HoldingResponse>>,
 }
 
 #[derive(Debug, Clone, Deserialize, SimpleObject)]
@@ -62,6 +62,15 @@ pub struct Holding {
     holdings: Option<Vec<AssetInHold>>,
 }
 
+#[derive(Clone, Deserialize, SimpleObject)]
+pub struct HoldingResponse {
+    address:    String,
+    asset_name: String,
+    quantity:   f64,
+    percentage: f32,
+    
+}
+
 #[derive(Debug, Clone, SimpleObject)]
 pub struct TransferSummary {
     date_time:         DateTime,
@@ -81,29 +90,34 @@ impl StableCoin {
         &self,
         limit: Option<usize>,
         min_quantity: Option<f64>,
-    ) -> Option<Vec<Holding>> {
-        let mut holders = self.holdings.clone()?;
+    ) -> Option<Vec<HoldingResponse>> {
+        if let Some(holdings) = &self.holdings {
+            let mut filtered_holders = holdings
+                .iter()
+                .filter(|h| {
+                    h.asset_name == self.symbol
+                        && (min_quantity.is_none() || h.quantity >= min_quantity.unwrap())
+                })
+                .cloned()
+                .collect::<Vec<HoldingResponse>>();
 
-        if let Some(min) = min_quantity {
-            holders.retain(|holding| {
-                holding
-                    .holdings
-                    .as_ref()
-                    .map_or(false, |h| h.iter().any(|asset| asset.quantity >= min))
-            });
+            // Sort by quantity in descending order
+            filtered_holders.sort_by(|a, b| b.quantity.partial_cmp(&a.quantity).unwrap());
+
+            // Limit the number of holders if a limit is provided
+            if let Some(l) = limit {
+                filtered_holders.truncate(l);
+            }
+
+            Some(filtered_holders)
+        } else {
+            None
         }
 
-        holders.sort_by(|a, b| {
-            let sum_a: f64 =
-                a.holdings.as_ref().map_or(0.0, |h| h.iter().map(|x| x.quantity).sum());
-            let sum_b: f64 =
-                b.holdings.as_ref().map_or(0.0, |h| h.iter().map(|x| x.quantity).sum());
-            sum_b.partial_cmp(&sum_a).unwrap()
-        });
-
-        let top_n = limit.unwrap_or(200);
-        Some(holders.into_iter().take(top_n).collect())
-    }
+       
+}
+       
+    
 }
 
 #[derive(Default)]
@@ -141,27 +155,20 @@ impl QueryStableCoins {
             coin.transfers =
                 Some(transfers.iter().filter(|t| t.asset_name == coin.symbol).cloned().collect());
 
-            let relevant_holdings: Vec<Holding> = holdings
+            let relevant_holdings: Vec<HoldingResponse> = holdings
                 .iter()
                 .filter_map(|holding| {
-                    let filtered_assets: Vec<AssetInHold> = holding
-                        .holdings
-                        .as_ref()?
-                        .iter()
-                        .filter(|asset| asset.asset_name == coin.symbol)
-                        .cloned()
-                        .collect();
-
-                    if !filtered_assets.is_empty() {
-                        Some(Holding {
-                            address:  holding.address.clone(),
-                            holdings: Some(filtered_assets),
-                        })
-                    } else {
-                        None
-                    }
-                })
-                .collect();
+                    holding.holdings.as_ref().and_then(|h| {
+                        h.iter()
+                            .find(|asset| asset.asset_name == coin.symbol)
+                            .map(|asset| HoldingResponse {
+                                address: holding.address.to_string(),
+                                asset_name: asset.asset_name.clone(),
+                                quantity: asset.quantity,
+                                percentage: asset.percentage,
+                            })
+                    })
+                }).collect();
 
             coin.holdings = if relevant_holdings.is_empty() {
                 None
