@@ -5,11 +5,11 @@
             "decimal": 6,
             "total_supply": 90000000000,
             "circulating_supply": 86500000000,
-            "value_in_doller": 0.99,
+            "value_in_dollar": 0.99,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/325/standard/Tether.png"
             },
-            "issuer": "3jtv5pBMNrCKBPpR5JJiMKKSvCfMconkJBP1VG5tg15REcj3fm"
+            "issuer": "4VHKXMnW1Wo34DfnAJh7kwjZR5vQhHHw3WEsNrji56VDHh59mg"
         },
         {
             "name": "USD Coin",
@@ -17,11 +17,11 @@
             "decimal": 6,
             "total_supply": 52000000000,
             "circulating_supply": 50000000000,
-            "value_in_doller": 1.0,
+            "value_in_dollar": 1.0,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/6319/standard/usdc.png"
             },
-            "issuer": "3TByZVYFY2EEhkxsaRRK1ddxLMCt1ghVp252HzVvc9B5u4BfpD"
+            "issuer": "4EP6XwacNc6HtaDnE5zEy8aFPfQEHbLiWzrSzLaGGuLZkuQiEm"
         },
         {
             "name": "Dai",
@@ -29,11 +29,11 @@
             "decimal": 18,
             "total_supply": 5800000000,
             "circulating_supply": 5750000000,
-            "value_in_doller": 1.0,
+            "value_in_dollar": 1.0,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/9956/standard/Badge_Dai.png"
             },
-            "issuer": "48RzmkRVLNFwsyu6RLfsEykgUvz6QYpDimpk5NYm13Q4zWQown"
+            "issuer": "4FvnmFDYfTMeuFCu7oPFKCv7Gh7Q3R8CwUrW3PAzvVNFttXRTp"
         },
         {
             "name": "Binance USD",
@@ -41,11 +41,11 @@
             "decimal": 18,
             "total_supply": 1000000000,
             "circulating_supply": 900000000,
-            "value_in_doller": 1.0,
+            "value_in_dollar": 1.0,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/31273/standard/new_binance-peg-busd.png"
             },
-            "issuer": "32WtTj8soenfXvArRi2sR4kuzjNhfXDdr1LG66QVt5wSq6GSb4"
+            "issuer": "4UCd3X4pYy6GxVH4utn3vV9iqagyrdw2e4VXGTM5KS4LP1SAZX"
         },
         {
             "name": "TrueUSD",
@@ -53,11 +53,11 @@
             "decimal": 18,
             "total_supply": 1200000000,
             "circulating_supply": 1150000000,
-            "value_in_doller": 1.0,
+            "value_in_dollar": 1.0,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/3449/standard/tusd.png"
             },
-            "issuer": "3ztNhCMD16j23iHHsWRWdzhZMhT1gTvYN8qcSz2wQitqVWaAtJ"
+            "issuer": "4RZBZY8GdX4D6btXvvXUJK2GXT7wUEN8L9yi9oew93GCeexqYq"
         },
         {
             "name": "Pax Dollar",
@@ -65,11 +65,11 @@
             "decimal": 18,
             "total_supply": 945000000,
             "circulating_supply": 900000000,
-            "value_in_doller": 1.0,
+            "value_in_dollar": 1.0,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/6013/standard/Pax_Dollar.png"
             },
-            "issuer": "4BfX9mwbsm5qu9Gjv34UbhWGDkSmK8JVFAHDaDyCZTyuDd2kDZ"
+            "issuer": "4sKnTkWTpKzQERM726hVjHgNSi4gU5Yh3n6NuUtnjESN3dhdDp"
         },
         {
             "name": "Gemini Dollar",
@@ -77,11 +77,11 @@
             "decimal": 2,
             "total_supply": 200000000,
             "circulating_supply": 180000000,
-            "value_in_doller": 1.0,
+            "value_in_dollar": 1.0,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/5992/standard/gemini-dollar-gusd.png"
             },
-            "issuer": "441zGQKXWqJiSoV7iUaNbbSQUgLqt38MeVg7ku1tEt9tCFXDD7"
+            "issuer": "4VKVuJoPBntHe1T5nSkfH2N5jDKgB3mTLtdW1DxXHvGVnFNUM4"
         },
         {
             "name": "Fei USD",
@@ -89,11 +89,11 @@
             "decimal": 18,
             "total_supply": 425000000,
             "circulating_supply": 400000000,
-            "value_in_doller": 0.98,
+            "value_in_dollar": 0.98,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/14570/standard/ZqsF51Re_400x400.png"
             },
-            "issuer": "3gMy52rWxGYc1NgmydsRKjKgYYmf8dYWtJBis8vpEY4kj6kMb5"
+            "issuer": "4asUu4HPjZTcLcbzAMnhtgbcHbbuzgMTc7xKCznhyVbVFgKWrJ"
         },
         {
             "name": "Frax",
@@ -101,11 +101,11 @@
             "decimal": 18,
             "total_supply": 2200000000,
             "circulating_supply": 2100000000,
-            "value_in_doller": 1.0,
+            "value_in_dollar": 1.0,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/13422/standard/frax-logo.png"
             },
-            "issuer": "3iiJzkecDA8xtF3rbaY7fdwjAspuJAgjdh5sDA7K8272tb41k4"
+            "issuer": "4Sp7q1r91R9DY89QwK7WmArBdcisFkTFFN4MTUVh9rS3DjEJQW"
         },
         {
             "name": "Stable USD",
@@ -113,11 +113,11 @@
             "decimal": 18,
             "total_supply": 10000000,
             "circulating_supply": 9500000,
-            "value_in_doller": 1.0,
+            "value_in_dollar": 1.0,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/39926/standard/usds.webp"
             },
-            "issuer": "4d42BioydvR57XL1NVREvSTX21JtdG27oGJbHoFYN4audcvoAr"
+            "issuer": "4aU5wVaNAqEtHmYRUPb7FjtMFmoN26TgD5jCVF1r3tUCnfPSzo"
         },
         {
             "name": "Stasis Euro",
@@ -125,11 +125,11 @@
             "decimal": 2,
             "total_supply": 124000000,
             "circulating_supply": 120000000,
-            "value_in_doller": 1.09,
+            "value_in_dollar": 1.09,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/5164/standard/EURS_300x300.png"
             },
-            "issuer": "4DV3iM496uhz94wNmGH6CkEzVhZ86KUogB167na5HeSDX5vVnt"
+            "issuer": "3gfb9HFhPmhXSX9zBYVRh23tHe9XKcZjWnd5VLgWKf3qdT941K"
         },
         {
             "name": "Angle Euro",
@@ -137,11 +137,11 @@
             "decimal": 18,
             "total_supply": 50000000,
             "circulating_supply": 48000000,
-            "value_in_doller": 1.09,
+            "value_in_dollar": 1.09,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/32925/standard/eur.png"
             },
-            "issuer": "3wBo9NYvSqoihFJZbVnXc8NzEwrAjWMqTtJF1ETFVGNtEdHTsH"
+            "issuer": "4Jpn2Lz9VafV3n6YpQ6bd3zmPG26Gm676uRuoPeDLqGcAfSvZM"
         },
         {
             "name": "EUROe",
@@ -149,11 +149,11 @@
             "decimal": 18,
             "total_supply": 20000000,
             "circulating_supply": 18000000,
-            "value_in_doller": 1.09,
+            "value_in_dollar": 1.09,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/28913/standard/euroe-200x200-round.png"
             },
-            "issuer": "3MsfAESfrWemD1TPn9BPWyb2yVTeVPnY6ZBrXW1QzRJPvbWd1u"
+            "issuer": "32EXB9iRbiGUfzyUPFGr94BtymaXoEttR87PATNsen13u9kk7W"
         },
         {
             "name": "Poundtoken",
@@ -161,11 +161,11 @@
             "decimal": 18,
             "total_supply": 5000000,
             "circulating_supply": 4500000,
-            "value_in_doller": 1.25,
+            "value_in_dollar": 1.25,
             "metadata": {
                 "icon_url": "https://s2.coinmarketcap.com/static/img/coins/64x64/21145.png"
             },
-            "issuer": "3nKhChiSzSsUV6TMk1xqyBvUonffKUGRxP88U5tgxwLT9LYrgF"
+            "issuer": "4cE7T264JkYkgmd3iJUZdgJHQ9r7N9Gr4gCL2BzhZMDXS6YBxv"
         },
         {
             "name": "JPY Coin",
@@ -173,11 +173,11 @@
             "decimal": 18,
             "total_supply": 1000000000,
             "circulating_supply": 980000000,
-            "value_in_doller": 0.0067,
+            "value_in_dollar": 0.0067,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/25971/standard/JPYC_Prepaid.png"
             },
-            "issuer": "35ghcGxQyBy6jsRVuUPGwkcbHkKfjTs3vBfNownGG3PjiZvBoT"
+            "issuer": "4U7c9um7VNYHDE48iepi34g8ufMfufvma5vvBKrLCvCj1SJz6W"
         },
         {
             "name": "AUDD",
@@ -185,11 +185,11 @@
             "decimal": 18,
             "total_supply": 5000000,
             "circulating_supply": 4500000,
-            "value_in_doller": 0.65,
+            "value_in_dollar": 0.65,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/33263/standard/AUDD-Logo-Blue_512.png"
             },
-            "issuer": "4oiCAoKWvrfMP6AGayX6GbCaBBhnFqpJmRKH3QPTamc6A5rzk5"
+            "issuer": "3Aex9HXSnN5wXiQqDBvcm7srdr82R4tY93KSFZnKgAKLr7rrTb"
         },
         {
             "name": "Tether Gold",
@@ -197,11 +197,11 @@
             "decimal": 18,
             "total_supply": 1000000,
             "circulating_supply": 950000,
-            "value_in_doller": 1860,
+            "value_in_dollar": 1860,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/10481/standard/Tether_Gold.png"
             },
-            "issuer": "2xsMXpqQEaKLTYEMHUccZ2Qho6rfzdPJ7GjKXwyHLrmrUoFJdK"
+            "issuer": "4Zd9R8CC4VPjog1NnjSXa67gy3nz3KvYe3kvLn5wZnhVebYFfN"
         },
         {
             "name": "Paxos Gold",
@@ -209,10 +209,10 @@
             "decimal": 18,
             "total_supply": 500000,
             "circulating_supply": 450000,
-            "value_in_doller": 1850,
+            "value_in_dollar": 1850,
             "metadata": {
                 "icon_url": "https://assets.coingecko.com/coins/images/9519/standard/paxgold.png?1696509604"
             },
-            "issuer": "4GGirYfc8hwHtGPGvdVe1S747LjtgDeRHXAkviNdqbExtkGUnn"
+            "issuer": "4U8ty3cfXFWkdUprW6YvWb9Qtj46qYMpc81UKQMznFnjfvuNDZ"
         }
     ]
