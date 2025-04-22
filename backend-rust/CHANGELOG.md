@@ -7,7 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - Optimise `Account::transactions` performance
-- Fix potential issue on `accountMetrics` where accounts metrics was invalid if blocks containing account creation occurred on the exact same time as the borders of the buckets slots
+- Fix potential issue on `accountMetrics` which occurred when a blocks containing account creation occurred on the exact same time as the borders of the buckets slots
 
 ## [0.1.47]
 
