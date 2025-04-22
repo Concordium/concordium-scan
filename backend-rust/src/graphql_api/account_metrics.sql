@@ -5,7 +5,7 @@
 -- created within the bucket.
 SELECT
     -- The bucket time is the starting time of the bucket.
-    bucket_time,
+    bucket_time as "bucket_time!",
     -- Number of accounts at or before the bucket.
     COALESCE(before_bucket.index, 0) as start_index,
     -- Number of accounts at the end of the bucket.
@@ -23,17 +23,15 @@ FROM
         $2::interval
     ) AS bucket_time
 LEFT JOIN LATERAL (
-    -- Selects the index at or before the start of the bucket.
     SELECT accounts.index
     FROM accounts
     LEFT JOIN transactions on transaction_index = transactions.index
     LEFT JOIN blocks ON transactions.block_height = height
-    WHERE slot_time <= bucket_time
+    WHERE slot_time < bucket_time
     ORDER BY slot_time DESC
     LIMIT 1
 ) before_bucket ON true
 LEFT JOIN LATERAL (
-    -- Selects the index at the end of the bucket.
     SELECT accounts.index
     FROM accounts
     LEFT JOIN transactions on transaction_index = transactions.index
