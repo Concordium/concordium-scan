@@ -71,11 +71,10 @@ impl QueryAccountMetrics {
         let x_time = rows.iter().map(|r| r.bucket_time).collect();
         let y_last_cumulative_accounts_created: Vec<i64> =
             rows.iter().map(|r| r.end_index).collect();
-        let y_accounts_created: Vec<i64> = rows
-            .iter()
-            .map(|r| r.end_index - r.start_index)
-            .collect();
-        let last_cumulative_accounts_created = *y_last_cumulative_accounts_created.last().unwrap_or(&0);
+        let y_accounts_created: Vec<i64> =
+            rows.iter().map(|r| r.end_index - r.start_index).collect();
+        let last_cumulative_accounts_created =
+            *y_last_cumulative_accounts_created.last().unwrap_or(&0);
         let accounts_created = y_accounts_created.iter().sum();
 
         Ok(AccountMetrics {
