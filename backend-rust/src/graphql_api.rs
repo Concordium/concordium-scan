@@ -151,6 +151,8 @@ pub struct ApiServiceConfig {
         default_value = "100"
     )]
     module_reference_contract_link_events_collection_limit: u64,
+    #[arg(long, env = "CCDSCAN_API_CONFIG_MODULE_CONNECTION_LIMIT", default_value = "100")]
+    module_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_REWARD_CONNECTION_LIMIT", default_value = "100")]
     reward_connection_limit: u64,
     #[arg(

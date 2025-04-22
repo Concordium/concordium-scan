@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n                starting_module as (\n                    SELECT\n                        blocks.height as block_height,\n                        smart_contract_modules.transaction_index as transaction_index\n                    FROM smart_contract_modules\n                        JOIN transactions ON smart_contract_modules.transaction_index = transactions.index\n                        JOIN blocks ON transactions.block_height = blocks.height\n                    WHERE starts_with(module_reference, $1)\n                    ORDER BY block_height DESC, transaction_index DESC\n                    LIMIT 1\n                ),\n                ending_module as (\n                    SELECT\n                        blocks.height as block_height,\n                        smart_contract_modules.transaction_index as transaction_index\n                    FROM smart_contract_modules\n                        JOIN transactions ON smart_contract_modules.transaction_index = transactions.index\n                        JOIN blocks ON transactions.block_height = blocks.height\n                    WHERE starts_with(module_reference, $1)\n                    ORDER BY block_height ASC, transaction_index ASC\n                    LIMIT 1\n                )\n                SELECT\n                    starting_module.block_height AS start_block_height,\n                    starting_module.transaction_index AS start_transaction_index,\n                    ending_module.block_height AS end_block_height,\n                    ending_module.transaction_index AS end_transaction_index\n                FROM starting_module, ending_module",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "start_block_height",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "start_transaction_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "end_block_height",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "end_transaction_index",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "78225afa3d6fcd5583c1b1c3173da900c28196abb186d71875fa130b84c56b78"
+}
