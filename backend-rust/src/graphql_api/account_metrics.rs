@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use async_graphql::{Context, Object, SimpleObject};
+use chrono::Utc;
 use sqlx::postgres::types::PgInterval;
 
 use super::{get_pool, ApiError, ApiResult, DateTime, MetricsPeriod, TimeSpan};
@@ -47,13 +48,8 @@ impl QueryAccountMetrics {
         period: MetricsPeriod,
     ) -> ApiResult<AccountMetrics> {
         let pool = get_pool(ctx)?;
-
-        // The full period interval, e.g. 7 days.
-        let period_interval: PgInterval = period
-            .as_duration()
-            .try_into()
-            .map_err(|e| ApiError::DurationOutOfRange(Arc::new(e)))?;
-
+        let end_time = Utc::now();
+        let before_time = end_time - period.as_duration();
         let bucket_width = period.bucket_width();
 
         // The bucket interval, e.g. 6 hours.
@@ -62,8 +58,9 @@ impl QueryAccountMetrics {
 
         let rows = sqlx::query_file!(
             "src/graphql_api/account_metrics.sql",
-            period_interval,
-            bucket_interval,
+            end_time,
+            before_time,
+            bucket_interval
         )
         .fetch_all(pool)
         .await?;
