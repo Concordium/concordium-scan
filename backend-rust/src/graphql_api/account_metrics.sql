@@ -35,7 +35,7 @@ WITH
     FROM buckets b
   )
 SELECT
-  th.bucket_time                              AS "bucket_time!",
+  th.bucket_time AS "bucket_time!",
   COALESCE(
     (
       SELECT MAX(a.index)
