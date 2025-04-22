@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - Optimise `Account::transactions` performance
 - Fix potential issue on `accountMetrics`
+- Fix query performance issues on `accountMetrics` when dataset becomes too large 
 
 ## [0.1.47]
 
