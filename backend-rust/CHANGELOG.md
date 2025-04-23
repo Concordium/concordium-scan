@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 - Fix query performance issues on `accountMetrics` when dataset becomes too large 
 - Fix account statements performance issues where conditions was being used without indexes
 - Fix account statements where when querying an address using the complete address and not the canonical address
+- Fix account rewards ordering from default ASC to DESC
 
 ## [0.1.47]
 
