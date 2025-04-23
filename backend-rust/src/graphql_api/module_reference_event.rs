@@ -1,7 +1,7 @@
 use super::{get_config, get_pool, ApiError, ApiResult};
 use crate::{
     address::{AccountAddress, ContractAddress},
-    scalar_types::{BlockHeight, DateTime, ModuleReference, TransactionHash},
+    scalar_types::{BlockHeight, DateTime, ModuleReference, TransactionHash, TransactionIndex},
     transaction_event::smart_contracts::ModuleReferenceContractLinkAction,
     transaction_reject::TransactionRejectReason,
 };
@@ -23,7 +23,7 @@ impl QueryModuleReferenceEvent {
         let row = sqlx::query!(
             r#"SELECT
                 blocks.height as block_height,
-                smart_contract_modules.transaction_index,
+                smart_contract_modules.transaction_index as transaction_index,
                 schema as display_schema,
                 blocks.slot_time as block_slot_time,
                 transactions.hash as transaction_hash,
@@ -50,6 +50,7 @@ impl QueryModuleReferenceEvent {
             sender: row.sender.into(),
             block_height: row.block_height,
             transaction_hash: row.transaction_hash,
+            transaction_index: row.transaction_index,
             block_slot_time: row.block_slot_time,
             display_schema,
         })
@@ -59,12 +60,13 @@ impl QueryModuleReferenceEvent {
 #[derive(SimpleObject)]
 #[graphql(complex)]
 pub struct ModuleReferenceEvent {
-    module_reference: ModuleReference,
-    sender:           AccountAddress,
-    block_height:     BlockHeight,
-    transaction_hash: TransactionHash,
-    block_slot_time:  DateTime,
-    display_schema:   Option<String>,
+    pub module_reference:  ModuleReference,
+    pub sender:            AccountAddress,
+    pub block_height:      BlockHeight,
+    pub transaction_hash:  TransactionHash,
+    pub transaction_index: TransactionIndex,
+    pub block_slot_time:   DateTime,
+    pub display_schema:    Option<String>,
 }
 #[ComplexObject]
 impl ModuleReferenceEvent {
