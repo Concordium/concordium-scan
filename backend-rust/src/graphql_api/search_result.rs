@@ -537,7 +537,6 @@ impl SearchResult {
         if !token_address_regex.is_match(&self.query) {
             return Ok(connection);
         }
-        let lower_case_query = self.query.to_lowercase();
         let mut rows = sqlx::query_as!(
             Token,
             "SELECT * FROM (
@@ -556,16 +555,16 @@ impl SearchResult {
                     AND tokens.index > $1 
                     AND tokens.index < $2
                 ORDER BY
-                    (CASE WHEN $4 THEN tokens.index END) ASC,
-                    (CASE WHEN NOT $4 THEN tokens.index END) DESC
+                    (CASE WHEN $4 THEN tokens.index END) DESC,
+                    (CASE WHEN NOT $4 THEN tokens.index END) ASC
                 LIMIT $3
             ) AS token_data
             ORDER BY token_data.index ASC",
-            query.from,       // $1
-            query.to,         // $2
-            query.limit,      // $3
-            query.is_last,    // $4
-            lower_case_query  // $5
+            query.from,    // $1
+            query.to,      // $2
+            query.limit,   // $3
+            query.is_last, // $4
+            self.query     // $5
         )
         .fetch(pool);
 
@@ -583,7 +582,7 @@ impl SearchResult {
                     WHERE
                         starts_with(token_address, $1)
                 ",
-                lower_case_query,
+                self.query,
             )
             .fetch_one(pool)
             .await?;
@@ -822,14 +821,8 @@ impl SearchResult {
         let nodes: Vec<NodeStatus> = statuses
             .iter()
             .filter(|x| {
-                if x.external.node_name == self.query {
-                    true
-                } else {
-                    match self.query.parse::<u64>() {
-                        Ok(node_id) => x.external.node_id == node_id,
-                        Err(_) => false,
-                    }
-                }
+                x.external.node_name.starts_with(&self.query)
+                    || x.external.node_id.starts_with(&self.query)
             })
             .cloned()
             .collect();

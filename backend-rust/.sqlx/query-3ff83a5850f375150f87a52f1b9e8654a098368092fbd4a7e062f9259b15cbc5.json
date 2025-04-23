@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM (\n                SELECT\n                    index,\n                    init_transaction_index,\n                    total_supply as raw_total_supply,\n                    token_id,\n                    contract_index,\n                    contract_sub_index,\n                    token_address,\n                    metadata_url\n                FROM tokens\n                WHERE \n                    starts_with(token_address, $5)\n                    AND tokens.index > $1 \n                    AND tokens.index < $2\n                ORDER BY\n                    (CASE WHEN $4 THEN tokens.index END) ASC,\n                    (CASE WHEN NOT $4 THEN tokens.index END) DESC\n                LIMIT $3\n            ) AS token_data\n            ORDER BY token_data.index ASC",
+  "query": "SELECT * FROM (\n                SELECT\n                    index,\n                    init_transaction_index,\n                    total_supply as raw_total_supply,\n                    token_id,\n                    contract_index,\n                    contract_sub_index,\n                    token_address,\n                    metadata_url\n                FROM tokens\n                WHERE \n                    starts_with(token_address, $5)\n                    AND tokens.index > $1 \n                    AND tokens.index < $2\n                ORDER BY\n                    (CASE WHEN $4 THEN tokens.index END) DESC,\n                    (CASE WHEN NOT $4 THEN tokens.index END) ASC\n                LIMIT $3\n            ) AS token_data\n            ORDER BY token_data.index ASC",
   "describe": {
     "columns": [
       {
@@ -64,5 +64,5 @@
       true
     ]
   },
-  "hash": "eba14b5cae99ea424afee011692a57b3f18b7792b5bafe63ee139a62b9ef783e"
+  "hash": "3ff83a5850f375150f87a52f1b9e8654a098368092fbd4a7e062f9259b15cbc5"
 }
