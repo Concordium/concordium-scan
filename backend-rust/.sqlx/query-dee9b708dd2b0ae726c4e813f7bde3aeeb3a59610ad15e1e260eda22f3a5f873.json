@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT *\n            FROM (\n                SELECT\n                    id,\n                    amount,\n                    entry_type as \"entry_type: AccountStatementEntryType\",\n                    blocks.slot_time as timestamp,\n                    account_balance,\n                    transaction_id,\n                    block_height\n                FROM\n                    account_statements\n                JOIN\n                    blocks\n                ON\n                    blocks.height = account_statements.block_height\n                WHERE\n                    account_index = $5\n                    AND id > $1\n                    AND id < $2\n                ORDER BY\n                    (CASE WHEN $4 THEN id END) DESC,\n                    (CASE WHEN NOT $4 THEN id END) ASC\n                LIMIT $3\n            )\n            ORDER BY\n                id ASC\n            ",
+  "query": "\n            SELECT *\n            FROM (\n                SELECT\n                    id,\n                    amount,\n                    entry_type as \"entry_type: AccountStatementEntryType\",\n                    blocks.slot_time as timestamp,\n                    account_balance,\n                    transaction_id,\n                    block_height\n                FROM\n                    account_statements\n                JOIN\n                    blocks\n                ON\n                    blocks.height = account_statements.block_height\n                WHERE\n                    account_index = $5\n                    AND id > $2\n                    AND id < $1\n                ORDER BY\n                    (CASE WHEN $4 THEN id END) ASC,\n                    (CASE WHEN NOT $4 THEN id END) DESC\n                LIMIT $3\n            )\n            ORDER BY\n                id DESC\n            ",
   "describe": {
     "columns": [
       {
@@ -75,5 +75,5 @@
       false
     ]
   },
-  "hash": "dcec9aaa8a1e393cff23c77f5d90d732279ec6ec31e427798546496b4ed7469f"
+  "hash": "dee9b708dd2b0ae726c4e813f7bde3aeeb3a59610ad15e1e260eda22f3a5f873"
 }
