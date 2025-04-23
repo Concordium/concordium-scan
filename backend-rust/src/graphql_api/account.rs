@@ -27,9 +27,7 @@ use sqlx::PgPool;
 use std::{
     cmp::{max, min, Ordering},
     str::FromStr,
-    time::Instant,
 };
-use tracing::info;
 
 #[derive(Default)]
 pub(crate) struct QueryAccounts;
@@ -1222,8 +1220,8 @@ impl Account {
             ORDER BY
                 id DESC
             "#,
-            query.from,
-            query.to,
+            i64::from(query.from),
+            i64::from(query.to),
             query.limit,
             query.is_last,
             &self.index
