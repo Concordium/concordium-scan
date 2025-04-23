@@ -27,9 +27,7 @@ use sqlx::PgPool;
 use std::{
     cmp::{max, min, Ordering},
     str::FromStr,
-    time::Instant,
 };
-use tracing::info;
 
 #[derive(Default)]
 pub(crate) struct QueryAccounts;
@@ -767,11 +765,9 @@ impl Account {
         pool: &PgPool,
         account_address: String,
     ) -> ApiResult<Option<Self>> {
-        let Ok(account_address) = concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(
-            &account_address,
-        ) else {
-            return Ok(None);
-        };
+        let account_address = concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(
+            &account_address
+        ).map_err(|_| ApiError::NotFound)?;
         let canonical_address = account_address.get_canonical_address();
         let account = sqlx::query_as!(
             Account,
