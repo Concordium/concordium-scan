@@ -1176,7 +1176,7 @@ impl Account {
     ) -> ApiResult<connection::Connection<String, AccountReward>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
-        let query = ConnectionQuery::<i64>::new(
+        let query = ConnectionQuery::<DescendingI64>::new(
             first,
             after,
             last,
@@ -1215,12 +1215,12 @@ impl Account {
                     AND id > $1
                     AND id < $2
                 ORDER BY
-                    CASE WHEN $4 THEN id END DESC,
-                    CASE WHEN NOT $4 THEN id END ASC
+                    (CASE WHEN $4 THEN id END) ASC,
+                    (CASE WHEN NOT $4 THEN id END) DESC
                 LIMIT $3
             )
             ORDER BY
-                id ASC
+                id DESC
             "#,
             query.from,
             query.to,
@@ -1265,8 +1265,8 @@ impl Account {
             .await?;
 
             connection.has_previous_page =
-                result.min_id.map_or(false, |db_min| db_min < page_min_id);
-            connection.has_next_page = result.max_id.map_or(false, |db_max| db_max > page_max_id);
+                result.max_id.map_or(false, |db_max| db_max > page_max_id);
+            connection.has_next_page = result.min_id.map_or(false, |db_min| db_min < page_min_id);
         }
         Ok(connection)
     }
