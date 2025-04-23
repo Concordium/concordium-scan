@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use async_graphql::{Context, Object, SimpleObject};
+use chrono::Utc;
 use sqlx::postgres::types::PgInterval;
 
 use super::{get_pool, ApiError, ApiResult, DateTime, MetricsPeriod, TimeSpan};
@@ -47,34 +48,8 @@ impl QueryAccountMetrics {
         period: MetricsPeriod,
     ) -> ApiResult<AccountMetrics> {
         let pool = get_pool(ctx)?;
-
-        let last_cumulative_accounts_created =
-            sqlx::query_scalar!("SELECT COALESCE(MAX(index), 0) FROM accounts")
-                .fetch_one(pool)
-                .await?
-                .expect("coalesced");
-
-        // The full period interval, e.g. 7 days.
-        let period_interval: PgInterval = period
-            .as_duration()
-            .try_into()
-            .map_err(|e| ApiError::DurationOutOfRange(Arc::new(e)))?;
-
-        let cumulative_accounts_created_before_period = sqlx::query_scalar!(
-            "SELECT COALESCE(MAX(accounts.index), 0)
-            FROM accounts
-            LEFT JOIN transactions on transaction_index = transactions.index
-            LEFT JOIN blocks ON transactions.block_height = height
-            WHERE slot_time < (now() - $1::interval)",
-            period_interval,
-        )
-        .fetch_one(pool)
-        .await?
-        .expect("coalesced");
-
-        let accounts_created =
-            last_cumulative_accounts_created - cumulative_accounts_created_before_period;
-
+        let end_time = Utc::now();
+        let before_time = end_time - period.as_duration();
         let bucket_width = period.bucket_width();
 
         // The bucket interval, e.g. 6 hours.
@@ -83,19 +58,21 @@ impl QueryAccountMetrics {
 
         let rows = sqlx::query_file!(
             "src/graphql_api/account_metrics.sql",
-            period_interval,
-            bucket_interval,
+            end_time,
+            before_time,
+            bucket_interval
         )
         .fetch_all(pool)
         .await?;
 
         let x_time = rows.iter().map(|r| r.bucket_time).collect();
-        let y_last_cumulative_accounts_created =
-            rows.iter().map(|r| r.end_index.expect("coalesced")).collect();
-        let y_accounts_created = rows
-            .iter()
-            .map(|r| r.end_index.expect("coalesced") - r.start_index.expect("coalesced"))
-            .collect();
+        let y_last_cumulative_accounts_created: Vec<i64> =
+            rows.iter().map(|r| r.end_index).collect();
+        let y_accounts_created: Vec<i64> =
+            rows.iter().map(|r| r.end_index - r.start_index).collect();
+        let last_cumulative_accounts_created =
+            *y_last_cumulative_accounts_created.last().unwrap_or(&0);
+        let accounts_created = y_accounts_created.iter().sum();
 
         Ok(AccountMetrics {
             last_cumulative_accounts_created,
