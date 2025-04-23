@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Add `SearchResult::modules`.
+
 ### Fixed
 
 - Optimise `Account::transactions` performance

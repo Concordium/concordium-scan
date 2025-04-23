@@ -217,23 +217,27 @@ impl SearchResult {
                     JOIN accounts ON transactions.sender_index = accounts.index
                 WHERE
                     starts_with(module_reference, $7)
-                    AND block_height < $1
-                    AND block_height > $2
-                    -- When outer bounds are not equal, filter separate for each inner bound.
-                    AND (
-                        $1 != $2
-                        AND (
-                            -- Start inner bound for page.
-                           (block_height = $1 AND transactions.index < $3)
-                            -- End inner bound for page.
-                           OR (block_height = $2 AND transactions.index > $4)
+                    AND
+                    (
+                        (block_height > $1
+                            AND block_height < $2
                         )
-                     )
-                    -- When outer bounds are equal, use one filter for both bounds.
-                    OR (
-                        $1 = $2
-                        AND block_height = $1
-                        AND transactions.index < $3 AND transactions.index > $4
+                        -- When outer bounds are not equal, filter separate for each inner bound.
+                        OR (
+                            $1 != $2
+                            AND (
+                                -- Start inner bound for page.
+                                (block_height = $1 AND transactions.index < $3)
+                                -- End inner bound for page.
+                                OR (block_height = $2 AND transactions.index > $4)
+                            )
+                        )
+                        -- When outer bounds are equal, use one filter for both bounds.
+                        OR (
+                            $1 = $2
+                            AND block_height = $1
+                            AND transactions.index < $3 AND transactions.index > $4
+                        )
                     )
                 ORDER BY
                     (CASE WHEN $6     THEN block_height END) ASC,
