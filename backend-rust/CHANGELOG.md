@@ -9,6 +9,9 @@ All notable changes to this project will be documented in this file.
 - Optimise `Account::transactions` performance
 - Fix potential issue on `accountMetrics` which occurred when a blocks containing account creation occurred on the exact same time as the borders of the buckets slots
 - Fix query performance issues on `accountMetrics` when dataset becomes too large 
+- Fix account statements performance issues where conditions was being used without indexes
+- Fix account statements where when querying an address using the complete address and not the canonical address
+- 
 
 ## [0.1.47]
 
