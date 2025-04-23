@@ -92,6 +92,11 @@ impl QueryAccounts {
                     delegated_target_baker_id
                 FROM accounts
                 WHERE
+                    -- Filter for only the accounts that are within the
+                    -- range that correspond to the requested page.
+                    -- The first condition is true only if we don't order by that field.
+                    -- Then the whole OR condition will be true, so the filter for that
+                    -- field will be ignored.
                     (NOT $3 OR index < $1 AND index > $2) AND
                     (NOT $4 OR 
                         (
@@ -117,16 +122,41 @@ impl QueryAccounts {
                     -- Need to filter for only delegators if the user requests this.
                     (NOT $7 OR delegated_stake > 0)
                 ORDER BY
+                    -- Order primarily by the field requested. Depending on the order of the collection
+                    -- and whether it is the first or last being queried, this sub-query must
+                    -- order by:
+                    --
+                    -- | Collection | Operation | Sub-query |
+                    -- |------------|-----------|-----------|
+                    -- | ASC        | first     | ASC       |
+                    -- | DESC       | first     | DESC      |
+                    -- | ASC        | last      | DESC      |
+                    -- | DESC       | last      | ASC       |
+                    --
+                    -- Note that `$8` below represents `is_desc != is_last`.
+                    --
+                    -- The first condition is true if we order by that field.
+                    -- Otherwise false, which makes the CASE null, which means
+                    -- it will not affect the ordering at all.
+                    -- The `AccountOrderField::Age` is not mention here because its
+                    -- sorting instruction is equivallent and would be repeated in the next step.
                     (CASE WHEN $4 AND $8     THEN amount          END) DESC,
                     (CASE WHEN $4 AND NOT $8 THEN amount          END) ASC,
                     (CASE WHEN $5 AND $8     THEN num_txs         END) DESC,
                     (CASE WHEN $5 AND NOT $8 THEN num_txs         END) ASC,
                     (CASE WHEN $6 AND $8     THEN delegated_stake END) DESC,
                     (CASE WHEN $6 AND NOT $8 THEN delegated_stake END) ASC,
+                    -- Since after the ordring above, there may exists elements with the same field value,
+                    -- apply a second ordering by the unique `account_id` (index) in addition.
+                    -- This ensures a strict ordering of elements as the `AccountFieldDescCursor` defines.
                     (CASE WHEN $8     THEN index           END) DESC,
                     (CASE WHEN NOT $8 THEN index           END) ASC
                 LIMIT $9
             )
+            -- We need to order each page still, as we only use the DESC/ASC ordering above
+            -- to select page items from the start/end of the range.
+            -- Each page must still independently be ordered.
+            -- See also https://relay.dev/graphql/connections.htm#sec-Edge-order
             ORDER BY
                 (CASE WHEN $3     THEN index           END) DESC,
                 (CASE WHEN $4     THEN amount          END) DESC,
