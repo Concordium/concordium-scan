@@ -4,10 +4,12 @@ use super::{
     contract::{self, Contract, ContractSnapshot},
     get_config, get_pool,
     module_reference_event::ModuleReferenceEvent,
-    todo_api, token, ApiError, ApiResult, ConnectionQuery,
+    node_status::NodeInfoReceiver,
+    token::Token,
+    ApiError, ApiResult, ConnectionQuery,
 };
 use crate::{
-    connection::{DescendingI64, NestedCursor},
+    connection::{connection_from_slice, DescendingI64, NestedCursor},
     graphql_api::{
         account::Account, baker::CurrentBaker, node_status::NodeStatus, transaction::Transaction,
     },
@@ -413,13 +415,13 @@ impl SearchResult {
             (connection.edges.first(), connection.edges.last())
         {
             let result = sqlx::query!(
-                r#"
+                "
                     SELECT MAX(height) as max_height, MIN(height) as min_height
                     FROM blocks
                     WHERE
                         height = $1
                         OR starts_with(hash, $2)
-                "#,
+                ",
                 lower_case_query.parse::<i64>().ok(),
                 lower_case_query,
             )
@@ -515,14 +517,83 @@ impl SearchResult {
 
     async fn tokens(
         &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<i32>,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        _after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        _before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, token::Token>> {
-        todo_api!()
+        before: Option<String>,
+    ) -> ApiResult<connection::Connection<String, Token>> {
+        // Base58 characters
+        let token_address_regex: Regex = Regex::new(r"^[1-9A-HJ-NP-Za-km-z]+$")
+            .map_err(|_| ApiError::InternalError("Invalid regex".to_string()))?;
+
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+        let query =
+            ConnectionQuery::<i64>::new(first, after, last, before, config.block_connection_limit)?;
+        let mut connection = connection::Connection::new(false, false);
+        if !token_address_regex.is_match(&self.query) {
+            return Ok(connection);
+        }
+        let lower_case_query = self.query.to_lowercase();
+        let mut rows = sqlx::query_as!(
+            Token,
+            "SELECT * FROM (
+                SELECT
+                    index,
+                    init_transaction_index,
+                    total_supply as raw_total_supply,
+                    token_id,
+                    contract_index,
+                    contract_sub_index,
+                    token_address,
+                    metadata_url
+                FROM tokens
+                WHERE 
+                    starts_with(token_address, $5)
+                    AND tokens.index > $1 
+                    AND tokens.index < $2
+                ORDER BY
+                    (CASE WHEN $4 THEN tokens.index END) ASC,
+                    (CASE WHEN NOT $4 THEN tokens.index END) DESC
+                LIMIT $3
+            ) AS token_data
+            ORDER BY token_data.index ASC",
+            query.from,       // $1
+            query.to,         // $2
+            query.limit,      // $3
+            query.is_last,    // $4
+            lower_case_query  // $5
+        )
+        .fetch(pool);
+
+        while let Some(token) = rows.try_next().await? {
+            connection.edges.push(connection::Edge::new(token.index.to_string(), token));
+        }
+
+        if let (Some(page_min), Some(page_max)) =
+            (connection.edges.first(), connection.edges.last())
+        {
+            let result = sqlx::query!(
+                "
+                    SELECT MAX(index) as max_index, MIN(index) as min_index
+                    FROM tokens
+                    WHERE
+                        starts_with(token_address, $1)
+                ",
+                lower_case_query,
+            )
+            .fetch_one(pool)
+            .await?;
+
+            connection.has_previous_page =
+                result.max_index.map_or(false, |db_max| db_max > page_max.node.index);
+            connection.has_next_page =
+                result.min_index.map_or(false, |db_min| db_min < page_min.node.index);
+        }
+        Ok(connection)
     }
 
     async fn accounts(
@@ -572,7 +643,7 @@ impl SearchResult {
         };
         let accounts = sqlx::query_as!(
             Account,
-            r#"
+            "
                 SELECT * FROM (SELECT
                     index,
                     transaction_index,
@@ -591,7 +662,7 @@ impl SearchResult {
                     (CASE WHEN $4 THEN index END) DESC,
                     (CASE WHEN NOT $4 THEN index END) ASC
                 LIMIT $3
-                ) ORDER BY index ASC"#,
+                ) ORDER BY index ASC",
             query.from,
             query.to,
             query.limit,
@@ -609,12 +680,12 @@ impl SearchResult {
             (connection.edges.first(), connection.edges.last())
         {
             let result = sqlx::query!(
-                r#"
+                "
                     SELECT MAX(index) as max_id, MIN(index) as min_id
                     FROM accounts
                     WHERE
                         address LIKE $1 || '%'
-                "#,
+                ",
                 &self.query
             )
             .fetch_one(pool)
@@ -733,13 +804,36 @@ impl SearchResult {
 
     async fn node_statuses(
         &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<i32>,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<usize>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        _after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<usize>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        _before: Option<String>,
+        before: Option<String>,
     ) -> ApiResult<connection::Connection<String, NodeStatus>> {
-        todo_api!()
+        let handler = ctx.data::<NodeInfoReceiver>().map_err(ApiError::NoReceiver)?;
+        let statuses = if let Some(statuses) = handler.borrow().clone() {
+            statuses
+        } else {
+            Err(ApiError::InternalError("Node collector backend has not responded".to_string()))?
+        };
+
+        let nodes: Vec<NodeStatus> = statuses
+            .iter()
+            .filter(|x| {
+                if x.external.node_name == self.query {
+                    true
+                } else {
+                    match self.query.parse::<u64>() {
+                        Ok(node_id) => x.external.node_id == node_id,
+                        Err(_) => false,
+                    }
+                }
+            })
+            .cloned()
+            .collect();
+
+        connection_from_slice(nodes, first, after, last, before)
     }
 }

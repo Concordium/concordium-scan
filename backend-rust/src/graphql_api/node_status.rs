@@ -1,6 +1,6 @@
 use super::{ApiError, ApiResult};
 use crate::connection::connection_from_slice;
-use async_graphql::{connection, types, ComplexObject, Context, Enum, Object, SimpleObject};
+use async_graphql::{connection, ComplexObject, Context, Enum, Object, SimpleObject};
 use prometheus_client::{metrics::counter::Counter, registry::Registry};
 use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
@@ -70,14 +70,14 @@ impl QueryNodeStatus {
     async fn node_status(
         &self,
         ctx: &Context<'_>,
-        #[graphql(desc = "Return node with corresponding id")] id: types::ID,
+        #[graphql(desc = "Return node with corresponding id")] id: u64,
     ) -> ApiResult<Option<NodeStatus>> {
         let handler = ctx.data::<NodeInfoReceiver>().map_err(ApiError::NoReceiver)?;
         let statuses_ref = handler.borrow();
         let statuses = statuses_ref.as_ref().ok_or(ApiError::InternalError(
             "Node collector backend has not responded".to_string(),
         ))?;
-        let node = statuses.iter().find(|x| x.external.node_id == id.0).cloned();
+        let node = statuses.iter().find(|x| x.external.node_id == id).cloned();
         Ok(node)
     }
 }
@@ -145,17 +145,17 @@ impl Service {
                     match self.node_collector_backend.get_summary().await {
 
                         Ok(external_node_info) => {
-                            let map: HashMap<&str, &ExternalNodeStatus> = external_node_info.iter().map(|ns| (ns.node_id.as_str(), ns)).collect();
+                            let map: HashMap<u64, &ExternalNodeStatus> = external_node_info.iter().map(|ns| (ns.node_id, ns)).collect();
                             let node_info = external_node_info.iter().map(|node| {
                                 let peers: Vec<PeerReference> = node.peers_list.iter().map(|node_id| {
-                                        let peer: Option<Peer> = map.get(node_id.as_str()).map(|external| {
+                                        let peer: Option<Peer> = map.get(node_id).map(|external| {
                                             Peer {
-                                                node_id: external.node_id.to_string(),
+                                                node_id: external.node_id,
                                                 node_name: external.node_name.to_string()
                                             }
                                         });
                                         PeerReference {
-                                            node_id: node_id.to_string(),
+                                            node_id: *node_id,
                                             node_status: peer
                                         }
                                     }).collect();
@@ -228,14 +228,14 @@ pub struct ExternalNodeStatus {
     pub finalized_block_parent: String,
     pub finalized_time: Option<String>,
     pub genesis_block: String,
-    pub node_id: String,
+    pub node_id: u64,
     pub node_name: String,
     pub packets_received: u64,
     pub packets_sent: u64,
     pub peers_count: u64,
     pub peer_type: String,
     #[graphql(skip)]
-    pub peers_list: Vec<String>,
+    pub peers_list: Vec<u64>,
     pub transactions_per_block_ema: Option<f64>,
     pub transactions_per_block_emsd: Option<f64>,
     pub uptime: u64,
@@ -243,7 +243,7 @@ pub struct ExternalNodeStatus {
 
 #[ComplexObject]
 impl ExternalNodeStatus {
-    async fn id(&self) -> types::ID { types::ID::from(&self.node_id) }
+    async fn id(&self) -> u64 { self.node_id }
 
     async fn client_version(&self) -> &str { &self.client }
 }
@@ -252,24 +252,24 @@ impl ExternalNodeStatus {
 #[graphql(complex)]
 struct Peer {
     node_name: String,
-    node_id:   String,
+    node_id:   u64,
 }
 
 #[ComplexObject]
 impl Peer {
-    async fn id(&self) -> types::ID { types::ID::from(&self.node_id) }
+    async fn id(&self) -> u64 { self.node_id }
 }
 
 #[derive(Clone)]
 struct PeerReference {
     node_status: Option<Peer>,
-    node_id:     String,
+    node_id:     u64,
 }
 #[Object]
 impl PeerReference {
     async fn node_status(&self) -> &Option<Peer> { &self.node_status }
 
-    async fn node_id(&self) -> &str { &self.node_id }
+    async fn node_id(&self) -> String { self.node_id.to_string() }
 }
 
 #[derive(SimpleObject, Clone)]
