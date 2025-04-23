@@ -19,15 +19,6 @@ mod token;
 mod transaction;
 mod transaction_metrics;
 
-// TODO remove this macro, when done with first iteration
-/// Short hand for returning API error with the message not implemented.
-macro_rules! todo_api {
-    () => {
-        Err(crate::graphql_api::ApiError::InternalError(String::from("Not implemented")))
-    };
-}
-pub(crate) use todo_api;
-
 use crate::{
     connection::ConnectionQuery,
     graphql_api::search_result::SearchResult,

@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Add `SearchResult::node_statuses`.
+- Add `SearchResult::tokens`.
 - Add `SearchResult::modules`.
 
 ### Fixed
