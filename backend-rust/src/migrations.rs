@@ -541,7 +541,7 @@ impl SchemaVersion {
                     )))
                     .await?;
                 SchemaVersion::ReindexAccountAccountStatementEntryType
-            },
+            }
             SchemaVersion::ReindexAccountAccountStatementEntryType => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()

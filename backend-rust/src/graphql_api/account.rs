@@ -4,9 +4,9 @@ use super::{
 };
 use crate::{
     address::AccountAddress,
-    connection::{ConnectionBounds, Reversed},
+    connection::{ConnectionBounds, DescendingI64, Reversed},
     graphql_api::{block::Block, token::AccountTokenInterim, Transaction},
-    scalar_types::{AccountIndex, Amount, BlockHeight, DateTime, TransactionIndex},
+    scalar_types::{AccountIndex, Amount, BlockHeight, DateTime, Long, TransactionIndex},
     transaction_event::{
         delegation::{BakerDelegationTarget, DelegationTarget, PassiveDelegationTarget},
         Event,
@@ -24,12 +24,12 @@ use async_graphql::{
 };
 use futures::TryStreamExt;
 use sqlx::PgPool;
-use std::cmp::{max, min, Ordering};
-use std::str::FromStr;
-use std::time::Instant;
+use std::{
+    cmp::{max, min, Ordering},
+    str::FromStr,
+    time::Instant,
+};
 use tracing::info;
-use crate::connection::DescendingI64;
-use crate::scalar_types::Long;
 
 #[derive(Default)]
 pub(crate) struct QueryAccounts;
@@ -763,7 +763,10 @@ impl Account {
         Ok(account)
     }
 
-    pub async fn query_by_address(pool: &PgPool, account_address: String) -> ApiResult<Option<Self>> {
+    pub async fn query_by_address(
+        pool: &PgPool,
+        account_address: String,
+    ) -> ApiResult<Option<Self>> {
         let Ok(account_address) = concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(
             &account_address,
         ) else {
@@ -1154,9 +1157,9 @@ impl Account {
             .fetch_one(pool)
             .await?;
 
-            connection.has_previous_page = result.max_id.map_or(false, |db_max| db_max > page_max_id);
+            connection.has_previous_page =
+                result.max_id.map_or(false, |db_max| db_max > page_max_id);
             connection.has_next_page = result.min_id.map_or(false, |db_min| db_min < page_min_id);
-
         }
         Ok(connection)
     }
