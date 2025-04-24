@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT MIN(transaction_index) AS min_index, MAX(transaction_index) AS max_index\n                    FROM affected_accounts\n                    WHERE account_index = $1\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "min_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "max_index",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "52f600005a1e79ca2a89d673cd8e201d76efbf51066e405437297eacee7b9396"
+}
