@@ -315,7 +315,7 @@ impl SchemaVersion {
             SchemaVersion::ReindexRewardMetrics => false,
             SchemaVersion::IndexAccountTransactions => false,
             SchemaVersion::ReindexAccountAccountStatementEntryType => false,
-            SchemaVersion::ReindexAffectedAccounts => false
+            SchemaVersion::ReindexAffectedAccounts => false,
         }
     }
 
@@ -553,7 +553,7 @@ impl SchemaVersion {
                     )))
                     .await?;
                 SchemaVersion::ReindexAffectedAccounts
-            },
+            }
             SchemaVersion::ReindexAffectedAccounts => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()

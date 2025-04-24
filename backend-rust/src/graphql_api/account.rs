@@ -1044,12 +1044,13 @@ impl Account {
                 "#,
                 &self.index
             )
-                .fetch_one(pool)
-                .await?;
+            .fetch_one(pool)
+            .await?;
 
             connection.has_previous_page =
                 result.max_index.map_or(false, |db_max| db_max > page_max_id);
-            connection.has_next_page = result.min_index.map_or(false, |db_min| db_min < page_min_id);
+            connection.has_next_page =
+                result.min_index.map_or(false, |db_min| db_min < page_min_id);
         }
         Ok(connection)
     }
