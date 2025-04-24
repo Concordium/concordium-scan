@@ -967,7 +967,7 @@ impl Account {
     ) -> ApiResult<connection::Connection<String, AccountTransactionRelation>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
-        let query = ConnectionQuery::<i64>::new(
+        let query = ConnectionQuery::<DescendingI64>::new(
             first,
             after,
             last,
@@ -993,77 +993,64 @@ impl Account {
                     events as "events: sqlx::types::Json<Vec<Event>>",
                     reject as "reject: sqlx::types::Json<TransactionRejectReason>"
                 FROM transactions t
-                LEFT JOIN (
-                    SELECT transaction_index
-                    FROM affected_accounts
-                    WHERE account_index = $1
-                ) a ON a.transaction_index = t.index
                 WHERE
-                    $2 < index
-                    AND index < $3
+                    index IN (
+                        SELECT transaction_index
+                        FROM affected_accounts
+                        WHERE account_index = $1
+                    )
+                    AND index > $3
+                    AND index < $2
                 ORDER BY
-                    (CASE WHEN $4 THEN index END) DESC,
-                    (CASE WHEN NOT $4 THEN index END) ASC
+                    (CASE WHEN $4 THEN index END) ASC,
+                    (CASE WHEN NOT $4 THEN index END) DESC
                 LIMIT $5
-            ) ORDER BY index ASC
+            ) ORDER BY index DESC
             "#,
             self.index,
-            query.from,
-            query.to,
+            i64::from(query.from),
+            i64::from(query.to),
             query.is_last,
             query.limit,
         )
         .fetch(pool);
 
-        let has_previous_page = sqlx::query_scalar!(
-            "SELECT true
-            FROM transactions
-            WHERE
-                $1 IN (
-                    SELECT account_index
-                    FROM affected_accounts
-                    WHERE transaction_index = index
-                )
-                AND index <= $2
-            LIMIT 1",
-            self.index,
-            query.from,
-        )
-        .fetch_optional(pool)
-        .await?
-        .flatten()
-        .unwrap_or_default();
+        let mut connection = connection::Connection::new(false, false);
+        let mut min_index = None;
+        let mut max_index = None;
+        while let Some(transaction) = txs.try_next().await? {
+            min_index = Some(match min_index {
+                None => transaction.index,
+                Some(current_min) => min(current_min, transaction.index),
+            });
 
-        let has_next_page = sqlx::query_scalar!(
-            "SELECT true
-            FROM transactions
-            WHERE
-                $1 IN (
-                    SELECT account_index
-                    FROM affected_accounts
-                    WHERE transaction_index = index
-                )
-                AND $2 <= index
-            LIMIT 1",
-            self.index,
-            query.to,
-        )
-        .fetch_optional(pool)
-        .await?
-        .flatten()
-        .unwrap_or_default();
-
-        let mut connection = connection::Connection::new(has_previous_page, has_next_page);
-
-        while let Some(tx) = txs.try_next().await? {
+            max_index = Some(match max_index {
+                None => transaction.index,
+                Some(current_max) => max(current_max, transaction.index),
+            });
             connection.edges.push(connection::Edge::new(
-                tx.index.to_string(),
+                transaction.index.to_string(),
                 AccountTransactionRelation {
-                    transaction: tx,
+                    transaction,
                 },
             ));
         }
+        if let (Some(page_min_id), Some(page_max_id)) = (min_index, max_index) {
+            let result = sqlx::query!(
+                r#"
+                    SELECT MIN(transaction_index) AS min_index, MAX(transaction_index) AS max_index
+                    FROM affected_accounts
+                    WHERE account_index = $1
+                "#,
+                &self.index
+            )
+                .fetch_one(pool)
+                .await?;
 
+            connection.has_previous_page =
+                result.max_index.map_or(false, |db_max| db_max > page_max_id);
+            connection.has_next_page = result.min_index.map_or(false, |db_min| db_min < page_min_id);
+        }
         Ok(connection)
     }
 
