@@ -1,5 +1,7 @@
 # CCDScan
 
+![Component Interaction Diagram](docs/diagrams/CCDScan.drawio.png)
+
 [CCDScan](https://ccdscan.io) is a full blockchain explorer on [Concordium](https://www.concordium.com/).
 
 It consists of two main parts:
