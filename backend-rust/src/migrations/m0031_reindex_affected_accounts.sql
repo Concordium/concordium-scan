@@ -1,3 +1,4 @@
+-- Replace existing primary key with a new one to optimize queries filtering on account_index
 ALTER TABLE affected_accounts
   DROP CONSTRAINT affected_accounts_pkey;
 
