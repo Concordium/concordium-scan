@@ -256,6 +256,8 @@ pub enum SchemaVersion {
     IndexAccountTransactions,
     #[display("0030:Reindex account statement entry type")]
     ReindexAccountAccountStatementEntryType,
+    #[display("0031:Reindex affected accounts")]
+    ReindexAffectedAccounts,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -263,7 +265,7 @@ impl SchemaVersion {
     /// have been introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::BakerPeriodApyViews;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::ReindexAccountAccountStatementEntryType;
+    const LATEST: SchemaVersion = SchemaVersion::ReindexAffectedAccounts;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -313,6 +315,7 @@ impl SchemaVersion {
             SchemaVersion::ReindexRewardMetrics => false,
             SchemaVersion::IndexAccountTransactions => false,
             SchemaVersion::ReindexAccountAccountStatementEntryType => false,
+            SchemaVersion::ReindexAffectedAccounts => false,
         }
     }
 
@@ -353,6 +356,7 @@ impl SchemaVersion {
             SchemaVersion::ReindexRewardMetrics => false,
             SchemaVersion::IndexAccountTransactions => false,
             SchemaVersion::ReindexAccountAccountStatementEntryType => false,
+            SchemaVersion::ReindexAffectedAccounts => false,
         }
     }
 
@@ -542,7 +546,15 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::ReindexAccountAccountStatementEntryType
             }
-            SchemaVersion::ReindexAccountAccountStatementEntryType => unimplemented!(
+            SchemaVersion::ReindexAccountAccountStatementEntryType => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0031_reindex_affected_accounts.sql"
+                    )))
+                    .await?;
+                SchemaVersion::ReindexAffectedAccounts
+            }
+            SchemaVersion::ReindexAffectedAccounts => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),

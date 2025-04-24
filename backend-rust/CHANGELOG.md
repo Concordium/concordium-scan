@@ -19,6 +19,9 @@ All notable changes to this project will be documented in this file.
 - Fix account statements where when querying an address using the complete address and not the canonical address
 - Fix account statements using DESC ordering per default instead of ASC
 - Fix account rewards using DESC ordering per default instead of ASC
+- Fix account transactions using DESC ordering per default instead of ASC
+- Fix account transaction altering index to be account index first
+- Fix account transactions queries to be using WHERE instead of join
 
 ## [0.1.47]
 
