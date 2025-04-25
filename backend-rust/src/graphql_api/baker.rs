@@ -2787,7 +2787,7 @@ impl Baker {
     ) -> ApiResult<connection::Connection<String, InterimTransaction>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
-        let query = ConnectionQuery::<i64>::new(
+        let query = ConnectionQuery::<DescendingI64>::new(
             first,
             after,
             last,
@@ -2833,14 +2833,14 @@ impl Baker {
                 FROM transactions
                 WHERE transactions.sender_index = $5
                 AND type_account = ANY($6)
-                AND index > $1 AND index < $2
+                AND index < $1 AND index > $2
                 ORDER BY
                     CASE WHEN NOT $3 THEN index END DESC,
                     CASE WHEN $3 THEN index END ASC
                 LIMIT $4
             ) ORDER BY index DESC"#,
-            query.from,
-            query.to,
+            i64::from(query.from),
+            i64::from(query.to),
             query.is_last,
             query.limit,
             account_index,
@@ -2886,8 +2886,8 @@ impl Baker {
             .await?;
 
             connection.has_previous_page =
-                result.min_id.map_or(false, |db_min| db_min < page_min_id);
-            connection.has_next_page = result.max_id.map_or(false, |db_max| db_max > page_max_id);
+                result.max_id.map_or(false, |db_max| db_max > page_max_id);
+            connection.has_next_page = result.min_id.map_or(false, |db_min| db_min < page_min_id);
         }
 
         Ok(connection)

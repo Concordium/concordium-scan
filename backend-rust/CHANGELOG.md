@@ -22,6 +22,7 @@ All notable changes to this project will be documented in this file.
 - Fix account transactions using DESC ordering per default instead of ASC
 - Fix account transaction altering index to be account index first
 - Fix account transactions queries to be using WHERE instead of join
+- Fix baker transactions pagination
 
 ## [0.1.47]
 
