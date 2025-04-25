@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM (\n                SELECT\n                    index,\n                    address as account_address,\n                    delegated_restake_earnings as restake_earnings,\n                    delegated_stake as staked_amount\n                FROM accounts\n                WHERE delegated_target_baker_id = $7\n                    AND ((delegated_stake > $2 AND delegated_stake < $1)\n                    OR (delegated_stake = $2 AND index > $3)\n                    OR (delegated_stake = $1 AND index < $4))\n                ORDER BY\n                    (CASE WHEN $6 THEN delegated_stake END) ASC,\n                    (CASE WHEN $6 THEN accounts.index END) ASC,\n                    (CASE WHEN NOT $6 THEN delegated_stake END) DESC,\n                    (CASE WHEN NOT $6 THEN accounts.index END) DESC\n                LIMIT $5\n            ) AS delegators\n            ORDER BY delegators.staked_amount DESC, delegators.index DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "account_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "restake_earnings",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "staked_amount",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Bool",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "70877d28e61bc7bd516b05c97c9ad3d55a1d00c9bed6427e97f91c7acb7e733e"
+}
