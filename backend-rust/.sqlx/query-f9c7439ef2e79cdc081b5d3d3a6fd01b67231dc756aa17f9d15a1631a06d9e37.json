@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT index, transaction_index, address, amount, delegated_stake, num_txs, delegated_restake_earnings, delegated_target_baker_id\n            FROM accounts\n            WHERE address = $1",
+  "query": "SELECT index, transaction_index, address, amount, delegated_stake, num_txs, delegated_restake_earnings, delegated_target_baker_id\n            FROM accounts\n            WHERE canonical_address = $1::bytea",
   "describe": {
     "columns": [
       {
@@ -46,7 +46,7 @@
     ],
     "parameters": {
       "Left": [
-        "Text"
+        "Bytea"
       ]
     },
     "nullable": [
@@ -60,5 +60,5 @@
       true
     ]
   },
-  "hash": "847daec8c3fceb973b3953d545e3854ebd057e3a6a102b568237c8133a3b59d0"
+  "hash": "f9c7439ef2e79cdc081b5d3d3a6fd01b67231dc756aa17f9d15a1631a06d9e37"
 }

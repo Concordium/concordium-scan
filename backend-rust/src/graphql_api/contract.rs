@@ -109,10 +109,12 @@ impl QueryContract {
                     transactions.hash as transaction_hash,
                     accounts.address as creator
                 FROM contracts
-                JOIN transactions ON transaction_index = transactions.index
-                JOIN blocks ON transactions.block_height = blocks.height
-                JOIN accounts ON transactions.sender_index = accounts.index
-                WHERE contracts.index < $1 AND contracts.index > $2
+                    JOIN transactions ON transaction_index = transactions.index
+                    JOIN blocks ON transactions.block_height = blocks.height
+                    JOIN accounts ON transactions.sender_index = accounts.index
+                WHERE 
+                    contracts.index < $1 AND 
+                    contracts.index > $2
                 ORDER BY
                     (CASE WHEN $4 THEN contracts.index END) ASC,
                     (CASE WHEN NOT $4 THEN contracts.index END) DESC
@@ -200,14 +202,14 @@ impl QueryContract {
 #[derive(SimpleObject)]
 #[graphql(complex)]
 pub struct Contract {
-    contract_address_index:     ContractIndex,
-    contract_address_sub_index: ContractIndex,
-    contract_address:           String,
-    creator:                    AccountAddress,
-    block_height:               BlockHeight,
-    transaction_hash:           String,
-    block_slot_time:            DateTime,
-    snapshot:                   ContractSnapshot,
+    pub contract_address_index:     ContractIndex,
+    pub contract_address_sub_index: ContractIndex,
+    pub contract_address:           String,
+    pub creator:                    AccountAddress,
+    pub block_height:               BlockHeight,
+    pub transaction_hash:           String,
+    pub block_slot_time:            DateTime,
+    pub snapshot:                   ContractSnapshot,
 }
 
 #[ComplexObject]
@@ -573,13 +575,13 @@ impl ContractRejectEvent {
 }
 
 #[derive(SimpleObject)]
-struct ContractSnapshot {
-    block_height:               BlockHeight,
-    contract_address_index:     ContractIndex,
-    contract_address_sub_index: ContractIndex,
-    contract_name:              String,
-    module_reference:           String,
-    amount:                     Amount,
+pub struct ContractSnapshot {
+    pub block_height:               BlockHeight,
+    pub contract_address_index:     ContractIndex,
+    pub contract_address_sub_index: ContractIndex,
+    pub contract_name:              String,
+    pub module_reference:           String,
+    pub amount:                     Amount,
 }
 
 /// A segment of a collection.

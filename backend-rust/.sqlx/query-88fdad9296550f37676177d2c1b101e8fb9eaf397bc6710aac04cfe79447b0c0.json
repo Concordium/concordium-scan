@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH non_circulating_accounts AS (\n                         SELECT\n                             COALESCE(SUM(amount), 0)::BIGINT AS total_amount\n                         FROM accounts\n                         WHERE address = ANY($1)\n                     )\n                     SELECT\n                         (blocks.total_amount\n                             - non_circulating_accounts.total_amount)::BIGINT\n                     FROM blocks, non_circulating_accounts\n                     ORDER BY height DESC\n                     LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "int8",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "88fdad9296550f37676177d2c1b101e8fb9eaf397bc6710aac04cfe79447b0c0"
+}

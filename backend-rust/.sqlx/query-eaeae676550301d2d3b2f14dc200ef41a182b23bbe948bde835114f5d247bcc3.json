@@ -1,11 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT COALESCE(MAX(index), 0) FROM accounts",
+  "query": "SELECT total_amount FROM blocks ORDER BY height DESC LIMIT 1",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "coalesce",
+        "name": "total_amount",
         "type_info": "Int8"
       }
     ],
@@ -13,8 +13,8 @@
       "Left": []
     },
     "nullable": [
-      null
+      false
     ]
   },
-  "hash": "163cc788cf5c4fd22a1f8e0289ad322fa7d92a7dd503a03a517622f2942c4d60"
+  "hash": "eaeae676550301d2d3b2f14dc200ef41a182b23bbe948bde835114f5d247bcc3"
 }

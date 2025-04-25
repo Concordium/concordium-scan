@@ -1,0 +1,59 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                blocks.slot_time as timestamp,\n                account_statements.amount,\n                account_statements.account_balance,\n                entry_type as \"entry_type: AccountStatementEntryType\"\n            FROM accounts\n                JOIN account_statements\n                    ON accounts.index = account_statements.account_index\n                JOIN blocks\n                    ON blocks.height = account_statements.block_height\n            WHERE\n                accounts.address = $1\n                AND slot_time >= $2\n                AND slot_time <= $3\n            ORDER BY slot_time DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "timestamp",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 1,
+        "name": "amount",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "account_balance",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "entry_type: AccountStatementEntryType",
+        "type_info": {
+          "Custom": {
+            "name": "account_statement_entry_type",
+            "kind": {
+              "Enum": [
+                "TransferIn",
+                "TransferOut",
+                "AmountDecrypted",
+                "AmountEncrypted",
+                "TransactionFee",
+                "FinalizationReward",
+                "FoundationReward",
+                "BakerReward",
+                "TransactionFeeReward"
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "331df74ca362cfd09ac8e2554f1e05fb697b670d2894e6fce5c4ec05e5d8a0cb"
+}

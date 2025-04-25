@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM (\n                SELECT\n                    contracts.index as index,\n                    sub_index,\n                    module_reference,\n                    name as contract_name,\n                    contracts.amount,\n                    blocks.slot_time as block_slot_time,\n                    transactions.block_height,\n                    transactions.hash as transaction_hash,\n                    accounts.address as creator\n                FROM contracts\n                JOIN transactions ON transaction_index = transactions.index\n                JOIN blocks ON transactions.block_height = blocks.height\n                JOIN accounts ON transactions.sender_index = accounts.index\n                WHERE contracts.index < $1 AND contracts.index > $2\n                ORDER BY\n                    (CASE WHEN $4 THEN contracts.index END) ASC,\n                    (CASE WHEN NOT $4 THEN contracts.index END) DESC\n                LIMIT $3\n            ) AS contract_data\n            ORDER BY contract_data.index DESC",
+  "query": "SELECT * FROM (\n                SELECT\n                    contracts.index as index,\n                    sub_index,\n                    module_reference,\n                    name as contract_name,\n                    contracts.amount,\n                    blocks.slot_time as block_slot_time,\n                    transactions.block_height,\n                    transactions.hash as transaction_hash,\n                    accounts.address as creator\n                FROM contracts\n                    JOIN transactions ON transaction_index = transactions.index\n                    JOIN blocks ON transactions.block_height = blocks.height\n                    JOIN accounts ON transactions.sender_index = accounts.index\n                WHERE \n                    contracts.index < $1 AND \n                    contracts.index > $2\n                ORDER BY\n                    (CASE WHEN $4 THEN contracts.index END) ASC,\n                    (CASE WHEN NOT $4 THEN contracts.index END) DESC\n                LIMIT $3\n            ) AS contract_data\n            ORDER BY contract_data.index DESC",
   "describe": {
     "columns": [
       {
@@ -69,5 +69,5 @@
       false
     ]
   },
-  "hash": "19f6269cd0313291b5de4d8f7f6a2bc8b6314451d71cef451a2677132b1d17e5"
+  "hash": "0aa428c07aee238cc8590dfbc32055895c96e26696217b214da814c108919e7d"
 }

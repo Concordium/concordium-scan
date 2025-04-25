@@ -1,10 +1,18 @@
 use super::{
-    baker, block::Block, contract, get_config, get_pool, todo_api, token, ApiError, ApiResult,
-    ConnectionQuery,
+    baker::{self, Baker},
+    block::Block,
+    contract::{self, Contract, ContractSnapshot},
+    get_config, get_pool,
+    module_reference_event::ModuleReferenceEvent,
+    node_status::NodeInfoReceiver,
+    token::Token,
+    ApiError, ApiResult, ConnectionQuery,
 };
 use crate::{
-    connection::DescendingI64,
-    graphql_api::{account::Account, node_status::NodeStatus, transaction::Transaction},
+    connection::{connection_from_slice, DescendingI64, NestedCursor},
+    graphql_api::{
+        account::Account, baker::CurrentBaker, node_status::NodeStatus, transaction::Transaction,
+    },
     transaction_event::Event,
     transaction_reject::TransactionRejectReason,
     transaction_type::{
@@ -12,13 +20,14 @@ use crate::{
         UpdateTransactionType,
     },
 };
-use async_graphql::{connection, Context, Object};
+use async_graphql::{
+    connection::{self, CursorType},
+    Context, Object,
+};
+use concordium_rust_sdk::base::contracts_common::schema::VersionedModuleSchema;
 use futures::TryStreamExt;
 use regex::Regex;
-use std::{
-    cmp::{max, min},
-    str::FromStr,
-};
+use std::str::FromStr;
 
 pub struct SearchResult {
     pub query: String,
@@ -28,30 +37,323 @@ pub struct SearchResult {
 impl SearchResult {
     async fn contracts<'a>(
         &self,
-        _ctx: &Context<'a>,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<i32>,
+        ctx: &Context<'a>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        _after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        _before: Option<String>,
+        before: Option<String>,
     ) -> ApiResult<connection::Connection<String, contract::Contract>> {
-        todo_api!()
+        let contract_index_regex: Regex = Regex::new("^[0-9]+$")
+            .map_err(|e| ApiError::InternalError(format!("Invalid regex: {}", e)))?;
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+        let query = ConnectionQuery::<i64>::new(
+            first,
+            after,
+            last,
+            before,
+            config.contract_connection_limit,
+        )?;
+        let mut connection = connection::Connection::new(false, false);
+        if !contract_index_regex.is_match(&self.query) {
+            return Ok(connection);
+        }
+        let lower_case_query = self.query.to_lowercase();
+
+        let mut row_stream = sqlx::query!(
+            "SELECT * FROM (
+                SELECT
+                    contracts.index as index,
+                    sub_index,
+                    module_reference,
+                    name as contract_name,
+                    contracts.amount,
+                    blocks.slot_time as block_slot_time,
+                    transactions.block_height,
+                    transactions.hash as transaction_hash,
+                    accounts.address as creator
+                FROM contracts
+                    JOIN transactions ON transaction_index = transactions.index
+                    JOIN blocks ON transactions.block_height = blocks.height
+                    JOIN accounts ON transactions.sender_index = accounts.index
+                WHERE 
+                    contracts.index = $5 AND
+                    contracts.index > $1 AND 
+                    contracts.index < $2
+                ORDER BY
+                    (CASE WHEN $4 THEN contracts.index END) ASC,
+                    (CASE WHEN NOT $4 THEN contracts.index END) DESC
+                LIMIT $3
+            ) AS contract_data
+            ORDER BY contract_data.index DESC",
+            i64::from(query.from),
+            i64::from(query.to),
+            query.limit,
+            query.is_last,
+            lower_case_query.parse::<i64>().ok(),
+        )
+        .fetch(pool);
+
+        while let Some(row) = row_stream.try_next().await? {
+            let contract_address_index =
+                row.index.try_into().map_err(|e: <u64 as TryFrom<i64>>::Error| {
+                    ApiError::InternalError(e.to_string())
+                })?;
+            let contract_address_sub_index =
+                row.sub_index.try_into().map_err(|e: <u64 as TryFrom<i64>>::Error| {
+                    ApiError::InternalError(e.to_string())
+                })?;
+
+            let snapshot = ContractSnapshot {
+                block_height: row.block_height,
+                contract_address_index,
+                contract_address_sub_index,
+                contract_name: row.contract_name,
+                module_reference: row.module_reference,
+                amount: row.amount.try_into()?,
+            };
+
+            let contract = Contract {
+                contract_address_index,
+                contract_address_sub_index,
+                contract_address: format!(
+                    "<{},{}>",
+                    contract_address_index, contract_address_sub_index
+                ),
+                creator: row.creator.into(),
+                block_height: row.block_height,
+                transaction_hash: row.transaction_hash,
+                block_slot_time: row.block_slot_time,
+                snapshot,
+            };
+
+            connection
+                .edges
+                .push(connection::Edge::new(contract.contract_address_index.to_string(), contract));
+        }
+
+        if let (Some(page_min_id), Some(page_max_id)) =
+            (connection.edges.first(), connection.edges.last())
+        {
+            let result = sqlx::query!(
+                "
+                    SELECT MAX(index) as db_max_index, MIN(index) as db_min_index
+                    FROM contracts
+                    WHERE contracts.index = $1
+                ",
+                lower_case_query.parse::<i64>().ok()
+            )
+            .fetch_one(pool)
+            .await?;
+
+            let page_max: i64 =
+                page_max_id.node.contract_address_index.0.try_into().map_err(|e| {
+                    ApiError::InternalError(format!("A contract index is too large: {}", e))
+                })?;
+            let page_min: i64 =
+                page_min_id.node.contract_address_index.0.try_into().map_err(|e| {
+                    ApiError::InternalError(format!("A contract index is too large: {}", e))
+                })?;
+
+            connection.has_previous_page =
+                result.db_max_index.map_or(false, |db_max| db_max > page_max);
+            connection.has_next_page =
+                result.db_min_index.map_or(false, |db_min| db_min < page_min);
+        }
+
+        Ok(connection)
     }
 
-    //    async fn modules(
-    //        &self,
-    //        #[graphql(desc = "Returns the first _n_ elements from the list.")]
-    // _first: Option<i32>,        #[graphql(desc = "Returns the elements in the
-    //     list that come after the specified cursor.")]
-    //        _after: Option<String>,
-    //        #[graphql(desc = "Returns the last _n_ elements from the list.")]
-    // _last: Option<i32>,        #[graphql(desc = "Returns the elements in the
-    // list that come before the     specified cursor.")]
-    //        _before: Option<String>,
-    //    ) -> ApiResult<connection::Connection<String, Module>> {
-    //        todo_api!()
-    //    }
+    async fn modules(
+        &self,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        before: Option<String>,
+    ) -> ApiResult<connection::Connection<String, ModuleReferenceEvent>> {
+        let mut connection = connection::Connection::new(false, false);
+
+        let module_hash_regex: Regex = Regex::new(r"^[a-fA-F0-9]{1,64}$")
+            .map_err(|_| ApiError::InternalError("Invalid regex".to_string()))?;
+        if !module_hash_regex.is_match(&self.query) {
+            return Ok(connection);
+        }
+        let lower_case_query = self.query.to_lowercase();
+
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+
+        // We use the `NestedCursor<Outer, Inner>` for modules,
+        // where the outer cursor is the `block_height` that the module was deployed in,
+        // and the inner cursor is the `transaction_index` that the module
+        // was deployed in.
+        type Cursor = NestedCursor<i64, i64>;
+
+        let query = ConnectionQuery::<Cursor>::new(
+            first,
+            after,
+            last,
+            before,
+            config.module_connection_limit,
+        )?;
+
+        let mut rows = sqlx::query!(
+            "SELECT * FROM (
+                SELECT
+                    module_reference,
+                    blocks.height as block_height,
+                    smart_contract_modules.transaction_index as transaction_index,
+                    schema as display_schema,
+                    blocks.slot_time as block_slot_time,
+                    transactions.hash as transaction_hash,
+                    accounts.address as sender
+                FROM smart_contract_modules
+                    JOIN transactions ON smart_contract_modules.transaction_index = \
+             transactions.index
+                    JOIN blocks ON transactions.block_height = blocks.height
+                    JOIN accounts ON transactions.sender_index = accounts.index
+                WHERE
+                    starts_with(module_reference, $7)
+                    AND
+                    (
+                        (block_height > $1
+                            AND block_height < $2
+                        )
+                        -- When outer bounds are not equal, filter separate for each inner bound.
+                        OR (
+                            $1 != $2
+                            AND (
+                                -- Start inner bound for page.
+                                (block_height = $1 AND transactions.index < $3)
+                                -- End inner bound for page.
+                                OR (block_height = $2 AND transactions.index > $4)
+                            )
+                        )
+                        -- When outer bounds are equal, use one filter for both bounds.
+                        OR (
+                            $1 = $2
+                            AND block_height = $1
+                            AND transactions.index < $3 AND transactions.index > $4
+                        )
+                    )
+                ORDER BY
+                    (CASE WHEN $6     THEN block_height END) ASC,
+                    (CASE WHEN $6     THEN transactions.index END) ASC,
+                    (CASE WHEN NOT $6 THEN block_height END) DESC,
+                    (CASE WHEN NOT $6 THEN transactions.index END) DESC
+                LIMIT $5
+            ) as sub
+                ORDER BY sub.block_height DESC, sub.transaction_index DESC",
+            query.from.outer, // $1
+            query.to.outer,   // $2
+            query.from.inner, // $3
+            query.to.inner,   // $4
+            query.limit,      // $5
+            query.is_last,    // $6
+            lower_case_query  // $7
+        )
+        .fetch(pool);
+
+        while let Some(module) = rows.try_next().await? {
+            let cursor = NestedCursor {
+                inner: module.transaction_index,
+                outer: module.block_height,
+            };
+
+            let display_schema = module
+                .display_schema
+                .as_ref()
+                .map(|s| VersionedModuleSchema::new(s, &None).map(|schema| schema.to_string()))
+                .transpose()?;
+
+            connection.edges.push(connection::Edge::new(
+                cursor.encode_cursor(),
+                ModuleReferenceEvent {
+                    module_reference: module.module_reference,
+                    sender: module.sender.into(),
+                    block_height: module.block_height,
+                    transaction_hash: module.transaction_hash,
+                    transaction_index: module.transaction_index,
+                    block_slot_time: module.block_slot_time,
+                    display_schema,
+                },
+            ));
+        }
+
+        let (Some(first_item), Some(last_item)) =
+            (connection.edges.first(), connection.edges.last())
+        else {
+            // No items so we just return without updating next/prev page info.
+            return Ok(connection);
+        };
+
+        let collection_ends = sqlx::query!(
+            "WITH
+                starting_module as (
+                    SELECT
+                        blocks.height as block_height,
+                        smart_contract_modules.transaction_index as transaction_index
+                    FROM smart_contract_modules
+                        JOIN transactions ON smart_contract_modules.transaction_index = \
+             transactions.index
+                        JOIN blocks ON transactions.block_height = blocks.height
+                    WHERE starts_with(module_reference, $1)
+                    ORDER BY block_height DESC, transaction_index DESC
+                    LIMIT 1
+                ),
+                ending_module as (
+                    SELECT
+                        blocks.height as block_height,
+                        smart_contract_modules.transaction_index as transaction_index
+                    FROM smart_contract_modules
+                        JOIN transactions ON smart_contract_modules.transaction_index = \
+             transactions.index
+                        JOIN blocks ON transactions.block_height = blocks.height
+                    WHERE starts_with(module_reference, $1)
+                    ORDER BY block_height ASC, transaction_index ASC
+                    LIMIT 1
+                )
+                SELECT
+                    starting_module.block_height AS start_block_height,
+                    starting_module.transaction_index AS start_transaction_index,
+                    ending_module.block_height AS end_block_height,
+                    ending_module.transaction_index AS end_transaction_index
+                FROM starting_module, ending_module",
+            lower_case_query
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        if let Some(collection_ends) = collection_ends {
+            let min_start_cursor = Cursor {
+                outer: collection_ends.start_block_height,
+                inner: collection_ends.start_transaction_index,
+            };
+
+            let collection_start_cursor = Cursor {
+                outer: first_item.node.block_height,
+                inner: first_item.node.transaction_index,
+            };
+            connection.has_previous_page = min_start_cursor < collection_start_cursor;
+
+            let max_end_cursor = Cursor {
+                outer: collection_ends.end_block_height,
+                inner: collection_ends.end_transaction_index,
+            };
+            let collection_start_cursor = Cursor {
+                outer: last_item.node.block_height,
+                inner: last_item.node.transaction_index,
+            };
+            connection.has_next_page = max_end_cursor > collection_start_cursor;
+        }
+
+        Ok(connection)
+    }
 
     async fn blocks(
         &self,
@@ -105,39 +407,31 @@ impl SearchResult {
         )
         .fetch(pool);
 
-        let mut min_height = None;
-        let mut max_height = None;
         while let Some(block) = rows.try_next().await? {
-            min_height = Some(match min_height {
-                None => block.height,
-                Some(current_min) => min(current_min, block.height),
-            });
-
-            max_height = Some(match max_height {
-                None => block.height,
-                Some(current_max) => max(current_max, block.height),
-            });
             connection.edges.push(connection::Edge::new(block.height.to_string(), block));
         }
 
-        if let (Some(page_min_height), Some(page_max_height)) = (min_height, max_height) {
+        if let (Some(page_min_height), Some(page_max_height)) =
+            (connection.edges.first(), connection.edges.last())
+        {
             let result = sqlx::query!(
-                r#"
+                "
                     SELECT MAX(height) as max_height, MIN(height) as min_height
                     FROM blocks
                     WHERE
                         height = $1
                         OR starts_with(hash, $2)
-                "#,
+                ",
                 lower_case_query.parse::<i64>().ok(),
                 lower_case_query,
             )
             .fetch_one(pool)
             .await?;
+
             connection.has_previous_page =
-                result.max_height.map_or(false, |db_max| db_max > page_max_height);
+                result.max_height.map_or(false, |db_max| db_max > page_max_height.node.height);
             connection.has_next_page =
-                result.min_height.map_or(false, |db_min| db_min < page_min_height);
+                result.min_height.map_or(false, |db_min| db_min < page_min_height.node.height);
         }
         Ok(connection)
     }
@@ -223,14 +517,82 @@ impl SearchResult {
 
     async fn tokens(
         &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<i32>,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        _after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        _before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, token::Token>> {
-        todo_api!()
+        before: Option<String>,
+    ) -> ApiResult<connection::Connection<String, Token>> {
+        // Base58 characters
+        let token_address_regex: Regex = Regex::new(r"^[1-9A-HJ-NP-Za-km-z]+$")
+            .map_err(|_| ApiError::InternalError("Invalid regex".to_string()))?;
+
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+        let query =
+            ConnectionQuery::<i64>::new(first, after, last, before, config.block_connection_limit)?;
+        let mut connection = connection::Connection::new(false, false);
+        if !token_address_regex.is_match(&self.query) {
+            return Ok(connection);
+        }
+        let mut rows = sqlx::query_as!(
+            Token,
+            "SELECT * FROM (
+                SELECT
+                    index,
+                    init_transaction_index,
+                    total_supply as raw_total_supply,
+                    token_id,
+                    contract_index,
+                    contract_sub_index,
+                    token_address,
+                    metadata_url
+                FROM tokens
+                WHERE 
+                    starts_with(token_address, $5)
+                    AND tokens.index > $1 
+                    AND tokens.index < $2
+                ORDER BY
+                    (CASE WHEN $4 THEN tokens.index END) DESC,
+                    (CASE WHEN NOT $4 THEN tokens.index END) ASC
+                LIMIT $3
+            ) AS token_data
+            ORDER BY token_data.index ASC",
+            query.from,    // $1
+            query.to,      // $2
+            query.limit,   // $3
+            query.is_last, // $4
+            self.query     // $5
+        )
+        .fetch(pool);
+
+        while let Some(token) = rows.try_next().await? {
+            connection.edges.push(connection::Edge::new(token.index.to_string(), token));
+        }
+
+        if let (Some(page_min), Some(page_max)) =
+            (connection.edges.first(), connection.edges.last())
+        {
+            let result = sqlx::query!(
+                "
+                    SELECT MAX(index) as max_index, MIN(index) as min_index
+                    FROM tokens
+                    WHERE
+                        starts_with(token_address, $1)
+                ",
+                self.query,
+            )
+            .fetch_one(pool)
+            .await?;
+
+            connection.has_previous_page =
+                result.max_index.map_or(false, |db_max| db_max > page_max.node.index);
+            connection.has_next_page =
+                result.min_index.map_or(false, |db_min| db_min < page_min.node.index);
+        }
+        Ok(connection)
     }
 
     async fn accounts(
@@ -280,7 +642,7 @@ impl SearchResult {
         };
         let accounts = sqlx::query_as!(
             Account,
-            r#"
+            "
                 SELECT * FROM (SELECT
                     index,
                     transaction_index,
@@ -299,7 +661,7 @@ impl SearchResult {
                     (CASE WHEN $4 THEN index END) DESC,
                     (CASE WHEN NOT $4 THEN index END) ASC
                 LIMIT $3
-                ) ORDER BY index ASC"#,
+                ) ORDER BY index ASC",
             query.from,
             query.to,
             query.limit,
@@ -309,62 +671,162 @@ impl SearchResult {
         .fetch_all(pool)
         .await?;
 
-        let mut min_index = None;
-        let mut max_index = None;
         for account in accounts {
-            min_index = Some(match min_index {
-                None => account.index,
-                Some(current_min) => min(current_min, account.index),
-            });
-
-            max_index = Some(match max_index {
-                None => account.index,
-                Some(current_max) => max(current_max, account.index),
-            });
             connection.edges.push(connection::Edge::new(account.index.to_string(), account));
         }
 
-        if let (Some(page_min_id), Some(page_max_id)) = (min_index, max_index) {
+        if let (Some(page_min_id), Some(page_max_id)) =
+            (connection.edges.first(), connection.edges.last())
+        {
             let result = sqlx::query!(
-                r#"
+                "
                     SELECT MAX(index) as max_id, MIN(index) as min_id
                     FROM accounts
                     WHERE
                         address LIKE $1 || '%'
-                "#,
+                ",
                 &self.query
             )
             .fetch_one(pool)
             .await?;
 
             connection.has_previous_page =
-                result.min_id.map_or(false, |db_min| db_min < page_min_id);
-            connection.has_next_page = result.max_id.map_or(false, |db_max| db_max > page_max_id);
+                result.min_id.map_or(false, |db_min| db_min < page_min_id.node.index);
+            connection.has_next_page =
+                result.max_id.map_or(false, |db_max| db_max > page_max_id.node.index);
         }
         Ok(connection)
     }
 
     async fn bakers(
         &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<i32>,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        _after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        _before: Option<String>,
+        before: Option<String>,
     ) -> ApiResult<connection::Connection<String, baker::Baker>> {
-        todo_api!()
+        let baker_index_regex: Regex = Regex::new("^[0-9]+$")
+            .map_err(|e| ApiError::InternalError(format!("Invalid regex: {}", e)))?;
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+        let query =
+            ConnectionQuery::<i64>::new(first, after, last, before, config.baker_connection_limit)?;
+        let mut connection = connection::Connection::new(false, false);
+        if !baker_index_regex.is_match(&self.query) {
+            return Ok(connection);
+        }
+        let lower_case_query = self.query.to_lowercase();
+
+        let mut row_stream = sqlx::query_as!(
+            CurrentBaker,
+            r#"SELECT * FROM (
+                SELECT
+                    bakers.id AS id,
+                    staked,
+                    restake_earnings,
+                    open_status as "open_status: _",
+                    metadata_url,
+                    self_suspended,
+                    inactive_suspended,
+                    primed_for_suspension,
+                    transaction_commission,
+                    baking_commission,
+                    finalization_commission,
+                    payday_transaction_commission as "payday_transaction_commission?",
+                    payday_baking_commission as "payday_baking_commission?",
+                    payday_finalization_commission as "payday_finalization_commission?",
+                    payday_lottery_power as "payday_lottery_power?",
+                    payday_ranking_by_lottery_powers as "payday_ranking_by_lottery_powers?",
+                    (SELECT MAX(payday_ranking_by_lottery_powers) FROM bakers_payday_lottery_powers) as "payday_total_ranking_by_lottery_powers?",
+                    pool_total_staked,
+                    pool_delegator_count,
+                    baker_apy,
+                    delegators_apy
+                FROM bakers
+                    LEFT JOIN latest_baker_apy_30_days
+                        ON latest_baker_apy_30_days.id = bakers.id
+                    LEFT JOIN bakers_payday_commission_rates
+                        ON bakers_payday_commission_rates.id = bakers.id
+                    LEFT JOIN bakers_payday_lottery_powers
+                        ON bakers_payday_lottery_powers.id = bakers.id
+                WHERE
+                    bakers.id = $5 AND
+                    (bakers.id > $1 AND 
+                    bakers.id < $2)
+                ORDER BY
+                    (CASE WHEN $3     THEN bakers.id END) DESC,
+                    (CASE WHEN NOT $3 THEN bakers.id END) ASC
+                LIMIT $4
+            ) ORDER BY id ASC"#,
+            query.from,                                        // $1
+            query.to,                                          // $2
+            query.is_last,                                     // $3
+            query.limit,                                       // $4
+            lower_case_query.parse::<i64>().ok()               // $5
+        )
+        .fetch(pool);
+        while let Some(row) = row_stream.try_next().await? {
+            let cursor = row.id.encode_cursor();
+            connection.edges.push(connection::Edge::new(cursor, Baker::Current(Box::new(row))));
+        }
+
+        let (Some(first_item), Some(last_item)) =
+            (connection.edges.first(), connection.edges.last())
+        else {
+            // No items so we just return.
+            return Ok(connection);
+        };
+
+        {
+            let bounds = sqlx::query!(
+                "SELECT
+                    MAX(id),
+                    MIN(id)
+                FROM bakers
+                WHERE
+                    bakers.id = $1
+                ",
+                lower_case_query.parse::<i64>().ok()
+            )
+            .fetch_one(pool)
+            .await?;
+            if let (Some(min), Some(max)) = (bounds.min, bounds.max) {
+                connection.has_previous_page = min < first_item.node.get_id();
+                connection.has_next_page = max > last_item.node.get_id();
+            }
+        }
+        Ok(connection)
     }
 
     async fn node_statuses(
         &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<i32>,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<usize>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        _after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<usize>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        _before: Option<String>,
+        before: Option<String>,
     ) -> ApiResult<connection::Connection<String, NodeStatus>> {
-        todo_api!()
+        let handler = ctx.data::<NodeInfoReceiver>().map_err(ApiError::NoReceiver)?;
+        let statuses = if let Some(statuses) = handler.borrow().clone() {
+            statuses
+        } else {
+            Err(ApiError::InternalError("Node collector backend has not responded".to_string()))?
+        };
+
+        let nodes: Vec<NodeStatus> = statuses
+            .iter()
+            .filter(|x| {
+                x.external.node_name.starts_with(&self.query)
+                    || x.external.node_id.starts_with(&self.query)
+            })
+            .cloned()
+            .collect();
+
+        connection_from_slice(nodes, first, after, last, before)
     }
 }

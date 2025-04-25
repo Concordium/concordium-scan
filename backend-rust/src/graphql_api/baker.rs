@@ -288,7 +288,7 @@ pub enum Baker {
 }
 
 impl Baker {
-    fn get_id(&self) -> i64 {
+    pub fn get_id(&self) -> i64 {
         match self {
             Baker::Current(existing_baker) => existing_baker.id,
             Baker::Previously(removed) => removed.id,
@@ -2404,29 +2404,29 @@ impl PreviouslyBaker {
 /// Database information for a current baker.
 #[derive(Debug)]
 pub struct CurrentBaker {
-    id: i64,
-    staked: i64,
-    restake_earnings: bool,
-    open_status: Option<BakerPoolOpenStatus>,
-    metadata_url: Option<MetadataUrl>,
-    self_suspended: Option<i64>,
-    inactive_suspended: Option<i64>,
-    primed_for_suspension: Option<i64>,
-    transaction_commission: Option<i64>,
-    baking_commission: Option<i64>,
-    finalization_commission: Option<i64>,
-    payday_transaction_commission: Option<i64>,
-    payday_baking_commission: Option<i64>,
-    payday_finalization_commission: Option<i64>,
-    payday_lottery_power: Option<BigDecimal>,
-    payday_ranking_by_lottery_powers: Option<i64>,
-    payday_total_ranking_by_lottery_powers: Option<i64>,
-    pool_total_staked: i64,
-    pool_delegator_count: i64,
+    pub id: i64,
+    pub staked: i64,
+    pub restake_earnings: bool,
+    pub open_status: Option<BakerPoolOpenStatus>,
+    pub metadata_url: Option<MetadataUrl>,
+    pub self_suspended: Option<i64>,
+    pub inactive_suspended: Option<i64>,
+    pub primed_for_suspension: Option<i64>,
+    pub transaction_commission: Option<i64>,
+    pub baking_commission: Option<i64>,
+    pub finalization_commission: Option<i64>,
+    pub payday_transaction_commission: Option<i64>,
+    pub payday_baking_commission: Option<i64>,
+    pub payday_finalization_commission: Option<i64>,
+    pub payday_lottery_power: Option<BigDecimal>,
+    pub payday_ranking_by_lottery_powers: Option<i64>,
+    pub payday_total_ranking_by_lottery_powers: Option<i64>,
+    pub pool_total_staked: i64,
+    pub pool_delegator_count: i64,
     // 30 days period APY for bakers.
-    baker_apy: Option<f64>,
+    pub baker_apy: Option<f64>,
     // 30 days period APY for delegators.
-    delegators_apy: Option<f64>,
+    pub delegators_apy: Option<f64>,
 }
 impl CurrentBaker {
     /// Get the current payday baking commission rate.
@@ -2787,7 +2787,7 @@ impl Baker {
     ) -> ApiResult<connection::Connection<String, InterimTransaction>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
-        let query = ConnectionQuery::<i64>::new(
+        let query = ConnectionQuery::<DescendingI64>::new(
             first,
             after,
             last,
@@ -2833,14 +2833,14 @@ impl Baker {
                 FROM transactions
                 WHERE transactions.sender_index = $5
                 AND type_account = ANY($6)
-                AND index > $1 AND index < $2
+                AND index < $1 AND index > $2
                 ORDER BY
                     CASE WHEN NOT $3 THEN index END DESC,
                     CASE WHEN $3 THEN index END ASC
                 LIMIT $4
             ) ORDER BY index DESC"#,
-            query.from,
-            query.to,
+            i64::from(query.from),
+            i64::from(query.to),
             query.is_last,
             query.limit,
             account_index,
@@ -2886,8 +2886,8 @@ impl Baker {
             .await?;
 
             connection.has_previous_page =
-                result.min_id.map_or(false, |db_min| db_min < page_min_id);
-            connection.has_next_page = result.max_id.map_or(false, |db_max| db_max > page_max_id);
+                result.max_id.map_or(false, |db_max| db_max > page_max_id);
+            connection.has_next_page = result.min_id.map_or(false, |db_min| db_min < page_min_id);
         }
 
         Ok(connection)
