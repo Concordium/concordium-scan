@@ -23,7 +23,7 @@ All notable changes to this project will be documented in this file.
 - Fix account transaction altering index to be account index first
 - Fix account transactions queries to be using WHERE instead of join
 - Fix baker transactions pagination
-- Fix baker delegation pagination to be sorted by stake as primary instead of using pointers
+- Fix baker delegation pagination to be sorted by stake as primary instead of using account index.
 
 ## [0.1.47]
 
