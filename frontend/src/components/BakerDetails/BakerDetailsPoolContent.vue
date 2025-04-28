@@ -179,7 +179,10 @@
 						v-if="baker.state.nodeStatus"
 						class="commission-rates rounded-lg px-8 py-4"
 					>
-						<NodeLink :node="baker.state.nodeStatus" />
+						<NodeLink
+							:node-id="baker.state.nodeStatus.nodeId"
+							:node-name="baker.state.nodeStatus.nodeName"
+						/>
 						<span class="text-theme-faded numerical text-sm">
 							{{ baker.state.nodeStatus.nodeId }}
 						</span>

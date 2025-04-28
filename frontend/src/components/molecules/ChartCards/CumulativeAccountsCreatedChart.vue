@@ -5,7 +5,9 @@
 		<template #icon><UserIcon class="w-6 h-6" /></template>
 		<template #value>{{
 			formatNumber(
-				accountMetricsData?.accountsMetrics.lastCumulativeAccountsCreated
+				accountMetricsData?.accountsMetrics?.lastCumulativeAccountsCreated
+					? accountMetricsData?.accountsMetrics?.lastCumulativeAccountsCreated
+					: 0
 			)
 		}}</template>
 		<template #chip>latest</template>

@@ -19,6 +19,8 @@
 		<template #value>{{
 			convertMicroCcdToCcd(
 				rewardMetricsData?.rewardMetricsForAccount?.sumRewardAmount
+					? rewardMetricsData?.rewardMetricsForAccount?.sumRewardAmount
+					: 0
 			)
 		}}</template>
 		<template #chip>sum</template>

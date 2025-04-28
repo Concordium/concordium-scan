@@ -145,15 +145,6 @@ export type AccountFilterInput = {
   isDelegator: Scalars['Boolean'];
 };
 
-export type AccountMetrics = {
-  __typename?: 'AccountMetrics';
-  /** Total number of accounts created in requested period. */
-  accountsCreated: Scalars['Int'];
-  buckets: AccountMetricsBuckets;
-  /** Total number of accounts created (all time). */
-  lastCumulativeAccountsCreated: Scalars['Int'];
-};
-
 export type AccountMetricsBuckets = {
   __typename?: 'AccountMetricsBuckets';
   /** The width (time interval) of each bucket. */
@@ -384,6 +375,15 @@ export type AccountsCollectionSegment = {
   /** Information to aid in pagination. */
   pageInfo: CollectionSegmentInfo;
   totalCount: Scalars['Int'];
+};
+
+export type AccountsMetrics = {
+  __typename?: 'AccountsMetrics';
+  /** Total number of accounts created in requested period. */
+  accountsCreated: Scalars['Int'];
+  buckets: AccountMetricsBuckets;
+  /** Total number of accounts created (all time). */
+  lastCumulativeAccountsCreated: Scalars['Int'];
 };
 
 export type AccountsUpdatedSubscriptionItem = {
@@ -945,7 +945,7 @@ export type Cis2Event = {
   __typename?: 'Cis2Event';
   contractIndex: Scalars['Int'];
   contractSubIndex: Scalars['Int'];
-  event?: Maybe<CisEvent>;
+  event: CisEvent;
   indexPerToken: Scalars['Int'];
   tokenId: Scalars['String'];
   transaction: Transaction;
@@ -2208,7 +2208,7 @@ export type Query = {
   account: Account;
   accountByAddress: Account;
   accounts: AccountConnection;
-  accountsMetrics: AccountMetrics;
+  accountsMetrics: AccountsMetrics;
   baker: Baker;
   bakerByBakerId: Baker;
   /**

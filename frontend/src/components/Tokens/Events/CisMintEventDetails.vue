@@ -11,7 +11,7 @@
 			:fraction-digits="Number(decimals || 0)"
 		/>
 	</div>
-	<Log v-if="event.parsed" :log="event.parsed" />
+	<Log v-if="event" :log="event.toString()" />
 </template>
 <script lang="ts" setup>
 import Log from '../../Details/Log.vue'

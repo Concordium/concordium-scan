@@ -5,7 +5,10 @@
 		<template #value>{{
 			formatNumber(
 				transactionMetricsData?.transactionMetrics
-					.lastCumulativeTransactionCount
+					?.lastCumulativeTransactionCount
+					? transactionMetricsData?.transactionMetrics
+							?.lastCumulativeTransactionCount
+					: 0
 			)
 		}}</template>
 		<template #chip>latest</template>

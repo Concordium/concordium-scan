@@ -40,13 +40,14 @@
 				<TableRow v-for="node in data?.nodeStatuses.nodes" :key="node.nodeId">
 					<TableTd>
 						<div class="whitespace-nowrap">
-							<NodeLink :node="node" />
+							<NodeLink :node-id="node.nodeId" :node-name="node.nodeName" />
 						</div>
 					</TableTd>
 					<TableTd>
+						<!-- We checked that the value is an integer, so the type cast with `!` is safe -->
 						<BakerLink
 							v-if="Number.isInteger(node.consensusBakerId)"
-							:id="node.consensusBakerId"
+							:id="node.consensusBakerId!"
 						/>
 					</TableTd>
 

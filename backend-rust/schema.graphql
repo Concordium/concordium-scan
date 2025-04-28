@@ -114,14 +114,6 @@ input AccountFilterInput {
 	isDelegator: Boolean!
 }
 
-type AccountMetrics {
-	"Total number of accounts created (all time)."
-	lastCumulativeAccountsCreated: Int!
-	"Total number of accounts created in requested period."
-	accountsCreated: Int!
-	buckets: AccountMetricsBuckets!
-}
-
 type AccountMetricsBuckets {
 	"The width (time interval) of each bucket."
 	bucketWidth: TimeSpan!
@@ -334,6 +326,14 @@ type AccountsCollectionSegment {
 	"A flattened list of the items."
 	items: [AccountToken!]!
 	totalCount: Int!
+}
+
+type AccountsMetrics {
+	"Total number of accounts created (all time)."
+	lastCumulativeAccountsCreated: Int!
+	"Total number of accounts created in requested period."
+	accountsCreated: Int!
+	buckets: AccountMetricsBuckets!
 }
 
 type AccountsUpdatedSubscriptionItem {
@@ -857,7 +857,7 @@ type Cis2Event {
 	transactionIndex: Int!
 	indexPerToken: Int!
 	transaction: Transaction!
-	event: CisEvent
+	event: CisEvent!
 }
 
 type CisBurnEvent {
@@ -2010,7 +2010,7 @@ type Query {
 		"Returns the elements in the list that come before the specified cursor."
 		before: String
 	): TokenConnection!
-	accountsMetrics(period: MetricsPeriod!): AccountMetrics!
+	accountsMetrics(period: MetricsPeriod!): AccountsMetrics!
 	"""
 	Fetches baker metrics for the specified period.
 	
