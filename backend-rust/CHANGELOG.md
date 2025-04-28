@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.48] - 2025-04-28
+
 ### Added
 
 - Add `SearchResult::node_statuses`.
