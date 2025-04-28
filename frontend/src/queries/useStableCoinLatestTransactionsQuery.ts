@@ -1,19 +1,8 @@
 import { useQuery, gql } from '@urql/vue'
-
-export type Transaction = {
-	assetName?: string
-	transactionHash?: string
-	from?: string
-	to?: string
-	amount?: number
-	value?: number
-	assetMetadata: {
-		iconUrl?: string
-	}
-}
+import type { LatestTransactionResponse } from '~/types/generated'
 
 export type stableCoinLatestTransactionsResponse = {
-	latestTransactions: Transaction[]
+	latestTransactions: LatestTransactionResponse[]
 }
 
 const STABLECOIN_LATEST_TRANSACTIONS = gql<stableCoinLatestTransactionsResponse>`

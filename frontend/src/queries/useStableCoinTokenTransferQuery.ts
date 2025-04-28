@@ -1,28 +1,11 @@
 import { useQuery, gql } from '@urql/vue'
-
-// Define DailySummaryItem
-export type DailySummaryItem = {
-	dateTime: string
-	totalAmount: string
-	transactionCount: number
-}
+import type { TransferSummary, StableCoin } from '~/types/generated'
 
 // Define main response type
 export type StableCoinTokenTransferResponse = {
-	stablecoin: {
-		name?: string
-		totalSupply?: string
-		totalUniqueHolders?: number
-		valueInDollar?: number
-		decimal?: number
-		symbol?: string
-		issuer?: string
-		metadata?: {
-			iconUrl?: string
-		}
-	}
+	stablecoin: StableCoin
 	transferSummary?: {
-		dailySummary?: DailySummaryItem[]
+		dailySummary?: TransferSummary[]
 	}
 }
 

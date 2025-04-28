@@ -41,7 +41,7 @@
 										:text="
 											String(
 												(coin.quantity ?? 0) *
-													(dataPerStablecoin?.stablecoin?.valueInDoller ?? 0)
+													(dataPerStablecoin?.stablecoin?.valueInDollar ?? 0)
 											)
 										"
 										text-class="text-theme-body"
