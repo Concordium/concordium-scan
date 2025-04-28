@@ -560,9 +560,7 @@ impl SchemaVersion {
             }
             SchemaVersion::ReindexAffectedAccounts => {
                 tx.as_mut()
-                    .execute(sqlx::raw_sql(include_str!(
-                        "./migrations/m0032_reindex_gin_hash.sql"
-                    )))
+                    .execute(sqlx::raw_sql(include_str!("./migrations/m0032_reindex_gin_hash.sql")))
                     .await?;
                 SchemaVersion::ReindexGinHash
             }
