@@ -1,0 +1,2582 @@
+type Account {
+	id: ID!
+	"The address of the account in Base58Check."
+	address: AccountAddress!
+	"The total amount of CCD hold by the account."
+	amount: UnsignedLong!
+	baker: Baker
+	delegation: Delegation
+	"Timestamp of the block where this account was created."
+	createdAt: DateTime!
+	"""
+	Number of transactions the account has been involved in or
+	affected by.
+	"""
+	transactionCount: Int!
+	"""
+	Number of transactions where this account is the sender of the
+	transaction. This is the `nonce` of the account. This value is
+	currently not used by the front-end and the `COUNT(*)` will need further
+	optimization if intended to be used.
+	"""
+	nonce: Int!
+	tokens(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): AccountTokenConnection!
+	transactions(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): AccountTransactionRelationConnection!
+	accountStatement(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): AccountStatementEntryConnection!
+	rewards(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): AccountRewardConnection!
+	releaseSchedule: AccountReleaseSchedule!
+}
+
+type AccountAddress {
+	asString: String!
+}
+
+type AccountAddressAmount {
+	accountAddress: AccountAddress!
+	amount: UnsignedLong!
+}
+
+type AccountAddressAmountConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [AccountAddressAmountEdge!]!
+	"A list of nodes."
+	nodes: [AccountAddressAmount!]!
+}
+
+"An edge in a connection."
+type AccountAddressAmountEdge {
+	"The item at the end of the edge"
+	node: AccountAddressAmount!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+type AccountConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [AccountEdge!]!
+	"A list of nodes."
+	nodes: [Account!]!
+}
+
+type AccountCreated {
+	accountAddress: AccountAddress!
+}
+
+"An edge in a connection."
+type AccountEdge {
+	"The item at the end of the edge"
+	node: Account!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+input AccountFilterInput {
+	isDelegator: Boolean!
+}
+
+type AccountMetrics {
+	"Total number of accounts created (all time)."
+	lastCumulativeAccountsCreated: Int!
+	"Total number of accounts created in requested period."
+	accountsCreated: Int!
+	buckets: AccountMetricsBuckets!
+}
+
+type AccountMetricsBuckets {
+	"The width (time interval) of each bucket."
+	bucketWidth: TimeSpan!
+	"Start of the bucket time period. Intended x-axis value."
+	x_Time: [DateTime!]!
+	"""
+	Total number of accounts created (all time) at the end of the bucket
+	period. Intended y-axis value.
+	"""
+	y_LastCumulativeAccountsCreated: [Int!]!
+	"""
+	Number of accounts created within bucket time period. Intended y-axis
+	value.
+	"""
+	y_AccountsCreated: [Int!]!
+}
+
+type AccountReleaseSchedule {
+	totalAmount: UnsignedLong!
+	schedule(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): AccountReleaseScheduleItemConnection!
+}
+
+type AccountReleaseScheduleItem {
+	transaction: Transaction!
+	timestamp: DateTime!
+	amount: UnsignedLong!
+}
+
+type AccountReleaseScheduleItemConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [AccountReleaseScheduleItemEdge!]!
+	"A list of nodes."
+	nodes: [AccountReleaseScheduleItem!]!
+}
+
+"An edge in a connection."
+type AccountReleaseScheduleItemEdge {
+	"The item at the end of the edge"
+	node: AccountReleaseScheduleItem!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+type AccountReward {
+	timestamp: DateTime!
+	id: ID!
+	block: Block!
+	amount: UnsignedLong!
+	rewardType: RewardType!
+}
+
+type AccountRewardConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [AccountRewardEdge!]!
+	"A list of nodes."
+	nodes: [AccountReward!]!
+}
+
+"An edge in a connection."
+type AccountRewardEdge {
+	"The item at the end of the edge"
+	node: AccountReward!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+enum AccountSort {
+	AGE_ASC
+	AGE_DESC
+	AMOUNT_ASC
+	AMOUNT_DESC
+	TRANSACTION_COUNT_ASC
+	TRANSACTION_COUNT_DESC
+	DELEGATED_STAKE_ASC
+	DELEGATED_STAKE_DESC
+}
+
+type AccountStatementEntry {
+	timestamp: DateTime!
+	entryType: AccountStatementEntryType!
+	id: ID!
+	amount: Long!
+	accountBalance: UnsignedLong!
+	reference: BlockOrTransaction!
+}
+
+type AccountStatementEntryConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [AccountStatementEntryEdge!]!
+	"A list of nodes."
+	nodes: [AccountStatementEntry!]!
+}
+
+"An edge in a connection."
+type AccountStatementEntryEdge {
+	"The item at the end of the edge"
+	node: AccountStatementEntry!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+enum AccountStatementEntryType {
+	TRANSFER_IN
+	TRANSFER_OUT
+	AMOUNT_DECRYPTED
+	AMOUNT_ENCRYPTED
+	TRANSACTION_FEE
+	FINALIZATION_REWARD
+	FOUNDATION_REWARD
+	BAKER_REWARD
+	TRANSACTION_FEE_REWARD
+}
+
+type AccountToken {
+	changeSeq: Int!
+	tokenId: String!
+	contractIndex: Int!
+	contractSubIndex: Int!
+	accountId: Int!
+	token: Token!
+	account: Account!
+	balance: BigInteger!
+}
+
+type AccountTokenConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [AccountTokenEdge!]!
+	"A list of nodes."
+	nodes: [AccountToken!]!
+}
+
+"An edge in a connection."
+type AccountTokenEdge {
+	"The item at the end of the edge"
+	node: AccountToken!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+type AccountTransaction {
+	accountTransactionType: AccountTransactionType
+}
+
+type AccountTransactionRelation {
+	transaction: Transaction!
+}
+
+type AccountTransactionRelationConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [AccountTransactionRelationEdge!]!
+	"A list of nodes."
+	nodes: [AccountTransactionRelation!]!
+}
+
+"An edge in a connection."
+type AccountTransactionRelationEdge {
+	"The item at the end of the edge"
+	node: AccountTransactionRelation!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+enum AccountTransactionType {
+	INITIALIZE_SMART_CONTRACT_INSTANCE
+	UPDATE_SMART_CONTRACT_INSTANCE
+	SIMPLE_TRANSFER
+	ENCRYPTED_TRANSFER
+	SIMPLE_TRANSFER_WITH_MEMO
+	ENCRYPTED_TRANSFER_WITH_MEMO
+	TRANSFER_WITH_SCHEDULE_WITH_MEMO
+	DEPLOY_MODULE
+	ADD_BAKER
+	REMOVE_BAKER
+	UPDATE_BAKER_STAKE
+	UPDATE_BAKER_RESTAKE_EARNINGS
+	UPDATE_BAKER_KEYS
+	UPDATE_CREDENTIAL_KEYS
+	TRANSFER_TO_ENCRYPTED
+	TRANSFER_TO_PUBLIC
+	TRANSFER_WITH_SCHEDULE
+	UPDATE_CREDENTIALS
+	REGISTER_DATA
+	CONFIGURE_BAKER
+	CONFIGURE_DELEGATION
+}
+
+"A segment of a collection."
+type AccountsCollectionSegment {
+	"Information to aid in pagination."
+	pageInfo: CollectionSegmentInfo!
+	"A flattened list of the items."
+	items: [AccountToken!]!
+	totalCount: Int!
+}
+
+type AccountsUpdatedSubscriptionItem {
+	address: String!
+}
+
+type ActiveBakerState {
+	"""
+	The status of the baker's node. Will be null if no status for the node
+	exists.
+	"""
+	nodeStatus: NodeStatus
+	stakedAmount: UnsignedLong!
+	restakeEarnings: Boolean!
+	pool: BakerPool!
+	pendingChange: PendingBakerChange
+}
+
+type AddAnonymityRevokerChainUpdatePayload {
+	arIdentity: Int!
+	name: String!
+	url: String!
+	description: String!
+}
+
+type AddIdentityProviderChainUpdatePayload {
+	ipIdentity: Int!
+	name: String!
+	url: String!
+	description: String!
+}
+
+union Address = ContractAddress | AccountAddress
+
+type AlreadyABaker {
+	bakerId: Long!
+}
+
+type AlreadyADelegator {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type AmountAddedByDecryption {
+	amount: UnsignedLong!
+	accountAddress: AccountAddress!
+}
+
+type AmountTooLarge {
+	address: Address!
+	amount: UnsignedLong!
+}
+
+enum ApyPeriod {
+	LAST7_DAYS
+	LAST30_DAYS
+}
+
+type Baker {
+	id: ID!
+	bakerId: Long!
+	state: BakerState!
+	account: Account!
+	transactions(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): InterimTransactionConnection!
+}
+
+type BakerAdded {
+	stakedAmount: UnsignedLong!
+	restakeEarnings: Boolean!
+	bakerId: Long!
+	signKey: String!
+	electionKey: String!
+	aggregationKey: String!
+	accountAddress: AccountAddress!
+}
+
+type BakerConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [BakerEdge!]!
+	"A list of nodes."
+	nodes: [Baker!]!
+}
+
+type BakerDelegationRemoved {
+	delegatorId: Int!
+	accountAddress: AccountAddress!
+}
+
+type BakerDelegationTarget {
+	bakerId: Long!
+}
+
+"An edge in a connection."
+type BakerEdge {
+	"The item at the end of the edge"
+	node: Baker!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+input BakerFilterInput {
+	openStatusFilter: BakerPoolOpenStatus
+	includeRemoved: Boolean
+}
+
+type BakerInCooldown {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type BakerKeysUpdated {
+	bakerId: Long!
+	signKey: String!
+	electionKey: String!
+	aggregationKey: String!
+	accountAddress: AccountAddress!
+}
+
+type BakerMetrics {
+	"Total bakers before the start of the period"
+	lastBakerCount: Int!
+	"The number of bakers added during the specified period."
+	bakersAdded: Int!
+	"The number of bakers removed during the specified period."
+	bakersRemoved: Int!
+	"Bucket-wise data for bakers added, removed, and the bucket times."
+	buckets: BakerMetricsBuckets!
+}
+
+type BakerMetricsBuckets {
+	"The width (time interval) of each bucket."
+	bucketWidth: TimeSpan!
+	"""
+	The time values (start of each bucket) intended for use as x-axis
+	values.
+	"""
+	x_Time: [DateTime!]!
+	"""
+	The number of bakers added for each bucket, intended for use as y-axis
+	values.
+	"""
+	y_BakersAdded: [Int!]!
+	"""
+	The number of bakers removed for each bucket, intended for use as y-axis
+	values.
+	"""
+	y_BakersRemoved: [Int!]!
+	"Total bakers during each period"
+	y_LastBakerCount: [Int!]!
+}
+
+type BakerPool {
+	totalStakePercentage: Decimal!
+	totalStake: UnsignedLong!
+	rankingByTotalStake: Ranking
+	delegatedStake: UnsignedLong!
+	delegatedStakeCap: UnsignedLong!
+	delegatorCount: Int!
+	commissionRates: CommissionRates!
+	paydayCommissionRates: CommissionRates
+	lotteryPower: Decimal!
+	openStatus: BakerPoolOpenStatus
+	metadataUrl: String
+	selfSuspended: Int
+	inactiveSuspended: Int
+	primedForSuspension: Int
+	poolRewards(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): PaydayPoolRewardConnection!
+	delegators(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): DelegationSummaryConnection!
+	apy(period: ApyPeriod!): PoolApy!
+}
+
+enum BakerPoolOpenStatus {
+	OPEN_FOR_ALL
+	CLOSED_FOR_NEW
+	CLOSED_FOR_ALL
+}
+
+type BakerPoolRewardTarget {
+	bakerId: Long!
+}
+
+type BakerRemoved {
+	bakerId: Long!
+	accountAddress: AccountAddress!
+}
+
+type BakerResumed {
+	bakerId: Long!
+	accountAddress: AccountAddress!
+}
+
+type BakerSetBakingRewardCommission {
+	bakerId: Long!
+	accountAddress: AccountAddress!
+	bakingRewardCommission: Decimal!
+}
+
+type BakerSetFinalizationRewardCommission {
+	bakerId: Long!
+	accountAddress: AccountAddress!
+	finalizationRewardCommission: Decimal!
+}
+
+type BakerSetMetadataURL {
+	bakerId: Long!
+	accountAddress: AccountAddress!
+	metadataUrl: String!
+}
+
+type BakerSetOpenStatus {
+	bakerId: Long!
+	accountAddress: AccountAddress!
+	openStatus: BakerPoolOpenStatus!
+}
+
+type BakerSetRestakeEarnings {
+	bakerId: Long!
+	restakeEarnings: Boolean!
+	accountAddress: AccountAddress!
+}
+
+type BakerSetTransactionFeeCommission {
+	bakerId: Long!
+	accountAddress: AccountAddress!
+	transactionFeeCommission: Decimal!
+}
+
+enum BakerSort {
+	BAKER_ID_ASC
+	BAKER_ID_DESC
+	TOTAL_STAKED_AMOUNT_DESC
+	DELEGATOR_COUNT_DESC
+	BAKER_APY30_DAYS_DESC
+	DELEGATOR_APY30_DAYS_DESC
+	"Sort ascending by the current payday baking commission rate."
+	BLOCK_COMMISSIONS_ASC
+	"Sort descending by the current payday baking commission rate."
+	BLOCK_COMMISSIONS_DESC
+}
+
+type BakerStakeDecreased {
+	bakerId: Long!
+	newStakedAmount: UnsignedLong!
+	accountAddress: AccountAddress!
+}
+
+type BakerStakeIncreased {
+	bakerId: Long!
+	newStakedAmount: UnsignedLong!
+	accountAddress: AccountAddress!
+}
+
+type BakerStakeThresholdChainUpdatePayload {
+	amount: UnsignedLong!
+}
+
+union BakerState = ActiveBakerState | RemovedBakerState
+
+type BakerSuspended {
+	bakerId: Long!
+	accountAddress: AccountAddress!
+}
+
+type BakingRewardCommissionNotInRange {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type BakingRewardsSpecialEvent {
+	id: ID!
+	remainder: UnsignedLong!
+	bakingRewards(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): AccountAddressAmountConnection!
+}
+
+scalar BigInteger
+
+type Block {
+	"Absolute block height."
+	id: ID!
+	blockHash: String!
+	blockHeight: Int!
+	bakerId: Long
+	totalAmount: UnsignedLong!
+	"Time of the block being baked."
+	blockSlotTime: DateTime!
+	"Whether the block is finalized."
+	finalized: Boolean!
+	"""
+	The block statistics:
+	- The time difference from the parent block.
+	- The time difference to the block that justifies the block being
+	finalized.
+	"""
+	blockStatistics: BlockStatistics!
+	"Number of transactions included in this block."
+	transactionCount: Int!
+	"""
+	Query the special events (aka. special transaction outcomes) associated
+	with this block.
+	"""
+	specialEvents(
+		"Filter special events by special event type. Set to null to return all special events (no filtering)."
+		includeFilter: [SpecialEventTypeFilter!],
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): SpecialEventConnection!
+	transactions(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): TransactionConnection!
+}
+
+type BlockAccrueRewardSpecialEvent {
+	id: ID!
+	"The total fees paid for transactions in the block."
+	transactionFees: UnsignedLong!
+	"The old balance of the GAS account."
+	oldGasAccount: UnsignedLong!
+	"The new balance of the GAS account."
+	newGasAccount: UnsignedLong!
+	"The amount awarded to the baker."
+	bakerReward: UnsignedLong!
+	"The amount awarded to the passive delegators."
+	passiveReward: UnsignedLong!
+	"The amount awarded to the foundation."
+	foundationCharge: UnsignedLong!
+	"The baker of the block, who will receive the award."
+	bakerId: Long!
+}
+
+type BlockConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [BlockEdge!]!
+	"A list of nodes."
+	nodes: [Block!]!
+}
+
+"An edge in a connection."
+type BlockEdge {
+	"The item at the end of the edge"
+	node: Block!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+type BlockEnergyLimitUpdate {
+	energyLimit: UnsignedLong!
+}
+
+type BlockMetrics {
+	"""
+	The most recent block height. Equals the total length of the chain minus
+	one (genesis block is at height zero).
+	"""
+	lastBlockHeight: Int!
+	"Total number of blocks added in requested period."
+	blocksAdded: Int!
+	"""
+	The average block time in seconds (slot-time difference between two
+	adjacent blocks) in the requested period. Will be null if no blocks
+	have been added in the requested period.
+	"""
+	avgBlockTime: Float
+	"""
+	The average finalization time in seconds (slot-time difference between a
+	given block and the block that holds its finalization proof) in the
+	requested period. Will be null if no blocks have been finalized in
+	the requested period.
+	"""
+	avgFinalizationTime: Float
+	"The current total amount of CCD in existence."
+	lastTotalMicroCcd: UnsignedLong!
+	"""
+	The total CCD Released. This is total CCD supply not counting the
+	balances of non circulating accounts.
+	"""
+	lastTotalMicroCcdReleased: UnsignedLong!
+	"The current total amount of CCD staked."
+	lastTotalMicroCcdStaked: UnsignedLong!
+	buckets: BlockMetricsBuckets!
+}
+
+type BlockMetricsBuckets {
+	"The width (time interval) of each bucket."
+	bucketWidth: TimeSpan!
+	"Start of the bucket time period. Intended x-axis value."
+	x_Time: [DateTime!]!
+	"""
+	Number of blocks added within the bucket time period. Intended y-axis
+	value.
+	"""
+	y_BlocksAdded: [Int!]!
+	"""
+	The average block time (slot-time difference between two adjacent
+	blocks) in the bucket period. Intended y-axis value. Will be null if
+	no blocks have been added in the bucket period.
+	"""
+	y_BlockTimeAvg: [Float!]!
+	"""
+	The average finalization time (slot-time difference between a given
+	block and the block that holds its finalization proof) in the bucket
+	period. Intended y-axis value. Will be null if no blocks have been
+	finalized in the bucket period.
+	"""
+	y_FinalizationTimeAvg: [Float!]!
+	"""
+	The total amount of CCD staked at the end of the bucket period. Intended
+	y-axis value.
+	"""
+	y_LastTotalMicroCcdStaked: [UnsignedLong!]!
+}
+
+union BlockOrTransaction = Transaction | Block
+
+type BlockRewardsSpecialEvent {
+	transactionFees: UnsignedLong!
+	oldGasAccount: UnsignedLong!
+	newGasAccount: UnsignedLong!
+	bakerReward: UnsignedLong!
+	foundationCharge: UnsignedLong!
+	bakerAccountAddress: AccountAddress!
+	foundationAccountAddress: AccountAddress!
+	id: ID!
+}
+
+type BlockStatistics {
+	"""
+	Number of seconds between block slot time of this block and previous
+	block.
+	"""
+	blockTime: Float!
+	"""
+	Number of seconds between the block slot time of this block and the
+	block containing the finalization proof for this block.
+	
+	This is an objective measure of the finalization time (determined by
+	chain data alone) and will at least be the block time. The actual
+	finalization time will usually be lower than that but can only be
+	determined in a subjective manner by each node: That is the time a
+	node has first seen a block finalized. This is defined as the
+	difference between when a finalization proof is first constructed,
+	and the block slot time. However the time when a finalization proof
+	is first constructed is subjective, some nodes will receive the
+	necessary messages before others. Also, this number cannot be
+	reconstructed for blocks finalized before extracting data from the
+	node.
+	
+	Value will initially be `None` until the block containing the
+	finalization proof for this block is itself finalized.
+	"""
+	finalizationTime: Float
+}
+
+
+scalar Byte
+
+type ChainParametersV1 {
+	rewardPeriodLength: UnsignedLong!
+}
+
+type ChainUpdateEnqueued {
+	effectiveTime: DateTime!
+	payload: ChainUpdatePayload!
+}
+
+union ChainUpdatePayload = ProtocolChainUpdatePayload | MinBlockTimeUpdate | TimeoutParametersUpdate | FinalizationCommitteeParametersUpdate | BlockEnergyLimitUpdate | GasRewardsCpv2Update | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | FoundationAccountChainUpdatePayload | MintDistributionChainUpdatePayload | MintDistributionV1ChainUpdatePayload | TransactionFeeDistributionChainUpdatePayload | GasRewardsChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | RootKeysChainUpdatePayload | Level1KeysChainUpdatePayload | AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | CooldownParametersChainUpdatePayload | PoolParametersChainUpdatePayload | TimeParametersChainUpdatePayload | ValidatorScoreParametersUpdate
+
+type Cis2Event {
+	tokenId: String!
+	contractIndex: Int!
+	contractSubIndex: Int!
+	transactionIndex: Int!
+	indexPerToken: Int!
+	transaction: Transaction!
+	event: CisEvent
+}
+
+type CisBurnEvent {
+	fromAddress: Address!
+	tokenAmount: BigInteger!
+	tokenId: String!
+}
+
+union CisEvent = CisTransferEvent | CisMintEvent | CisBurnEvent | CisTokenMetadataEvent | CisUnknownEvent
+
+type CisMintEvent {
+	toAddress: Address!
+	tokenAmount: BigInteger!
+	tokenId: String!
+}
+
+type CisTokenMetadataEvent {
+	metadataUrl: String!
+	hashHex: String
+	tokenId: String!
+}
+
+type CisTransferEvent {
+	toAddress: Address!
+	fromAddress: Address!
+	tokenAmount: BigInteger!
+	tokenId: String!
+}
+
+type CisUnknownEvent {
+	dummy: UnsignedLong!
+}
+
+"Information about the offset pagination."
+type CollectionSegmentInfo {
+	"""
+	Indicates whether more items exist following the set defined by the
+	clients arguments.
+	"""
+	hasNextPage: Boolean!
+	"""
+	Indicates whether more items exist prior the set defined by the clients
+	arguments.
+	"""
+	hasPreviousPage: Boolean!
+}
+
+type CommissionRange {
+	min: Decimal!
+	max: Decimal!
+}
+
+type CommissionRates {
+	transactionCommission: Decimal
+	finalizationCommission: Decimal
+	bakingCommission: Decimal
+}
+
+type Contract {
+	contractAddressIndex: UnsignedLong!
+	contractAddressSubIndex: UnsignedLong!
+	contractAddress: String!
+	creator: AccountAddress!
+	blockHeight: Int!
+	transactionHash: String!
+	blockSlotTime: DateTime!
+	snapshot: ContractSnapshot!
+	contractEvents(skip: Int, take: Int): ContractEventsCollectionSegment!
+	contractRejectEvents(skip: Int, take: Int): ContractRejectEventsCollectionSegment!
+	tokens(skip: Int, take: Int): TokensCollectionSegment!
+}
+
+type ContractAddress {
+	index: UnsignedLong!
+	subIndex: UnsignedLong!
+	asString: String!
+}
+
+type ContractCall {
+	contractUpdated: ContractUpdated!
+}
+
+type ContractConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [ContractEdge!]!
+	"A list of nodes."
+	nodes: [Contract!]!
+}
+
+"An edge in a connection."
+type ContractEdge {
+	"The item at the end of the edge"
+	node: Contract!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+type ContractEvent {
+	contractAddressIndex: UnsignedLong!
+	contractAddressSubIndex: UnsignedLong!
+	sender: AccountAddress!
+	event: Event!
+	blockHeight: Int!
+	transactionHash: String!
+	blockSlotTime: DateTime!
+}
+
+"A segment of a collection."
+type ContractEventsCollectionSegment {
+	"Information to aid in pagination."
+	pageInfo: CollectionSegmentInfo!
+	"A flattened list of the items."
+	items: [ContractEvent!]!
+	totalCount: Int!
+}
+
+type ContractInitialized {
+	moduleRef: String!
+	contractAddress: ContractAddress!
+	amount: UnsignedLong!
+	initName: String!
+	version: ContractVersion!
+	inputParameter: [Int!]
+	contractLogsRaw: [[Int!]!]!
+	messageAsHex: String
+	message: String
+	eventsAsHex: StringConnection!
+	events: StringConnection!
+}
+
+type ContractInterrupted {
+	contractAddress: ContractAddress!
+	contractLogsRaw: [[Int!]!]!
+	eventsAsHex: StringConnection!
+	events: StringConnection!
+}
+
+type ContractModuleDeployed {
+	moduleRef: String!
+}
+
+type ContractRejectEvent {
+	rejectedEvent: TransactionRejectReason!
+	transactionHash: String!
+	blockSlotTime: DateTime!
+}
+
+"A segment of a collection."
+type ContractRejectEventsCollectionSegment {
+	"A flattened list of the items."
+	items: [ContractRejectEvent!]!
+	totalCount: Int!
+}
+
+type ContractResumed {
+	contractAddress: ContractAddress!
+	success: Boolean!
+}
+
+type ContractSnapshot {
+	blockHeight: Int!
+	contractAddressIndex: UnsignedLong!
+	contractAddressSubIndex: UnsignedLong!
+	contractName: String!
+	moduleReference: String!
+	amount: UnsignedLong!
+}
+
+type ContractUpdated {
+	contractAddress: ContractAddress!
+	instigator: Address!
+	amount: UnsignedLong!
+	receiveName: String!
+	version: ContractVersion!
+	contractLogsRaw: [[Int!]!]!
+	inputParameter: [Int!]!
+	messageAsHex: String!
+	message: String
+	eventsAsHex: StringConnection!
+	events: StringConnection!
+}
+
+type ContractUpgraded {
+	contractAddress: ContractAddress!
+	from: String!
+	to: String!
+}
+
+enum ContractVersion {
+	V0
+	V1
+}
+
+type CooldownParametersChainUpdatePayload {
+	poolOwnerCooldown: UnsignedLong!
+	delegatorCooldown: UnsignedLong!
+}
+
+type CredentialDeployed {
+	regId: String!
+	accountAddress: AccountAddress!
+}
+
+type CredentialDeploymentTransaction {
+	credentialDeploymentTransactionType: CredentialDeploymentTransactionType!
+}
+
+enum CredentialDeploymentTransactionType {
+	INITIAL
+	NORMAL
+}
+
+type CredentialHolderDidNotSign {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type CredentialKeysUpdated {
+	credId: String!
+}
+
+type CredentialsUpdated {
+	accountAddress: AccountAddress!
+	newCredIds: [String!]!
+	removedCredIds: [String!]!
+	newThreshold: Byte!
+}
+
+type DataRegistered {
+	dataAsHex: String!
+	decoded: DecodedText!
+}
+
+"""
+Implement the DateTime<Utc> scalar
+
+The input/output is a string in RFC3339 format.
+"""
+scalar DateTime
+
+scalar Decimal
+
+type DecodedText {
+	text: String!
+	decodeType: TextDecodeType!
+}
+
+type Delegation {
+	delegatorId: Int!
+	stakedAmount: UnsignedLong!
+	restakeEarnings: Boolean!
+	delegationTarget: DelegationTarget!
+}
+
+type DelegationAdded {
+	delegatorId: Int!
+	accountAddress: AccountAddress!
+}
+
+type DelegationRemoved {
+	delegatorId: Int!
+	accountAddress: AccountAddress!
+}
+
+type DelegationSetDelegationTarget {
+	delegatorId: Int!
+	accountAddress: AccountAddress!
+	delegationTarget: DelegationTarget!
+}
+
+type DelegationSetRestakeEarnings {
+	delegatorId: Int!
+	accountAddress: AccountAddress!
+	restakeEarnings: Boolean!
+}
+
+type DelegationStakeDecreased {
+	delegatorId: Int!
+	accountAddress: AccountAddress!
+	newStakedAmount: UnsignedLong!
+}
+
+type DelegationStakeIncreased {
+	delegatorId: Int!
+	accountAddress: AccountAddress!
+	newStakedAmount: UnsignedLong!
+}
+
+type DelegationSummary {
+	accountAddress: AccountAddress!
+	stakedAmount: UnsignedLong!
+	restakeEarnings: Boolean!
+}
+
+type DelegationSummaryConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [DelegationSummaryEdge!]!
+	"A list of nodes."
+	nodes: [DelegationSummary!]!
+}
+
+"An edge in a connection."
+type DelegationSummaryEdge {
+	"The item at the end of the edge"
+	node: DelegationSummary!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+union DelegationTarget = PassiveDelegationTarget | BakerDelegationTarget
+
+type DelegationTargetNotABaker {
+	bakerId: Long!
+}
+
+type DelegatorInCooldown {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type DuplicateAggregationKey {
+	aggregationKey: String!
+}
+
+type DuplicateCredIds {
+	credIds: [String!]!
+}
+
+type ElectionDifficultyChainUpdatePayload {
+	electionDifficulty: Decimal!
+}
+
+type EncryptedAmountSelfTransfer {
+	accountAddress: AccountAddress!
+}
+
+type EncryptedAmountsRemoved {
+	accountAddress: AccountAddress!
+	newEncryptedAmount: String!
+	inputAmount: String!
+	upToIndex: Int!
+}
+
+type EncryptedSelfAmountAdded {
+	accountAddress: AccountAddress!
+	newEncryptedAmount: String!
+	amount: UnsignedLong!
+}
+
+type EuroPerEnergyChainUpdatePayload {
+	exchangeRate: Ratio!
+}
+
+union Event = Transferred | TransferMemo | TransferredWithSchedule | EncryptedAmountsRemoved | AmountAddedByDecryption | EncryptedSelfAmountAdded | NewEncryptedAmount | AccountCreated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | BakerSetOpenStatus | BakerSetMetadataURL | BakerSetTransactionFeeCommission | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerDelegationRemoved | BakerSuspended | BakerResumed | ContractInitialized | ContractModuleDeployed | ContractUpdated | ContractCall | ContractInterrupted | ContractResumed | ContractUpgraded | DelegationAdded | DelegationRemoved | DelegationStakeIncreased | DelegationStakeDecreased | DelegationSetRestakeEarnings | DelegationSetDelegationTarget | DataRegistered | ChainUpdateEnqueued
+
+type EventConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [EventEdge!]!
+	"A list of nodes."
+	nodes: [Event!]!
+	totalCount: Int!
+}
+
+"An edge in a connection."
+type EventEdge {
+	"The item at the end of the edge"
+	node: Event!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+type FinalizationCommitteeParametersUpdate {
+	minFinalizers: UnsignedInt!
+	maxFinalizers: UnsignedInt!
+	finalizersRelativeStakeThreshold: Decimal!
+}
+
+type FinalizationRewardCommissionNotInRange {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type FinalizationRewardsSpecialEvent {
+	id: ID!
+	remainder: UnsignedLong!
+	finalizationRewards(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): AccountAddressAmountConnection!
+}
+
+type FirstScheduledReleaseExpired {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+
+type FoundationAccountChainUpdatePayload {
+	accountAddress: AccountAddress!
+}
+
+type GasRewardsChainUpdatePayload {
+	accountCreation: Decimal!
+	baker: Decimal!
+	chainUpdate: Decimal!
+	finalizationProof: Decimal!
+}
+
+type GasRewardsCpv2Update {
+	baker: Decimal!
+	accountCreation: Decimal!
+	chainUpdate: Decimal!
+}
+
+
+type ImportState {
+	epochDuration: TimeSpan!
+}
+
+"""
+The status of parsing `message` into its JSON representation using the
+smart contract module schema.
+"""
+enum InstanceMessageParsingStatus {
+	"Parsing succeeded."
+	SUCCESS
+	"No message was provided."
+	EMPTY_MESSAGE
+	"No module schema found in the deployed smart contract module."
+	MODULE_SCHEMA_NOT_FOUND
+	"Relevant smart contract not found in smart contract module schema."
+	CONTRACT_NOT_FOUND
+	"Relevant smart contract function not found in smart contract schema."
+	FUNCTION_NOT_FOUND
+	"Schema for parameter not found in smart contract schema."
+	PARAM_NOT_FOUND
+	"""
+	Failed to construct the JSON representation from message using the smart
+	contract schema.
+	"""
+	FAILED
+}
+
+type InsufficientBalanceForBakerStake {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type InsufficientBalanceForDelegationStake {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type InsufficientDelegationStake {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+
+type InterimTransaction {
+	transaction: Transaction!
+}
+
+type InterimTransactionConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [InterimTransactionEdge!]!
+	"A list of nodes."
+	nodes: [InterimTransaction!]!
+}
+
+"An edge in a connection."
+type InterimTransactionEdge {
+	"The item at the end of the edge"
+	node: InterimTransaction!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+type InvalidAccountReference {
+	accountAddress: AccountAddress!
+}
+
+type InvalidAccountThreshold {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type InvalidContractAddress {
+	contractAddress: ContractAddress!
+}
+
+type InvalidCredentialKeySignThreshold {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type InvalidCredentials {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type InvalidEncryptedAmountTransferProof {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type InvalidIndexOnEncryptedTransfer {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type InvalidInitMethod {
+	moduleRef: String!
+	initName: String!
+}
+
+type InvalidModuleReference {
+	moduleRef: String!
+}
+
+type InvalidProof {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type InvalidReceiveMethod {
+	moduleRef: String!
+	receiveName: String!
+}
+
+type InvalidTransferToPublicProof {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type KeyIndexAlreadyInUse {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+union LatestChainParameters = ChainParametersV1
+
+type Level1KeysChainUpdatePayload {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type LeverageFactor {
+	numerator: UnsignedLong!
+	denominator: UnsignedLong!
+}
+
+type LinkedContract {
+	contractAddress: ContractAddress!
+	linkedDateTime: DateTime!
+}
+
+"A segment of a collection."
+type LinkedContractsCollectionSegment {
+	"A flattened list of the items."
+	items: [LinkedContract!]!
+	totalCount: Int!
+}
+
+scalar Long
+
+enum MetricsPeriod {
+	LAST_HOUR
+	LAST24_HOURS
+	LAST7_DAYS
+	LAST30_DAYS
+	LAST_YEAR
+}
+
+type MicroCcdPerEuroChainUpdatePayload {
+	exchangeRate: Ratio!
+}
+
+type MinBlockTimeUpdate {
+	durationSeconds: UnsignedLong!
+}
+
+type MintDistributionChainUpdatePayload {
+	mintPerSlot: Decimal!
+	bakingReward: Decimal!
+	finalizationReward: Decimal!
+}
+
+type MintDistributionV1ChainUpdatePayload {
+	bakingReward: Decimal!
+	finalizationReward: Decimal!
+}
+
+type MintSpecialEvent {
+	id: ID!
+	bakingReward: UnsignedLong!
+	finalizationReward: UnsignedLong!
+	platformDevelopmentCharge: UnsignedLong!
+	foundationAccountAddress: AccountAddress!
+}
+
+type MissingBakerAddParameters {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type MissingDelegationAddParameters {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type ModuleHashAlreadyExists {
+	moduleRef: String!
+}
+
+type ModuleNotWf {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+enum ModuleReferenceContractLinkAction {
+	ADDED
+	REMOVED
+}
+
+type ModuleReferenceContractLinkEvent {
+	blockSlotTime: DateTime!
+	transactionHash: String!
+	linkAction: ModuleReferenceContractLinkAction!
+	contractAddress: ContractAddress!
+}
+
+"A segment of a collection."
+type ModuleReferenceContractLinkEventsCollectionSegment {
+	"A flattened list of the items."
+	items: [ModuleReferenceContractLinkEvent!]!
+	totalCount: Int!
+}
+
+type ModuleReferenceEvent {
+	moduleReference: String!
+	sender: AccountAddress!
+	blockHeight: Int!
+	transactionHash: String!
+	transactionIndex: Int!
+	blockSlotTime: DateTime!
+	displaySchema: String
+	moduleReferenceRejectEvents(skip: Int, take: Int): ModuleReferenceRejectEventsCollectionSegment!
+	moduleReferenceContractLinkEvents(skip: Int, take: Int): ModuleReferenceContractLinkEventsCollectionSegment!
+	linkedContracts(skip: Int, take: Int): LinkedContractsCollectionSegment!
+}
+
+type ModuleReferenceEventConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [ModuleReferenceEventEdge!]!
+	"A list of nodes."
+	nodes: [ModuleReferenceEvent!]!
+}
+
+"An edge in a connection."
+type ModuleReferenceEventEdge {
+	"The item at the end of the edge"
+	node: ModuleReferenceEvent!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+type ModuleReferenceRejectEvent {
+	moduleReference: String!
+	blockHeight: Int!
+	transactionHash: String!
+	blockSlotTime: DateTime!
+	rejectedEvent: TransactionRejectReason!
+}
+
+type ModuleReferenceRejectEventsCollectionSegment {
+	items: [ModuleReferenceRejectEvent!]!
+	totalCount: Int!
+}
+
+type NewEncryptedAmount {
+	accountAddress: AccountAddress!
+	newIndex: Int!
+	encryptedAmount: String!
+}
+
+enum NodeSortDirection {
+	ASC
+	DESC
+}
+
+enum NodeSortField {
+	AVERAGE_PING
+	BLOCKS_RECEIVED_COUNT
+	CLIENT_VERSION
+	CONSENSUS_BAKER_ID
+	FINALIZED_BLOCK_HEIGHT
+	NODE_NAME
+	PEERS_COUNT
+	UPTIME
+}
+
+type NodeStatus {
+	averageBytesPerSecondIn: Float!
+	averageBytesPerSecondOut: Float!
+	averagePing: Float
+	bakingCommitteeMember: String!
+	bestArrivedTime: String
+	bestBlock: String!
+	bestBlockBakerId: Int
+	bestBlockCentralBankAmount: Int
+	bestBlockExecutionCost: Int
+	bestBlockHeight: Int!
+	bestBlockTotalAmount: Int
+	bestBlockTotalEncryptedAmount: Int
+	bestBlockTransactionCount: Int
+	bestBlockTransactionEnergyCost: Int
+	bestBlockTransactionsSize: Int
+	blockArriveLatencyEma: Float
+	blockArriveLatencyEmsd: Float
+	blockArrivePeriodEma: Float
+	blockArrivePeriodEmsd: Float
+	blockReceiveLatencyEma: Float
+	blockReceiveLatencyEmsd: Float
+	blockReceivePeriodEma: Float
+	blockReceivePeriodEmsd: Float
+	blocksReceivedCount: Int
+	blocksVerifiedCount: Int
+	consensusBakerId: Int
+	consensusRunning: Boolean!
+	finalizationCommitteeMember: Boolean!
+	finalizationCount: Int
+	finalizationPeriodEma: Float
+	finalizationPeriodEmsd: Float
+	finalizedBlock: String!
+	finalizedBlockHeight: Int!
+	finalizedBlockParent: String!
+	finalizedTime: String
+	genesisBlock: String!
+	nodeId: String!
+	nodeName: String!
+	packetsReceived: Int!
+	packetsSent: Int!
+	peersCount: Int!
+	peerType: String!
+	transactionsPerBlockEma: Float
+	transactionsPerBlockEmsd: Float
+	uptime: Int!
+	id: ID!
+	clientVersion: String!
+	peersList: [PeerReference!]!
+}
+
+type NodeStatusConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [NodeStatusEdge!]!
+	"A list of nodes."
+	nodes: [NodeStatus!]!
+}
+
+"An edge in a connection."
+type NodeStatusEdge {
+	"The item at the end of the edge"
+	node: NodeStatus!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+type NonExistentCredIds {
+	credIds: [String!]!
+}
+
+type NonExistentCredentialId {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type NonExistentRewardAccount {
+	accountAddress: AccountAddress!
+}
+
+type NonIncreasingSchedule {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type NotABaker {
+	accountAddress: AccountAddress!
+}
+
+type NotADelegator {
+	accountAddress: AccountAddress!
+}
+
+type NotAllowedMultipleCredentials {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type NotAllowedToHandleEncrypted {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type NotAllowedToReceiveEncrypted {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type OutOfEnergy {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+"Information about pagination in a connection"
+type PageInfo {
+	"When paginating backwards, are there more items?"
+	hasPreviousPage: Boolean!
+	"When paginating forwards, are there more items?"
+	hasNextPage: Boolean!
+	"When paginating backwards, the cursor to continue."
+	startCursor: String
+	"When paginating forwards, the cursor to continue."
+	endCursor: String
+}
+
+type PassiveDelegation {
+	poolRewards(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): PaydayPoolRewardConnection!
+	delegators(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): PassiveDelegationSummaryConnection!
+	delegatorCount: Int!
+	delegatedStake: BigInteger!
+	"""
+	Total passively delegated stake as a percentage of all CCDs in
+	existence.
+	"""
+	delegatedStakePercentage: Decimal!
+	commissionRates: CommissionRates!
+	apy(period: ApyPeriod!): Float
+}
+
+type PassiveDelegationPoolRewardTarget {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type PassiveDelegationSummary {
+	accountAddress: AccountAddress!
+	stakedAmount: UnsignedLong!
+	restakeEarnings: Boolean!
+}
+
+type PassiveDelegationSummaryConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [PassiveDelegationSummaryEdge!]!
+	"A list of nodes."
+	nodes: [PassiveDelegationSummary!]!
+}
+
+"An edge in a connection."
+type PassiveDelegationSummaryEdge {
+	"The item at the end of the edge"
+	node: PassiveDelegationSummary!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+type PassiveDelegationTarget {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type PaydayAccountRewardSpecialEvent {
+	id: ID!
+	"The account that got rewarded."
+	account: AccountAddress!
+	"The transaction fee reward at payday to the account."
+	transactionFees: UnsignedLong!
+	"The baking reward at payday to the account."
+	bakerReward: UnsignedLong!
+	"The finalization reward at payday to the account."
+	finalizationReward: UnsignedLong!
+}
+
+type PaydayFoundationRewardSpecialEvent {
+	id: ID!
+	foundationAccount: AccountAddress!
+	developmentCharge: UnsignedLong!
+}
+
+type PaydayPoolReward {
+	id: Int!
+	block: Block!
+	poolOwner: Int
+	timestamp: DateTime!
+	transactionFees: PaydayPoolRewardAmounts!
+	bakerReward: PaydayPoolRewardAmounts!
+	finalizationReward: PaydayPoolRewardAmounts!
+}
+
+type PaydayPoolRewardAmounts {
+	totalAmount: Int!
+	bakerAmount: Int!
+	delegatorsAmount: Int!
+}
+
+type PaydayPoolRewardConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [PaydayPoolRewardEdge!]!
+	"A list of nodes."
+	nodes: [PaydayPoolReward!]!
+}
+
+"An edge in a connection."
+type PaydayPoolRewardEdge {
+	"The item at the end of the edge"
+	node: PaydayPoolReward!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+type PaydayPoolRewardSpecialEvent {
+	id: ID!
+	"The pool awarded."
+	pool: PoolRewardTarget!
+	"Accrued transaction fees for pool."
+	transactionFees: UnsignedLong!
+	"Accrued baking rewards for pool."
+	bakerReward: UnsignedLong!
+	"Accrued finalization rewards for pool."
+	finalizationReward: UnsignedLong!
+}
+
+type PaydayStatus {
+	nextPaydayTime: DateTime!
+	paydaySummaries(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): PaydaySummaryConnection!
+}
+
+type PaydaySummary {
+	blockHeight: Int!
+	block: Block!
+}
+
+type PaydaySummaryConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [PaydaySummaryEdge!]!
+	"A list of nodes."
+	nodes: [PaydaySummary!]!
+}
+
+"An edge in a connection."
+type PaydaySummaryEdge {
+	"The item at the end of the edge"
+	node: PaydaySummary!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+type Peer {
+	nodeName: String!
+	nodeId: String!
+	id: ID!
+}
+
+type PeerReference {
+	nodeStatus: Peer
+	nodeId: String!
+}
+
+union PendingBakerChange = PendingBakerRemoval | PendingBakerReduceStake
+
+type PendingBakerReduceStake {
+	newStakedAmount: UnsignedLong!
+	effectiveTime: DateTime!
+}
+
+type PendingBakerRemoval {
+	effectiveTime: DateTime!
+}
+
+type PoolApy {
+	totalApy: Float
+	bakerApy: Float
+	delegatorsApy: Float
+}
+
+type PoolClosed {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type PoolParametersChainUpdatePayload {
+	passiveFinalizationCommission: Decimal!
+	passiveBakingCommission: Decimal!
+	passiveTransactionCommission: Decimal!
+	finalizationCommissionRange: CommissionRange!
+	transactionCommissionRange: CommissionRange!
+	bakingCommissionRange: CommissionRange!
+	minimumEquityCapital: UnsignedLong!
+	capitalBound: Decimal!
+	leverageBound: LeverageFactor!
+}
+
+type PoolRewardMetrics {
+	"Total rewards at the end of the interval"
+	sumTotalRewardAmount: Long!
+	"Baker rewards at the end of the interval"
+	sumBakerRewardAmount: Long!
+	"Delegator rewards at the end of the interval"
+	sumDelegatorsRewardAmount: Long!
+	"Bucket-wise data for rewards"
+	buckets: PoolRewardMetricsBuckets!
+}
+
+type PoolRewardMetricsBuckets {
+	"The width (time interval) of each bucket."
+	bucketWidth: TimeSpan!
+	x_Time: [DateTime!]!
+	y_SumTotalRewards: [Long!]!
+	y_SumBakerRewards: [Long!]!
+	y_SumDelegatorsRewards: [Long!]!
+}
+
+union PoolRewardTarget = PassiveDelegationPoolRewardTarget | BakerPoolRewardTarget
+
+type PoolWouldBecomeOverDelegated {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type ProtocolChainUpdatePayload {
+	message: String!
+	specificationUrl: String!
+	specificationHash: String!
+	specificationAuxiliaryDataHex: String!
+}
+
+type Query {
+	versions: Versions!
+	importState: ImportState!
+	latestChainParameters: LatestChainParameters!
+	paydayStatus: PaydayStatus!
+	search(query: String!): SearchResult!
+	passiveDelegation: PassiveDelegation!
+	suspendedValidators: SuspendedValidators!
+	baker(id: ID!): Baker!
+	bakerByBakerId(bakerId: Long!): Baker!
+	bakers(		sort: BakerSort! = BAKER_ID_ASC,		filter: BakerFilterInput,
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): BakerConnection!
+	block(id: ID!): Block!
+	blockByBlockHash(blockHash: String!): Block!
+	"Query the list of blocks ordered descendingly by block height."
+	blocks(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): BlockConnection!
+	transaction(id: ID!): Transaction!
+	transactionByTransactionHash(transactionHash: String!): Transaction!
+	transactions(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): TransactionConnection!
+	account(id: ID!): Account!
+	accountByAddress(accountAddress: String!): Account!
+	accounts(		sort: AccountSort! = AGE_DESC,		filter: AccountFilterInput,
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): AccountConnection!
+	moduleReferenceEvent(moduleReference: String!): ModuleReferenceEvent!
+	contract(contractAddressIndex: UnsignedLong!, contractAddressSubIndex: UnsignedLong!): Contract!
+	contracts(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): ContractConnection!
+	nodeStatuses(		sortDirection: NodeSortDirection!,		sortField: NodeSortField!,
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): NodeStatusConnection!
+	nodeStatus(
+		"Return node with corresponding id"
+		id: ID!
+	): NodeStatus
+	token(contractIndex: UnsignedLong!, contractSubIndex: UnsignedLong!, tokenId: String!): Token!
+	tokens(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): TokenConnection!
+	accountsMetrics(period: MetricsPeriod!): AccountMetrics!
+	"""
+	Fetches baker metrics for the specified period.
+	
+	This function queries the database for baker metrics such as the number
+	of bakers added, removed, and the last baker count in the specified
+	time period. It returns the results as a structured `BakerMetrics`
+	object.
+	"""
+	bakerMetrics(period: MetricsPeriod!): BakerMetrics!
+	rewardMetrics(period: MetricsPeriod!): RewardMetrics!
+	rewardMetricsForAccount(period: MetricsPeriod!, accountId: ID!): RewardMetrics!
+	poolRewardMetricsForBakerPool(period: MetricsPeriod!, bakerId: ID!): PoolRewardMetrics!
+	poolRewardMetricsForPassiveDelegation(period: MetricsPeriod!): PoolRewardMetrics!
+	blockMetrics(period: MetricsPeriod!): BlockMetrics!
+	transactionMetrics(period: MetricsPeriod!): TransactionMetrics!
+}
+
+"""
+Ranking of the bakers by lottery powers from the last payday block staring
+with rank 1 for the baker with the highest lottery power and ending with the
+rank `total` for the baker with the lowest lottery power.
+"""
+type Ranking {
+	rank: Int!
+	total: Int!
+}
+
+type Ratio {
+	numerator: UnsignedLong!
+	denominator: UnsignedLong!
+}
+
+type Rejected {
+	reason: TransactionRejectReason!
+}
+
+type RejectedInit {
+	rejectReason: Int!
+}
+
+"Transaction updating a smart contract instance was rejected."
+type RejectedReceive {
+	"Reject reason code produced by the smart contract instance."
+	rejectReason: Int!
+	"Address of the smart contract instance which rejected the update."
+	contractAddress: ContractAddress!
+	"""
+	The name of the entry point called in the smart contract instance (in
+	ReceiveName format '<contract_name>.<entrypoint>').
+	"""
+	receiveName: String!
+	"""
+	The HEX representation of the message provided for the smart contract
+	instance as parameter.
+	"""
+	messageAsHex: String!
+	"""
+	The JSON representation of the message provided for the smart contract
+	instance as parameter. Decoded using the smart contract module
+	schema if present otherwise undefined. Failing to parse the message
+	will result in this being undefined and `message_parsing_status`
+	representing the error.
+	"""
+	message: String
+	"""
+	The status of parsing `message` into its JSON representation using the
+	smart contract module schema.
+	"""
+	messageParsingStatus: InstanceMessageParsingStatus!
+}
+
+type RemoveFirstCredential {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type RemovedBakerState {
+	removedAt: DateTime!
+}
+
+type RewardMetrics {
+	"Total rewards at the end of the interval"
+	sumRewardAmount: Int!
+	"Bucket-wise data for rewards"
+	buckets: RewardMetricsBuckets!
+}
+
+type RewardMetricsBuckets {
+	"The width (time interval) of each bucket."
+	bucketWidth: TimeSpan!
+	x_Time: [DateTime!]!
+	y_SumRewards: [Int!]!
+}
+
+enum RewardType {
+	FINALIZATION_REWARD
+	FOUNDATION_REWARD
+	BAKER_REWARD
+	TRANSACTION_FEE_REWARD
+}
+
+type RootKeysChainUpdatePayload {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type RuntimeFailure {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type ScheduledSelfTransfer {
+	accountAddress: AccountAddress!
+}
+
+type SearchResult {
+	contracts(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): ContractConnection!
+	modules(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): ModuleReferenceEventConnection!
+	blocks(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): BlockConnection!
+	transactions(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): TransactionConnection!
+	tokens(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): TokenConnection!
+	accounts(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): AccountConnection!
+	bakers(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): BakerConnection!
+	nodeStatuses(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): NodeStatusConnection!
+}
+
+type SerializationFailure {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+union SpecialEvent = MintSpecialEvent | FinalizationRewardsSpecialEvent | BlockRewardsSpecialEvent | BakingRewardsSpecialEvent | PaydayAccountRewardSpecialEvent | BlockAccrueRewardSpecialEvent | PaydayFoundationRewardSpecialEvent | PaydayPoolRewardSpecialEvent | ValidatorSuspended | ValidatorPrimedForSuspension
+
+type SpecialEventConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [SpecialEventEdge!]!
+	"A list of nodes."
+	nodes: [SpecialEvent!]!
+}
+
+"An edge in a connection."
+type SpecialEventEdge {
+	"The item at the end of the edge"
+	node: SpecialEvent!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+enum SpecialEventTypeFilter {
+	MINT
+	FINALIZATION_REWARDS
+	BLOCK_REWARDS
+	BAKING_REWARDS
+	PAYDAY_ACCOUNT_REWARD
+	BLOCK_ACCRUE_REWARD
+	PAYDAY_FOUNDATION_REWARD
+	PAYDAY_POOL_REWARD
+	VALIDATOR_SUSPENDED
+	VALIDATOR_PRIMED_FOR_SUSPENSION
+}
+
+type StakeOverMaximumThresholdForPool {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type StakeUnderMinimumThresholdForBaking {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+
+type StringConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [StringEdge!]!
+	"A list of nodes."
+	nodes: [String!]!
+}
+
+"An edge in a connection."
+type StringEdge {
+	"The item at the end of the edge"
+	node: String!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+type Subscription {
+	blockAdded: Block!
+	accountsUpdated(accountAddress: String): AccountsUpdatedSubscriptionItem!
+}
+
+type Success {
+	events(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): EventConnection!
+}
+
+type SuspendedValidators {
+	suspendedValidators(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): ValidatorsConnection!
+	primedForSuspensionValidators(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): ValidatorsConnection!
+}
+
+enum TextDecodeType {
+	CBOR
+	HEX
+}
+
+type TimeParametersChainUpdatePayload {
+	rewardPeriodLength: UnsignedLong!
+	mintPerPayday: Decimal!
+}
+
+scalar TimeSpan
+
+type TimeoutParametersUpdate {
+	durationSeconds: UnsignedLong!
+	increase: Ratio!
+	decrease: Ratio!
+}
+
+type TimestampedAmount {
+	timestamp: DateTime!
+	amount: UnsignedLong!
+}
+
+type TimestampedAmountConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [TimestampedAmountEdge!]!
+	"A list of nodes."
+	nodes: [TimestampedAmount!]!
+}
+
+"An edge in a connection."
+type TimestampedAmountEdge {
+	"The item at the end of the edge"
+	node: TimestampedAmount!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+type Token {
+	initialTransaction: Transaction!
+	totalSupply: BigInteger!
+	tokenAddress: String!
+	tokenId: String!
+	metadataUrl: String
+	contractIndex: Int!
+	contractSubIndex: Int!
+	contractAddressFormatted: String!
+	accounts(skip: Int, take: Int): AccountsCollectionSegment!
+	tokenEvents(skip: Int, take: Int): TokenEventsCollectionSegment!
+}
+
+type TokenConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [TokenEdge!]!
+	"A list of nodes."
+	nodes: [Token!]!
+}
+
+"An edge in a connection."
+type TokenEdge {
+	"The item at the end of the edge"
+	node: Token!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+"A segment of a collection."
+type TokenEventsCollectionSegment {
+	"Information to aid in pagination."
+	pageInfo: CollectionSegmentInfo!
+	"A flattened list of the items."
+	items: [Cis2Event!]!
+	totalCount: Int!
+}
+
+"A segment of a collection."
+type TokensCollectionSegment {
+	"A flattened list of the items."
+	items: [Token!]!
+	totalCount: Int!
+}
+
+type Transaction {
+	"Transaction index as a string."
+	id: ID!
+	transactionIndex: Int!
+	transactionHash: String!
+	ccdCost: UnsignedLong!
+	energyCost: Int!
+	block: Block!
+	senderAccountAddress: AccountAddress
+	transactionType: TransactionType!
+	result: TransactionResult!
+}
+
+type TransactionConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [TransactionEdge!]!
+	"A list of nodes."
+	nodes: [Transaction!]!
+}
+
+"An edge in a connection."
+type TransactionEdge {
+	"The item at the end of the edge"
+	node: Transaction!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+type TransactionFeeCommissionNotInRange {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type TransactionFeeDistributionChainUpdatePayload {
+	baker: Decimal!
+	gasAccount: Decimal!
+}
+
+type TransactionMetrics {
+	"Total number of transactions (all time)."
+	lastCumulativeTransactionCount: Int!
+	"Total number of transactions in the requested period."
+	transactionCount: Int!
+	buckets: TransactionMetricsBuckets!
+}
+
+type TransactionMetricsBuckets {
+	"The width (time interval) of each bucket."
+	bucketWidth: TimeSpan!
+	"Start of the bucket time period. Intended x-axis value."
+	x_Time: [DateTime!]!
+	"""
+	Total number of transactions (all time) at the end of the bucket period.
+	Intended y-axis value.
+	"""
+	y_LastCumulativeTransactionCount: [Int!]!
+	"""
+	Total number of transactions within the bucket time period. Intended
+	y-axis value.
+	"""
+	y_TransactionCount: [Int!]!
+}
+
+union TransactionRejectReason = ModuleNotWf | ModuleHashAlreadyExists | InvalidAccountReference | InvalidInitMethod | InvalidReceiveMethod | InvalidModuleReference | InvalidContractAddress | RuntimeFailure | AmountTooLarge | SerializationFailure | OutOfEnergy | RejectedInit | RejectedReceive | NonExistentRewardAccount | InvalidProof | AlreadyABaker | NotABaker | InsufficientBalanceForBakerStake | StakeUnderMinimumThresholdForBaking | BakerInCooldown | DuplicateAggregationKey | NonExistentCredentialId | KeyIndexAlreadyInUse | InvalidAccountThreshold | InvalidCredentialKeySignThreshold | InvalidEncryptedAmountTransferProof | InvalidTransferToPublicProof | EncryptedAmountSelfTransfer | InvalidIndexOnEncryptedTransfer | ZeroScheduledAmount | NonIncreasingSchedule | FirstScheduledReleaseExpired | ScheduledSelfTransfer | InvalidCredentials | DuplicateCredIds | NonExistentCredIds | RemoveFirstCredential | CredentialHolderDidNotSign | NotAllowedMultipleCredentials | NotAllowedToReceiveEncrypted | NotAllowedToHandleEncrypted | MissingBakerAddParameters | FinalizationRewardCommissionNotInRange | BakingRewardCommissionNotInRange | TransactionFeeCommissionNotInRange | AlreadyADelegator | InsufficientBalanceForDelegationStake | MissingDelegationAddParameters | InsufficientDelegationStake | DelegatorInCooldown | NotADelegator | DelegationTargetNotABaker | StakeOverMaximumThresholdForPool | PoolWouldBecomeOverDelegated | PoolClosed
+
+union TransactionResult = Success | Rejected
+
+union TransactionType = AccountTransaction | CredentialDeploymentTransaction | UpdateTransaction
+
+type TransferMemo {
+	rawHex: String!
+	decoded: DecodedText!
+}
+
+type Transferred {
+	amount: UnsignedLong!
+	from: Address!
+	to: Address!
+}
+
+type TransferredWithSchedule {
+	fromAccountAddress: AccountAddress!
+	toAccountAddress: AccountAddress!
+	totalAmount: UnsignedLong!
+	amountsSchedule(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): TimestampedAmountConnection!
+}
+
+scalar UnsignedInt
+
+scalar UnsignedLong
+
+type UpdateTransaction {
+	updateTransactionType: UpdateTransactionType!
+}
+
+enum UpdateTransactionType {
+	UPDATE_PROTOCOL
+	UPDATE_ELECTION_DIFFICULTY
+	UPDATE_EURO_PER_ENERGY
+	UPDATE_MICRO_GTU_PER_EURO
+	UPDATE_FOUNDATION_ACCOUNT
+	UPDATE_MINT_DISTRIBUTION
+	UPDATE_TRANSACTION_FEE_DISTRIBUTION
+	UPDATE_GAS_REWARDS
+	UPDATE_BAKER_STAKE_THRESHOLD
+	UPDATE_ADD_ANONYMITY_REVOKER
+	UPDATE_ADD_IDENTITY_PROVIDER
+	UPDATE_ROOT_KEYS
+	UPDATE_LEVEL_1_KEYS
+	UPDATE_LEVEL_2_KEYS
+	UPDATE_POOL_PARAMETERS
+	UPDATE_COOLDOWN_PARAMETERS
+	UPDATE_TIME_PARAMETERS
+	MINT_DISTRIBUTION_CPV_1_UPDATE
+	GAS_REWARDS_CPV_2_UPDATE
+	TIMEOUT_PARAMETERS_UPDATE
+	MIN_BLOCK_TIME_UPDATE
+	BLOCK_ENERGY_LIMIT_UPDATE
+	FINALIZATION_COMMITTEE_PARAMETERS_UPDATE
+	VALIDATOR_SCORE_PARAMETERS_UPDATE
+}
+
+type ValidatorPrimedForSuspension {
+	bakerId: Long!
+	account: AccountAddress!
+}
+
+type ValidatorScoreParametersUpdate {
+	maximumMissedRounds: UnsignedLong!
+}
+
+type ValidatorSuspended {
+	bakerId: Long!
+	account: AccountAddress!
+}
+
+type Validators {
+	id: Int!
+}
+
+type ValidatorsConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [ValidatorsEdge!]!
+	"A list of nodes."
+	nodes: [Validators!]!
+}
+
+"An edge in a connection."
+type ValidatorsEdge {
+	"The item at the end of the edge"
+	node: Validators!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+type Versions {
+	backendVersion: String!
+	databaseSchemaVersion: String!
+	apiSupportedDatabaseSchemaVersion: String!
+}
+
+type ZeroScheduledAmount {
+	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+directive @deprecated(reason: String = "No longer supported") on FIELD_DEFINITION | ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION | ENUM_VALUE
+directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+directive @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+directive @specifiedBy(url: String!) on SCALAR
+schema {
+	query: Query
+	subscription: Subscription
+}

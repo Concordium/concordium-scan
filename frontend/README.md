@@ -11,7 +11,8 @@ The frontend is built on some fundamental technologies:
 - **[TypeScript](https://www.typescriptlang.org/)**
   A typed programming language, which compiles to JavaScript. This acts as an accelerator during development, and prevents most type errors at write-time and compile-time. [More on this in a later section](#typescript).
 
-Note: The old backend (`backend` folder), which had performance issues, is being replaced by a better performing backend (`backend-rust` folder). During the migration, the front-end relies on both backends, as not all queries have been transitioned yet. To ensure a smooth migration, the API interface remains backward-compatible and non-breaking.
+Note: The front-end relies on the [backend-rust](../backend-rust/README.md) for the GraphQL queries. In the past, the project used the legacy [backend](../backend/README.md) written in [.NET](https://dotnet.microsoft.com/en-us/) instead of the Rust [backend-rust](../backend-rust/README.md). 
+The legacy code remains until we are confident we can remove the legacy code/pipelines.
 
 ## Setup
 
@@ -155,31 +156,12 @@ describe('Button', () => {
 
 We are using [GraphQL Code Generator](https://www.graphql-code-generator.com/) to generate types from our GraphQL schema. Whenever there is a change in the schema, you can run the below commands which will generate a new set of types in `types/generated.ts` file. You should not edit this file manually, as the codegen will simply overwrite changes.
 
-#### Old backend:
-
-- Run the command in the `frontend` folder:
-
-```sh
-yarn gql-codegen
-```
-
 #### New backend:
 
 - Navigate into the `backend-rust` folder and run:
 
 ```
 env SQLX_OFFLINE=true cargo run --bin ccdscan-api -- --schema-out ./schema.graphql
-```
-
-- Update the `graphql-codegen.yaml` file in the `frontend` folder with:
-
-```
-overwrite: true
-schema: '../backend-rust/schema.graphql'
-generates:
-  src/types/generated.ts:
-    plugins:
-      - 'typescript'
 ```
 
 - Run the command in the `frontend` folder:
