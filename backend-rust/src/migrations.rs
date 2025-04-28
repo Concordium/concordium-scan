@@ -258,6 +258,8 @@ pub enum SchemaVersion {
     ReindexAccountAccountStatementEntryType,
     #[display("0031:Reindex affected accounts")]
     ReindexAffectedAccounts,
+    #[display("0032:Reindex ginhash")]
+    ReindexGinHash,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -265,7 +267,7 @@ impl SchemaVersion {
     /// have been introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::BakerPeriodApyViews;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::ReindexAffectedAccounts;
+    const LATEST: SchemaVersion = SchemaVersion::ReindexGinHash;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -316,6 +318,7 @@ impl SchemaVersion {
             SchemaVersion::IndexAccountTransactions => false,
             SchemaVersion::ReindexAccountAccountStatementEntryType => false,
             SchemaVersion::ReindexAffectedAccounts => false,
+            SchemaVersion::ReindexGinHash => false,
         }
     }
 
@@ -357,6 +360,7 @@ impl SchemaVersion {
             SchemaVersion::IndexAccountTransactions => false,
             SchemaVersion::ReindexAccountAccountStatementEntryType => false,
             SchemaVersion::ReindexAffectedAccounts => false,
+            SchemaVersion::ReindexGinHash => false,
         }
     }
 
@@ -554,7 +558,15 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::ReindexAffectedAccounts
             }
-            SchemaVersion::ReindexAffectedAccounts => unimplemented!(
+            SchemaVersion::ReindexAffectedAccounts => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0032_reindex_gin_hash.sql"
+                    )))
+                    .await?;
+                SchemaVersion::ReindexGinHash
+            }
+            SchemaVersion::ReindexGinHash => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
