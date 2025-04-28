@@ -19,6 +19,7 @@ export const useAccountsUpdatedSubscription = (
 ) => {
 	const { data, pause, resume } = useSubscription(
 		{
+			context: { url: useRuntimeConfig().public.wsUrlRust },
 			query: SubscriptionQuery,
 			pause: true,
 			variables,

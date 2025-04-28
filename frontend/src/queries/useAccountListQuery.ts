@@ -53,6 +53,7 @@ const AccountsQuery = gql<AccountsListResponse>`
 
 export const useAccountsListQuery = (variables: AccountListVariables) => {
 	const { data } = useQuery({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: AccountsQuery,
 		requestPolicy: 'cache-and-network',
 		variables,

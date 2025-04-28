@@ -24,6 +24,7 @@ export const useAccountRewardMetricsQuery = (
 	period: Ref<MetricsPeriod>
 ) => {
 	const { data, fetching } = useQuery({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: AccountRewardMetricsQuery,
 		requestPolicy: 'cache-and-network',
 		variables: { accountId, period },

@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.7.14] - 2025-04-14
+
+### Fixed
+
+- Move queries to use the new `rust-backend` API.
+	- `useAccountsMetricsQuery`
+	- `useAccountRewardMetricsQuery`
+	- `useAccountQuery`
+	- `useAccountsListQuery`
+	- `useAccountsUpdatedSubscription`
+
 ## [1.7.13] - 2025-04-14
 
 ### Fixed
