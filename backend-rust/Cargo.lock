@@ -952,11 +952,10 @@ dependencies = [
 
 [[package]]
 name = "concordium-rust-sdk"
-version = "6.0.0"
+version = "5.0.0"
 dependencies = [
  "aes-gcm",
  "anyhow",
- "base64ct",
  "chrono",
  "concordium-smart-contract-engine",
  "concordium_base",
@@ -984,7 +983,7 @@ dependencies = [
 
 [[package]]
 name = "concordium-scan"
-version = "0.1.47"
+version = "0.1.48"
 dependencies = [
  "anyhow",
  "async-graphql",
@@ -1022,7 +1021,7 @@ dependencies = [
 
 [[package]]
 name = "concordium-smart-contract-engine"
-version = "6.1.0"
+version = "6.0.0"
 dependencies = [
  "anyhow",
  "byteorder",
@@ -1045,7 +1044,7 @@ dependencies = [
 
 [[package]]
 name = "concordium-wasm"
-version = "5.1.0"
+version = "5.0.0"
 dependencies = [
  "anyhow",
  "concordium-contracts-common",
