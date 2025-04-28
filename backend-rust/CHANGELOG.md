@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.50] - 2025-04-28
+
+Modifying search key on the following tables to all be using `text_pattern_ops` because it is faster when using prefix searches only
+- `accounts`
+- `blocks`
+- `tokens`
+
 ## [0.1.49] - 2025-04-28
 
 - Bump lock file to reflect new SDK version
