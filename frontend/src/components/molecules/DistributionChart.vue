@@ -15,6 +15,7 @@
 				:labels="chartLabels"
 				:background-colors="baseColors"
 				:hover-background-colors="hoverColors"
+				:label-clickable="true"
 			/>
 		</ClientOnly>
 	</MetricCard>
@@ -58,18 +59,20 @@ const hoverColors = [
 const props = defineProps<{
 	stableCoinsData?: Stablecoin[]
 	isLoading?: boolean
+	labelClickable?: boolean
 }>()
 
 // Computed Properties
-const chartLabels = computed(
-	() => props.stableCoinsData?.map(item => item.symbol ?? 'undefined') || []
-)
+const chartLabels = computed(() => {
+	const coins = props.stableCoinsData?.slice(0, 10) ?? []
+	return coins.map(item => item.symbol ?? 'undefined')
+})
 
-const chartData = computed<number[]>(
-	() =>
-		props.stableCoinsData?.map(item => {
-			const value = Number(item.supplyPercentage)
-			return isNaN(value) ? 0 : value
-		}) || []
-)
+const chartData = computed<number[]>(() => {
+	const coins = props.stableCoinsData?.slice(0, 10) ?? []
+	return coins.map(item => {
+		const value = Number(item.supplyPercentage)
+		return isNaN(value) ? 0 : value
+	})
+})
 </script>

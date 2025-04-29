@@ -14,36 +14,37 @@
 					<Table>
 						<TableHead>
 							<TableRow>
-								<TableTh width="25%">Account</TableTh>
-								<TableTh width="25%">Quantity</TableTh>
-								<TableTh width="25%">Percentage</TableTh>
-								<TableTh width="25%">Value</TableTh>
+								<TableTh width="20%">Transaction Hash</TableTh>
+								<TableTh width="20%">Age</TableTh>
+								<TableTh width="20%">From</TableTh>
+								<TableTh width="20%">To</TableTh>
+								<TableTh width="20%">Amount</TableTh>
+								<TableTh width="20%">Value</TableTh>
 							</TableRow>
 						</TableHead>
 						<TableBody>
 							<TableRow
-								v-for="(coin, index) in dataPerStablecoin?.stablecoin?.holdings"
+								v-for="(coin, index) in dataPerStablecoin?.stablecoin
+									?.transactions"
 								:key="index"
 							>
 								<TableTd>
-									<AccountLink :address="coin.address" />
+									<TransactionLink :hash="coin.transactionHash" />
 								</TableTd>
 								<TableTd>
-									<Amount :amount="coin.quantity" />
+									{{ coin.dateTime ? timeAgo(coin.dateTime) : '-' }}
 								</TableTd>
-								<TableTd> {{ coin.percentage?.toFixed(2) }}% </TableTd>
 								<TableTd>
-									<Tooltip
-										:text="
-											String(
-												(coin.quantity ?? 0) *
-													(dataPerStablecoin?.stablecoin?.valueInDoller ?? 0)
-											)
-										"
-										text-class="text-theme-body"
-									>
-										${{ numberFormatter(coin?.quantity) }}
-									</Tooltip>
+									<AccountLink :address="coin.from" />
+								</TableTd>
+								<TableTd>
+									<AccountLink :address="coin.to" />
+								</TableTd>
+								<TableTd>
+									{{ coin.amount?.toFixed(2) }}
+								</TableTd>
+								<TableTd>
+									{{ coin.value?.toFixed(2) }}
 								</TableTd>
 							</TableRow>
 						</TableBody>
@@ -54,7 +55,7 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import { numberFormatter } from '~/utils/format'
+import { timeAgo } from '~/utils/format'
 import { useStableCoinDashboardList } from '~/queries/useStableCoinDashboardList'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 import CarouselSlide from '~/components/molecules/CarouselSlide.vue'
@@ -64,7 +65,6 @@ import {
 	TransactionFilterOption,
 	transactionFilterOptions,
 } from '~/types/stable-coin'
-
 // Define Props
 const props = defineProps<{
 	coinId?: string
@@ -73,7 +73,7 @@ const props = defineProps<{
 // Loading state
 const isLoading = ref(true)
 const lastNTransactions = ref(TransactionFilterOption.Top20)
-const limit = ref(20)
+const limit = ref(10)
 
 const coinId = props.coinId?.toUpperCase() ?? 'USDC'
 
@@ -88,4 +88,5 @@ watch(dataPerStablecoin, newData => {
 		isLoading.value = false
 	}
 })
+
 </script>

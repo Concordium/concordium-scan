@@ -4,7 +4,7 @@ type StablecoinOverviewResponse = {
 	stablecoinOverview: {
 		totalMarketcap?: number
 		noOfTxnLast24H?: number
-		numberOfUniqueHolder?: number
+		numberOfUniqueHolders?: number
 		valuesTransferdLast24H?: number
 	}
 }
@@ -14,8 +14,10 @@ const STABLECOIN_OVERVIEW_QUERY = gql`
 		stablecoinOverview {
 			totalMarketcap
 			noOfTxnLast24H
-			numberOfUniqueHolder
-			valuesTransferdLast24H
+			numberOfUniqueHolders
+			noOfTxn
+			valuesTransferred
+			valuesTransferredLast24H
 		}
 	}
 `

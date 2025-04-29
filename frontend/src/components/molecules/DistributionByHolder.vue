@@ -1,9 +1,7 @@
 <template>
 	<MetricCard class="w-96 lg:w-full">
 		<header class="flex flex-col items-center">
-			<div class="absolute top-4 right-4 text-xs">
-				<slot name="topRight" />
-			</div>
+			<div class="absolute top-4 right-4 text-xs"></div>
 
 			<div class="text-sm text-theme-faded pt-4 w-72 text-center">
 				<slot name="title" />
@@ -15,6 +13,7 @@
 				:labels="chartLabels"
 				:background-colors="baseColors"
 				:hover-background-colors="hoverColors"
+				:label-clickable="false"
 			/>
 		</ClientOnly>
 	</MetricCard>
@@ -23,9 +22,7 @@
 <script lang="ts" setup>
 import MetricCard from '~/components/atoms/MetricCard.vue'
 import { defineProps, computed } from 'vue'
-
 import type { Stablecoin } from '~/queries/useStableCoinQuery'
-
 import DoughnutChart from '../Charts/DoughnutChart.vue'
 
 const baseColors = [
@@ -58,6 +55,7 @@ const hoverColors = [
 const props = defineProps<{
 	distributionValues?: Stablecoin[]
 	isLoading?: boolean
+	labelClickable?: boolean
 }>()
 
 // Computed Properties

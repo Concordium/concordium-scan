@@ -3,8 +3,9 @@
 		<DistributionChart
 			:is-loading="isLoading"
 			:stable-coins-data="delayedSupplyPercentage"
+			:label-clickable="true"
 		>
-			<template #title> Distribution Supply StableCoin </template>
+			<template #title>Protocol Token Supply Distribution </template>
 		</DistributionChart>
 	</div>
 </template>

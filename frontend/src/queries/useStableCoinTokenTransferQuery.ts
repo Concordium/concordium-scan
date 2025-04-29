@@ -16,6 +16,9 @@ export type StableCoinTokenTransferResponse = {
 		valueInDoller?: number
 		decimal?: number
 		symbol?: string
+		metadata?: {
+			iconUrl?: string
+		}
 	}
 	transferSummary?: {
 		dailySummary?: DailySummaryItem[]
@@ -23,19 +26,24 @@ export type StableCoinTokenTransferResponse = {
 }
 
 // GraphQL Query
-const STABLECOIN_TOKEN_TRANSFER = gql`
+const STABLECOIN_TOKEN_TRANSFER = gql<StableCoinTokenTransferResponse>`
 	query ($symbol: String!, $days: Int!) {
 		stablecoin(symbol: $symbol) {
 			name
 			totalSupply
-			totalUniqueHolder
-			valueInDoller
+			totalUniqueHolders
+			valueInDollar
 			decimal
 			symbol
+			issuer
+			metadata {
+				iconUrl
+			}
 		}
+
 		transferSummary(assetName: $symbol, days: $days) {
 			dailySummary {
-				date
+				dateTime
 				totalAmount
 				transactionCount
 			}
@@ -43,17 +51,16 @@ const STABLECOIN_TOKEN_TRANSFER = gql`
 	}
 `
 
-// Function with typed parameters
 export const useStableCoinTokenTransferQuery = (
 	symbol: string,
 	days: number
 ) => {
-	const { data } = useQuery<StableCoinTokenTransferResponse>({
+	const { data, executeQuery, fetching } = useQuery({
 		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: STABLECOIN_TOKEN_TRANSFER,
 		requestPolicy: 'cache-and-network',
 		variables: { symbol, days },
 	})
 
-	return { data }
+	return { data, executeQuery, fetching }
 }

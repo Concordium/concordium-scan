@@ -11,14 +11,14 @@
 						<div class="flex justify-between pt-4">
 							<p class="text-xl text-theme-faded">Price</p>
 							<p class="font-bold text-xl text-theme-interactive">
-								${{ dataTransferSummary?.stablecoin?.valueInDoller }}
+								${{ dataTransferSummary?.stablecoin?.valueInDollar }}
 							</p>
 						</div>
 						<div class="flex justify-between pt-4">
 							<p class="text-xl text-theme-faded">Market Cap</p>
 							<p class="font-bold text-xl text-theme-interactive">
 								{{
-									formatNumber(
+									numberFormatter(
 										Number(dataTransferSummary?.stablecoin?.totalSupply)
 									)
 								}}
@@ -28,16 +28,16 @@
 							<p class="text-xl text-theme-faded">Current Supply</p>
 							<p class="font-bold text-xl text-theme-interactive">
 								{{
-									formatNumber(
+									numberFormatter(
 										Number(dataTransferSummary?.stablecoin?.totalSupply)
 									)
 								}}
 							</p>
 						</div>
 						<div class="flex justify-between pt-4">
-							<p class="text-xl text-theme-faded"># Holder</p>
+							<p class="text-xl text-theme-faded"># of Holders</p>
 							<p class="font-bold text-xl text-theme-interactive">
-								{{ dataTransferSummary?.stablecoin?.totalUniqueHolder }}
+								{{ dataTransferSummary?.stablecoin?.totalUniqueHolders }}
 							</p>
 						</div>
 					</div>
@@ -51,7 +51,16 @@
 					<div class="flex flex-col">
 						<div class="flex justify-between pt-4">
 							<p class="text-xl text-theme-faded">Token name</p>
-							<p class="font-bold text-xl text-theme-interactive">
+							<p
+								class="font-bold text-xl text-theme-interactive flex flex-row items-center"
+							>
+								<img
+									:src="dataTransferSummary?.stablecoin?.metadata?.iconUrl"
+									class="rounded-full w-6 h-6 mr-2"
+									alt="Token Icon"
+									loading="lazy"
+									decoding="async"
+								/>
 								{{ dataTransferSummary?.stablecoin?.name }}
 							</p>
 						</div>
@@ -69,17 +78,44 @@
 						</div>
 						<div class="flex justify-between pt-4">
 							<p class="text-xl text-theme-faded">Issuer</p>
-							<p class="font-bold text-xl text-theme-interactive"></p>
+							<p
+								class="font-bold text-xl text-theme-interactive flex flex-row items-center"
+							>
+								<Tooltip
+									v-if="dataTransferSummary?.stablecoin?.issuer"
+									:text="dataTransferSummary?.stablecoin?.issuer"
+									text-class="text-theme-body"
+								>
+									<UserIcon
+										class="h-4 text-theme-white inline align-text-top"
+									/>
+									{{ shortenHash(dataTransferSummary?.stablecoin?.issuer) }}
+								</Tooltip>
+								<TextCopy
+									v-if="dataTransferSummary?.stablecoin?.issuer"
+									:text="dataTransferSummary?.stablecoin?.issuer"
+									label="Click to copy block hash to clipboard"
+									class="h-5 inline align-baseline"
+									tooltip-class="font-sans"
+								/>
+							</p>
 						</div>
 					</div>
 				</div>
 			</CarouselSlide>
 		</FtbCarousel>
 		<header
-			class="flex flex-wrap justify-between gap-8 w-full mb-4 mt-8 lg:mt-0"
+			class="flex flex-wrap justify-between gap-8 w-full mb-4 mt-10 lg:mt-0"
 		>
 			<div class="flex flex-wrap flex-grow items-center gap-8">
 				<TabBar>
+					<TabBarItem
+						tab-id="transactions"
+						:selected-tab="selectedTab"
+						:on-click="handleSelectTab"
+					>
+						Transactions
+					</TabBarItem>
 					<TabBarItem
 						tab-id="holders"
 						:selected-tab="selectedTab"
@@ -98,16 +134,23 @@
 			</div>
 		</header>
 		<Holders v-if="selectedTab === 'holders'" :coin-id="coinId" />
+		<Transactions
+			v-else-if="selectedTab === 'transactions'"
+			:coin-id="coinId"
+		/>
 		<Analytics v-else :coin-id="coinId" />
 	</div>
 </template>
 <script lang="ts" setup>
+import { UserIcon } from '@heroicons/vue/solid/index.js'
+import { numberFormatter, shortenHash } from '~/utils/format'
 import TabBar from '~/components/atoms/TabBar.vue'
 import TabBarItem from '~/components/atoms/TabBarItem.vue'
 import { useStableCoinTokenTransferQuery } from '~/queries/useStableCoinTokenTransferQuery'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 import CarouselSlide from '~/components/molecules/CarouselSlide.vue'
 import Holders from '~/components/StableCoin/Holders.vue'
+import Transactions from '~/components/StableCoin/Transactions.vue'
 import Analytics from '~/components/StableCoin/Analytics.vue'
 import { useRoute } from 'vue-router'
 const route = useRoute()
@@ -130,23 +173,9 @@ watch(
 
 const { data: dataTransferSummary } = useStableCoinTokenTransferQuery(
 	coinId.value.toUpperCase(),
-	12
+	30
 )
 
-const selectedTab = ref('holders')
+const selectedTab = ref('transactions')
 const handleSelectTab = (tabId: string) => (selectedTab.value = tabId)
-
-const formatNumber = (num?: number | string): string => {
-	const parsedNum = typeof num === 'string' ? parseFloat(num) : num
-	if (typeof parsedNum !== 'number' || isNaN(parsedNum)) return '0'
-	return parsedNum >= 1e12
-		? (parsedNum / 1e12).toFixed(2) + 'T'
-		: parsedNum >= 1e9
-		? (parsedNum / 1e9).toFixed(2) + 'B'
-		: parsedNum >= 1e6
-		? (parsedNum / 1e6).toFixed(2) + 'M'
-		: parsedNum >= 1e3
-		? (parsedNum / 1e3).toFixed(2) + 'K'
-		: parsedNum.toFixed(2)
-}
 </script>

@@ -24,6 +24,7 @@ interface Props {
 	hoverBorderColor?: string
 	cutout?: string | number
 	labelFormatter?: (context: TooltipItem<'doughnut'>) => string
+	labelClickable?: boolean
 }
 
 const props = defineProps<Props>()
@@ -55,12 +56,41 @@ const defaultOptions: ChartOptions<'doughnut'> = {
 	plugins: {
 		legend: {
 			display: true,
-			position: 'left', // Adjust position if needed
+			position: 'left',
 			labels: {
-				usePointStyle: true, // Enables circular legends
-				pointStyle: 'circle', // Ensures legends appear as circles
-				padding: 10, // Adds space between legend items
+				usePointStyle: true,
+				pointStyle: 'circle',
+				padding: 10,
 				color: '#ffffff',
+				generateLabels: function (chart) {
+					const data = chart.data
+					const dataset = data.datasets[0]
+					const backgroundColors = dataset.backgroundColor
+					const borderColors = dataset.borderColor
+
+					return (data.labels ?? []).map((label, i) => ({
+						text: typeof label === 'string' ? label : '',
+						fillStyle: Array.isArray(backgroundColors)
+							? backgroundColors[i]
+							: backgroundColors,
+						strokeStyle: Array.isArray(borderColors)
+							? borderColors[i]
+							: borderColors,
+						lineWidth: 0,
+						index: i,
+					}))
+				},
+			},
+			onClick: (_e, legendItem) => {
+				if (!props.labelClickable) return
+
+				const index = legendItem.index
+				if (index !== undefined) {
+					const label = chartData.value.labels?.[index]
+					if (label) {
+						window.open(`/protocol-token/${label.toLowerCase()}`, '_blank')
+					}
+				}
 			},
 		},
 		tooltip: {
@@ -84,10 +114,29 @@ const defaultOptions: ChartOptions<'doughnut'> = {
 	},
 	responsive: true,
 	maintainAspectRatio: false,
-	cutout: props.cutout || '60%',
+	cutout: props.cutout || '80%',
 	layout: {
 		padding: { left: 40, right: 40, top: 10, bottom: 10 },
 	},
+}
+
+const handleSliceClick = (event: MouseEvent) => {
+	if (!props.labelClickable || !chartInstance) return
+
+	const elements = chartInstance.getElementsAtEventForMode(
+		event,
+		'nearest',
+		{ intersect: true },
+		false
+	)
+
+	if (elements.length > 0) {
+		const index = elements[0].index
+		const label = chartInstance.data.labels?.[index] as string
+		if (label) {
+			window.open(`/protocol-token/${label.toLowerCase()}`, '_blank')
+		}
+	}
 }
 
 let chartInstance: Chart<'doughnut'> | null = null
@@ -106,10 +155,18 @@ onMounted(() => {
 			data: chartData.value,
 			options: defaultOptions,
 		})
+
+		if (props.labelClickable) {
+			canvasRef.value.style.cursor = 'pointer'
+			canvasRef.value.addEventListener('click', handleSliceClick)
+		}
 	}
 })
 
 onUnmounted(() => {
+	if (props.labelClickable && canvasRef.value) {
+		canvasRef.value.removeEventListener('click', handleSliceClick)
+	}
 	chartInstance?.destroy()
 })
 </script>
