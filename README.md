@@ -22,7 +22,7 @@ The project contains different [release pipelines](.github/workflows).
 
 #### To release a new `backend` docker container image:
 
-- Create a PR that bumps the backend version and updates the backend `changelog` and merge it e.g. [backend release](https://github.com/Concordium/concordium-scan/pull/536/files).
+- Create a PR that bumps the backend version in the `backend-rust/Cargo.toml` file and updates the backend `changelog` and merge it e.g. [backend release](https://github.com/Concordium/concordium-scan/pull/536/files).
 - Checkout the main branch locally.
 - Tag the branch e.g.:
 ```
@@ -36,7 +36,7 @@ This will trigger a new release pipeline which needs to be approved before the i
 
 #### To release a new `frontend` docker container image:
 
-- Create a PR that bumps the frontend version and updates the frontend `changelog` and merge it e.g. [frontend release](https://github.com/Concordium/concordium-scan/pull/488/files).
+- Create a PR that bumps the frontend version in the `frontend/package.json` file and updates the frontend `changelog` and merge it e.g. [frontend release](https://github.com/Concordium/concordium-scan/pull/488/files).
 - Checkout the main branch locally.
 - Tag the branch e.g.:
 ```

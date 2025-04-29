@@ -14,9 +14,7 @@
 		<template #icon>Ͼ</template>
 		<template #value>{{
 			convertMicroCcdToCcd(
-				rewardMetricsData?.rewardMetrics?.sumRewardAmount
-					? rewardMetricsData?.rewardMetrics?.sumRewardAmount
-					: 0,
+				rewardMetricsData?.rewardMetrics?.sumRewardAmount ?? 0,
 				true
 			)
 		}}</template>
