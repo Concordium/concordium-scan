@@ -155,16 +155,6 @@ describe('Button', () => {
 
 We are using [GraphQL Code Generator](https://www.graphql-code-generator.com/) to generate types from our GraphQL schema. Whenever there is a change in the schema, you can run the below commands which will generate a new set of types in `types/generated.ts` file. You should not edit this file manually, as the codegen will simply overwrite changes.
 
-#### Old backend:
-
-- Run the command in the `frontend` folder:
-
-```sh
-yarn gql-codegen
-```
-
-#### New backend:
-
 - Navigate into the `backend-rust` folder and run:
 
 ```
