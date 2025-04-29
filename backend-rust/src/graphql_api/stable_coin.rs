@@ -50,6 +50,18 @@ pub struct TransactionMResponse {
     transaction_hash: String,
 }
 
+#[derive(Clone, Deserialize, SimpleObject)]
+pub struct LatestTransactionResponse {
+    from:             String,
+    to:               String,
+    asset_name:       String,
+    date_time:        DateTime,
+    amount:           f64,
+    value:            f64,
+    transaction_hash: String,
+    asset_metadata:   Option<Metadata>,
+}
+
 #[derive(Debug, Clone, Deserialize, SimpleObject)]
 pub struct Metadata {
     icon_url: String,
@@ -380,5 +392,37 @@ impl QueryStableCoins {
             no_of_txn_last24h:          no_of_txn_last_24h,
             values_transferred_last24h: values_transferred_last_24h,
         }
+    }
+
+    async fn latest_transactions<'a>(
+        &self,
+        _ctx: &Context<'a>,
+        limit: Option<usize>,
+    ) -> Option<Vec<LatestTransactionResponse>> {
+        let transactions = Self::load_transactions();
+        let stablecoins = Self::load_data();
+        let stablecoins_metadata_map: HashMap<String, Option<Metadata>> =
+            stablecoins.into_iter().map(|s| (s.symbol, s.metadata)).collect();
+        let effective_limit = limit.unwrap_or(10); // default to 10 if None
+        let txn_summary: Option<Vec<LatestTransactionResponse>> = Some(
+            transactions
+                .iter()
+                .take(effective_limit)
+                .map(|t| LatestTransactionResponse {
+                    from:             t.from.to_string(),
+                    to:               t.to.to_string(),
+                    asset_name:       t.asset_name.clone(),
+                    date_time:        t.date_time,
+                    amount:           t.amount,
+                    value:            t.value,
+                    transaction_hash: t.transaction_hash.clone(),
+                    asset_metadata:   stablecoins_metadata_map
+                        .get(&t.asset_name.clone())
+                        .unwrap()
+                        .clone(),
+                })
+                .collect(),
+        );
+        txn_summary
     }
 }
