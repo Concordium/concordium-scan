@@ -243,12 +243,17 @@
 							:key="node.id"
 							:class="$style.searchColumns"
 						>
-							<NodeLink :node="node" @blur="lostFocusOnSearch" />
+							<NodeLink
+								:node-id="node.nodeId"
+								:node-name="node.nodeName"
+								@blur="lostFocusOnSearch"
+							/>
 							<div :class="$style.threeColumns" />
 							<div :class="$style.twoColumns">
+								<!-- We checked that the value is an integer, so the type cast with `!` is safe -->
 								<BakerLink
 									v-if="Number.isInteger(node.consensusBakerId)"
-									:id="node.consensusBakerId"
+									:id="node.consensusBakerId!"
 								/>
 							</div>
 						</div>

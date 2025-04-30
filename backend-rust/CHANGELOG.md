@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Rename `AccountMetrics` to `AccountsMetrics` for backwards compatibility with the old dotnet backend.
+- `Token::token_events` returns the `Cis2Token` event directly now instead of wrapping it into an option.
+
 ## [0.1.50] - 2025-04-28
 
 Modifying search key on the following tables to all be using `text_pattern_ops` because it is faster when using prefix searches only

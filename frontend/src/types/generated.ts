@@ -11,36 +11,48 @@ export type Scalars = {
   Int: number;
   Float: number;
   BigInteger: any;
-  /** The `Byte` scalar type represents non-fractional whole numeric values. Byte can represent values between 0 and 255. */
   Byte: any;
-  /** The `DateTime` scalar represents an ISO-8601 compliant date time type. */
+  /**
+   * Implement the DateTime<Utc> scalar
+   *
+   * The input/output is a string in RFC3339 format.
+   */
   DateTime: any;
-  /** The built-in `Decimal` scalar type. */
   Decimal: any;
-  /** The `Long` scalar type represents non-fractional signed whole 64-bit numeric values. Long can represent values between -(2^63) and 2^63 - 1. */
   Long: any;
-  /** The `TimeSpan` scalar represents an ISO-8601 compliant duration type. */
   TimeSpan: any;
-  /** The UnsignedInt scalar type represents a unsigned 32-bit numeric non-fractional value greater than or equal to 0. */
   UnsignedInt: any;
-  /** The UnsignedLong scalar type represents a unsigned 64-bit numeric non-fractional value greater than or equal to 0. */
   UnsignedLong: any;
 };
 
 export type Account = {
   __typename?: 'Account';
-  accountStatement?: Maybe<AccountStatementEntryConnection>;
+  accountStatement: AccountStatementEntryConnection;
+  /** The address of the account in Base58Check. */
   address: AccountAddress;
+  /** The total amount of CCD hold by the account. */
   amount: Scalars['UnsignedLong'];
   baker?: Maybe<Baker>;
+  /** Timestamp of the block where this account was created. */
   createdAt: Scalars['DateTime'];
   delegation?: Maybe<Delegation>;
   id: Scalars['ID'];
+  /**
+   * Number of transactions where this account is the sender of the
+   * transaction. This is the `nonce` of the account. This value is
+   * currently not used by the front-end and the `COUNT(*)` will need further
+   * optimization if intended to be used.
+   */
+  nonce: Scalars['Int'];
   releaseSchedule: AccountReleaseSchedule;
-  rewards?: Maybe<AccountRewardConnection>;
-  tokens?: Maybe<AccountTokenConnection>;
+  rewards: AccountRewardConnection;
+  tokens: AccountTokenConnection;
+  /**
+   * Number of transactions the account has been involved in or
+   * affected by.
+   */
   transactionCount: Scalars['Int'];
-  transactions?: Maybe<AccountTransactionRelationConnection>;
+  transactions: AccountTransactionRelationConnection;
 };
 
 
@@ -86,13 +98,12 @@ export type AccountAddressAmount = {
   amount: Scalars['UnsignedLong'];
 };
 
-/** A connection to a list of items. */
 export type AccountAddressAmountConnection = {
   __typename?: 'AccountAddressAmountConnection';
   /** A list of edges. */
-  edges?: Maybe<Array<AccountAddressAmountEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<AccountAddressAmount>>;
+  edges: Array<AccountAddressAmountEdge>;
+  /** A list of nodes. */
+  nodes: Array<AccountAddressAmount>;
   /** Information to aid in pagination. */
   pageInfo: PageInfo;
 };
@@ -100,10 +111,20 @@ export type AccountAddressAmountConnection = {
 /** An edge in a connection. */
 export type AccountAddressAmountEdge = {
   __typename?: 'AccountAddressAmountEdge';
-  /** A cursor for use in pagination. */
+  /** A cursor for use in pagination */
   cursor: Scalars['String'];
-  /** The item at the end of the edge. */
+  /** The item at the end of the edge */
   node: AccountAddressAmount;
+};
+
+export type AccountConnection = {
+  __typename?: 'AccountConnection';
+  /** A list of edges. */
+  edges: Array<AccountEdge>;
+  /** A list of nodes. */
+  nodes: Array<Account>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
 };
 
 export type AccountCreated = {
@@ -111,13 +132,40 @@ export type AccountCreated = {
   accountAddress: AccountAddress;
 };
 
+/** An edge in a connection. */
+export type AccountEdge = {
+  __typename?: 'AccountEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: Account;
+};
+
 export type AccountFilterInput = {
-  isDelegator?: InputMaybe<Scalars['Boolean']>;
+  isDelegator: Scalars['Boolean'];
+};
+
+export type AccountMetricsBuckets = {
+  __typename?: 'AccountMetricsBuckets';
+  /** The width (time interval) of each bucket. */
+  bucketWidth: Scalars['TimeSpan'];
+  /** Start of the bucket time period. Intended x-axis value. */
+  x_Time: Array<Scalars['DateTime']>;
+  /**
+   * Number of accounts created within bucket time period. Intended y-axis
+   * value.
+   */
+  y_AccountsCreated: Array<Scalars['Int']>;
+  /**
+   * Total number of accounts created (all time) at the end of the bucket
+   * period. Intended y-axis value.
+   */
+  y_LastCumulativeAccountsCreated: Array<Scalars['Int']>;
 };
 
 export type AccountReleaseSchedule = {
   __typename?: 'AccountReleaseSchedule';
-  schedule?: Maybe<AccountReleaseScheduleItemConnection>;
+  schedule: AccountReleaseScheduleItemConnection;
   totalAmount: Scalars['UnsignedLong'];
 };
 
@@ -136,13 +184,12 @@ export type AccountReleaseScheduleItem = {
   transaction: Transaction;
 };
 
-/** A connection to a list of items. */
 export type AccountReleaseScheduleItemConnection = {
   __typename?: 'AccountReleaseScheduleItemConnection';
   /** A list of edges. */
-  edges?: Maybe<Array<AccountReleaseScheduleItemEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<AccountReleaseScheduleItem>>;
+  edges: Array<AccountReleaseScheduleItemEdge>;
+  /** A list of nodes. */
+  nodes: Array<AccountReleaseScheduleItem>;
   /** Information to aid in pagination. */
   pageInfo: PageInfo;
 };
@@ -150,9 +197,9 @@ export type AccountReleaseScheduleItemConnection = {
 /** An edge in a connection. */
 export type AccountReleaseScheduleItemEdge = {
   __typename?: 'AccountReleaseScheduleItemEdge';
-  /** A cursor for use in pagination. */
+  /** A cursor for use in pagination */
   cursor: Scalars['String'];
-  /** The item at the end of the edge. */
+  /** The item at the end of the edge */
   node: AccountReleaseScheduleItem;
 };
 
@@ -165,13 +212,12 @@ export type AccountReward = {
   timestamp: Scalars['DateTime'];
 };
 
-/** A connection to a list of items. */
 export type AccountRewardConnection = {
   __typename?: 'AccountRewardConnection';
   /** A list of edges. */
-  edges?: Maybe<Array<AccountRewardEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<AccountReward>>;
+  edges: Array<AccountRewardEdge>;
+  /** A list of nodes. */
+  nodes: Array<AccountReward>;
   /** Information to aid in pagination. */
   pageInfo: PageInfo;
 };
@@ -179,9 +225,9 @@ export type AccountRewardConnection = {
 /** An edge in a connection. */
 export type AccountRewardEdge = {
   __typename?: 'AccountRewardEdge';
-  /** A cursor for use in pagination. */
+  /** A cursor for use in pagination */
   cursor: Scalars['String'];
-  /** The item at the end of the edge. */
+  /** The item at the end of the edge */
   node: AccountReward;
 };
 
@@ -206,13 +252,12 @@ export type AccountStatementEntry = {
   timestamp: Scalars['DateTime'];
 };
 
-/** A connection to a list of items. */
 export type AccountStatementEntryConnection = {
   __typename?: 'AccountStatementEntryConnection';
   /** A list of edges. */
-  edges?: Maybe<Array<AccountStatementEntryEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<AccountStatementEntry>>;
+  edges: Array<AccountStatementEntryEdge>;
+  /** A list of nodes. */
+  nodes: Array<AccountStatementEntry>;
   /** Information to aid in pagination. */
   pageInfo: PageInfo;
 };
@@ -220,9 +265,9 @@ export type AccountStatementEntryConnection = {
 /** An edge in a connection. */
 export type AccountStatementEntryEdge = {
   __typename?: 'AccountStatementEntryEdge';
-  /** A cursor for use in pagination. */
+  /** A cursor for use in pagination */
   cursor: Scalars['String'];
-  /** The item at the end of the edge. */
+  /** The item at the end of the edge */
   node: AccountStatementEntry;
 };
 
@@ -241,21 +286,21 @@ export enum AccountStatementEntryType {
 export type AccountToken = {
   __typename?: 'AccountToken';
   account: Account;
-  accountId: Scalars['Long'];
+  accountId: Scalars['Int'];
   balance: Scalars['BigInteger'];
-  contractIndex: Scalars['UnsignedLong'];
-  contractSubIndex: Scalars['UnsignedLong'];
+  changeSeq: Scalars['Int'];
+  contractIndex: Scalars['Int'];
+  contractSubIndex: Scalars['Int'];
   token: Token;
   tokenId: Scalars['String'];
 };
 
-/** A connection to a list of items. */
 export type AccountTokenConnection = {
   __typename?: 'AccountTokenConnection';
   /** A list of edges. */
-  edges?: Maybe<Array<AccountTokenEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<AccountToken>>;
+  edges: Array<AccountTokenEdge>;
+  /** A list of nodes. */
+  nodes: Array<AccountToken>;
   /** Information to aid in pagination. */
   pageInfo: PageInfo;
 };
@@ -263,9 +308,9 @@ export type AccountTokenConnection = {
 /** An edge in a connection. */
 export type AccountTokenEdge = {
   __typename?: 'AccountTokenEdge';
-  /** A cursor for use in pagination. */
+  /** A cursor for use in pagination */
   cursor: Scalars['String'];
-  /** The item at the end of the edge. */
+  /** The item at the end of the edge */
   node: AccountToken;
 };
 
@@ -279,13 +324,12 @@ export type AccountTransactionRelation = {
   transaction: Transaction;
 };
 
-/** A connection to a list of items. */
 export type AccountTransactionRelationConnection = {
   __typename?: 'AccountTransactionRelationConnection';
   /** A list of edges. */
-  edges?: Maybe<Array<AccountTransactionRelationEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<AccountTransactionRelation>>;
+  edges: Array<AccountTransactionRelationEdge>;
+  /** A list of nodes. */
+  nodes: Array<AccountTransactionRelation>;
   /** Information to aid in pagination. */
   pageInfo: PageInfo;
 };
@@ -293,55 +337,33 @@ export type AccountTransactionRelationConnection = {
 /** An edge in a connection. */
 export type AccountTransactionRelationEdge = {
   __typename?: 'AccountTransactionRelationEdge';
-  /** A cursor for use in pagination. */
+  /** A cursor for use in pagination */
   cursor: Scalars['String'];
-  /** The item at the end of the edge. */
+  /** The item at the end of the edge */
   node: AccountTransactionRelation;
 };
 
-/** Types of account transactions. */
 export enum AccountTransactionType {
-  /** Register an account as a baker. */
   AddBaker = 'ADD_BAKER',
-  /** Configure an account's baker. */
   ConfigureBaker = 'CONFIGURE_BAKER',
-  /** Configure an account's stake delegation. */
   ConfigureDelegation = 'CONFIGURE_DELEGATION',
-  /** Deploy a Wasm module. */
   DeployModule = 'DEPLOY_MODULE',
-  /** Transfer encrypted amount. */
   EncryptedTransfer = 'ENCRYPTED_TRANSFER',
-  /** Same as encrypted transfer, but with a memo. */
   EncryptedTransferWithMemo = 'ENCRYPTED_TRANSFER_WITH_MEMO',
-  /** Initialize a smart contract instance. */
   InitializeSmartContractInstance = 'INITIALIZE_SMART_CONTRACT_INSTANCE',
-  /** Register some data on the chain. */
   RegisterData = 'REGISTER_DATA',
-  /** Remove an account as a baker. */
   RemoveBaker = 'REMOVE_BAKER',
-  /** Transfer CCD from an account to another. */
   SimpleTransfer = 'SIMPLE_TRANSFER',
-  /** Same as transfer, but with a memo field. */
   SimpleTransferWithMemo = 'SIMPLE_TRANSFER_WITH_MEMO',
-  /** Transfer from public to encrypted balance of the same account. */
   TransferToEncrypted = 'TRANSFER_TO_ENCRYPTED',
-  /** Transfer from encrypted to public balance of the same account. */
   TransferToPublic = 'TRANSFER_TO_PUBLIC',
-  /** Transfer a CCD with a release schedule. */
   TransferWithSchedule = 'TRANSFER_WITH_SCHEDULE',
-  /** Same as transfer with schedule, but with an added memo. */
   TransferWithScheduleWithMemo = 'TRANSFER_WITH_SCHEDULE_WITH_MEMO',
-  /** Update baker keys */
   UpdateBakerKeys = 'UPDATE_BAKER_KEYS',
-  /** Update whether the baker automatically restakes earnings. */
   UpdateBakerRestakeEarnings = 'UPDATE_BAKER_RESTAKE_EARNINGS',
-  /** Update the staked amount. */
   UpdateBakerStake = 'UPDATE_BAKER_STAKE',
-  /** Update the account's credentials. */
   UpdateCredentials = 'UPDATE_CREDENTIALS',
-  /** Update given credential keys */
   UpdateCredentialKeys = 'UPDATE_CREDENTIAL_KEYS',
-  /** Update a smart contract instance. */
   UpdateSmartContractInstance = 'UPDATE_SMART_CONTRACT_INSTANCE'
 }
 
@@ -349,66 +371,35 @@ export enum AccountTransactionType {
 export type AccountsCollectionSegment = {
   __typename?: 'AccountsCollectionSegment';
   /** A flattened list of the items. */
-  items?: Maybe<Array<AccountToken>>;
+  items: Array<AccountToken>;
   /** Information to aid in pagination. */
   pageInfo: CollectionSegmentInfo;
   totalCount: Scalars['Int'];
-};
-
-/** A connection to a list of items. */
-export type AccountsConnection = {
-  __typename?: 'AccountsConnection';
-  /** A list of edges. */
-  edges?: Maybe<Array<AccountsEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<Account>>;
-  /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-};
-
-/** An edge in a connection. */
-export type AccountsEdge = {
-  __typename?: 'AccountsEdge';
-  /** A cursor for use in pagination. */
-  cursor: Scalars['String'];
-  /** The item at the end of the edge. */
-  node: Account;
 };
 
 export type AccountsMetrics = {
   __typename?: 'AccountsMetrics';
   /** Total number of accounts created in requested period. */
   accountsCreated: Scalars['Int'];
-  buckets: AccountsMetricsBuckets;
-  /** Total number of accounts created (all time) */
-  lastCumulativeAccountsCreated: Scalars['Long'];
+  buckets: AccountMetricsBuckets;
+  /** Total number of accounts created (all time). */
+  lastCumulativeAccountsCreated: Scalars['Int'];
 };
 
-export type AccountsMetricsBuckets = {
-  __typename?: 'AccountsMetricsBuckets';
-  /** The width (time interval) of each bucket. */
-  bucketWidth: Scalars['TimeSpan'];
-  /** Start of the bucket time period. Intended x-axis value. */
-  x_Time: Array<Scalars['DateTime']>;
-  /** Number of accounts created within bucket time period. Intended y-axis value. */
-  y_AccountsCreated: Array<Scalars['Int']>;
-  /** Total number of accounts created (all time) at the end of the bucket period. Intended y-axis value. */
-  y_LastCumulativeAccountsCreated: Array<Scalars['Long']>;
-};
-
-/** Structure used to send messages to the Subscribers */
 export type AccountsUpdatedSubscriptionItem = {
   __typename?: 'AccountsUpdatedSubscriptionItem';
-  /** Account Address */
   address: Scalars['String'];
 };
 
 export type ActiveBakerState = {
   __typename?: 'ActiveBakerState';
-  /** The status of the bakers node. Will be null if no status for the node exists. */
+  /**
+   * The status of the baker's node. Will be null if no status for the node
+   * exists.
+   */
   nodeStatus?: Maybe<NodeStatus>;
   pendingChange?: Maybe<PendingBakerChange>;
-  pool?: Maybe<BakerPool>;
+  pool: BakerPool;
   restakeEarnings: Scalars['Boolean'];
   stakedAmount: Scalars['UnsignedLong'];
 };
@@ -433,14 +424,12 @@ export type Address = AccountAddress | ContractAddress;
 
 export type AlreadyABaker = {
   __typename?: 'AlreadyABaker';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
-  _: Scalars['Boolean'];
-  bakerId: Scalars['UnsignedLong'];
+  bakerId: Scalars['Long'];
 };
 
 export type AlreadyADelegator = {
   __typename?: 'AlreadyADelegator';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
@@ -452,30 +441,8 @@ export type AmountAddedByDecryption = {
 
 export type AmountTooLarge = {
   __typename?: 'AmountTooLarge';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
-  _: Scalars['Boolean'];
   address: Address;
   amount: Scalars['UnsignedLong'];
-};
-
-/** A connection to a list of items. */
-export type AmountsScheduleConnection = {
-  __typename?: 'AmountsScheduleConnection';
-  /** A list of edges. */
-  edges?: Maybe<Array<AmountsScheduleEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<TimestampedAmount>>;
-  /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-};
-
-/** An edge in a connection. */
-export type AmountsScheduleEdge = {
-  __typename?: 'AmountsScheduleEdge';
-  /** A cursor for use in pagination. */
-  cursor: Scalars['String'];
-  /** The item at the end of the edge. */
-  node: TimestampedAmount;
 };
 
 export enum ApyPeriod {
@@ -489,8 +456,7 @@ export type Baker = {
   bakerId: Scalars['Long'];
   id: Scalars['ID'];
   state: BakerState;
-  /** Get the transactions that have affected the baker. */
-  transactions?: Maybe<BakerTransactionRelationConnection>;
+  transactions: InterimTransactionConnection;
 };
 
 
@@ -505,16 +471,41 @@ export type BakerAdded = {
   __typename?: 'BakerAdded';
   accountAddress: AccountAddress;
   aggregationKey: Scalars['String'];
-  bakerId: Scalars['UnsignedLong'];
+  bakerId: Scalars['Long'];
   electionKey: Scalars['String'];
   restakeEarnings: Scalars['Boolean'];
   signKey: Scalars['String'];
   stakedAmount: Scalars['UnsignedLong'];
 };
 
+export type BakerConnection = {
+  __typename?: 'BakerConnection';
+  /** A list of edges. */
+  edges: Array<BakerEdge>;
+  /** A list of nodes. */
+  nodes: Array<Baker>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+export type BakerDelegationRemoved = {
+  __typename?: 'BakerDelegationRemoved';
+  accountAddress: AccountAddress;
+  delegatorId: Scalars['Int'];
+};
+
 export type BakerDelegationTarget = {
   __typename?: 'BakerDelegationTarget';
   bakerId: Scalars['Long'];
+};
+
+/** An edge in a connection. */
+export type BakerEdge = {
+  __typename?: 'BakerEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: Baker;
 };
 
 export type BakerFilterInput = {
@@ -524,7 +515,7 @@ export type BakerFilterInput = {
 
 export type BakerInCooldown = {
   __typename?: 'BakerInCooldown';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
@@ -532,19 +523,20 @@ export type BakerKeysUpdated = {
   __typename?: 'BakerKeysUpdated';
   accountAddress: AccountAddress;
   aggregationKey: Scalars['String'];
-  bakerId: Scalars['UnsignedLong'];
+  bakerId: Scalars['Long'];
   electionKey: Scalars['String'];
   signKey: Scalars['String'];
 };
 
 export type BakerMetrics = {
   __typename?: 'BakerMetrics';
-  /** Bakers added in requested period */
+  /** The number of bakers added during the specified period. */
   bakersAdded: Scalars['Int'];
-  /** Bakers removed in requested period */
+  /** The number of bakers removed during the specified period. */
   bakersRemoved: Scalars['Int'];
+  /** Bucket-wise data for bakers added, removed, and the bucket times. */
   buckets: BakerMetricsBuckets;
-  /** Current number of bakers */
+  /** Total bakers before the start of the period */
   lastBakerCount: Scalars['Int'];
 };
 
@@ -552,13 +544,22 @@ export type BakerMetricsBuckets = {
   __typename?: 'BakerMetricsBuckets';
   /** The width (time interval) of each bucket. */
   bucketWidth: Scalars['TimeSpan'];
-  /** Start of the bucket time period. Intended x-axis value. */
+  /**
+   * The time values (start of each bucket) intended for use as x-axis
+   * values.
+   */
   x_Time: Array<Scalars['DateTime']>;
-  /** Number of bakers added within bucket time period. Intended y-axis value. */
+  /**
+   * The number of bakers added for each bucket, intended for use as y-axis
+   * values.
+   */
   y_BakersAdded: Array<Scalars['Int']>;
-  /** Number of bakers removed within bucket time period. Intended y-axis value. */
+  /**
+   * The number of bakers removed for each bucket, intended for use as y-axis
+   * values.
+   */
   y_BakersRemoved: Array<Scalars['Int']>;
-  /** Number of bakers at the end of the bucket period. Intended y-axis value. */
+  /** Total bakers during each period */
   y_LastBakerCount: Array<Scalars['Int']>;
 };
 
@@ -566,26 +567,21 @@ export type BakerPool = {
   __typename?: 'BakerPool';
   apy: PoolApy;
   commissionRates: CommissionRates;
-  /** The total amount staked by delegation to this baker pool. */
   delegatedStake: Scalars['UnsignedLong'];
-  /** The maximum amount that may be delegated to the pool, accounting for leverage and stake limits. */
   delegatedStakeCap: Scalars['UnsignedLong'];
   delegatorCount: Scalars['Int'];
-  delegators?: Maybe<DelegatorsConnection>;
-  lotteryPower?: Maybe<Scalars['Decimal']>;
-  metadataUrl: Scalars['String'];
-  openStatus: BakerPoolOpenStatus;
+  delegators: DelegationSummaryConnection;
+  inactiveSuspended?: Maybe<Scalars['Int']>;
+  lotteryPower: Scalars['Decimal'];
+  metadataUrl?: Maybe<Scalars['String']>;
+  openStatus?: Maybe<BakerPoolOpenStatus>;
   paydayCommissionRates?: Maybe<CommissionRates>;
-  selfSuspended?:Maybe<Scalars['UnsignedLong']>,
-  inactiveSuspended?:Maybe<Scalars['UnsignedLong']>,
-  primedForSuspension?:Maybe<Scalars['UnsignedLong']>,
-  poolRewards?: Maybe<PaydayPoolRewardConnection>;
-  /** Ranking of the baker pool by total staked amount. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition. */
+  poolRewards: PaydayPoolRewardConnection;
+  primedForSuspension?: Maybe<Scalars['Int']>;
   rankingByTotalStake?: Maybe<Ranking>;
-  /** The total amount staked in this baker pool. Includes both baker stake and delegated stake. */
+  selfSuspended?: Maybe<Scalars['Int']>;
   totalStake: Scalars['UnsignedLong'];
-  /** Total stake of the baker pool as a percentage of all CCDs in existence. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition. */
-  totalStakePercentage?: Maybe<Scalars['Decimal']>;
+  totalStakePercentage: Scalars['Decimal'];
 };
 
 
@@ -623,48 +619,54 @@ export type BakerPoolRewardTarget = {
 export type BakerRemoved = {
   __typename?: 'BakerRemoved';
   accountAddress: AccountAddress;
-  bakerId: Scalars['UnsignedLong'];
+  bakerId: Scalars['Long'];
+};
+
+export type BakerResumed = {
+  __typename?: 'BakerResumed';
+  accountAddress: AccountAddress;
+  bakerId: Scalars['Long'];
 };
 
 export type BakerSetBakingRewardCommission = {
   __typename?: 'BakerSetBakingRewardCommission';
   accountAddress: AccountAddress;
-  bakerId: Scalars['UnsignedLong'];
+  bakerId: Scalars['Long'];
   bakingRewardCommission: Scalars['Decimal'];
 };
 
 export type BakerSetFinalizationRewardCommission = {
   __typename?: 'BakerSetFinalizationRewardCommission';
   accountAddress: AccountAddress;
-  bakerId: Scalars['UnsignedLong'];
+  bakerId: Scalars['Long'];
   finalizationRewardCommission: Scalars['Decimal'];
 };
 
 export type BakerSetMetadataUrl = {
   __typename?: 'BakerSetMetadataURL';
   accountAddress: AccountAddress;
-  bakerId: Scalars['UnsignedLong'];
+  bakerId: Scalars['Long'];
   metadataUrl: Scalars['String'];
 };
 
 export type BakerSetOpenStatus = {
   __typename?: 'BakerSetOpenStatus';
   accountAddress: AccountAddress;
-  bakerId: Scalars['UnsignedLong'];
+  bakerId: Scalars['Long'];
   openStatus: BakerPoolOpenStatus;
 };
 
 export type BakerSetRestakeEarnings = {
   __typename?: 'BakerSetRestakeEarnings';
   accountAddress: AccountAddress;
-  bakerId: Scalars['UnsignedLong'];
+  bakerId: Scalars['Long'];
   restakeEarnings: Scalars['Boolean'];
 };
 
 export type BakerSetTransactionFeeCommission = {
   __typename?: 'BakerSetTransactionFeeCommission';
   accountAddress: AccountAddress;
-  bakerId: Scalars['UnsignedLong'];
+  bakerId: Scalars['Long'];
   transactionFeeCommission: Scalars['Decimal'];
 };
 
@@ -672,28 +674,26 @@ export enum BakerSort {
   BakerApy30DaysDesc = 'BAKER_APY30_DAYS_DESC',
   BakerIdAsc = 'BAKER_ID_ASC',
   BakerIdDesc = 'BAKER_ID_DESC',
-  BakerStakedAmountAsc = 'BAKER_STAKED_AMOUNT_ASC',
-  BakerStakedAmountDesc = 'BAKER_STAKED_AMOUNT_DESC',
+  /** Sort ascending by the current payday baking commission rate. */
   BlockCommissionsAsc = 'BLOCK_COMMISSIONS_ASC',
+  /** Sort descending by the current payday baking commission rate. */
   BlockCommissionsDesc = 'BLOCK_COMMISSIONS_DESC',
   DelegatorApy30DaysDesc = 'DELEGATOR_APY30_DAYS_DESC',
-  DelegatorCountAsc = 'DELEGATOR_COUNT_ASC',
   DelegatorCountDesc = 'DELEGATOR_COUNT_DESC',
-  TotalStakedAmountAsc = 'TOTAL_STAKED_AMOUNT_ASC',
   TotalStakedAmountDesc = 'TOTAL_STAKED_AMOUNT_DESC'
 }
 
 export type BakerStakeDecreased = {
   __typename?: 'BakerStakeDecreased';
   accountAddress: AccountAddress;
-  bakerId: Scalars['UnsignedLong'];
+  bakerId: Scalars['Long'];
   newStakedAmount: Scalars['UnsignedLong'];
 };
 
 export type BakerStakeIncreased = {
   __typename?: 'BakerStakeIncreased';
   accountAddress: AccountAddress;
-  bakerId: Scalars['UnsignedLong'];
+  bakerId: Scalars['Long'];
   newStakedAmount: Scalars['UnsignedLong'];
 };
 
@@ -704,61 +704,21 @@ export type BakerStakeThresholdChainUpdatePayload = {
 
 export type BakerState = ActiveBakerState | RemovedBakerState;
 
-export type BakerTransactionRelation = {
-  __typename?: 'BakerTransactionRelation';
-  id: Scalars['ID'];
-  transaction: Transaction;
-};
-
-/** A connection to a list of items. */
-export type BakerTransactionRelationConnection = {
-  __typename?: 'BakerTransactionRelationConnection';
-  /** A list of edges. */
-  edges?: Maybe<Array<BakerTransactionRelationEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<BakerTransactionRelation>>;
-  /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-};
-
-/** An edge in a connection. */
-export type BakerTransactionRelationEdge = {
-  __typename?: 'BakerTransactionRelationEdge';
-  /** A cursor for use in pagination. */
-  cursor: Scalars['String'];
-  /** The item at the end of the edge. */
-  node: BakerTransactionRelation;
-};
-
-/** A connection to a list of items. */
-export type BakersConnection = {
-  __typename?: 'BakersConnection';
-  /** A list of edges. */
-  edges?: Maybe<Array<BakersEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<Baker>>;
-  /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-};
-
-/** An edge in a connection. */
-export type BakersEdge = {
-  __typename?: 'BakersEdge';
-  /** A cursor for use in pagination. */
-  cursor: Scalars['String'];
-  /** The item at the end of the edge. */
-  node: Baker;
+export type BakerSuspended = {
+  __typename?: 'BakerSuspended';
+  accountAddress: AccountAddress;
+  bakerId: Scalars['Long'];
 };
 
 export type BakingRewardCommissionNotInRange = {
   __typename?: 'BakingRewardCommissionNotInRange';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
 export type BakingRewardsSpecialEvent = {
   __typename?: 'BakingRewardsSpecialEvent';
-  bakingRewards?: Maybe<AccountAddressAmountConnection>;
+  bakingRewards: AccountAddressAmountConnection;
   id: Scalars['ID'];
   remainder: Scalars['UnsignedLong'];
 };
@@ -771,42 +731,33 @@ export type BakingRewardsSpecialEventBakingRewardsArgs = {
   last?: InputMaybe<Scalars['Int']>;
 };
 
-export type BalanceStatistics = {
-  __typename?: 'BalanceStatistics';
-  /** The amount in the baking reward account */
-  bakingRewardAccount: Scalars['UnsignedLong'];
-  /** The amount in the finalization reward account */
-  finalizationRewardAccount: Scalars['UnsignedLong'];
-  /** The amount in the GAS account */
-  gasAccount: Scalars['UnsignedLong'];
-  /** The total CCD in existence */
-  totalAmount: Scalars['UnsignedLong'];
-  /** The total CCD in encrypted balances */
-  totalAmountEncrypted: Scalars['UnsignedLong'];
-  /** The total CCD locked in release schedules (from transfers with schedule) */
-  totalAmountLockedInReleaseSchedules: Scalars['UnsignedLong'];
-  /** The total CCD Released. This is total CCD supply not counting the balances of non circulating accounts */
-  totalAmountReleased?: Maybe<Scalars['UnsignedLong']>;
-  /** The total CCD staked */
-  totalAmountStaked: Scalars['UnsignedLong'];
-  /** The total CCD Unlocked according to the Concordium promise published on deck.concordium.com. Will be null for blocks with slot time before the published release schedule. */
-  totalAmountUnlocked?: Maybe<Scalars['UnsignedLong']>;
-};
-
 export type Block = {
   __typename?: 'Block';
-  bakerId?: Maybe<Scalars['Int']>;
-  balanceStatistics: BalanceStatistics;
+  bakerId?: Maybe<Scalars['Long']>;
   blockHash: Scalars['String'];
   blockHeight: Scalars['Int'];
+  /** Time of the block being baked. */
   blockSlotTime: Scalars['DateTime'];
+  /**
+   * The block statistics:
+   * - The time difference from the parent block.
+   * - The time difference to the block that justifies the block being
+   * finalized.
+   */
   blockStatistics: BlockStatistics;
-  chainParameters: ChainParameters;
+  /** Whether the block is finalized. */
   finalized: Scalars['Boolean'];
+  /** Absolute block height. */
   id: Scalars['ID'];
-  specialEvents?: Maybe<SpecialEventsConnection>;
+  /**
+   * Query the special events (aka. special transaction outcomes) associated
+   * with this block.
+   */
+  specialEvents: SpecialEventConnection;
+  totalAmount: Scalars['UnsignedLong'];
+  /** Number of transactions included in this block. */
   transactionCount: Scalars['Int'];
-  transactions?: Maybe<TransactionsConnection>;
+  transactions: TransactionConnection;
 };
 
 
@@ -829,7 +780,7 @@ export type BlockTransactionsArgs = {
 export type BlockAccrueRewardSpecialEvent = {
   __typename?: 'BlockAccrueRewardSpecialEvent';
   /** The baker of the block, who will receive the award. */
-  bakerId: Scalars['UnsignedLong'];
+  bakerId: Scalars['Long'];
   /** The amount awarded to the baker. */
   bakerReward: Scalars['UnsignedLong'];
   /** The amount awarded to the foundation. */
@@ -845,6 +796,25 @@ export type BlockAccrueRewardSpecialEvent = {
   transactionFees: Scalars['UnsignedLong'];
 };
 
+export type BlockConnection = {
+  __typename?: 'BlockConnection';
+  /** A list of edges. */
+  edges: Array<BlockEdge>;
+  /** A list of nodes. */
+  nodes: Array<Block>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type BlockEdge = {
+  __typename?: 'BlockEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: Block;
+};
+
 export type BlockEnergyLimitUpdate = {
   __typename?: 'BlockEnergyLimitUpdate';
   energyLimit: Scalars['UnsignedLong'];
@@ -852,31 +822,36 @@ export type BlockEnergyLimitUpdate = {
 
 export type BlockMetrics = {
   __typename?: 'BlockMetrics';
-  /** The average block time (slot-time difference between two adjacent blocks) in the requested period. Will be null if no blocks have been added in the requested period. */
+  /**
+   * The average block time in seconds (slot-time difference between two
+   * adjacent blocks) in the requested period. Will be null if no blocks
+   * have been added in the requested period.
+   */
   avgBlockTime?: Maybe<Scalars['Float']>;
-  /** The average finalization time (slot-time difference between a given block and the block that holds its finalization proof) in the requested period. Will be null if no blocks have been finalized in the requested period. */
+  /**
+   * The average finalization time in seconds (slot-time difference between a
+   * given block and the block that holds its finalization proof) in the
+   * requested period. Will be null if no blocks have been finalized in
+   * the requested period.
+   */
   avgFinalizationTime?: Maybe<Scalars['Float']>;
   /** Total number of blocks added in requested period. */
   blocksAdded: Scalars['Int'];
   buckets: BlockMetricsBuckets;
-  /** The most recent block height. Equals the total length of the chain minus one (genesis block is at height zero). */
-  lastBlockHeight: Scalars['Long'];
+  /**
+   * The most recent block height. Equals the total length of the chain minus
+   * one (genesis block is at height zero).
+   */
+  lastBlockHeight: Scalars['Int'];
   /** The current total amount of CCD in existence. */
-  lastTotalMicroCcd: Scalars['Long'];
-  /** The current total amount of CCD in encrypted balances. */
-  lastTotalMicroCcdEncrypted: Scalars['Long'];
-  /** The total CCD Released. This is total CCD supply not counting the balances of non circulating accounts */
-  lastTotalMicroCcdReleased?: Maybe<Scalars['Long']>;
+  lastTotalMicroCcd: Scalars['UnsignedLong'];
+  /**
+   * The total CCD Released. This is total CCD supply not counting the
+   * balances of non circulating accounts.
+   */
+  lastTotalMicroCcdReleased: Scalars['UnsignedLong'];
   /** The current total amount of CCD staked. */
-  lastTotalMicroCcdStaked: Scalars['Long'];
-  /** The current total CCD released according to the Concordium promise published on deck.concordium.com. Will be null for blocks with slot time before the published release schedule. */
-  lastTotalMicroCcdUnlocked?: Maybe<Scalars['Long']>;
-  /** The current percentage of CCD encrypted (of total CCD in existence) */
-  lastTotalPercentageEncrypted: Scalars['Float'];
-  /** The current percentage of CCD released (of total CCD in existence) according to the Concordium promise published on deck.concordium.com. Will be null for blocks with slot time before the published release schedule. */
-  lastTotalPercentageReleased?: Maybe<Scalars['Float']>;
-  /** The current percentage of CCD staked (of total CCD in existence) */
-  lastTotalPercentageStaked: Scalars['Float'];
+  lastTotalMicroCcdStaked: Scalars['UnsignedLong'];
 };
 
 export type BlockMetricsBuckets = {
@@ -885,34 +860,29 @@ export type BlockMetricsBuckets = {
   bucketWidth: Scalars['TimeSpan'];
   /** Start of the bucket time period. Intended x-axis value. */
   x_Time: Array<Scalars['DateTime']>;
-  /** The average block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period. */
-  y_BlockTimeAvg: Array<Maybe<Scalars['Float']>>;
-  /** The maximum block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period. */
-  y_BlockTimeMax: Array<Maybe<Scalars['Float']>>;
-  /** The minimum block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period. */
-  y_BlockTimeMin: Array<Maybe<Scalars['Float']>>;
-  /** Number of blocks added within the bucket time period. Intended y-axis value. */
+  /**
+   * The average block time (slot-time difference between two adjacent
+   * blocks) in the bucket period. Intended y-axis value. Will be null if
+   * no blocks have been added in the bucket period.
+   */
+  y_BlockTimeAvg: Array<Scalars['Float']>;
+  /**
+   * Number of blocks added within the bucket time period. Intended y-axis
+   * value.
+   */
   y_BlocksAdded: Array<Scalars['Int']>;
-  /** The average finalization time (slot-time difference between a given block and the block that holds its finalization proof) in the bucket period. Intended y-axis value. Will be null if no blocks have been finalized in the bucket period. */
-  y_FinalizationTimeAvg: Array<Maybe<Scalars['Float']>>;
-  /** The maximum finalization time (slot-time difference between a given block and the block that holds its finalization proof) in the bucket period. Intended y-axis value. Will be null if no blocks have been finalized in the bucket period. */
-  y_FinalizationTimeMax: Array<Maybe<Scalars['Float']>>;
-  /** The minimum finalization time (slot-time difference between a given block and the block that holds its finalization proof) in the bucket period. Intended y-axis value. Will be null if no blocks have been finalized in the bucket period. */
-  y_FinalizationTimeMin: Array<Maybe<Scalars['Float']>>;
-  /** The total amount of CCD in existence at the end of the bucket period. Intended y-axis value. */
-  y_LastTotalMicroCcd: Array<Scalars['Long']>;
-  /** The total amount of CCD in encrypted balances at the end of the bucket period. Intended y-axis value. */
-  y_LastTotalMicroCcdEncrypted: Array<Scalars['Long']>;
-  /** The total amount of CCD staked at the end of the bucket period. Intended y-axis value. */
-  y_LastTotalMicroCcdStaked: Array<Scalars['Long']>;
-  /** The maximum amount of CCD in encrypted balances in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period. */
-  y_MaxTotalMicroCcdEncrypted: Array<Maybe<Scalars['Long']>>;
-  /** The maximum amount of CCD staked in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period. */
-  y_MaxTotalMicroCcdStaked: Array<Scalars['Long']>;
-  /** The minimum amount of CCD in encrypted balances in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period. */
-  y_MinTotalMicroCcdEncrypted: Array<Maybe<Scalars['Long']>>;
-  /** The minimum amount of CCD staked in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period. */
-  y_MinTotalMicroCcdStaked: Array<Scalars['Long']>;
+  /**
+   * The average finalization time (slot-time difference between a given
+   * block and the block that holds its finalization proof) in the bucket
+   * period. Intended y-axis value. Will be null if no blocks have been
+   * finalized in the bucket period.
+   */
+  y_FinalizationTimeAvg: Array<Scalars['Float']>;
+  /**
+   * The total amount of CCD staked at the end of the bucket period. Intended
+   * y-axis value.
+   */
+  y_LastTotalMicroCcdStaked: Array<Scalars['UnsignedLong']>;
 };
 
 export type BlockOrTransaction = Block | Transaction;
@@ -931,189 +901,105 @@ export type BlockRewardsSpecialEvent = {
 
 export type BlockStatistics = {
   __typename?: 'BlockStatistics';
+  /**
+   * Number of seconds between block slot time of this block and previous
+   * block.
+   */
   blockTime: Scalars['Float'];
+  /**
+   * Number of seconds between the block slot time of this block and the
+   * block containing the finalization proof for this block.
+   *
+   * This is an objective measure of the finalization time (determined by
+   * chain data alone) and will at least be the block time. The actual
+   * finalization time will usually be lower than that but can only be
+   * determined in a subjective manner by each node: That is the time a
+   * node has first seen a block finalized. This is defined as the
+   * difference between when a finalization proof is first constructed,
+   * and the block slot time. However the time when a finalization proof
+   * is first constructed is subjective, some nodes will receive the
+   * necessary messages before others. Also, this number cannot be
+   * reconstructed for blocks finalized before extracting data from the
+   * node.
+   *
+   * Value will initially be `None` until the block containing the
+   * finalization proof for this block is itself finalized.
+   */
   finalizationTime?: Maybe<Scalars['Float']>;
 };
 
-/** A connection to a list of items. */
-export type BlocksConnection = {
-  __typename?: 'BlocksConnection';
-  /** A list of edges. */
-  edges?: Maybe<Array<BlocksEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<Block>>;
-  /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-};
-
-/** An edge in a connection. */
-export type BlocksEdge = {
-  __typename?: 'BlocksEdge';
-  /** A cursor for use in pagination. */
-  cursor: Scalars['String'];
-  /** The item at the end of the edge. */
-  node: Block;
-};
-
-export type ChainParameters = {
-  accountCreationLimit: Scalars['Int'];
-  euroPerEnergy: ExchangeRate;
-  foundationAccountAddress: AccountAddress;
-  microCcdPerEuro: ExchangeRate;
-};
-
-export type ChainParametersV0 = ChainParameters & {
-  __typename?: 'ChainParametersV0';
-  accountCreationLimit: Scalars['Int'];
-  bakerCooldownEpochs: Scalars['UnsignedLong'];
-  electionDifficulty: Scalars['Decimal'];
-  euroPerEnergy: ExchangeRate;
-  foundationAccountAddress: AccountAddress;
-  microCcdPerEuro: ExchangeRate;
-  minimumThresholdForBaking: Scalars['UnsignedLong'];
-  rewardParameters: RewardParametersV0;
-};
-
-export type ChainParametersV1 = ChainParameters & {
+export type ChainParametersV1 = {
   __typename?: 'ChainParametersV1';
-  accountCreationLimit: Scalars['Int'];
-  bakingCommissionRange: CommissionRange;
-  capitalBound: Scalars['Decimal'];
-  delegatorCooldown: Scalars['UnsignedLong'];
-  electionDifficulty: Scalars['Decimal'];
-  euroPerEnergy: ExchangeRate;
-  finalizationCommissionRange: CommissionRange;
-  foundationAccountAddress: AccountAddress;
-  leverageBound: LeverageFactor;
-  microCcdPerEuro: ExchangeRate;
-  minimumEquityCapital: Scalars['UnsignedLong'];
-  mintPerPayday: Scalars['Decimal'];
-  passiveBakingCommission: Scalars['Decimal'];
-  passiveFinalizationCommission: Scalars['Decimal'];
-  passiveTransactionCommission: Scalars['Decimal'];
-  poolOwnerCooldown: Scalars['UnsignedLong'];
-  rewardParameters: RewardParametersV1;
   rewardPeriodLength: Scalars['UnsignedLong'];
-  transactionCommissionRange: CommissionRange;
-};
-
-export type ChainParametersV2 = ChainParameters & {
-  __typename?: 'ChainParametersV2';
-  accountCreationLimit: Scalars['Int'];
-  bakingCommissionRange: CommissionRange;
-  capitalBound: Scalars['Decimal'];
-  delegatorCooldown: Scalars['UnsignedLong'];
-  euroPerEnergy: ExchangeRate;
-  finalizationCommissionRange: CommissionRange;
-  foundationAccountAddress: AccountAddress;
-  leverageBound: LeverageFactor;
-  microCcdPerEuro: ExchangeRate;
-  minimumEquityCapital: Scalars['UnsignedLong'];
-  mintPerPayday: Scalars['Decimal'];
-  passiveBakingCommission: Scalars['Decimal'];
-  passiveFinalizationCommission: Scalars['Decimal'];
-  passiveTransactionCommission: Scalars['Decimal'];
-  poolOwnerCooldown: Scalars['UnsignedLong'];
-  rewardParameters: RewardParametersV2;
-  rewardPeriodLength: Scalars['UnsignedLong'];
-  transactionCommissionRange: CommissionRange;
-};
-
-export type ChainParametersV3 = ChainParameters & {
-  __typename?: 'ChainParametersV3';
-  accountCreationLimit: Scalars['Int'];
-  bakingCommissionRange: CommissionRange;
-  capitalBound: Scalars['Decimal'];
-  delegatorCooldown: Scalars['UnsignedLong'];
-  euroPerEnergy: ExchangeRate;
-  finalizationCommissionRange: CommissionRange;
-  foundationAccountAddress: AccountAddress;
-  leverageBound: LeverageFactor;
-  microCcdPerEuro: ExchangeRate;
-  minimumEquityCapital: Scalars['UnsignedLong'];
-  mintPerPayday: Scalars['Decimal'];
-  passiveBakingCommission: Scalars['Decimal'];
-  passiveFinalizationCommission: Scalars['Decimal'];
-  passiveTransactionCommission: Scalars['Decimal'];
-  poolOwnerCooldown: Scalars['UnsignedLong'];
-  rewardParameters: RewardParametersV2;
-  rewardPeriodLength: Scalars['UnsignedLong'];
-  transactionCommissionRange: CommissionRange;
 };
 
 export type ChainUpdateEnqueued = {
   __typename?: 'ChainUpdateEnqueued';
-  effectiveImmediately: Scalars['Boolean'];
   effectiveTime: Scalars['DateTime'];
   payload: ChainUpdatePayload;
 };
 
 export type ChainUpdatePayload = AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | BlockEnergyLimitUpdate | CooldownParametersChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | FinalizationCommitteeParametersUpdate | FoundationAccountChainUpdatePayload | GasRewardsChainUpdatePayload | GasRewardsCpv2Update | Level1KeysChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | MinBlockTimeUpdate | MintDistributionChainUpdatePayload | MintDistributionV1ChainUpdatePayload | PoolParametersChainUpdatePayload | ProtocolChainUpdatePayload | RootKeysChainUpdatePayload | TimeParametersChainUpdatePayload | TimeoutParametersUpdate | TransactionFeeDistributionChainUpdatePayload | ValidatorScoreParametersUpdate;
 
-export type CisBurnEvent = {
-  __typename?: 'CisBurnEvent';
-  contractIndex: Scalars['UnsignedLong'];
-  contractSubIndex: Scalars['UnsignedLong'];
-  fromAddress: Address;
-  parsed?: Maybe<Scalars['String']>;
-  tokenAmount: Scalars['BigInteger'];
+export type Cis2Event = {
+  __typename?: 'Cis2Event';
+  contractIndex: Scalars['Int'];
+  contractSubIndex: Scalars['Int'];
+  event: CisEvent;
+  indexPerToken: Scalars['Int'];
   tokenId: Scalars['String'];
-  transactionHash: Scalars['String'];
+  transaction: Transaction;
+  transactionIndex: Scalars['Int'];
 };
 
-export type CisEvent = CisBurnEvent | CisMintEvent | CisTokenMetadataEvent | CisTransferEvent | CisUpdateOperatorEvent;
+export type CisBurnEvent = {
+  __typename?: 'CisBurnEvent';
+  fromAddress: Address;
+  tokenAmount: Scalars['BigInteger'];
+  tokenId: Scalars['String'];
+};
+
+export type CisEvent = CisBurnEvent | CisMintEvent | CisTokenMetadataEvent | CisTransferEvent | CisUnknownEvent;
 
 export type CisMintEvent = {
   __typename?: 'CisMintEvent';
-  contractIndex: Scalars['UnsignedLong'];
-  contractSubIndex: Scalars['UnsignedLong'];
-  parsed?: Maybe<Scalars['String']>;
   toAddress: Address;
   tokenAmount: Scalars['BigInteger'];
   tokenId: Scalars['String'];
-  transactionHash: Scalars['String'];
 };
 
 export type CisTokenMetadataEvent = {
   __typename?: 'CisTokenMetadataEvent';
-  contractIndex: Scalars['UnsignedLong'];
-  contractSubIndex: Scalars['UnsignedLong'];
   hashHex?: Maybe<Scalars['String']>;
   metadataUrl: Scalars['String'];
-  parsed?: Maybe<Scalars['String']>;
   tokenId: Scalars['String'];
-  transactionHash: Scalars['String'];
 };
 
 export type CisTransferEvent = {
   __typename?: 'CisTransferEvent';
-  contractIndex: Scalars['UnsignedLong'];
-  contractSubIndex: Scalars['UnsignedLong'];
   fromAddress: Address;
-  parsed?: Maybe<Scalars['String']>;
   toAddress: Address;
   tokenAmount: Scalars['BigInteger'];
   tokenId: Scalars['String'];
-  transactionHash: Scalars['String'];
 };
 
-export type CisUpdateOperatorEvent = {
-  __typename?: 'CisUpdateOperatorEvent';
-  contractIndex: Scalars['UnsignedLong'];
-  contractSubIndex: Scalars['UnsignedLong'];
-  operator: Address;
-  owner: Address;
-  parsed?: Maybe<Scalars['String']>;
-  transactionHash: Scalars['String'];
-  update: OperatorUpdateType;
+export type CisUnknownEvent = {
+  __typename?: 'CisUnknownEvent';
+  dummy: Scalars['UnsignedLong'];
 };
 
 /** Information about the offset pagination. */
 export type CollectionSegmentInfo = {
   __typename?: 'CollectionSegmentInfo';
-  /** Indicates whether more items exist following the set defined by the clients arguments. */
+  /**
+   * Indicates whether more items exist following the set defined by the
+   * clients arguments.
+   */
   hasNextPage: Scalars['Boolean'];
-  /** Indicates whether more items exist prior the set defined by the clients arguments. */
+  /**
+   * Indicates whether more items exist prior the set defined by the clients
+   * arguments.
+   */
   hasPreviousPage: Scalars['Boolean'];
 };
 
@@ -1125,23 +1011,23 @@ export type CommissionRange = {
 
 export type CommissionRates = {
   __typename?: 'CommissionRates';
-  bakingCommission: Scalars['Decimal'];
-  finalizationCommission: Scalars['Decimal'];
-  transactionCommission: Scalars['Decimal'];
+  bakingCommission?: Maybe<Scalars['Decimal']>;
+  finalizationCommission?: Maybe<Scalars['Decimal']>;
+  transactionCommission?: Maybe<Scalars['Decimal']>;
 };
 
 export type Contract = {
   __typename?: 'Contract';
-  blockHeight: Scalars['UnsignedLong'];
+  blockHeight: Scalars['Int'];
   blockSlotTime: Scalars['DateTime'];
   contractAddress: Scalars['String'];
   contractAddressIndex: Scalars['UnsignedLong'];
   contractAddressSubIndex: Scalars['UnsignedLong'];
-  contractEvents?: Maybe<ContractEventsCollectionSegment>;
-  contractRejectEvents?: Maybe<ContractRejectEventsCollectionSegment>;
+  contractEvents: ContractEventsCollectionSegment;
+  contractRejectEvents: ContractRejectEventsCollectionSegment;
   creator: AccountAddress;
   snapshot: ContractSnapshot;
-  tokens?: Maybe<TokensCollectionSegment>;
+  tokens: TokensCollectionSegment;
   transactionHash: Scalars['String'];
 };
 
@@ -1175,9 +1061,28 @@ export type ContractCall = {
   contractUpdated: ContractUpdated;
 };
 
+export type ContractConnection = {
+  __typename?: 'ContractConnection';
+  /** A list of edges. */
+  edges: Array<ContractEdge>;
+  /** A list of nodes. */
+  nodes: Array<Contract>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type ContractEdge = {
+  __typename?: 'ContractEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: Contract;
+};
+
 export type ContractEvent = {
   __typename?: 'ContractEvent';
-  blockHeight: Scalars['UnsignedLong'];
+  blockHeight: Scalars['Int'];
   blockSlotTime: Scalars['DateTime'];
   contractAddressIndex: Scalars['UnsignedLong'];
   contractAddressSubIndex: Scalars['UnsignedLong'];
@@ -1190,7 +1095,7 @@ export type ContractEvent = {
 export type ContractEventsCollectionSegment = {
   __typename?: 'ContractEventsCollectionSegment';
   /** A flattened list of the items. */
-  items?: Maybe<Array<ContractEvent>>;
+  items: Array<ContractEvent>;
   /** Information to aid in pagination. */
   pageInfo: CollectionSegmentInfo;
   totalCount: Scalars['Int'];
@@ -1200,50 +1105,23 @@ export type ContractInitialized = {
   __typename?: 'ContractInitialized';
   amount: Scalars['UnsignedLong'];
   contractAddress: ContractAddress;
-  events?: Maybe<StringConnection>;
-  eventsAsHex?: Maybe<StringConnection>;
+  contractLogsRaw: Array<Array<Scalars['Int']>>;
+  events: StringConnection;
+  eventsAsHex: StringConnection;
   initName: Scalars['String'];
+  inputParameter?: Maybe<Array<Scalars['Int']>>;
+  message?: Maybe<Scalars['String']>;
+  messageAsHex?: Maybe<Scalars['String']>;
   moduleRef: Scalars['String'];
-  version?: Maybe<ContractVersion>;
-};
-
-
-export type ContractInitializedEventsArgs = {
-  after?: InputMaybe<Scalars['String']>;
-  before?: InputMaybe<Scalars['String']>;
-  first?: InputMaybe<Scalars['Int']>;
-  last?: InputMaybe<Scalars['Int']>;
-};
-
-
-export type ContractInitializedEventsAsHexArgs = {
-  after?: InputMaybe<Scalars['String']>;
-  before?: InputMaybe<Scalars['String']>;
-  first?: InputMaybe<Scalars['Int']>;
-  last?: InputMaybe<Scalars['Int']>;
+  version: ContractVersion;
 };
 
 export type ContractInterrupted = {
   __typename?: 'ContractInterrupted';
   contractAddress: ContractAddress;
-  events?: Maybe<StringConnection>;
-  eventsAsHex?: Maybe<StringConnection>;
-};
-
-
-export type ContractInterruptedEventsArgs = {
-  after?: InputMaybe<Scalars['String']>;
-  before?: InputMaybe<Scalars['String']>;
-  first?: InputMaybe<Scalars['Int']>;
-  last?: InputMaybe<Scalars['Int']>;
-};
-
-
-export type ContractInterruptedEventsAsHexArgs = {
-  after?: InputMaybe<Scalars['String']>;
-  before?: InputMaybe<Scalars['String']>;
-  first?: InputMaybe<Scalars['Int']>;
-  last?: InputMaybe<Scalars['Int']>;
+  contractLogsRaw: Array<Array<Scalars['Int']>>;
+  events: StringConnection;
+  eventsAsHex: StringConnection;
 };
 
 export type ContractModuleDeployed = {
@@ -1253,12 +1131,8 @@ export type ContractModuleDeployed = {
 
 export type ContractRejectEvent = {
   __typename?: 'ContractRejectEvent';
-  blockHeight: Scalars['UnsignedLong'];
   blockSlotTime: Scalars['DateTime'];
-  contractAddressIndex: Scalars['UnsignedLong'];
-  contractAddressSubIndex: Scalars['UnsignedLong'];
   rejectedEvent: TransactionRejectReason;
-  sender: AccountAddress;
   transactionHash: Scalars['String'];
 };
 
@@ -1266,9 +1140,7 @@ export type ContractRejectEvent = {
 export type ContractRejectEventsCollectionSegment = {
   __typename?: 'ContractRejectEventsCollectionSegment';
   /** A flattened list of the items. */
-  items?: Maybe<Array<ContractRejectEvent>>;
-  /** Information to aid in pagination. */
-  pageInfo: CollectionSegmentInfo;
+  items: Array<ContractRejectEvent>;
   totalCount: Scalars['Int'];
 };
 
@@ -1281,7 +1153,7 @@ export type ContractResumed = {
 export type ContractSnapshot = {
   __typename?: 'ContractSnapshot';
   amount: Scalars['UnsignedLong'];
-  blockHeight: Scalars['UnsignedLong'];
+  blockHeight: Scalars['Int'];
   contractAddressIndex: Scalars['UnsignedLong'];
   contractAddressSubIndex: Scalars['UnsignedLong'];
   contractName: Scalars['String'];
@@ -1292,29 +1164,15 @@ export type ContractUpdated = {
   __typename?: 'ContractUpdated';
   amount: Scalars['UnsignedLong'];
   contractAddress: ContractAddress;
-  events?: Maybe<StringConnection>;
-  eventsAsHex?: Maybe<StringConnection>;
+  contractLogsRaw: Array<Array<Scalars['Int']>>;
+  events: StringConnection;
+  eventsAsHex: StringConnection;
+  inputParameter: Array<Scalars['Int']>;
   instigator: Address;
   message?: Maybe<Scalars['String']>;
   messageAsHex: Scalars['String'];
   receiveName: Scalars['String'];
-  version?: Maybe<ContractVersion>;
-};
-
-
-export type ContractUpdatedEventsArgs = {
-  after?: InputMaybe<Scalars['String']>;
-  before?: InputMaybe<Scalars['String']>;
-  first?: InputMaybe<Scalars['Int']>;
-  last?: InputMaybe<Scalars['Int']>;
-};
-
-
-export type ContractUpdatedEventsAsHexArgs = {
-  after?: InputMaybe<Scalars['String']>;
-  before?: InputMaybe<Scalars['String']>;
-  first?: InputMaybe<Scalars['Int']>;
-  last?: InputMaybe<Scalars['Int']>;
+  version: ContractVersion;
 };
 
 export type ContractUpgraded = {
@@ -1328,26 +1186,6 @@ export enum ContractVersion {
   V0 = 'V0',
   V1 = 'V1'
 }
-
-/** A connection to a list of items. */
-export type ContractsConnection = {
-  __typename?: 'ContractsConnection';
-  /** A list of edges. */
-  edges?: Maybe<Array<ContractsEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<Contract>>;
-  /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-};
-
-/** An edge in a connection. */
-export type ContractsEdge = {
-  __typename?: 'ContractsEdge';
-  /** A cursor for use in pagination. */
-  cursor: Scalars['String'];
-  /** The item at the end of the edge. */
-  node: Contract;
-};
 
 export type CooldownParametersChainUpdatePayload = {
   __typename?: 'CooldownParametersChainUpdatePayload';
@@ -1363,28 +1201,17 @@ export type CredentialDeployed = {
 
 export type CredentialDeploymentTransaction = {
   __typename?: 'CredentialDeploymentTransaction';
-  credentialDeploymentTransactionType?: Maybe<CredentialDeploymentTransactionType>;
+  credentialDeploymentTransactionType: CredentialDeploymentTransactionType;
 };
 
-/** Enumeration of the types of credentials. */
 export enum CredentialDeploymentTransactionType {
-  /**
-   * Initial credential is a credential that is submitted by the identity
-   * provider on behalf of the user. There is at most one initial credential
-   * per identity.
-   */
   Initial = 'INITIAL',
-  /**
-   * A normal credential is one where the identity behind it is only known to
-   * the owner of the account, unless the identity disclosure process
-   * has been initiated.
-   */
   Normal = 'NORMAL'
 }
 
 export type CredentialHolderDidNotSign = {
   __typename?: 'CredentialHolderDidNotSign';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
@@ -1416,8 +1243,7 @@ export type DecodedText = {
 export type Delegation = {
   __typename?: 'Delegation';
   delegationTarget: DelegationTarget;
-  delegatorId: Scalars['Long'];
-  pendingChange?: Maybe<PendingDelegationChange>;
+  delegatorId: Scalars['Int'];
   restakeEarnings: Scalars['Boolean'];
   stakedAmount: Scalars['UnsignedLong'];
 };
@@ -1425,40 +1251,40 @@ export type Delegation = {
 export type DelegationAdded = {
   __typename?: 'DelegationAdded';
   accountAddress: AccountAddress;
-  delegatorId: Scalars['UnsignedLong'];
+  delegatorId: Scalars['Int'];
 };
 
 export type DelegationRemoved = {
   __typename?: 'DelegationRemoved';
   accountAddress: AccountAddress;
-  delegatorId: Scalars['UnsignedLong'];
+  delegatorId: Scalars['Int'];
 };
 
 export type DelegationSetDelegationTarget = {
   __typename?: 'DelegationSetDelegationTarget';
   accountAddress: AccountAddress;
   delegationTarget: DelegationTarget;
-  delegatorId: Scalars['UnsignedLong'];
+  delegatorId: Scalars['Int'];
 };
 
 export type DelegationSetRestakeEarnings = {
   __typename?: 'DelegationSetRestakeEarnings';
   accountAddress: AccountAddress;
-  delegatorId: Scalars['UnsignedLong'];
+  delegatorId: Scalars['Int'];
   restakeEarnings: Scalars['Boolean'];
 };
 
 export type DelegationStakeDecreased = {
   __typename?: 'DelegationStakeDecreased';
   accountAddress: AccountAddress;
-  delegatorId: Scalars['UnsignedLong'];
+  delegatorId: Scalars['Int'];
   newStakedAmount: Scalars['UnsignedLong'];
 };
 
 export type DelegationStakeIncreased = {
   __typename?: 'DelegationStakeIncreased';
   accountAddress: AccountAddress;
-  delegatorId: Scalars['UnsignedLong'];
+  delegatorId: Scalars['Int'];
   newStakedAmount: Scalars['UnsignedLong'];
 };
 
@@ -1469,52 +1295,45 @@ export type DelegationSummary = {
   stakedAmount: Scalars['UnsignedLong'];
 };
 
-export type DelegationTarget = BakerDelegationTarget | PassiveDelegationTarget;
-
-export type DelegationTargetNotABaker = {
-  __typename?: 'DelegationTargetNotABaker';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
-  _: Scalars['Boolean'];
-  bakerId: Scalars['UnsignedLong'];
-};
-
-export type DelegatorInCooldown = {
-  __typename?: 'DelegatorInCooldown';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
-  _: Scalars['Boolean'];
-};
-
-/** A connection to a list of items. */
-export type DelegatorsConnection = {
-  __typename?: 'DelegatorsConnection';
+export type DelegationSummaryConnection = {
+  __typename?: 'DelegationSummaryConnection';
   /** A list of edges. */
-  edges?: Maybe<Array<DelegatorsEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<DelegationSummary>>;
+  edges: Array<DelegationSummaryEdge>;
+  /** A list of nodes. */
+  nodes: Array<DelegationSummary>;
   /** Information to aid in pagination. */
   pageInfo: PageInfo;
 };
 
 /** An edge in a connection. */
-export type DelegatorsEdge = {
-  __typename?: 'DelegatorsEdge';
-  /** A cursor for use in pagination. */
+export type DelegationSummaryEdge = {
+  __typename?: 'DelegationSummaryEdge';
+  /** A cursor for use in pagination */
   cursor: Scalars['String'];
-  /** The item at the end of the edge. */
+  /** The item at the end of the edge */
   node: DelegationSummary;
+};
+
+export type DelegationTarget = BakerDelegationTarget | PassiveDelegationTarget;
+
+export type DelegationTargetNotABaker = {
+  __typename?: 'DelegationTargetNotABaker';
+  bakerId: Scalars['Long'];
+};
+
+export type DelegatorInCooldown = {
+  __typename?: 'DelegatorInCooldown';
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
+  _: Scalars['Boolean'];
 };
 
 export type DuplicateAggregationKey = {
   __typename?: 'DuplicateAggregationKey';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
-  _: Scalars['Boolean'];
   aggregationKey: Scalars['String'];
 };
 
 export type DuplicateCredIds = {
   __typename?: 'DuplicateCredIds';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
-  _: Scalars['Boolean'];
   credIds: Array<Scalars['String']>;
 };
 
@@ -1525,8 +1344,6 @@ export type ElectionDifficultyChainUpdatePayload = {
 
 export type EncryptedAmountSelfTransfer = {
   __typename?: 'EncryptedAmountSelfTransfer';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
-  _: Scalars['Boolean'];
   accountAddress: AccountAddress;
 };
 
@@ -1535,7 +1352,7 @@ export type EncryptedAmountsRemoved = {
   accountAddress: AccountAddress;
   inputAmount: Scalars['String'];
   newEncryptedAmount: Scalars['String'];
-  upToIndex: Scalars['UnsignedLong'];
+  upToIndex: Scalars['Int'];
 };
 
 export type EncryptedSelfAmountAdded = {
@@ -1547,37 +1364,29 @@ export type EncryptedSelfAmountAdded = {
 
 export type EuroPerEnergyChainUpdatePayload = {
   __typename?: 'EuroPerEnergyChainUpdatePayload';
-  exchangeRate: ExchangeRate;
+  exchangeRate: Ratio;
 };
 
-export type Event = AccountCreated | AmountAddedByDecryption | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerSetMetadataUrl | BakerSetOpenStatus | BakerSetRestakeEarnings | BakerSetTransactionFeeCommission | BakerStakeDecreased | BakerStakeIncreased | ChainUpdateEnqueued | ContractCall | ContractInitialized | ContractInterrupted | ContractModuleDeployed | ContractResumed | ContractUpdated | ContractUpgraded | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | DelegationAdded | DelegationRemoved | DelegationSetDelegationTarget | DelegationSetRestakeEarnings | DelegationStakeDecreased | DelegationStakeIncreased | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | Transferred | TransferredWithSchedule;
+export type Event = AccountCreated | AmountAddedByDecryption | BakerAdded | BakerDelegationRemoved | BakerKeysUpdated | BakerRemoved | BakerResumed | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerSetMetadataUrl | BakerSetOpenStatus | BakerSetRestakeEarnings | BakerSetTransactionFeeCommission | BakerStakeDecreased | BakerStakeIncreased | BakerSuspended | ChainUpdateEnqueued | ContractCall | ContractInitialized | ContractInterrupted | ContractModuleDeployed | ContractResumed | ContractUpdated | ContractUpgraded | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | DelegationAdded | DelegationRemoved | DelegationSetDelegationTarget | DelegationSetRestakeEarnings | DelegationStakeDecreased | DelegationStakeIncreased | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | Transferred | TransferredWithSchedule;
 
-/** A connection to a list of items. */
-export type EventsConnection = {
-  __typename?: 'EventsConnection';
+export type EventConnection = {
+  __typename?: 'EventConnection';
   /** A list of edges. */
-  edges?: Maybe<Array<EventsEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<Event>>;
+  edges: Array<EventEdge>;
+  /** A list of nodes. */
+  nodes: Array<Event>;
   /** Information to aid in pagination. */
   pageInfo: PageInfo;
-  /** Identifies the total count of items in the connection. */
   totalCount: Scalars['Int'];
 };
 
 /** An edge in a connection. */
-export type EventsEdge = {
-  __typename?: 'EventsEdge';
-  /** A cursor for use in pagination. */
+export type EventEdge = {
+  __typename?: 'EventEdge';
+  /** A cursor for use in pagination */
   cursor: Scalars['String'];
-  /** The item at the end of the edge. */
+  /** The item at the end of the edge */
   node: Event;
-};
-
-export type ExchangeRate = {
-  __typename?: 'ExchangeRate';
-  denominator: Scalars['UnsignedLong'];
-  numerator: Scalars['UnsignedLong'];
 };
 
 export type FinalizationCommitteeParametersUpdate = {
@@ -1589,13 +1398,13 @@ export type FinalizationCommitteeParametersUpdate = {
 
 export type FinalizationRewardCommissionNotInRange = {
   __typename?: 'FinalizationRewardCommissionNotInRange';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
 export type FinalizationRewardsSpecialEvent = {
   __typename?: 'FinalizationRewardsSpecialEvent';
-  finalizationRewards?: Maybe<AccountAddressAmountConnection>;
+  finalizationRewards: AccountAddressAmountConnection;
   id: Scalars['ID'];
   remainder: Scalars['UnsignedLong'];
 };
@@ -1610,7 +1419,7 @@ export type FinalizationRewardsSpecialEventFinalizationRewardsArgs = {
 
 export type FirstScheduledReleaseExpired = {
   __typename?: 'FirstScheduledReleaseExpired';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
@@ -1619,27 +1428,12 @@ export type FoundationAccountChainUpdatePayload = {
   accountAddress: AccountAddress;
 };
 
-export type GasRewards = {
-  __typename?: 'GasRewards';
-  accountCreation: Scalars['Decimal'];
-  baker: Scalars['Decimal'];
-  chainUpdate: Scalars['Decimal'];
-  finalizationProof: Scalars['Decimal'];
-};
-
 export type GasRewardsChainUpdatePayload = {
   __typename?: 'GasRewardsChainUpdatePayload';
   accountCreation: Scalars['Decimal'];
   baker: Scalars['Decimal'];
   chainUpdate: Scalars['Decimal'];
   finalizationProof: Scalars['Decimal'];
-};
-
-export type GasRewardsCpv2 = {
-  __typename?: 'GasRewardsCpv2';
-  accountCreation: Scalars['Decimal'];
-  baker: Scalars['Decimal'];
-  chainUpdate: Scalars['Decimal'];
 };
 
 export type GasRewardsCpv2Update = {
@@ -1651,126 +1445,155 @@ export type GasRewardsCpv2Update = {
 
 export type ImportState = {
   __typename?: 'ImportState';
-  cumulativeAccountsCreated: Scalars['Long'];
-  cumulativeTransactionCount: Scalars['Long'];
-  epochDuration: Scalars['Int'];
-  genesisBlockHash: Scalars['String'];
-  lastBlockSlotTime: Scalars['DateTime'];
-  lastGenesisIndex: Scalars['Int'];
-  maxBlockHeightWithUpdatedFinalizationTime: Scalars['Long'];
-  maxImportedBlockHeight: Scalars['Long'];
-  migrationToBakerPoolsCompleted: Scalars['Boolean'];
-  nextPendingBakerChangeTime?: Maybe<Scalars['DateTime']>;
-  passiveDelegationAdded: Scalars['Boolean'];
-  totalBakerCount: Scalars['Int'];
+  epochDuration: Scalars['TimeSpan'];
 };
+
+/**
+ * The status of parsing `message` into its JSON representation using the
+ * smart contract module schema.
+ */
+export enum InstanceMessageParsingStatus {
+  /** Relevant smart contract not found in smart contract module schema. */
+  ContractNotFound = 'CONTRACT_NOT_FOUND',
+  /** No message was provided. */
+  EmptyMessage = 'EMPTY_MESSAGE',
+  /**
+   * Failed to construct the JSON representation from message using the smart
+   * contract schema.
+   */
+  Failed = 'FAILED',
+  /** Relevant smart contract function not found in smart contract schema. */
+  FunctionNotFound = 'FUNCTION_NOT_FOUND',
+  /** No module schema found in the deployed smart contract module. */
+  ModuleSchemaNotFound = 'MODULE_SCHEMA_NOT_FOUND',
+  /** Schema for parameter not found in smart contract schema. */
+  ParamNotFound = 'PARAM_NOT_FOUND',
+  /** Parsing succeeded. */
+  Success = 'SUCCESS'
+}
 
 export type InsufficientBalanceForBakerStake = {
   __typename?: 'InsufficientBalanceForBakerStake';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
 export type InsufficientBalanceForDelegationStake = {
   __typename?: 'InsufficientBalanceForDelegationStake';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
 export type InsufficientDelegationStake = {
   __typename?: 'InsufficientDelegationStake';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
+};
+
+export type InterimTransaction = {
+  __typename?: 'InterimTransaction';
+  transaction: Transaction;
+};
+
+export type InterimTransactionConnection = {
+  __typename?: 'InterimTransactionConnection';
+  /** A list of edges. */
+  edges: Array<InterimTransactionEdge>;
+  /** A list of nodes. */
+  nodes: Array<InterimTransaction>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type InterimTransactionEdge = {
+  __typename?: 'InterimTransactionEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: InterimTransaction;
 };
 
 export type InvalidAccountReference = {
   __typename?: 'InvalidAccountReference';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
-  _: Scalars['Boolean'];
   accountAddress: AccountAddress;
 };
 
 export type InvalidAccountThreshold = {
   __typename?: 'InvalidAccountThreshold';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
 export type InvalidContractAddress = {
   __typename?: 'InvalidContractAddress';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
-  _: Scalars['Boolean'];
   contractAddress: ContractAddress;
 };
 
 export type InvalidCredentialKeySignThreshold = {
   __typename?: 'InvalidCredentialKeySignThreshold';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
 export type InvalidCredentials = {
   __typename?: 'InvalidCredentials';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
 export type InvalidEncryptedAmountTransferProof = {
   __typename?: 'InvalidEncryptedAmountTransferProof';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
 export type InvalidIndexOnEncryptedTransfer = {
   __typename?: 'InvalidIndexOnEncryptedTransfer';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
 export type InvalidInitMethod = {
   __typename?: 'InvalidInitMethod';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
-  _: Scalars['Boolean'];
   initName: Scalars['String'];
   moduleRef: Scalars['String'];
 };
 
 export type InvalidModuleReference = {
   __typename?: 'InvalidModuleReference';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
-  _: Scalars['Boolean'];
   moduleRef: Scalars['String'];
 };
 
 export type InvalidProof = {
   __typename?: 'InvalidProof';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
 export type InvalidReceiveMethod = {
   __typename?: 'InvalidReceiveMethod';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
-  _: Scalars['Boolean'];
   moduleRef: Scalars['String'];
   receiveName: Scalars['String'];
 };
 
 export type InvalidTransferToPublicProof = {
   __typename?: 'InvalidTransferToPublicProof';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
 export type KeyIndexAlreadyInUse = {
   __typename?: 'KeyIndexAlreadyInUse';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
+export type LatestChainParameters = ChainParametersV1;
+
 export type Level1KeysChainUpdatePayload = {
   __typename?: 'Level1KeysChainUpdatePayload';
-  /** @deprecated Don't use! This field is only in the schema since graphql does not allow types without any fields */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
@@ -1790,9 +1613,7 @@ export type LinkedContract = {
 export type LinkedContractsCollectionSegment = {
   __typename?: 'LinkedContractsCollectionSegment';
   /** A flattened list of the items. */
-  items?: Maybe<Array<LinkedContract>>;
-  /** Information to aid in pagination. */
-  pageInfo: CollectionSegmentInfo;
+  items: Array<LinkedContract>;
   totalCount: Scalars['Int'];
 };
 
@@ -1806,7 +1627,7 @@ export enum MetricsPeriod {
 
 export type MicroCcdPerEuroChainUpdatePayload = {
   __typename?: 'MicroCcdPerEuroChainUpdatePayload';
-  exchangeRate: ExchangeRate;
+  exchangeRate: Ratio;
 };
 
 export type MinBlockTimeUpdate = {
@@ -1819,19 +1640,6 @@ export type MintDistributionChainUpdatePayload = {
   bakingReward: Scalars['Decimal'];
   finalizationReward: Scalars['Decimal'];
   mintPerSlot: Scalars['Decimal'];
-};
-
-export type MintDistributionV0 = {
-  __typename?: 'MintDistributionV0';
-  bakingReward: Scalars['Decimal'];
-  finalizationReward: Scalars['Decimal'];
-  mintPerSlot: Scalars['Decimal'];
-};
-
-export type MintDistributionV1 = {
-  __typename?: 'MintDistributionV1';
-  bakingReward: Scalars['Decimal'];
-  finalizationReward: Scalars['Decimal'];
 };
 
 export type MintDistributionV1ChainUpdatePayload = {
@@ -1851,26 +1659,24 @@ export type MintSpecialEvent = {
 
 export type MissingBakerAddParameters = {
   __typename?: 'MissingBakerAddParameters';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
 export type MissingDelegationAddParameters = {
   __typename?: 'MissingDelegationAddParameters';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
 export type ModuleHashAlreadyExists = {
   __typename?: 'ModuleHashAlreadyExists';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
-  _: Scalars['Boolean'];
   moduleRef: Scalars['String'];
 };
 
 export type ModuleNotWf = {
   __typename?: 'ModuleNotWf';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
@@ -1881,14 +1687,9 @@ export enum ModuleReferenceContractLinkAction {
 
 export type ModuleReferenceContractLinkEvent = {
   __typename?: 'ModuleReferenceContractLinkEvent';
-  blockHeight: Scalars['UnsignedLong'];
   blockSlotTime: Scalars['DateTime'];
   contractAddress: ContractAddress;
-  contractAddressIndex: Scalars['UnsignedLong'];
-  contractAddressSubIndex: Scalars['UnsignedLong'];
   linkAction: ModuleReferenceContractLinkAction;
-  moduleReference: Scalars['String'];
-  sender: AccountAddress;
   transactionHash: Scalars['String'];
 };
 
@@ -1896,23 +1697,22 @@ export type ModuleReferenceContractLinkEvent = {
 export type ModuleReferenceContractLinkEventsCollectionSegment = {
   __typename?: 'ModuleReferenceContractLinkEventsCollectionSegment';
   /** A flattened list of the items. */
-  items?: Maybe<Array<ModuleReferenceContractLinkEvent>>;
-  /** Information to aid in pagination. */
-  pageInfo: CollectionSegmentInfo;
+  items: Array<ModuleReferenceContractLinkEvent>;
   totalCount: Scalars['Int'];
 };
 
 export type ModuleReferenceEvent = {
   __typename?: 'ModuleReferenceEvent';
-  blockHeight: Scalars['UnsignedLong'];
+  blockHeight: Scalars['Int'];
   blockSlotTime: Scalars['DateTime'];
   displaySchema?: Maybe<Scalars['String']>;
-  linkedContracts?: Maybe<LinkedContractsCollectionSegment>;
+  linkedContracts: LinkedContractsCollectionSegment;
   moduleReference: Scalars['String'];
-  moduleReferenceContractLinkEvents?: Maybe<ModuleReferenceContractLinkEventsCollectionSegment>;
-  moduleReferenceRejectEvents?: Maybe<ModuleReferenceRejectEventsCollectionSegment>;
+  moduleReferenceContractLinkEvents: ModuleReferenceContractLinkEventsCollectionSegment;
+  moduleReferenceRejectEvents: ModuleReferenceRejectEventsCollectionSegment;
   sender: AccountAddress;
   transactionHash: Scalars['String'];
+  transactionIndex: Scalars['Int'];
 };
 
 
@@ -1933,56 +1733,50 @@ export type ModuleReferenceEventModuleReferenceRejectEventsArgs = {
   take?: InputMaybe<Scalars['Int']>;
 };
 
-export type ModuleReferenceRejectEvent = {
-  __typename?: 'ModuleReferenceRejectEvent';
-  blockHeight: Scalars['UnsignedLong'];
-  blockSlotTime: Scalars['DateTime'];
-  moduleReference: Scalars['String'];
-  rejectedEvent: TransactionRejectReason;
-  sender: AccountAddress;
-  transactionHash: Scalars['String'];
-};
-
-/** A segment of a collection. */
-export type ModuleReferenceRejectEventsCollectionSegment = {
-  __typename?: 'ModuleReferenceRejectEventsCollectionSegment';
-  /** A flattened list of the items. */
-  items?: Maybe<Array<ModuleReferenceRejectEvent>>;
-  /** Information to aid in pagination. */
-  pageInfo: CollectionSegmentInfo;
-  totalCount: Scalars['Int'];
-};
-
-/** A connection to a list of items. */
-export type ModulesConnection = {
-  __typename?: 'ModulesConnection';
+export type ModuleReferenceEventConnection = {
+  __typename?: 'ModuleReferenceEventConnection';
   /** A list of edges. */
-  edges?: Maybe<Array<ModulesEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<ModuleReferenceEvent>>;
+  edges: Array<ModuleReferenceEventEdge>;
+  /** A list of nodes. */
+  nodes: Array<ModuleReferenceEvent>;
   /** Information to aid in pagination. */
   pageInfo: PageInfo;
 };
 
 /** An edge in a connection. */
-export type ModulesEdge = {
-  __typename?: 'ModulesEdge';
-  /** A cursor for use in pagination. */
+export type ModuleReferenceEventEdge = {
+  __typename?: 'ModuleReferenceEventEdge';
+  /** A cursor for use in pagination */
   cursor: Scalars['String'];
-  /** The item at the end of the edge. */
+  /** The item at the end of the edge */
   node: ModuleReferenceEvent;
+};
+
+export type ModuleReferenceRejectEvent = {
+  __typename?: 'ModuleReferenceRejectEvent';
+  blockHeight: Scalars['Int'];
+  blockSlotTime: Scalars['DateTime'];
+  moduleReference: Scalars['String'];
+  rejectedEvent: TransactionRejectReason;
+  transactionHash: Scalars['String'];
+};
+
+export type ModuleReferenceRejectEventsCollectionSegment = {
+  __typename?: 'ModuleReferenceRejectEventsCollectionSegment';
+  items: Array<ModuleReferenceRejectEvent>;
+  totalCount: Scalars['Int'];
 };
 
 export type NewEncryptedAmount = {
   __typename?: 'NewEncryptedAmount';
   accountAddress: AccountAddress;
   encryptedAmount: Scalars['String'];
-  newIndex: Scalars['UnsignedLong'];
+  newIndex: Scalars['Int'];
 };
 
 export enum NodeSortDirection {
   Asc = 'ASC',
-  Dsc = 'DSC'
+  Desc = 'DESC'
 }
 
 export enum NodeSortField {
@@ -2002,17 +1796,17 @@ export type NodeStatus = {
   averageBytesPerSecondOut: Scalars['Float'];
   averagePing?: Maybe<Scalars['Float']>;
   bakingCommitteeMember: Scalars['String'];
-  bestArrivedTime?: Maybe<Scalars['DateTime']>;
+  bestArrivedTime?: Maybe<Scalars['String']>;
   bestBlock: Scalars['String'];
-  bestBlockBakerId?: Maybe<Scalars['UnsignedLong']>;
-  bestBlockCentralBankAmount?: Maybe<Scalars['UnsignedLong']>;
-  bestBlockExecutionCost?: Maybe<Scalars['UnsignedLong']>;
-  bestBlockHeight: Scalars['UnsignedLong'];
-  bestBlockTotalAmount?: Maybe<Scalars['UnsignedLong']>;
-  bestBlockTotalEncryptedAmount?: Maybe<Scalars['UnsignedLong']>;
-  bestBlockTransactionCount?: Maybe<Scalars['UnsignedLong']>;
-  bestBlockTransactionEnergyCost?: Maybe<Scalars['UnsignedLong']>;
-  bestBlockTransactionsSize?: Maybe<Scalars['UnsignedLong']>;
+  bestBlockBakerId?: Maybe<Scalars['Int']>;
+  bestBlockCentralBankAmount?: Maybe<Scalars['Int']>;
+  bestBlockExecutionCost?: Maybe<Scalars['Int']>;
+  bestBlockHeight: Scalars['Int'];
+  bestBlockTotalAmount?: Maybe<Scalars['Int']>;
+  bestBlockTotalEncryptedAmount?: Maybe<Scalars['Int']>;
+  bestBlockTransactionCount?: Maybe<Scalars['Int']>;
+  bestBlockTransactionEnergyCost?: Maybe<Scalars['Int']>;
+  bestBlockTransactionsSize?: Maybe<Scalars['Int']>;
   blockArriveLatencyEma?: Maybe<Scalars['Float']>;
   blockArriveLatencyEmsd?: Maybe<Scalars['Float']>;
   blockArrivePeriodEma?: Maybe<Scalars['Float']>;
@@ -2021,130 +1815,116 @@ export type NodeStatus = {
   blockReceiveLatencyEmsd?: Maybe<Scalars['Float']>;
   blockReceivePeriodEma?: Maybe<Scalars['Float']>;
   blockReceivePeriodEmsd?: Maybe<Scalars['Float']>;
-  blocksReceivedCount?: Maybe<Scalars['UnsignedLong']>;
-  blocksVerifiedCount?: Maybe<Scalars['UnsignedLong']>;
+  blocksReceivedCount?: Maybe<Scalars['Int']>;
+  blocksVerifiedCount?: Maybe<Scalars['Int']>;
   clientVersion: Scalars['String'];
-  consensusBakerId?: Maybe<Scalars['UnsignedLong']>;
+  consensusBakerId?: Maybe<Scalars['Int']>;
   consensusRunning: Scalars['Boolean'];
   finalizationCommitteeMember: Scalars['Boolean'];
-  finalizationCount?: Maybe<Scalars['UnsignedLong']>;
+  finalizationCount?: Maybe<Scalars['Int']>;
   finalizationPeriodEma?: Maybe<Scalars['Float']>;
   finalizationPeriodEmsd?: Maybe<Scalars['Float']>;
   finalizedBlock: Scalars['String'];
-  finalizedBlockHeight: Scalars['UnsignedLong'];
+  finalizedBlockHeight: Scalars['Int'];
   finalizedBlockParent: Scalars['String'];
-  finalizedTime?: Maybe<Scalars['DateTime']>;
+  finalizedTime?: Maybe<Scalars['String']>;
   genesisBlock: Scalars['String'];
   id: Scalars['ID'];
   nodeId: Scalars['String'];
-  nodeName?: Maybe<Scalars['String']>;
-  packetsReceived: Scalars['UnsignedLong'];
-  packetsSent: Scalars['UnsignedLong'];
+  nodeName: Scalars['String'];
+  packetsReceived: Scalars['Int'];
+  packetsSent: Scalars['Int'];
   peerType: Scalars['String'];
-  peersCount: Scalars['UnsignedLong'];
+  peersCount: Scalars['Int'];
   peersList: Array<PeerReference>;
   transactionsPerBlockEma?: Maybe<Scalars['Float']>;
   transactionsPerBlockEmsd?: Maybe<Scalars['Float']>;
-  uptime: Scalars['UnsignedLong'];
+  uptime: Scalars['Int'];
 };
 
-/** A connection to a list of items. */
-export type NodeStatusesConnection = {
-  __typename?: 'NodeStatusesConnection';
+export type NodeStatusConnection = {
+  __typename?: 'NodeStatusConnection';
   /** A list of edges. */
-  edges?: Maybe<Array<NodeStatusesEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<NodeStatus>>;
+  edges: Array<NodeStatusEdge>;
+  /** A list of nodes. */
+  nodes: Array<NodeStatus>;
   /** Information to aid in pagination. */
   pageInfo: PageInfo;
 };
 
 /** An edge in a connection. */
-export type NodeStatusesEdge = {
-  __typename?: 'NodeStatusesEdge';
-  /** A cursor for use in pagination. */
+export type NodeStatusEdge = {
+  __typename?: 'NodeStatusEdge';
+  /** A cursor for use in pagination */
   cursor: Scalars['String'];
-  /** The item at the end of the edge. */
+  /** The item at the end of the edge */
   node: NodeStatus;
 };
 
 export type NonExistentCredIds = {
   __typename?: 'NonExistentCredIds';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
-  _: Scalars['Boolean'];
   credIds: Array<Scalars['String']>;
 };
 
 export type NonExistentCredentialId = {
   __typename?: 'NonExistentCredentialId';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
 export type NonExistentRewardAccount = {
   __typename?: 'NonExistentRewardAccount';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
-  _: Scalars['Boolean'];
   accountAddress: AccountAddress;
 };
 
 export type NonIncreasingSchedule = {
   __typename?: 'NonIncreasingSchedule';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
 export type NotABaker = {
   __typename?: 'NotABaker';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
-  _: Scalars['Boolean'];
   accountAddress: AccountAddress;
 };
 
 export type NotADelegator = {
   __typename?: 'NotADelegator';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
-  _: Scalars['Boolean'];
   accountAddress: AccountAddress;
 };
 
 export type NotAllowedMultipleCredentials = {
   __typename?: 'NotAllowedMultipleCredentials';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
 export type NotAllowedToHandleEncrypted = {
   __typename?: 'NotAllowedToHandleEncrypted';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
 export type NotAllowedToReceiveEncrypted = {
   __typename?: 'NotAllowedToReceiveEncrypted';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
-
-export enum OperatorUpdateType {
-  AddOperator = 'ADD_OPERATOR',
-  RemoveOperator = 'REMOVE_OPERATOR'
-}
 
 export type OutOfEnergy = {
   __typename?: 'OutOfEnergy';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
-/** Information about pagination in a connection. */
+/** Information about pagination in a connection */
 export type PageInfo = {
   __typename?: 'PageInfo';
   /** When paginating forwards, the cursor to continue. */
   endCursor?: Maybe<Scalars['String']>;
-  /** Indicates whether more edges exist following the set defined by the clients arguments. */
+  /** When paginating forwards, are there more items? */
   hasNextPage: Scalars['Boolean'];
-  /** Indicates whether more edges exist prior the set defined by the clients arguments. */
+  /** When paginating backwards, are there more items? */
   hasPreviousPage: Scalars['Boolean'];
   /** When paginating backwards, the cursor to continue. */
   startCursor?: Maybe<Scalars['String']>;
@@ -2154,13 +1934,15 @@ export type PassiveDelegation = {
   __typename?: 'PassiveDelegation';
   apy?: Maybe<Scalars['Float']>;
   commissionRates: CommissionRates;
-  /** The total amount staked by delegators to passive delegation. */
-  delegatedStake: Scalars['UnsignedLong'];
-  /** Total stake passively delegated as a percentage of all CCDs in existence. */
+  delegatedStake: Scalars['BigInteger'];
+  /**
+   * Total passively delegated stake as a percentage of all CCDs in
+   * existence.
+   */
   delegatedStakePercentage: Scalars['Decimal'];
   delegatorCount: Scalars['Int'];
-  delegators?: Maybe<DelegatorsConnection>;
-  poolRewards?: Maybe<PaydayPoolRewardConnection>;
+  delegators: PassiveDelegationSummaryConnection;
+  poolRewards: PaydayPoolRewardConnection;
 };
 
 
@@ -2188,6 +1970,32 @@ export type PassiveDelegationPoolRewardTarget = {
   __typename?: 'PassiveDelegationPoolRewardTarget';
   /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
+};
+
+export type PassiveDelegationSummary = {
+  __typename?: 'PassiveDelegationSummary';
+  accountAddress: AccountAddress;
+  restakeEarnings: Scalars['Boolean'];
+  stakedAmount: Scalars['UnsignedLong'];
+};
+
+export type PassiveDelegationSummaryConnection = {
+  __typename?: 'PassiveDelegationSummaryConnection';
+  /** A list of edges. */
+  edges: Array<PassiveDelegationSummaryEdge>;
+  /** A list of nodes. */
+  nodes: Array<PassiveDelegationSummary>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type PassiveDelegationSummaryEdge = {
+  __typename?: 'PassiveDelegationSummaryEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: PassiveDelegationSummary;
 };
 
 export type PassiveDelegationTarget = {
@@ -2218,39 +2026,28 @@ export type PaydayFoundationRewardSpecialEvent = {
 
 export type PaydayPoolReward = {
   __typename?: 'PaydayPoolReward';
-  /** The APY calculated for this single reward taking into consideration only the bakers reward and stake. Will be null if there was no baker stake (passive delegation). */
-  bakerApy?: Maybe<Scalars['Float']>;
   bakerReward: PaydayPoolRewardAmounts;
   block: Block;
-  /** The APY calculated for this single reward taking into consideration only the delegators reward and stake. Will be null if there was no delegated stake. */
-  delegatorsApy?: Maybe<Scalars['Float']>;
   finalizationReward: PaydayPoolRewardAmounts;
-  id: Scalars['ID'];
-  /** The sum of the transaction fees, baker rewards and finalization rewards. */
-  sum: PaydayPoolRewardAmounts;
+  id: Scalars['Int'];
+  poolOwner?: Maybe<Scalars['Int']>;
   timestamp: Scalars['DateTime'];
-  /** The APY calculated for this single reward taking into consideration the combined reward and stake of baker and delegators. */
-  totalApy?: Maybe<Scalars['Float']>;
   transactionFees: PaydayPoolRewardAmounts;
 };
 
 export type PaydayPoolRewardAmounts = {
   __typename?: 'PaydayPoolRewardAmounts';
-  /** The bakers share of the reward */
-  bakerAmount: Scalars['UnsignedLong'];
-  /** The delegators share of the reward */
-  delegatorsAmount: Scalars['UnsignedLong'];
-  /** The total amount (baker + delegators) */
-  totalAmount: Scalars['UnsignedLong'];
+  bakerAmount: Scalars['Int'];
+  delegatorsAmount: Scalars['Int'];
+  totalAmount: Scalars['Int'];
 };
 
-/** A connection to a list of items. */
 export type PaydayPoolRewardConnection = {
   __typename?: 'PaydayPoolRewardConnection';
   /** A list of edges. */
-  edges?: Maybe<Array<PaydayPoolRewardEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<PaydayPoolReward>>;
+  edges: Array<PaydayPoolRewardEdge>;
+  /** A list of nodes. */
+  nodes: Array<PaydayPoolReward>;
   /** Information to aid in pagination. */
   pageInfo: PageInfo;
 };
@@ -2258,9 +2055,9 @@ export type PaydayPoolRewardConnection = {
 /** An edge in a connection. */
 export type PaydayPoolRewardEdge = {
   __typename?: 'PaydayPoolRewardEdge';
-  /** A cursor for use in pagination. */
+  /** A cursor for use in pagination */
   cursor: Scalars['String'];
-  /** The item at the end of the edge. */
+  /** The item at the end of the edge */
   node: PaydayPoolReward;
 };
 
@@ -2280,7 +2077,7 @@ export type PaydayPoolRewardSpecialEvent = {
 export type PaydayStatus = {
   __typename?: 'PaydayStatus';
   nextPaydayTime: Scalars['DateTime'];
-  paydaySummaries?: Maybe<PaydaySummariesConnection>;
+  paydaySummaries: PaydaySummaryConnection;
 };
 
 
@@ -2291,36 +2088,42 @@ export type PaydayStatusPaydaySummariesArgs = {
   last?: InputMaybe<Scalars['Int']>;
 };
 
-/** A connection to a list of items. */
-export type PaydaySummariesConnection = {
-  __typename?: 'PaydaySummariesConnection';
+export type PaydaySummary = {
+  __typename?: 'PaydaySummary';
+  block: Block;
+  blockHeight: Scalars['Int'];
+};
+
+export type PaydaySummaryConnection = {
+  __typename?: 'PaydaySummaryConnection';
   /** A list of edges. */
-  edges?: Maybe<Array<PaydaySummariesEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<PaydaySummary>>;
+  edges: Array<PaydaySummaryEdge>;
+  /** A list of nodes. */
+  nodes: Array<PaydaySummary>;
   /** Information to aid in pagination. */
   pageInfo: PageInfo;
 };
 
 /** An edge in a connection. */
-export type PaydaySummariesEdge = {
-  __typename?: 'PaydaySummariesEdge';
-  /** A cursor for use in pagination. */
+export type PaydaySummaryEdge = {
+  __typename?: 'PaydaySummaryEdge';
+  /** A cursor for use in pagination */
   cursor: Scalars['String'];
-  /** The item at the end of the edge. */
+  /** The item at the end of the edge */
   node: PaydaySummary;
 };
 
-export type PaydaySummary = {
-  __typename?: 'PaydaySummary';
-  block: Block;
+export type Peer = {
+  __typename?: 'Peer';
+  id: Scalars['ID'];
+  nodeId: Scalars['String'];
+  nodeName: Scalars['String'];
 };
 
 export type PeerReference = {
   __typename?: 'PeerReference';
   nodeId: Scalars['String'];
-  /** The node status of the peer. Will be null if no status for the peer exists. */
-  nodeStatus?: Maybe<NodeStatus>;
+  nodeStatus?: Maybe<Peer>;
 };
 
 export type PendingBakerChange = PendingBakerReduceStake | PendingBakerRemoval;
@@ -2336,19 +2139,6 @@ export type PendingBakerRemoval = {
   effectiveTime: Scalars['DateTime'];
 };
 
-export type PendingDelegationChange = PendingDelegationReduceStake | PendingDelegationRemoval;
-
-export type PendingDelegationReduceStake = {
-  __typename?: 'PendingDelegationReduceStake';
-  effectiveTime: Scalars['DateTime'];
-  newStakedAmount: Scalars['UnsignedLong'];
-};
-
-export type PendingDelegationRemoval = {
-  __typename?: 'PendingDelegationRemoval';
-  effectiveTime: Scalars['DateTime'];
-};
-
 export type PoolApy = {
   __typename?: 'PoolApy';
   bakerApy?: Maybe<Scalars['Float']>;
@@ -2358,7 +2148,7 @@ export type PoolApy = {
 
 export type PoolClosed = {
   __typename?: 'PoolClosed';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
@@ -2377,12 +2167,13 @@ export type PoolParametersChainUpdatePayload = {
 
 export type PoolRewardMetrics = {
   __typename?: 'PoolRewardMetrics';
+  /** Bucket-wise data for rewards */
   buckets: PoolRewardMetricsBuckets;
-  /** Sum of all rewards in requested period that were awarded to the baker (as micro CCD) */
+  /** Baker rewards at the end of the interval */
   sumBakerRewardAmount: Scalars['Long'];
-  /** Sum of all rewards in requested period that were awarded to the delegators (as micro CCD) */
+  /** Delegator rewards at the end of the interval */
   sumDelegatorsRewardAmount: Scalars['Long'];
-  /** Sum of all rewards in requested period as micro CCD */
+  /** Total rewards at the end of the interval */
   sumTotalRewardAmount: Scalars['Long'];
 };
 
@@ -2390,13 +2181,9 @@ export type PoolRewardMetricsBuckets = {
   __typename?: 'PoolRewardMetricsBuckets';
   /** The width (time interval) of each bucket. */
   bucketWidth: Scalars['TimeSpan'];
-  /** Start of the bucket time period. Intended x-axis value. */
   x_Time: Array<Scalars['DateTime']>;
-  /** Sum of rewards that were awarded to the baker (as micro CCD) within bucket time period. Intended y-axis value. */
   y_SumBakerRewards: Array<Scalars['Long']>;
-  /** Sum of rewards that were awarded to the delegators (as micro CCD) within bucket time period. Intended y-axis value. */
   y_SumDelegatorsRewards: Array<Scalars['Long']>;
-  /** Sum of rewards (as micro CCD) within bucket time period. Intended y-axis value. */
   y_SumTotalRewards: Array<Scalars['Long']>;
 };
 
@@ -2404,41 +2191,50 @@ export type PoolRewardTarget = BakerPoolRewardTarget | PassiveDelegationPoolRewa
 
 export type PoolWouldBecomeOverDelegated = {
   __typename?: 'PoolWouldBecomeOverDelegated';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
 export type ProtocolChainUpdatePayload = {
   __typename?: 'ProtocolChainUpdatePayload';
   message: Scalars['String'];
-  specificationAuxiliaryDataAsHex: Scalars['String'];
+  specificationAuxiliaryDataHex: Scalars['String'];
   specificationHash: Scalars['String'];
   specificationUrl: Scalars['String'];
 };
 
 export type Query = {
   __typename?: 'Query';
-  account?: Maybe<Account>;
-  accountByAddress?: Maybe<Account>;
-  accounts?: Maybe<AccountsConnection>;
-  accountsMetrics?: Maybe<AccountsMetrics>;
-  baker?: Maybe<Baker>;
-  bakerByBakerId?: Maybe<Baker>;
+  account: Account;
+  accountByAddress: Account;
+  accounts: AccountConnection;
+  accountsMetrics: AccountsMetrics;
+  baker: Baker;
+  bakerByBakerId: Baker;
+  /**
+   * Fetches baker metrics for the specified period.
+   *
+   * This function queries the database for baker metrics such as the number
+   * of bakers added, removed, and the last baker count in the specified
+   * time period. It returns the results as a structured `BakerMetrics`
+   * object.
+   */
   bakerMetrics: BakerMetrics;
-  bakers?: Maybe<BakersConnection>;
-  block?: Maybe<Block>;
-  blockByBlockHash?: Maybe<Block>;
+  bakers: BakerConnection;
+  block: Block;
+  blockByBlockHash: Block;
   blockMetrics: BlockMetrics;
-  blocks?: Maybe<BlocksConnection>;
-  contract?: Maybe<Contract>;
-  contracts?: Maybe<ContractsConnection>;
-  importState?: Maybe<ImportState>;
-  latestChainParameters?: Maybe<ChainParameters>;
-  moduleReferenceEvent?: Maybe<ModuleReferenceEvent>;
+  /** Query the list of blocks ordered descendingly by block height. */
+  blocks: BlockConnection;
+  contract: Contract;
+  contracts: ContractConnection;
+  importState: ImportState;
+  latestChainParameters: LatestChainParameters;
+  moduleReferenceEvent: ModuleReferenceEvent;
   nodeStatus?: Maybe<NodeStatus>;
-  nodeStatuses?: Maybe<NodeStatusesConnection>;
-  passiveDelegation?: Maybe<PassiveDelegation>;
-  paydayStatus?: Maybe<PaydayStatus>;
+  nodeStatuses: NodeStatusConnection;
+  passiveDelegation: PassiveDelegation;
+  paydayStatus: PaydayStatus;
   poolRewardMetricsForBakerPool: PoolRewardMetrics;
   poolRewardMetricsForPassiveDelegation: PoolRewardMetrics;
   rewardMetrics: RewardMetrics;
@@ -2446,59 +2242,14 @@ export type Query = {
   search: SearchResult;
   suspendedValidators: SuspendedValidators;
   token: Token;
-  tokens?: Maybe<TokensConnection>;
-  transaction?: Maybe<Transaction>;
-  transactionByTransactionHash?: Maybe<Transaction>;
-  transactionMetrics?: Maybe<TransactionMetrics>;
-  transactions?: Maybe<TransactionsConnection>;
+  tokens: TokenConnection;
+  transaction: Transaction;
+  transactionByTransactionHash: Transaction;
+  transactionMetrics: TransactionMetrics;
+  transactions: TransactionConnection;
   versions: Versions;
 };
 
-export type SuspendedValidators = {
-  __typename?: 'SuspendedValidators';
-  primedForSuspensionValidators: ValidatorsConnection;
-  suspendedValidators: ValidatorsConnection;
-};
-
-
-export type SuspendedValidatorsPrimedForSuspensionValidatorsArgs = {
-  after?: InputMaybe<Scalars['String']>;
-  before?: InputMaybe<Scalars['String']>;
-  first?: InputMaybe<Scalars['Int']>;
-  last?: InputMaybe<Scalars['Int']>;
-};
-
-
-export type SuspendedValidatorsSuspendedValidatorsArgs = {
-  after?: InputMaybe<Scalars['String']>;
-  before?: InputMaybe<Scalars['String']>;
-  first?: InputMaybe<Scalars['Int']>;
-  last?: InputMaybe<Scalars['Int']>;
-};
-
-export type Validators = {
-  __typename?: 'Validators';
-  id: Scalars['Int'];
-};
-
-export type ValidatorsConnection = {
-  __typename?: 'ValidatorsConnection';
-  /** A list of edges. */
-  edges: Array<ValidatorsEdge>;
-  /** A list of nodes. */
-  nodes: Array<Validators>;
-  /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-};
-
-/** An edge in a connection. */
-export type ValidatorsEdge = {
-  __typename?: 'ValidatorsEdge';
-  /** A cursor for use in pagination */
-  cursor: Scalars['String'];
-  /** The item at the end of the edge */
-  node: Validators;
-};
 
 export type QueryAccountArgs = {
   id: Scalars['ID'];
@@ -2671,6 +2422,11 @@ export type QueryTransactionsArgs = {
   last?: InputMaybe<Scalars['Int']>;
 };
 
+/**
+ * Ranking of the bakers by lottery powers from the last payday block staring
+ * with rank 1 for the baker with the highest lottery power and ending with the
+ * rank `total` for the baker with the lowest lottery power.
+ */
 export type Ranking = {
   __typename?: 'Ranking';
   rank: Scalars['Int'];
@@ -2690,25 +2446,44 @@ export type Rejected = {
 
 export type RejectedInit = {
   __typename?: 'RejectedInit';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
-  _: Scalars['Boolean'];
   rejectReason: Scalars['Int'];
 };
 
+/** Transaction updating a smart contract instance was rejected. */
 export type RejectedReceive = {
   __typename?: 'RejectedReceive';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
-  _: Scalars['Boolean'];
+  /** Address of the smart contract instance which rejected the update. */
   contractAddress: ContractAddress;
+  /**
+   * The JSON representation of the message provided for the smart contract
+   * instance as parameter. Decoded using the smart contract module
+   * schema if present otherwise undefined. Failing to parse the message
+   * will result in this being undefined and `message_parsing_status`
+   * representing the error.
+   */
   message?: Maybe<Scalars['String']>;
+  /**
+   * The HEX representation of the message provided for the smart contract
+   * instance as parameter.
+   */
   messageAsHex: Scalars['String'];
+  /**
+   * The status of parsing `message` into its JSON representation using the
+   * smart contract module schema.
+   */
+  messageParsingStatus: InstanceMessageParsingStatus;
+  /**
+   * The name of the entry point called in the smart contract instance (in
+   * ReceiveName format '<contract_name>.<entrypoint>').
+   */
   receiveName: Scalars['String'];
+  /** Reject reason code produced by the smart contract instance. */
   rejectReason: Scalars['Int'];
 };
 
 export type RemoveFirstCredential = {
   __typename?: 'RemoveFirstCredential';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
@@ -2719,40 +2494,18 @@ export type RemovedBakerState = {
 
 export type RewardMetrics = {
   __typename?: 'RewardMetrics';
+  /** Bucket-wise data for rewards */
   buckets: RewardMetricsBuckets;
-  /** Sum of all rewards in requested period as micro CCD */
-  sumRewardAmount: Scalars['Long'];
+  /** Total rewards at the end of the interval */
+  sumRewardAmount: Scalars['Int'];
 };
 
 export type RewardMetricsBuckets = {
   __typename?: 'RewardMetricsBuckets';
   /** The width (time interval) of each bucket. */
   bucketWidth: Scalars['TimeSpan'];
-  /** Start of the bucket time period. Intended x-axis value. */
   x_Time: Array<Scalars['DateTime']>;
-  /** Sum of rewards as micro CCD within bucket time period. Intended y-axis value. */
-  y_SumRewards: Array<Scalars['Long']>;
-};
-
-export type RewardParametersV0 = {
-  __typename?: 'RewardParametersV0';
-  gasRewards: GasRewards;
-  mintDistribution: MintDistributionV0;
-  transactionFeeDistribution: TransactionFeeDistribution;
-};
-
-export type RewardParametersV1 = {
-  __typename?: 'RewardParametersV1';
-  gasRewards: GasRewards;
-  mintDistribution: MintDistributionV1;
-  transactionFeeDistribution: TransactionFeeDistribution;
-};
-
-export type RewardParametersV2 = {
-  __typename?: 'RewardParametersV2';
-  gasRewards: GasRewardsCpv2;
-  mintDistribution: MintDistributionV1;
-  transactionFeeDistribution: TransactionFeeDistribution;
+  y_SumRewards: Array<Scalars['Int']>;
 };
 
 export enum RewardType {
@@ -2764,33 +2517,31 @@ export enum RewardType {
 
 export type RootKeysChainUpdatePayload = {
   __typename?: 'RootKeysChainUpdatePayload';
-  /** @deprecated Don't use! This field is only in the schema since graphql does not allow types without any fields */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
 export type RuntimeFailure = {
   __typename?: 'RuntimeFailure';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
 export type ScheduledSelfTransfer = {
   __typename?: 'ScheduledSelfTransfer';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
-  _: Scalars['Boolean'];
   accountAddress: AccountAddress;
 };
 
 export type SearchResult = {
   __typename?: 'SearchResult';
-  accounts?: Maybe<AccountsConnection>;
-  bakers?: Maybe<BakersConnection>;
-  blocks?: Maybe<BlocksConnection>;
-  contracts?: Maybe<ContractsConnection>;
-  modules?: Maybe<ModulesConnection>;
-  nodeStatuses?: Maybe<NodeStatusesConnection>;
-  tokens?: Maybe<TokensConnection>;
-  transactions?: Maybe<TransactionsConnection>;
+  accounts: AccountConnection;
+  bakers: BakerConnection;
+  blocks: BlockConnection;
+  contracts: ContractConnection;
+  modules: ModuleReferenceEventConnection;
+  nodeStatuses: NodeStatusConnection;
+  tokens: TokenConnection;
+  transactions: TransactionConnection;
 };
 
 
@@ -2859,11 +2610,30 @@ export type SearchResultTransactionsArgs = {
 
 export type SerializationFailure = {
   __typename?: 'SerializationFailure';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
-export type SpecialEvent = BakingRewardsSpecialEvent | BlockAccrueRewardSpecialEvent | BlockRewardsSpecialEvent | FinalizationRewardsSpecialEvent | MintSpecialEvent | PaydayAccountRewardSpecialEvent | PaydayFoundationRewardSpecialEvent | PaydayPoolRewardSpecialEvent;
+export type SpecialEvent = BakingRewardsSpecialEvent | BlockAccrueRewardSpecialEvent | BlockRewardsSpecialEvent | FinalizationRewardsSpecialEvent | MintSpecialEvent | PaydayAccountRewardSpecialEvent | PaydayFoundationRewardSpecialEvent | PaydayPoolRewardSpecialEvent | ValidatorPrimedForSuspension | ValidatorSuspended;
+
+export type SpecialEventConnection = {
+  __typename?: 'SpecialEventConnection';
+  /** A list of edges. */
+  edges: Array<SpecialEventEdge>;
+  /** A list of nodes. */
+  nodes: Array<SpecialEvent>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type SpecialEventEdge = {
+  __typename?: 'SpecialEventEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: SpecialEvent;
+};
 
 export enum SpecialEventTypeFilter {
   BakingRewards = 'BAKING_REWARDS',
@@ -2873,48 +2643,29 @@ export enum SpecialEventTypeFilter {
   Mint = 'MINT',
   PaydayAccountReward = 'PAYDAY_ACCOUNT_REWARD',
   PaydayFoundationReward = 'PAYDAY_FOUNDATION_REWARD',
-  PaydayPoolReward = 'PAYDAY_POOL_REWARD'
+  PaydayPoolReward = 'PAYDAY_POOL_REWARD',
+  ValidatorPrimedForSuspension = 'VALIDATOR_PRIMED_FOR_SUSPENSION',
+  ValidatorSuspended = 'VALIDATOR_SUSPENDED'
 }
-
-/** A connection to a list of items. */
-export type SpecialEventsConnection = {
-  __typename?: 'SpecialEventsConnection';
-  /** A list of edges. */
-  edges?: Maybe<Array<SpecialEventsEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<SpecialEvent>>;
-  /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-};
-
-/** An edge in a connection. */
-export type SpecialEventsEdge = {
-  __typename?: 'SpecialEventsEdge';
-  /** A cursor for use in pagination. */
-  cursor: Scalars['String'];
-  /** The item at the end of the edge. */
-  node: SpecialEvent;
-};
 
 export type StakeOverMaximumThresholdForPool = {
   __typename?: 'StakeOverMaximumThresholdForPool';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
 export type StakeUnderMinimumThresholdForBaking = {
   __typename?: 'StakeUnderMinimumThresholdForBaking';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
 
-/** A connection to a list of items. */
 export type StringConnection = {
   __typename?: 'StringConnection';
   /** A list of edges. */
-  edges?: Maybe<Array<StringEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<Scalars['String']>>;
+  edges: Array<StringEdge>;
+  /** A list of nodes. */
+  nodes: Array<Scalars['String']>;
   /** Information to aid in pagination. */
   pageInfo: PageInfo;
 };
@@ -2922,9 +2673,9 @@ export type StringConnection = {
 /** An edge in a connection. */
 export type StringEdge = {
   __typename?: 'StringEdge';
-  /** A cursor for use in pagination. */
+  /** A cursor for use in pagination */
   cursor: Scalars['String'];
-  /** The item at the end of the edge. */
+  /** The item at the end of the edge */
   node: Scalars['String'];
 };
 
@@ -2936,16 +2687,38 @@ export type Subscription = {
 
 
 export type SubscriptionAccountsUpdatedArgs = {
-  accountAddress: Scalars['String'];
+  accountAddress?: InputMaybe<Scalars['String']>;
 };
 
 export type Success = {
   __typename?: 'Success';
-  events?: Maybe<EventsConnection>;
+  events: EventConnection;
 };
 
 
 export type SuccessEventsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+export type SuspendedValidators = {
+  __typename?: 'SuspendedValidators';
+  primedForSuspensionValidators: ValidatorsConnection;
+  suspendedValidators: ValidatorsConnection;
+};
+
+
+export type SuspendedValidatorsPrimedForSuspensionValidatorsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type SuspendedValidatorsSuspendedValidatorsArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
@@ -2976,16 +2749,35 @@ export type TimestampedAmount = {
   timestamp: Scalars['DateTime'];
 };
 
+export type TimestampedAmountConnection = {
+  __typename?: 'TimestampedAmountConnection';
+  /** A list of edges. */
+  edges: Array<TimestampedAmountEdge>;
+  /** A list of nodes. */
+  nodes: Array<TimestampedAmount>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type TimestampedAmountEdge = {
+  __typename?: 'TimestampedAmountEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: TimestampedAmount;
+};
+
 export type Token = {
   __typename?: 'Token';
-  accounts?: Maybe<AccountsCollectionSegment>;
+  accounts: AccountsCollectionSegment;
   contractAddressFormatted: Scalars['String'];
-  contractIndex: Scalars['UnsignedLong'];
-  contractSubIndex: Scalars['UnsignedLong'];
+  contractIndex: Scalars['Int'];
+  contractSubIndex: Scalars['Int'];
   initialTransaction: Transaction;
   metadataUrl?: Maybe<Scalars['String']>;
   tokenAddress: Scalars['String'];
-  tokenEvents?: Maybe<TokenEventsCollectionSegment>;
+  tokenEvents: TokenEventsCollectionSegment;
   tokenId: Scalars['String'];
   totalSupply: Scalars['BigInteger'];
 };
@@ -3002,21 +2794,30 @@ export type TokenTokenEventsArgs = {
   take?: InputMaybe<Scalars['Int']>;
 };
 
-export type TokenEvent = {
-  __typename?: 'TokenEvent';
-  contractIndex: Scalars['UnsignedLong'];
-  contractSubIndex: Scalars['UnsignedLong'];
-  event: CisEvent;
-  id: Scalars['ID'];
-  tokenId: Scalars['String'];
-  transaction?: Maybe<Transaction>;
+export type TokenConnection = {
+  __typename?: 'TokenConnection';
+  /** A list of edges. */
+  edges: Array<TokenEdge>;
+  /** A list of nodes. */
+  nodes: Array<Token>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type TokenEdge = {
+  __typename?: 'TokenEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: Token;
 };
 
 /** A segment of a collection. */
 export type TokenEventsCollectionSegment = {
   __typename?: 'TokenEventsCollectionSegment';
   /** A flattened list of the items. */
-  items?: Maybe<Array<TokenEvent>>;
+  items: Array<Cis2Event>;
   /** Information to aid in pagination. */
   pageInfo: CollectionSegmentInfo;
   totalCount: Scalars['Int'];
@@ -3026,37 +2827,16 @@ export type TokenEventsCollectionSegment = {
 export type TokensCollectionSegment = {
   __typename?: 'TokensCollectionSegment';
   /** A flattened list of the items. */
-  items?: Maybe<Array<Token>>;
-  /** Information to aid in pagination. */
-  pageInfo: CollectionSegmentInfo;
+  items: Array<Token>;
   totalCount: Scalars['Int'];
-};
-
-/** A connection to a list of items. */
-export type TokensConnection = {
-  __typename?: 'TokensConnection';
-  /** A list of edges. */
-  edges?: Maybe<Array<TokensEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<Token>>;
-  /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-};
-
-/** An edge in a connection. */
-export type TokensEdge = {
-  __typename?: 'TokensEdge';
-  /** A cursor for use in pagination. */
-  cursor: Scalars['String'];
-  /** The item at the end of the edge. */
-  node: Token;
 };
 
 export type Transaction = {
   __typename?: 'Transaction';
   block: Block;
   ccdCost: Scalars['UnsignedLong'];
-  energyCost: Scalars['UnsignedLong'];
+  energyCost: Scalars['Int'];
+  /** Transaction index as a string. */
   id: Scalars['ID'];
   result: TransactionResult;
   senderAccountAddress?: Maybe<AccountAddress>;
@@ -3065,16 +2845,29 @@ export type Transaction = {
   transactionType: TransactionType;
 };
 
-export type TransactionFeeCommissionNotInRange = {
-  __typename?: 'TransactionFeeCommissionNotInRange';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
-  _: Scalars['Boolean'];
+export type TransactionConnection = {
+  __typename?: 'TransactionConnection';
+  /** A list of edges. */
+  edges: Array<TransactionEdge>;
+  /** A list of nodes. */
+  nodes: Array<Transaction>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
 };
 
-export type TransactionFeeDistribution = {
-  __typename?: 'TransactionFeeDistribution';
-  baker: Scalars['Decimal'];
-  gasAccount: Scalars['Decimal'];
+/** An edge in a connection. */
+export type TransactionEdge = {
+  __typename?: 'TransactionEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: Transaction;
+};
+
+export type TransactionFeeCommissionNotInRange = {
+  __typename?: 'TransactionFeeCommissionNotInRange';
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
+  _: Scalars['Boolean'];
 };
 
 export type TransactionFeeDistributionChainUpdatePayload = {
@@ -3086,9 +2879,9 @@ export type TransactionFeeDistributionChainUpdatePayload = {
 export type TransactionMetrics = {
   __typename?: 'TransactionMetrics';
   buckets: TransactionMetricsBuckets;
-  /** Total number of transactions (all time) */
-  lastCumulativeTransactionCount: Scalars['Long'];
-  /** Total number of transactions in requested period. */
+  /** Total number of transactions (all time). */
+  lastCumulativeTransactionCount: Scalars['Int'];
+  /** Total number of transactions in the requested period. */
   transactionCount: Scalars['Int'];
 };
 
@@ -3098,9 +2891,15 @@ export type TransactionMetricsBuckets = {
   bucketWidth: Scalars['TimeSpan'];
   /** Start of the bucket time period. Intended x-axis value. */
   x_Time: Array<Scalars['DateTime']>;
-  /** Total number of transactions (all time) at the end of the bucket period. Intended y-axis value. */
-  y_LastCumulativeTransactionCount: Array<Scalars['Long']>;
-  /** Total number of transactions within the bucket time period. Intended y-axis value. */
+  /**
+   * Total number of transactions (all time) at the end of the bucket period.
+   * Intended y-axis value.
+   */
+  y_LastCumulativeTransactionCount: Array<Scalars['Int']>;
+  /**
+   * Total number of transactions within the bucket time period. Intended
+   * y-axis value.
+   */
   y_TransactionCount: Array<Scalars['Int']>;
 };
 
@@ -3109,26 +2908,6 @@ export type TransactionRejectReason = AlreadyABaker | AlreadyADelegator | Amount
 export type TransactionResult = Rejected | Success;
 
 export type TransactionType = AccountTransaction | CredentialDeploymentTransaction | UpdateTransaction;
-
-/** A connection to a list of items. */
-export type TransactionsConnection = {
-  __typename?: 'TransactionsConnection';
-  /** A list of edges. */
-  edges?: Maybe<Array<TransactionsEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<Transaction>>;
-  /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-};
-
-/** An edge in a connection. */
-export type TransactionsEdge = {
-  __typename?: 'TransactionsEdge';
-  /** A cursor for use in pagination. */
-  cursor: Scalars['String'];
-  /** The item at the end of the edge. */
-  node: Transaction;
-};
 
 export type TransferMemo = {
   __typename?: 'TransferMemo';
@@ -3145,7 +2924,7 @@ export type Transferred = {
 
 export type TransferredWithSchedule = {
   __typename?: 'TransferredWithSchedule';
-  amountsSchedule?: Maybe<AmountsScheduleConnection>;
+  amountsSchedule: TimestampedAmountConnection;
   fromAccountAddress: AccountAddress;
   toAccountAddress: AccountAddress;
   totalAmount: Scalars['UnsignedLong'];
@@ -3161,73 +2940,86 @@ export type TransferredWithScheduleAmountsScheduleArgs = {
 
 export type UpdateTransaction = {
   __typename?: 'UpdateTransaction';
-  updateTransactionType?: Maybe<UpdateTransactionType>;
+  updateTransactionType: UpdateTransactionType;
 };
 
-/** The type of an update. */
 export enum UpdateTransactionType {
-  /** Update of block energy limit parameters. */
   BlockEnergyLimitUpdate = 'BLOCK_ENERGY_LIMIT_UPDATE',
-  /** Update of finalization committee parameters. */
   FinalizationCommitteeParametersUpdate = 'FINALIZATION_COMMITTEE_PARAMETERS_UPDATE',
-  /** Update of distribution of GAS rewards. */
-  GasRewardsCpv2Update = 'GAS_REWARDS_CPV2_UPDATE',
-  /** Update of distribution of minted CCD. */
-  MintDistributionCpv1Update = 'MINT_DISTRIBUTION_CPV1_UPDATE',
-  /** Update of min-block-time parameters. */
+  GasRewardsCpv_2Update = 'GAS_REWARDS_CPV_2_UPDATE',
+  MintDistributionCpv_1Update = 'MINT_DISTRIBUTION_CPV_1_UPDATE',
   MinBlockTimeUpdate = 'MIN_BLOCK_TIME_UPDATE',
-  /** Update of timeout parameters. */
   TimeoutParametersUpdate = 'TIMEOUT_PARAMETERS_UPDATE',
-  /** Introduce new Identity Disclosure Authority. */
   UpdateAddAnonymityRevoker = 'UPDATE_ADD_ANONYMITY_REVOKER',
-  /** Introduce new Identity Provider. */
   UpdateAddIdentityProvider = 'UPDATE_ADD_IDENTITY_PROVIDER',
-  /** Update of minimum threshold for becoming a validator. */
   UpdateBakerStakeThreshold = 'UPDATE_BAKER_STAKE_THRESHOLD',
-  /** Update of cooldown parameters. */
   UpdateCooldownParameters = 'UPDATE_COOLDOWN_PARAMETERS',
-  /** Update of the election difficulty. */
   UpdateElectionDifficulty = 'UPDATE_ELECTION_DIFFICULTY',
-  /** Update of conversion rate of Euro per energy. */
   UpdateEuroPerEnergy = 'UPDATE_EURO_PER_ENERGY',
-  /** Update of account marked as foundation account. */
   UpdateFoundationAccount = 'UPDATE_FOUNDATION_ACCOUNT',
-  /** Update of distribution of GAS rewards. */
   UpdateGasRewards = 'UPDATE_GAS_REWARDS',
-  /** Update of level1 keys. */
-  UpdateLevel1Keys = 'UPDATE_LEVEL1_KEYS',
-  /** Update of level2 keys. */
-  UpdateLevel2Keys = 'UPDATE_LEVEL2_KEYS',
-  /** Update of conversion rate of CCD per Euro. */
+  UpdateLevel_1Keys = 'UPDATE_LEVEL_1_KEYS',
+  UpdateLevel_2Keys = 'UPDATE_LEVEL_2_KEYS',
   UpdateMicroGtuPerEuro = 'UPDATE_MICRO_GTU_PER_EURO',
-  /** Update of distribution of minted CCD. */
   UpdateMintDistribution = 'UPDATE_MINT_DISTRIBUTION',
-  /** Update of pool parameters. */
   UpdatePoolParameters = 'UPDATE_POOL_PARAMETERS',
-  /** Update of protocol version. */
   UpdateProtocol = 'UPDATE_PROTOCOL',
-  /** Update of root keys. */
   UpdateRootKeys = 'UPDATE_ROOT_KEYS',
-  /** Update of time parameters. */
   UpdateTimeParameters = 'UPDATE_TIME_PARAMETERS',
-  /** Update of distribution of transaction fee. */
   UpdateTransactionFeeDistribution = 'UPDATE_TRANSACTION_FEE_DISTRIBUTION',
-  /** Update of validator score parameters. */
   ValidatorScoreParametersUpdate = 'VALIDATOR_SCORE_PARAMETERS_UPDATE'
 }
+
+export type ValidatorPrimedForSuspension = {
+  __typename?: 'ValidatorPrimedForSuspension';
+  account: AccountAddress;
+  bakerId: Scalars['Long'];
+};
 
 export type ValidatorScoreParametersUpdate = {
   __typename?: 'ValidatorScoreParametersUpdate';
   maximumMissedRounds: Scalars['UnsignedLong'];
 };
 
+export type ValidatorSuspended = {
+  __typename?: 'ValidatorSuspended';
+  account: AccountAddress;
+  bakerId: Scalars['Long'];
+};
+
+export type Validators = {
+  __typename?: 'Validators';
+  id: Scalars['Int'];
+};
+
+export type ValidatorsConnection = {
+  __typename?: 'ValidatorsConnection';
+  /** A list of edges. */
+  edges: Array<ValidatorsEdge>;
+  /** A list of nodes. */
+  nodes: Array<Validators>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type ValidatorsEdge = {
+  __typename?: 'ValidatorsEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: Validators;
+};
+
 export type Versions = {
   __typename?: 'Versions';
+  apiSupportedDatabaseSchemaVersion: Scalars['String'];
   backendVersion: Scalars['String'];
+  databaseSchemaVersion: Scalars['String'];
 };
 
 export type ZeroScheduledAmount = {
   __typename?: 'ZeroScheduledAmount';
-  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
