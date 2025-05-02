@@ -88,5 +88,4 @@ watch(dataPerStablecoin, newData => {
 		isLoading.value = false
 	}
 })
-
 </script>

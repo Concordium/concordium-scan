@@ -116,7 +116,9 @@
 						<TableTd> 12 days ago </TableTd>
 
 						<TableTd>
-							<p
+							<a
+								:href="`/protocol-token/${coin.assetName.toLowerCase()}`"
+								target="_blank"
 								class="font-normal text-md text-theme-interactive flex flex-row items-center"
 							>
 								<img
@@ -127,7 +129,7 @@
 									decoding="async"
 								/>
 								{{ coin.assetName }}
-							</p></TableTd
+							</a></TableTd
 						>
 						<TableTd>
 							<AccountLink :address="coin.from" />
