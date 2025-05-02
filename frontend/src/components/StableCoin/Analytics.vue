@@ -6,11 +6,30 @@
 		<div v-else>
 			<FtbCarousel non-carousel-classes="grid-cols-2">
 				<CarouselSlide class="w-full lg:h-full">
-					<StableCoinTokenTransfer :transfer-summary="dataTransferSummary" />
+					<Filter
+						v-model="days"
+						:data="[
+							{ label: '7 Days', value: 7 },
+							{ label: '1 month', value: 30 },
+							{ label: '3 months', value: 90 },
+						]"
+					/>
+					<StableCoinTokenTransfer
+						:is-loading="transferLoading"
+						:transfer-summary="dataTransferSummary"
+					/>
 				</CarouselSlide>
 				<CarouselSlide class="w-full lg:h-full">
+					<Filter
+						v-model="topHolder"
+						:data="[
+							{ label: 'Top 10', value: 10 },
+							{ label: 'Top 20', value: 20 },
+						]"
+					/>
 					<StableCoinTokenDistributionByHolder
 						:token-transfer-data="dataPerStablecoin"
+						:is-loading="holderLoading"
 					/>
 				</CarouselSlide>
 			</FtbCarousel>
@@ -25,6 +44,7 @@ import CarouselSlide from '~/components/molecules/CarouselSlide.vue'
 import StableCoinTokenTransfer from '~/components/molecules/ChartCards/StableCoinTokenTransfer.vue'
 import StableCoinTokenDistributionByHolder from '~/components/molecules/ChartCards/StableCoinTokenDistributionByHolder.vue'
 import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
+import Filter from '~/components/StableCoin/Filter.vue'
 
 // Define Props
 const props = defineProps<{
@@ -33,20 +53,18 @@ const props = defineProps<{
 
 // Loading state
 const isLoading = ref(true)
+const topHolder = ref(10)
+const lastNTransactions = ref(20)
+const days = ref(7)
 
 // Handle undefined props
 const coinId = props.coinId?.toUpperCase() ?? 'USDC'
 
-// Fetch Data
-const { data: dataPerStablecoin } = useStableCoinDashboardList({
-	symbol: coinId,
-	topHolder: 12,
-})
+const { data: dataPerStablecoin, fetching: holderLoading } =
+	useStableCoinDashboardList(coinId, topHolder, lastNTransactions)
 
-const { data: dataTransferSummary } = useStableCoinTokenTransferQuery(
-	coinId,
-	12
-)
+const { data: dataTransferSummary, fetching: transferLoading } =
+	useStableCoinTokenTransferQuery(coinId, days)
 
 // Watch for data updates
 watch(dataPerStablecoin, newData => {

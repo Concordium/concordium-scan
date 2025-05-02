@@ -4,8 +4,9 @@
 			:stable-coins-data="stableCoinsData"
 			chart-type="uniqueHolders"
 			show-sign=""
+			:label-clickable="true"
 		>
-			<template #title> Holder by Stablecoin </template>
+			<template #title> Protocol Token Holders </template>
 		</DistributionChartBar>
 	</div>
 </template>

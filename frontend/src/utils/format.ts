@@ -236,3 +236,37 @@ export const formatBytesPerSecond = (bytes: number) => {
 	if (bytes > 1024) return (bytes / 1024).toFixed(2) + ' kB/s'
 	else return bytes + ' B/s'
 }
+
+export const numberFormatter = (num?: number): string => {
+	if (typeof num !== 'number' || isNaN(num)) return '0'
+	return num >= 1e12
+		? (num / 1e12).toFixed(2) + 'T'
+		: num >= 1e9
+		? (num / 1e9).toFixed(2) + 'B'
+		: num >= 1e6
+		? (num / 1e6).toFixed(2) + 'M'
+		: num >= 1e3
+		? (num / 1e3).toFixed(2) + 'K'
+		: num.toFixed(2)
+}
+
+export const timeAgo = (dateString: string | undefined) => {
+	if (!dateString) {
+		return 'Invalid date' // or return a default value
+	}
+	const now = new Date()
+	const past = new Date(dateString)
+	const diff = Math.floor((now.getTime() - past.getTime()) / 1000) // in seconds
+
+	if (diff < 60) return `${diff} second${diff !== 1 ? 's' : ''} ago`
+	if (diff < 3600) {
+		const mins = Math.floor(diff / 60)
+		return `${mins} minute${mins !== 1 ? 's' : ''} ago`
+	}
+	if (diff < 86400) {
+		const hours = Math.floor(diff / 3600)
+		return `${hours} hour${hours !== 1 ? 's' : ''} ago`
+	}
+	const days = Math.floor(diff / 86400)
+	return `${days} day${days !== 1 ? 's' : ''} ago`
+}

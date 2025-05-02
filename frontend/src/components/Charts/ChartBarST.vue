@@ -21,6 +21,7 @@ type Props = {
 	beginAtZero?: boolean
 	labelFormatter?: LabelFormatterFunc
 	showSign?: string
+	labelClickable?: boolean
 }
 const canvasRef = ref()
 Chart.register(...registerables)
@@ -36,7 +37,7 @@ const chartData = {
 			fill: 'start',
 			tension: 0.1,
 			spanGaps: false,
-			borderRadius: 8,
+			borderRadius: 4,
 			pointRadius: 0, // Disables the small points
 			hoverBackgroundColor: '#FFFFFF',
 			backgroundColor: [
@@ -98,6 +99,11 @@ const defaultOptions = ref<ChartOptions<'bar'>>({
 	},
 
 	responsive: true,
+	elements: {
+		bar: {
+			borderWidth: 2,
+		},
+	},
 	maintainAspectRatio: false,
 	layout: {
 		padding: { left: 40, right: 50, top: 10, bottom: 10 },
@@ -152,6 +158,45 @@ const formatNumber = (num?: number): string => {
 		? format(num / 1e3, 'K')
 		: `${props.showSign}${num}`
 }
+const handleBarClick = (event: MouseEvent) => {
+	if (!canvasRef.value || !props.labelClickable || !chartInstance) return
+
+	const rect = canvasRef.value.getBoundingClientRect()
+	const y = event.clientY - rect.top
+	const x = event.clientX - rect.left
+
+	// Loop through ticks and see if the click is within the Y-axis tick area
+	const yScale = chartInstance.scales.y
+	const ticks = yScale.ticks
+
+	for (let i = 0; i < ticks.length; i++) {
+		const pixel = yScale.getPixelForTick(i)
+
+		// You can tweak the range depending on font size
+		if (y >= pixel - 10 && y <= pixel + 10 && x < yScale.left) {
+			const label = chartData.labels?.[i]
+			if (label) {
+				window.open(`/protocol-token/${label.toLowerCase()}`, '_blank')
+			}
+			return
+		}
+	}
+
+	// fallback: check for bar clicks
+	const elements = chartInstance.getElementsAtEventForMode(
+		event,
+		'nearest',
+		{ intersect: true },
+		false
+	)
+	if (elements.length > 0) {
+		const index = elements[0].index
+		const label = chartData.labels?.[index] as string
+		if (label) {
+			window.open(`/protocol-token/${label.toLowerCase()}`, '_blank')
+		}
+	}
+}
 
 let chartInstance: Chart
 onMounted(() => {
@@ -188,8 +233,19 @@ onMounted(() => {
 			},
 		},
 	})
+	if (props.labelClickable) {
+		canvasRef.value.style.cursor = 'pointer'
+		canvasRef.value.addEventListener('click', handleBarClick)
+	}
 
 	// Ensure chartInstance is properly assigned
 	chartInstance.update()
+})
+
+onUnmounted(() => {
+	if (props.labelClickable && canvasRef.value) {
+		canvasRef.value.removeEventListener('click', handleBarClick)
+	}
+	chartInstance?.destroy()
 })
 </script>

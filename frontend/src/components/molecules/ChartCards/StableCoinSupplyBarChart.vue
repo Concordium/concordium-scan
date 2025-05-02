@@ -4,8 +4,9 @@
 			:stable-coins-data="stableCoinsData"
 			chart-type="supply"
 			show-sign="$"
+			:label-clickable="true"
 		>
-			<template #title> StableCoin Supply </template>
+			<template #title> Protocol Token Supply </template>
 		</DistributionChartBar>
 	</div>
 </template>

@@ -27,8 +27,8 @@ const STABLECOIN_QUERY = gql`
 			decimal
 			name
 			symbol
-			valueInDoller
-			totalUniqueHolder
+			valueInDollar
+			totalUniqueHolders
 		}
 	}
 `

@@ -1,5 +1,5 @@
 use async_graphql::{Context, Object, SimpleObject};
-use chrono::{Duration, Utc};
+use chrono::{Duration, TimeZone, Utc};
 use serde::Deserialize;
 use std::{
     collections::{HashMap, HashSet},
@@ -7,35 +7,86 @@ use std::{
     io::BufReader,
 };
 
-#[derive(Debug, Clone, Deserialize, SimpleObject)]
+use crate::address::AccountAddress;
+
+pub type DateTime = chrono::DateTime<chrono::Utc>;
+
+#[derive(Clone, Deserialize, SimpleObject)]
 pub struct StableCoin {
-    name:                String,
-    symbol:              String,
-    decimal:             u8,
-    total_supply:        i64,
-    circulating_supply:  i64,
-    value_in_doller:     f64,
-    total_unique_holder: Option<i64>,
-    transfers:           Option<Vec<Transfer>>, // Transfers sorted by date
-    holding:             Option<Vec<Holding>>,
+    name:                 String,
+    symbol:               String,
+    decimal:              u8,
+    // Total supply = Created tokens – Burned tokens.
+    total_supply:         i64,
+    // Circulating supply = Tokens available on the market.
+    circulating_supply:   i64,
+    value_in_dollar:      f64,
+    total_unique_holders: Option<i64>,
+    transfers:            Option<Vec<Transfer>>, // Transfers sorted by date
+    holdings:             Option<Vec<HoldingResponse>>,
+    metadata:             Option<Metadata>,
+    transactions:         Option<Vec<TransactionMResponse>>, /* TransactionM type is only for
+                                                              * the mock dataset */
+    issuer:               String, // Keeping this issuer as string as reading from json
+}
+#[derive(Clone, Deserialize, SimpleObject)]
+pub struct TransactionM {
+    from:             AccountAddress,
+    to:               AccountAddress,
+    asset_name:       String,
+    date_time:        DateTime,
+    amount:           f64,
+    value:            f64,
+    transaction_hash: String,
+}
+#[derive(Clone, Deserialize, SimpleObject)]
+pub struct TransactionMResponse {
+    from:             String,
+    to:               String,
+    asset_name:       String,
+    date_time:        DateTime,
+    amount:           f64,
+    value:            f64,
+    transaction_hash: String,
+}
+
+#[derive(Clone, Deserialize, SimpleObject)]
+pub struct LatestTransactionResponse {
+    from:             String,
+    to:               String,
+    asset_name:       String,
+    date_time:        DateTime,
+    amount:           f64,
+    value:            f64,
+    transaction_hash: String,
+    asset_metadata:   Option<Metadata>,
+}
+
+#[derive(Debug, Clone, Deserialize, SimpleObject)]
+pub struct Metadata {
+    icon_url: String,
 }
 
 #[derive(Debug, Clone, Deserialize, SimpleObject)]
 pub struct StableCoinOverview {
-    total_marketcap:          f64,
-    number_of_unique_holder:  f64,
-    no_of_txn:                f64,
-    values_transferd:         f64,
-    no_of_txn_last24h:        f64,
-    values_transferd_last24h: f64,
+    // Total market cap = Total supply * Value in dollar
+    // For Our mockdata we are skipping the calculation of market cap
+    // and just using the total supply as market cap
+    total_marketcap:            f64,
+    // Number of unique holders = Number of unique addresses holding the token
+    number_of_unique_holders:   usize,
+    no_of_txn:                  usize,
+    values_transferred:         f64,
+    no_of_txn_last24h:          usize,
+    values_transferred_last24h: f64,
 }
 
-#[derive(Debug, Clone, Deserialize, SimpleObject)]
+#[derive(Clone, Deserialize, SimpleObject)]
 pub struct Transfer {
-    from:       String,
-    to:         String,
+    from:       AccountAddress,
+    to:         AccountAddress,
     asset_name: String,
-    date:       String,
+    date_time:  DateTime,
     amount:     f64,
 }
 
@@ -46,15 +97,23 @@ pub struct AssetInHold {
     percentage: f32,
 }
 
-#[derive(Debug, Clone, Deserialize, SimpleObject)]
+#[derive(Clone, Deserialize, SimpleObject)]
 pub struct Holding {
-    address:  String,
+    address:  AccountAddress,
     holdings: Option<Vec<AssetInHold>>,
+}
+
+#[derive(Clone, Deserialize, SimpleObject)]
+pub struct HoldingResponse {
+    address:    String,
+    asset_name: String,
+    quantity:   f64,
+    percentage: f32,
 }
 
 #[derive(Debug, Clone, SimpleObject)]
 pub struct TransferSummary {
-    date:              String,
+    date_time:         DateTime,
     total_amount:      f64,
     transaction_count: usize,
 }
@@ -69,30 +128,41 @@ pub struct TransferSummaryResponse {
 impl StableCoin {
     pub fn top_holders(
         &self,
-        top_holder: Option<usize>,
+        limit: Option<usize>,
         min_quantity: Option<f64>,
-    ) -> Option<Vec<Holding>> {
-        let mut holders = self.holding.clone()?;
+    ) -> Option<Vec<HoldingResponse>> {
+        if let Some(holdings) = &self.holdings {
+            let mut filtered_holders = holdings
+                .iter()
+                .filter(|h| {
+                    h.asset_name == self.symbol
+                        && (min_quantity.is_none() || h.quantity >= min_quantity.unwrap())
+                })
+                .cloned()
+                .collect::<Vec<HoldingResponse>>();
 
-        if let Some(min) = min_quantity {
-            holders.retain(|holding| {
-                holding
-                    .holdings
-                    .as_ref()
-                    .map_or(false, |h| h.iter().any(|asset| asset.quantity >= min))
-            });
+            // Sort by quantity in descending order
+            filtered_holders.sort_by(|a, b| b.quantity.partial_cmp(&a.quantity).unwrap());
+
+            // Limit the number of holders if a limit is provided
+            if let Some(l) = limit {
+                filtered_holders.truncate(l);
+            }
+
+            Some(filtered_holders)
+        } else {
+            None
         }
+    }
 
-        holders.sort_by(|a, b| {
-            let sum_a: f64 =
-                a.holdings.as_ref().map_or(0.0, |h| h.iter().map(|x| x.quantity).sum());
-            let sum_b: f64 =
-                b.holdings.as_ref().map_or(0.0, |h| h.iter().map(|x| x.quantity).sum());
-            sum_b.partial_cmp(&sum_a).unwrap()
-        });
-
-        let top_n = top_holder.unwrap_or(200);
-        Some(holders.into_iter().take(top_n).collect())
+    pub fn last_n_transactions(
+        &self,
+        last_n_transactions: Option<usize>,
+    ) -> Option<Vec<TransactionMResponse>> {
+        let mut transactions = self.transactions.clone()?;
+        transactions.sort_by(|a, b| b.date_time.cmp(&a.date_time));
+        let last_n = last_n_transactions.unwrap_or(20);
+        Some(transactions.into_iter().take(last_n).collect())
     }
 }
 
@@ -112,7 +182,7 @@ impl QueryStableCoins {
         let mut transfers: Vec<Transfer> = serde_json::from_reader(reader).unwrap();
 
         // Sort transfers by date in descending order (newest first)
-        transfers.sort_by(|a, b| b.date.cmp(&a.date));
+        transfers.sort_by(|a, b| b.date_time.cmp(&a.date_time));
         transfers
     }
 
@@ -122,38 +192,39 @@ impl QueryStableCoins {
         serde_json::from_reader(reader).unwrap()
     }
 
+    fn load_transactions() -> Vec<TransactionM> {
+        let file = File::open("transaction.json").unwrap();
+        let reader = BufReader::new(file);
+        serde_json::from_reader(reader).unwrap()
+    }
+
     fn merge_transfers(
         mut stablecoins: Vec<StableCoin>,
         transfers: Vec<Transfer>,
         holdings: Vec<Holding>,
+        transactions: Vec<TransactionM>,
     ) -> Vec<StableCoin> {
         for coin in &mut stablecoins {
             coin.transfers =
                 Some(transfers.iter().filter(|t| t.asset_name == coin.symbol).cloned().collect());
 
-            let relevant_holdings: Vec<Holding> = holdings
+            let relevant_holdings: Vec<HoldingResponse> = holdings
                 .iter()
                 .filter_map(|holding| {
-                    let filtered_assets: Vec<AssetInHold> = holding
-                        .holdings
-                        .as_ref()?
-                        .iter()
-                        .filter(|asset| asset.asset_name == coin.symbol)
-                        .cloned()
-                        .collect();
-
-                    if !filtered_assets.is_empty() {
-                        Some(Holding {
-                            address:  holding.address.clone(),
-                            holdings: Some(filtered_assets),
+                    holding.holdings.as_ref().and_then(|h| {
+                        h.iter().find(|asset| asset.asset_name == coin.symbol).map(|asset| {
+                            HoldingResponse {
+                                address:    holding.address.to_string(),
+                                asset_name: asset.asset_name.clone(),
+                                quantity:   asset.quantity,
+                                percentage: asset.percentage,
+                            }
                         })
-                    } else {
-                        None
-                    }
+                    })
                 })
                 .collect();
 
-            coin.holding = if relevant_holdings.is_empty() {
+            coin.holdings = if relevant_holdings.is_empty() {
                 None
             } else {
                 Some(relevant_holdings.clone())
@@ -161,9 +232,24 @@ impl QueryStableCoins {
 
             // Compute unique holders
             let unique_holders: HashSet<String> =
-                relevant_holdings.iter().map(|h| h.address.clone()).collect();
+                relevant_holdings.iter().map(|h| h.address.to_string()).collect();
 
-            coin.total_unique_holder = Some(unique_holders.len() as i64);
+            coin.total_unique_holders = Some(unique_holders.len() as i64);
+            coin.transactions = Some(
+                transactions
+                    .iter()
+                    .filter(|t| t.asset_name == coin.symbol)
+                    .map(|t| TransactionMResponse {
+                        from:             t.from.to_string(),
+                        to:               t.to.to_string(),
+                        asset_name:       t.asset_name.clone(),
+                        date_time:        t.date_time,
+                        amount:           t.amount,
+                        value:            t.value,
+                        transaction_hash: t.transaction_hash.clone(),
+                    })
+                    .collect(),
+            );
         }
         stablecoins
     }
@@ -175,19 +261,30 @@ impl QueryStableCoins {
         &self,
         _ctx: &Context<'a>,
         symbol: String,
-        top_holder: Option<usize>,
+        limit: Option<usize>,
         min_quantity: Option<f64>,
+        last_n_transactions: Option<usize>,
     ) -> Option<StableCoin> {
-        let mut stablecoins =
-            Self::merge_transfers(Self::load_data(), Self::load_transfers(), Self::load_holdings());
-        let coin = stablecoins.iter_mut().find(|coin| coin.symbol == symbol)?;
+        let mut stablecoins = Self::merge_transfers(
+            Self::load_data(),
+            Self::load_transfers(),
+            Self::load_holdings(),
+            Self::load_transactions(),
+        );
+        let coin = stablecoins.iter_mut().find(|coin: &&mut StableCoin| coin.symbol == symbol)?;
 
-        coin.holding = coin.top_holders(top_holder, min_quantity);
+        coin.holdings = coin.top_holders(limit, min_quantity);
+        coin.transactions = coin.last_n_transactions(last_n_transactions);
         Some(coin.clone())
     }
 
     async fn stablecoins<'a>(&self, _ctx: &Context<'a>) -> Vec<StableCoin> {
-        Self::merge_transfers(Self::load_data(), Self::load_transfers(), Self::load_holdings())
+        Self::merge_transfers(
+            Self::load_data(),
+            Self::load_transfers(),
+            Self::load_holdings(),
+            Self::load_transactions(),
+        )
     }
 
     async fn stablecoins_by_supply<'a>(
@@ -195,10 +292,15 @@ impl QueryStableCoins {
         _ctx: &Context<'a>,
         min_supply: i64,
     ) -> Vec<StableCoin> {
-        Self::merge_transfers(Self::load_data(), Self::load_transfers(), Self::load_holdings())
-            .into_iter()
-            .filter(|coin| coin.total_supply >= min_supply)
-            .collect()
+        Self::merge_transfers(
+            Self::load_data(),
+            Self::load_transfers(),
+            Self::load_holdings(),
+            Self::load_transactions(),
+        )
+        .into_iter()
+        .filter(|coin| coin.total_supply >= min_supply)
+        .collect()
     }
 
     async fn transfer_summary<'a>(
@@ -208,24 +310,24 @@ impl QueryStableCoins {
         days: Option<i64>, // Number of days to fetch
     ) -> TransferSummaryResponse {
         let transfers = Self::load_transfers();
-        let now = Utc::now();
+        let now: chrono::DateTime<Utc> = Utc::now();
         let days = days.unwrap_or(7);
-        let last_n_days = now - Duration::days(days);
-
-        let mut summary: HashMap<String, (f64, usize)> = HashMap::new();
+        let days = if days <= 7 {
+            6
+        } else {
+            days - 1
+        };
+        let last_n_days = now - chrono::Duration::days(days);
+        let mut summary: HashMap<DateTime, (f64, usize)> = HashMap::new();
         let mut total_value = 0.0;
         let mut total_txn_count = 0;
 
         for transfer in transfers.iter().filter(|t| t.asset_name == asset_name) {
-            let transfer_date =
-                match chrono::NaiveDateTime::parse_from_str(&transfer.date, "%Y-%m-%d %H:%M:%S") {
-                    Ok(date) => date,
-                    Err(_) => continue, // Skip invalid date format
-                };
-
+            let transfer_date = transfer.date_time;
             // Filter transactions within the last `days`
-            if transfer_date >= last_n_days.naive_utc() {
-                let date_str = transfer_date.format("%Y-%m-%d").to_string();
+            if transfer_date >= last_n_days {
+                let date_str = Utc
+                    .from_utc_datetime(&transfer_date.date_naive().and_hms_opt(0, 0, 0).unwrap());
                 let entry = summary.entry(date_str).or_insert((0.0, 0));
                 entry.0 += transfer.amount;
                 entry.1 += 1;
@@ -236,15 +338,15 @@ impl QueryStableCoins {
 
         let mut summary_vec: Vec<TransferSummary> = summary
             .into_iter()
-            .map(|(date, (total_amount, transaction_count))| TransferSummary {
-                date,
+            .map(|(date_time, (total_amount, transaction_count))| TransferSummary {
+                date_time,
                 total_amount,
                 transaction_count,
             })
             .collect();
 
         // Sort in ascending order (earliest date first)
-        summary_vec.sort_by(|a, b| a.date.cmp(&b.date));
+        summary_vec.sort_by(|a, b| a.date_time.cmp(&b.date_time));
 
         TransferSummaryResponse {
             daily_summary: summary_vec,
@@ -265,27 +367,62 @@ impl QueryStableCoins {
                     if h.is_empty() {
                         None
                     } else {
-                        Some(holding.address.clone())
+                        Some(holding.address.to_string())
                     }
                 })
             })
             .collect();
         let now = Utc::now();
         let last_24h = now - Duration::hours(24);
-        let last_24h_str = last_24h.format("%Y-%m-%d %H:%M:%S").to_string();
+        let last_24h_str = last_24h;
 
-        let (values_transferd_last_24h, no_of_txn_last_24h) = transfers
+        let (values_transferred_last_24h, no_of_txn_last_24h) = transfers
             .iter()
-            .filter(|t| t.date >= last_24h_str)
+            .filter(|t| t.date_time >= last_24h_str)
             .fold((0.0, 0), |(total_val, count), t| (total_val + t.amount, count + 1));
 
         StableCoinOverview {
-            total_marketcap:          stablecoins.iter().map(|coin| coin.total_supply as f64).sum(),
-            number_of_unique_holder:  unique_holders.len() as f64,
-            no_of_txn:                transfers.len() as f64,
-            values_transferd:         transfers.iter().map(|t| t.amount).sum(),
-            no_of_txn_last24h:        no_of_txn_last_24h as f64,
-            values_transferd_last24h: values_transferd_last_24h,
+            total_marketcap:            stablecoins
+                .iter()
+                .map(|coin| coin.total_supply as f64)
+                .sum(),
+            number_of_unique_holders:   unique_holders.len(),
+            no_of_txn:                  transfers.len(),
+            values_transferred:         transfers.iter().map(|t| t.amount).sum(),
+            no_of_txn_last24h:          no_of_txn_last_24h,
+            values_transferred_last24h: values_transferred_last_24h,
         }
+    }
+
+    async fn latest_transactions<'a>(
+        &self,
+        _ctx: &Context<'a>,
+        limit: Option<usize>,
+    ) -> Option<Vec<LatestTransactionResponse>> {
+        let transactions = Self::load_transactions();
+        let stablecoins = Self::load_data();
+        let stablecoins_metadata_map: HashMap<String, Option<Metadata>> =
+            stablecoins.into_iter().map(|s| (s.symbol, s.metadata)).collect();
+        let effective_limit = limit.unwrap_or(10); // default to 10 if None
+        let txn_summary: Option<Vec<LatestTransactionResponse>> = Some(
+            transactions
+                .iter()
+                .take(effective_limit)
+                .map(|t| LatestTransactionResponse {
+                    from:             t.from.to_string(),
+                    to:               t.to.to_string(),
+                    asset_name:       t.asset_name.clone(),
+                    date_time:        t.date_time,
+                    amount:           t.amount,
+                    value:            t.value,
+                    transaction_hash: t.transaction_hash.clone(),
+                    asset_metadata:   stablecoins_metadata_map
+                        .get(&t.asset_name.clone())
+                        .unwrap()
+                        .clone(),
+                })
+                .collect(),
+        );
+        txn_summary
     }
 }

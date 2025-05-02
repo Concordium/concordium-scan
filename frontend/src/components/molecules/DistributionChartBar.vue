@@ -17,6 +17,7 @@
 				:begin-at-zero="true"
 				:type="chartType"
 				:show-sign="showSign"
+				:label-clickable="true"
 			/>
 		</ClientOnly>
 	</MetricCard>
@@ -33,21 +34,23 @@ import type { StablecoinResponse } from '~/queries/useStableCoinQuery'
 const props = defineProps<{
 	stableCoinsData?: StablecoinResponse
 	isLoading?: boolean
+	labelClickable?: boolean
 	showSign?: string
 	chartType?: 'supply' | 'uniqueHolders'
 }>()
 
 // Computed Properties
-const chartLabels = computed(
-	() => props.stableCoinsData?.stablecoins.map(item => item.symbol ?? '') || []
-)
+const chartLabels = computed(() => {
+	const coins = props.stableCoinsData?.stablecoins?.slice(0, 10) ?? []
+	return coins.map(item => item.symbol ?? '')
+})
 
 const chartData = computed(() => {
-	const coins = props.stableCoinsData?.stablecoins ?? []
+	const coins = props.stableCoinsData?.stablecoins?.slice(0, 10) ?? []
 	return coins.map(item =>
 		props.chartType === 'supply'
 			? item.totalSupply ?? null
-			: item.totalUniqueHolder ?? null
+			: item.totalUniqueHolders ?? null
 	)
 })
 </script>

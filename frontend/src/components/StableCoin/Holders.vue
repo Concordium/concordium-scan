@@ -1,11 +1,16 @@
 <template>
 	<div>
-		<div v-if="isLoading" class="w-full h-36 text-center">
+		<div v-if="holderLoading" class="w-full h-36 text-center">
 			<BWCubeLogoIcon class="w-10 h-10 animate-ping mt-8" />
 		</div>
 		<div v-else>
 			<FtbCarousel non-carousel-classes="grid-cols-1">
 				<CarouselSlide class="w-full lg:h-full">
+					<Filter
+						v-model="lastNTransactions"
+						class="mb-4"
+						:data="transactionFilterOptions"
+					/>
 					<Table>
 						<TableHead>
 							<TableRow>
@@ -17,42 +22,27 @@
 						</TableHead>
 						<TableBody>
 							<TableRow
-								v-for="(coin, index) in dataPerStablecoin?.stablecoin?.holding"
+								v-for="(coin, index) in dataPerStablecoin?.stablecoin?.holdings"
 								:key="index"
 							>
 								<TableTd>
-									<Tooltip
-										v-if="coin.address"
-										:text="coin.address"
-										text-class="text-theme-body"
-									>
-										{{ shortenHash(coin.address) }}
-									</Tooltip>
-									<TextCopy
-										v-if="coin.address"
-										:text="coin.address"
-										label="Click to copy block hash to clipboard"
-										class="h-5 inline align-baseline"
-										tooltip-class="font-sans"
-									/>
+									<AccountLink :address="coin.address" />
 								</TableTd>
-								<TableTd v-if="coin.holdings && coin.holdings.length > 0">
-									{{ coin.holdings[0].quantity }}
+								<TableTd>
+									<Amount :amount="coin.quantity" />
 								</TableTd>
-								<TableTd v-if="coin.holdings && coin.holdings.length > 0">
-									{{ coin.holdings[0].percentage?.toFixed(2) }}%
-								</TableTd>
-								<TableTd v-if="coin.holdings && coin.holdings.length > 0">
+								<TableTd> {{ coin.percentage?.toFixed(2) }}% </TableTd>
+								<TableTd>
 									<Tooltip
 										:text="
 											String(
-												(coin.holdings[0].quantity ?? 0) *
+												(coin.quantity ?? 0) *
 													(dataPerStablecoin?.stablecoin?.valueInDoller ?? 0)
 											)
 										"
 										text-class="text-theme-body"
 									>
-										${{ getCoinValue(coin.holdings[0]?.quantity) }}
+										${{ numberFormatter(coin?.quantity) }}
 									</Tooltip>
 								</TableTd>
 							</TableRow>
@@ -64,11 +54,17 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import { shortenHash } from '~/utils/format'
+import { numberFormatter } from '~/utils/format'
 import { useStableCoinDashboardList } from '~/queries/useStableCoinDashboardList'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 import CarouselSlide from '~/components/molecules/CarouselSlide.vue'
 import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
+import Filter from '~/components/StableCoin/Filter.vue'
+import {
+	TransactionFilterOption,
+	transactionFilterOptions,
+} from '~/types/stable-coin'
+
 // Define Props
 const props = defineProps<{
 	coinId?: string
@@ -76,20 +72,15 @@ const props = defineProps<{
 
 // Loading state
 const isLoading = ref(true)
+const lastNTransactions = ref(TransactionFilterOption.Top20)
+const limit = ref(20)
 
 const coinId = props.coinId?.toUpperCase() ?? 'USDC'
 
 // Fetch Data
-const { data: dataPerStablecoin } = useStableCoinDashboardList({
-	symbol: coinId,
-	topHolder: 12,
-})
 
-const getCoinValue = (quantity?: number) => {
-	if (!quantity) return '0.00'
-	const price = dataPerStablecoin?.value?.stablecoin?.valueInDoller ?? 0
-	return (quantity * price).toFixed(2)
-}
+const { data: dataPerStablecoin, fetching: holderLoading } =
+	useStableCoinDashboardList(coinId, limit, lastNTransactions)
 
 // Watch for data updates
 watch(dataPerStablecoin, newData => {

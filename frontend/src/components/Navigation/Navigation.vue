@@ -49,8 +49,8 @@ const allRoutes: Route[] = [
 		path: '/tokens',
 	},
 	{
-		title: 'Stable Coin',
-		path: '/stable-coin',
+		title: 'Protocol-Level Tokens',
+		path: '/protocol-token',
 	},
 ]
 

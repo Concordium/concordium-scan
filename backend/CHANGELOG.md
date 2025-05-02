@@ -1,5 +1,9 @@
 ## Unreleased changes
 
+
+### 1.10.2
+- Added environment config `enablePltFeatures` to control stable coin menu display.
+
 ## 1.10.2
 
 - Update dotnet SDK

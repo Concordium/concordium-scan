@@ -11,6 +11,17 @@ export type Holding = {
 	percentage?: number
 }
 
+export type Transaction = {
+	transactionHash?: string
+	dateTime?: string
+	from?: string
+	to?: string
+	signature?: string
+	date?: string
+	amount?: number
+	value?: number
+}
+
 export type StableCoin = {
 	name?: string
 	symbol?: string
@@ -19,46 +30,67 @@ export type StableCoin = {
 	totalSupply?: number
 	circulatingSupply?: number
 	holding?: Holder[]
+	transactions?: Transaction[]
+}
+
+export interface StableCoinDashboardOptions {
+	limit?: number
+	lastNTransactions?: number
 }
 
 export type StableCoinDashboardListResponse = {
 	stablecoin: StableCoin
 }
 
-const STABLECOIN_DASHBOARD_LIST_QUERY = gql`
-	query SampleQuery($symbol: String!, $topHolder: Int!) {
-		stablecoin(symbol: $symbol, topHolder: $topHolder) {
+const STABLECOIN_DASHBOARD_LIST_QUERY = gql<StableCoinDashboardListResponse>`
+	query SampleQuery($symbol: String!, $limit: Int!, $lastNTransactions: Int!) {
+		stablecoin(
+			symbol: $symbol
+			limit: $limit
+			lastNTransactions: $lastNTransactions
+		) {
 			name
 			symbol
-			valueInDoller
-			totalUniqueHolder
 			totalSupply
 			circulatingSupply
-			holding {
+			metadata {
+				iconUrl
+			}
+			transactions {
+				from
+				to
+				assetName
+				dateTime
+				amount
+				transactionHash
+				value
+			}
+			transfers {
+				assetName
+				dateTime
+				amount
+			}
+			holdings {
 				address
-				holdings {
-					quantity
-					percentage
-					# currency
-				}
+				assetName
+				quantity
+				percentage
 			}
 		}
 	}
 `
 
-export const useStableCoinDashboardList = ({
-	symbol,
-	topHolder,
-}: {
-	symbol: string
-	topHolder: number
-}) => {
-	const { data } = useQuery<StableCoinDashboardListResponse>({
+export const useStableCoinDashboardList = (
+	symbol: string,
+	limit: number,
+	lastNTransactions: number
+) => {
+	const { data, executeQuery, fetching } = useQuery({
 		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: STABLECOIN_DASHBOARD_LIST_QUERY,
 		requestPolicy: 'cache-and-network',
-		variables: { symbol, topHolder },
+		variables: { symbol, limit, lastNTransactions },
 	})
 
-	return { data }
+	return { data, executeQuery, fetching }
 }
