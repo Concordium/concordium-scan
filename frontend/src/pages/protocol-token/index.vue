@@ -105,24 +105,24 @@
 						<TableTh width="20%">Value</TableTh>
 					</TableRow>
 				</TableHead>
-				<TableBody>
+				<TableBody v-if="latestTransactionsData?.latestTransactions">
 					<TableRow
-						v-for="(coin, index) in latestTransactionsData?.latestTransactions"
+						v-for="(coin, index) in latestTransactionsData.latestTransactions"
 						:key="index"
 					>
 						<TableTd>
-							<TransactionLink :hash="coin.transactionHash" />
+							<TransactionLink :hash="coin.transactionHash ?? ''" />
 						</TableTd>
 						<TableTd> 12 days ago </TableTd>
 
 						<TableTd>
 							<a
-								:href="`/protocol-token/${coin.assetName.toLowerCase()}`"
+								:href="`/protocol-token/${coin.assetName?.toLowerCase()}`"
 								target="_blank"
 								class="font-normal text-md text-theme-interactive flex flex-row items-center"
 							>
 								<img
-									:src="coin.assetMetadata?.iconUrl"
+									:src="coin?.assetMetadata?.iconUrl"
 									class="rounded-full w-6 h-6 mr-2"
 									alt="Token Icon"
 									loading="lazy"

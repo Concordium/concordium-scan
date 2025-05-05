@@ -29,7 +29,11 @@
 									<AccountLink :address="coin.address" />
 								</TableTd>
 								<TableTd>
-									<Amount :amount="coin.quantity" />
+									<Amount
+										:amount="
+											coin.quantity !== undefined ? Number(coin.quantity) : 0
+										"
+									/>
 								</TableTd>
 								<TableTd> {{ coin.percentage?.toFixed(2) }}% </TableTd>
 								<TableTd>

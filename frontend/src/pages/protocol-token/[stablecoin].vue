@@ -164,6 +164,8 @@ const coinId = computed(() => {
 	return Array.isArray(id) ? id[0] : id || ''
 })
 
+const days = ref(30)
+
 watch(
 	() => coinId.value,
 	(newId, oldId) => {
@@ -173,7 +175,7 @@ watch(
 
 const { data: dataTransferSummary } = useStableCoinTokenTransferQuery(
 	coinId.value.toUpperCase(),
-	30
+	days
 )
 
 const selectedTab = ref('transactions')

@@ -2,7 +2,7 @@ import { useQuery, gql } from '@urql/vue'
 
 // Define DailySummaryItem
 export type DailySummaryItem = {
-	date: string
+	dateTime: string
 	totalAmount: string
 	transactionCount: number
 }
@@ -12,10 +12,11 @@ export type StableCoinTokenTransferResponse = {
 	stablecoin: {
 		name?: string
 		totalSupply?: string
-		totalUniqueHolder?: number
-		valueInDoller?: number
+		totalUniqueHolders?: number
+		valueInDollar?: number
 		decimal?: number
 		symbol?: string
+		issuer?: string
 		metadata?: {
 			iconUrl?: string
 		}
@@ -53,7 +54,7 @@ const STABLECOIN_TOKEN_TRANSFER = gql<StableCoinTokenTransferResponse>`
 
 export const useStableCoinTokenTransferQuery = (
 	symbol: string,
-	days: number
+	days: Ref<number>
 ) => {
 	const { data, executeQuery, fetching } = useQuery({
 		context: { url: useRuntimeConfig().public.apiUrlRust },
