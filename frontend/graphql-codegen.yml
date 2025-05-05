@@ -1,5 +1,5 @@
 overwrite: true
-schema: '../backend/Tests/Api/GraphQL/__snapshots__/committed-schema.verified.graphql'
+schema: '../backend-rust/schema.graphql'
 generates:
   src/types/generated.ts:
     plugins:

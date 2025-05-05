@@ -1,45 +1,5 @@
 import { useQuery, gql } from '@urql/vue'
-
-export type Holder = {
-	address?: string
-	holdings?: Holding[]
-	symbol?: string
-	assetName?: string
-	percentage?: number
-	quantity?: number
-}
-
-export type Holding = {
-	quantity?: number
-	percentage?: number
-}
-
-export type Transaction = {
-	transactionHash?: string
-	dateTime?: string
-	from?: string
-	to?: string
-	signature?: string
-	date?: string
-	amount?: number
-	value?: number
-}
-
-export type StableCoin = {
-	name?: string
-	symbol?: string
-	valueInDoller?: number
-	totalUniqueHolder?: number
-	totalSupply?: number
-	circulatingSupply?: number
-	holdings?: Holder[]
-	transactions?: Transaction[]
-}
-
-export interface StableCoinDashboardOptions {
-	limit?: number
-	lastNTransactions?: number
-}
+import type { StableCoin } from '~/types/generated'
 
 export type StableCoinDashboardListResponse = {
 	stablecoin: StableCoin

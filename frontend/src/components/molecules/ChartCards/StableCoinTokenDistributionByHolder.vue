@@ -15,6 +15,7 @@ import { ref, watchEffect, defineProps } from 'vue'
 import type { StableCoinDashboardListResponse } from '~/queries/useStableCoinDashboardList'
 import DistributionByHolder from '~/components/molecules/DistributionByHolder.vue'
 import { shortenHash } from '~/utils/format'
+import type { HoldingResponse } from '~/types/generated'
 
 type Props = {
 	tokenTransferData?: StableCoinDashboardListResponse
@@ -35,10 +36,10 @@ watchEffect(() => {
 	}
 
 	setTimeout(() => {
-		distributionValues.value = holders.map(ele => ({
+		distributionValues.value = holders.map((ele: HoldingResponse) => ({
 			address: shortenHash(ele.address),
 			symbol: ele.assetName || '',
-			percentage: (ele.percentage ?? 0).toFixed(2), // <-- formatted to 2 decimals
+			percentage: (ele.percentage ?? 0).toFixed(2),
 		}))
 		isLoading.value = false
 	}, 1000)

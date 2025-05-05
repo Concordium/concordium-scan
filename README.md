@@ -28,16 +28,23 @@ The project ships a Docker Compose spec for deploying a CCDScan Backend with a T
   URL of the network's domain (`mainnet.concordium.software` for mainnet and `<network>.concordium.com` for the other official networks).
   Used as part of the URL for fetching data from the public network dashboard.
 
-*Example*
+- Create a PR that bumps the backend version in the `backend-rust/Cargo.toml` file and updates the backend `changelog` and merge it e.g. [backend release](https://github.com/Concordium/concordium-scan/pull/536/files).
+- Checkout the main branch locally.
+- Tag the branch e.g.:
+```
+git tag ccdscan-backend/0.1.25
+```
+- Push the tag:
+```
+git push --tags
+```
+This will trigger a new release pipeline which needs to be approved before the image is published to docker hub [indexer](https://hub.docker.com/r/concordium/ccdscan-indexer/tags) and [graphQL API](https://hub.docker.com/r/concordium/ccdscan-api/tags).
 
 Run backend on port 5001 from public image `concordium/ccdscan:<tag>` against a local mainnet node:
 
-```shell
-export CCDSCAN_BACKEND_IMAGE=concordium/ccdscan:<tag>
-export CCDSCAN_BACKEND_PORT=5001
-export CCDSCAN_DOMAIN=mainnet.concordium.software
-docker-compose pull
-docker-compose up
+- Create a PR that bumps the frontend version in the `frontend/package.json` file and updates the frontend `changelog` and merge it e.g. [frontend release](https://github.com/Concordium/concordium-scan/pull/488/files).
+- Checkout the main branch locally.
+- Tag the branch e.g.:
 ```
 
 See the description of `CCDSCAN_BACKEND_PORT` for an explanation of why Mac users in particular might want to set this value.
