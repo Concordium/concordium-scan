@@ -386,15 +386,6 @@ export type AccountsCollectionSegment = {
   totalCount: Scalars['Int'];
 };
 
-export type AccountsMetrics = {
-  __typename?: 'AccountsMetrics';
-  /** Total number of accounts created in requested period. */
-  accountsCreated: Scalars['Int'];
-  buckets: AccountMetricsBuckets;
-  /** Total number of accounts created (all time). */
-  lastCumulativeAccountsCreated: Scalars['Int'];
-};
-
 export type AccountsUpdatedSubscriptionItem = {
   __typename?: 'AccountsUpdatedSubscriptionItem';
   address: Scalars['String'];
@@ -954,7 +945,7 @@ export type Cis2Event = {
   __typename?: 'Cis2Event';
   contractIndex: Scalars['Int'];
   contractSubIndex: Scalars['Int'];
-  event: CisEvent;
+  event?: Maybe<CisEvent>;
   indexPerToken: Scalars['Int'];
   tokenId: Scalars['String'];
   transaction: Transaction;
@@ -1608,7 +1599,6 @@ export type KeyIndexAlreadyInUse = {
 
 export type LatestChainParameters = ChainParametersV1;
 
-
 export type LatestTransactionResponse = {
   __typename?: 'LatestTransactionResponse';
   amount: Scalars['Float'];
@@ -1747,7 +1737,6 @@ export type ModuleReferenceEvent = {
   moduleReferenceRejectEvents: ModuleReferenceRejectEventsCollectionSegment;
   sender: AccountAddress;
   transactionHash: Scalars['String'];
-  transactionIndex: Scalars['Int'];
 };
 
 
@@ -1766,25 +1755,6 @@ export type ModuleReferenceEventModuleReferenceContractLinkEventsArgs = {
 export type ModuleReferenceEventModuleReferenceRejectEventsArgs = {
   skip?: InputMaybe<Scalars['Int']>;
   take?: InputMaybe<Scalars['Int']>;
-};
-
-export type ModuleReferenceEventConnection = {
-  __typename?: 'ModuleReferenceEventConnection';
-  /** A list of edges. */
-  edges: Array<ModuleReferenceEventEdge>;
-  /** A list of nodes. */
-  nodes: Array<ModuleReferenceEvent>;
-  /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-};
-
-/** An edge in a connection. */
-export type ModuleReferenceEventEdge = {
-  __typename?: 'ModuleReferenceEventEdge';
-  /** A cursor for use in pagination */
-  cursor: Scalars['String'];
-  /** The item at the end of the edge */
-  node: ModuleReferenceEvent;
 };
 
 export type ModuleReferenceRejectEvent = {
@@ -2243,7 +2213,7 @@ export type Query = {
   account: Account;
   accountByAddress: Account;
   accounts: AccountConnection;
-  accountsMetrics: AccountsMetrics;
+  accountsMetrics: AccountMetrics;
   baker: Baker;
   bakerByBakerId: Baker;
   /**
@@ -2482,6 +2452,7 @@ export type QueryTransactionsArgs = {
   last?: InputMaybe<Scalars['Int']>;
 };
 
+
 export type QueryTransferSummaryArgs = {
   assetName: Scalars['String'];
   days?: InputMaybe<Scalars['Int']>;
@@ -2603,7 +2574,6 @@ export type SearchResult = {
   bakers: BakerConnection;
   blocks: BlockConnection;
   contracts: ContractConnection;
-  modules: ModuleReferenceEventConnection;
   nodeStatuses: NodeStatusConnection;
   tokens: TokenConnection;
   transactions: TransactionConnection;
@@ -2673,7 +2643,6 @@ export type SerializationFailure = {
 
 export type SpecialEvent = BakingRewardsSpecialEvent | BlockAccrueRewardSpecialEvent | BlockRewardsSpecialEvent | FinalizationRewardsSpecialEvent | MintSpecialEvent | PaydayAccountRewardSpecialEvent | PaydayFoundationRewardSpecialEvent | PaydayPoolRewardSpecialEvent | ValidatorPrimedForSuspension | ValidatorSuspended;
 
-
 export type SpecialEventConnection = {
   __typename?: 'SpecialEventConnection';
   /** A list of edges. */
@@ -2730,40 +2699,7 @@ export type StableCoinOverview = {
   totalMarketcap: Scalars['Float'];
   valuesTransferred: Scalars['Float'];
   valuesTransferredLast24H: Scalars['Float'];
-}
-
-export type SpecialEventConnection = {
-  __typename?: 'SpecialEventConnection';
-  /** A list of edges. */
-  edges: Array<SpecialEventEdge>;
-  /** A list of nodes. */
-  nodes: Array<SpecialEvent>;
-  /** Information to aid in pagination. */
-  pageInfo: PageInfo;
 };
-
-/** An edge in a connection. */
-export type SpecialEventEdge = {
-  __typename?: 'SpecialEventEdge';
-  /** A cursor for use in pagination */
-  cursor: Scalars['String'];
-  /** The item at the end of the edge */
-  node: SpecialEvent;
-
-};
-
-export enum SpecialEventTypeFilter {
-  BakingRewards = 'BAKING_REWARDS',
-  BlockAccrueReward = 'BLOCK_ACCRUE_REWARD',
-  BlockRewards = 'BLOCK_REWARDS',
-  FinalizationRewards = 'FINALIZATION_REWARDS',
-  Mint = 'MINT',
-  PaydayAccountReward = 'PAYDAY_ACCOUNT_REWARD',
-  PaydayFoundationReward = 'PAYDAY_FOUNDATION_REWARD',
-  PaydayPoolReward = 'PAYDAY_POOL_REWARD',
-  ValidatorPrimedForSuspension = 'VALIDATOR_PRIMED_FOR_SUSPENSION',
-  ValidatorSuspended = 'VALIDATOR_SUSPENDED'
-}
 
 export type StakeOverMaximumThresholdForPool = {
   __typename?: 'StakeOverMaximumThresholdForPool';
