@@ -373,7 +373,7 @@ pub struct Cis2Event {
     pub transaction_index:  TransactionIndex,
     pub index_per_token:    i64,
     #[graphql(skip)]
-    pub event:              Option<sqlx::types::Json<CisEvent>>,
+    pub event:              sqlx::types::Json<CisEvent>,
 }
 
 #[ComplexObject]
@@ -384,9 +384,7 @@ impl Cis2Event {
         )
     }
 
-    async fn event(&self) -> Option<&CisEvent> {
-        self.event.as_ref().map(|json_event| &json_event.0)
-    }
+    async fn event(&self) -> &CisEvent { &self.event.as_ref() }
 }
 
 /// A segment of a collection.

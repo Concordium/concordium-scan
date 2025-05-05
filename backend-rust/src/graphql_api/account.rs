@@ -4,9 +4,9 @@ use super::{
 };
 use crate::{
     address::AccountAddress,
-    connection::{ConnectionBounds, Reversed},
+    connection::{ConnectionBounds, DescendingI64, Reversed},
     graphql_api::{block::Block, token::AccountTokenInterim, Transaction},
-    scalar_types::{AccountIndex, Amount, BlockHeight, DateTime, TransactionIndex},
+    scalar_types::{AccountIndex, Amount, BlockHeight, DateTime, Long, TransactionIndex},
     transaction_event::{
         delegation::{BakerDelegationTarget, DelegationTarget, PassiveDelegationTarget},
         Event,
@@ -24,7 +24,10 @@ use async_graphql::{
 };
 use futures::TryStreamExt;
 use sqlx::PgPool;
-use std::cmp::{max, min, Ordering};
+use std::{
+    cmp::{max, min, Ordering},
+    str::FromStr,
+};
 
 #[derive(Default)]
 pub(crate) struct QueryAccounts;
@@ -73,7 +76,6 @@ impl QueryAccounts {
                 before,
                 config.account_connection_limit,
             )?;
-
             let mut accounts = sqlx::query_as!(
                 Account,
                 r"SELECT * FROM (
@@ -134,7 +136,7 @@ impl QueryAccounts {
                     -- The first condition is true if we order by that field.
                     -- Otherwise false, which makes the CASE null, which means
                     -- it will not affect the ordering at all.
-                    -- The `AccountOrderField::Age` is not mention here because its 
+                    -- The `AccountOrderField::Age` is not mention here because its
                     -- sorting instruction is equivallent and would be repeated in the next step.
                     (CASE WHEN $4 AND $8     THEN amount          END) DESC,
                     (CASE WHEN $4 AND NOT $8 THEN amount          END) ASC,
@@ -143,8 +145,8 @@ impl QueryAccounts {
                     (CASE WHEN $6 AND $8     THEN delegated_stake END) DESC,
                     (CASE WHEN $6 AND NOT $8 THEN delegated_stake END) ASC,
                     -- Since after the ordring above, there may exists elements with the same field value,
-                    -- apply a second ordering by the unique `account_id` (index) in addition. 
-                    -- This ensures a strict ordering of elements as the `AccountFieldDescCursor` defines. 
+                    -- apply a second ordering by the unique `account_id` (index) in addition.
+                    -- This ensures a strict ordering of elements as the `AccountFieldDescCursor` defines.
                     (CASE WHEN $8     THEN index           END) DESC,
                     (CASE WHEN NOT $8 THEN index           END) ASC
                 LIMIT $9
@@ -550,7 +552,7 @@ struct AccountStatementEntry {
 impl AccountStatementEntry {
     async fn id(&self) -> types::ID { types::ID::from(self.id) }
 
-    async fn amount(&self) -> ApiResult<Amount> { Ok(self.amount.try_into()?) }
+    async fn amount(&self) -> ApiResult<Long> { Ok(Long(self.amount)) }
 
     async fn account_balance(&self) -> ApiResult<Amount> { Ok(self.account_balance.try_into()?) }
 
@@ -662,6 +664,7 @@ impl connection::CursorType for AccountFieldDescCursor {
         let (before, after) = s.split_once(':').ok_or(DecodeAccountFieldCursor::NoSemicolon)?;
         let field: i64 = before.parse().map_err(DecodeAccountFieldCursor::ParseField)?;
         let account_id: i64 = after.parse().map_err(DecodeAccountFieldCursor::ParseAccountId)?;
+
         Ok(Self {
             field,
             account_id,
@@ -758,14 +761,21 @@ impl Account {
         Ok(account)
     }
 
-    pub async fn query_by_address(pool: &PgPool, address: String) -> ApiResult<Option<Self>> {
+    pub async fn query_by_address(
+        pool: &PgPool,
+        account_address: String,
+    ) -> ApiResult<Option<Self>> {
+        let account_address =
+            concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(&account_address)
+                .map_err(|_| ApiError::NotFound)?;
+        let canonical_address = account_address.get_canonical_address();
         let account = sqlx::query_as!(
             Account,
             "SELECT index, transaction_index, address, amount, delegated_stake, num_txs, \
              delegated_restake_earnings, delegated_target_baker_id
             FROM accounts
-            WHERE address = $1",
-            address
+            WHERE canonical_address = $1::bytea",
+            canonical_address.0.as_slice()
         )
         .fetch_optional(pool)
         .await?;
@@ -957,7 +967,7 @@ impl Account {
     ) -> ApiResult<connection::Connection<String, AccountTransactionRelation>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
-        let query = ConnectionQuery::<i64>::new(
+        let query = ConnectionQuery::<DescendingI64>::new(
             first,
             after,
             last,
@@ -982,78 +992,66 @@ impl Account {
                     success,
                     events as "events: sqlx::types::Json<Vec<Event>>",
                     reject as "reject: sqlx::types::Json<TransactionRejectReason>"
-                FROM transactions
+                FROM transactions t
                 WHERE
-                    $1 IN (
-                        SELECT account_index
+                    index IN (
+                        SELECT transaction_index
                         FROM affected_accounts
-                        WHERE transaction_index = index
+                        WHERE account_index = $1
                     )
-                    AND $2 < index
-                    AND index < $3
+                    AND index > $3
+                    AND index < $2
                 ORDER BY
-                    (CASE WHEN $4 THEN index END) DESC,
-                    (CASE WHEN NOT $4 THEN index END) ASC
+                    (CASE WHEN $4 THEN index END) ASC,
+                    (CASE WHEN NOT $4 THEN index END) DESC
                 LIMIT $5
-            ) ORDER BY index ASC
+            ) ORDER BY index DESC
             "#,
             self.index,
-            query.from,
-            query.to,
+            i64::from(query.from),
+            i64::from(query.to),
             query.is_last,
             query.limit,
         )
         .fetch(pool);
 
-        let has_previous_page = sqlx::query_scalar!(
-            "SELECT true
-            FROM transactions
-            WHERE
-                $1 IN (
-                    SELECT account_index
-                    FROM affected_accounts
-                    WHERE transaction_index = index
-                )
-                AND index <= $2
-            LIMIT 1",
-            self.index,
-            query.from,
-        )
-        .fetch_optional(pool)
-        .await?
-        .flatten()
-        .unwrap_or_default();
+        let mut connection = connection::Connection::new(false, false);
+        let mut min_index = None;
+        let mut max_index = None;
+        while let Some(transaction) = txs.try_next().await? {
+            min_index = Some(match min_index {
+                None => transaction.index,
+                Some(current_min) => min(current_min, transaction.index),
+            });
 
-        let has_next_page = sqlx::query_scalar!(
-            "SELECT true
-            FROM transactions
-            WHERE
-                $1 IN (
-                    SELECT account_index
-                    FROM affected_accounts
-                    WHERE transaction_index = index
-                )
-                AND $2 <= index
-            LIMIT 1",
-            self.index,
-            query.to,
-        )
-        .fetch_optional(pool)
-        .await?
-        .flatten()
-        .unwrap_or_default();
-
-        let mut connection = connection::Connection::new(has_previous_page, has_next_page);
-
-        while let Some(tx) = txs.try_next().await? {
+            max_index = Some(match max_index {
+                None => transaction.index,
+                Some(current_max) => max(current_max, transaction.index),
+            });
             connection.edges.push(connection::Edge::new(
-                tx.index.to_string(),
+                transaction.index.to_string(),
                 AccountTransactionRelation {
-                    transaction: tx,
+                    transaction,
                 },
             ));
         }
+        if let (Some(page_min_id), Some(page_max_id)) = (min_index, max_index) {
+            let result = sqlx::query!(
+                r#"
+                    SELECT MIN(transaction_index) AS min_index, MAX(transaction_index) AS max_index
+                    FROM affected_accounts
+                    WHERE account_index = $1
+                "#,
+                &self.index
+            )
+            .fetch_one(pool)
+            .await?;
 
+            connection.has_previous_page =
+                result.max_index.map_or(false, |db_max| db_max > page_max_id);
+            connection.has_next_page =
+                result.min_index.map_or(false, |db_min| db_min < page_min_id);
+        }
         Ok(connection)
     }
 
@@ -1069,14 +1067,13 @@ impl Account {
     ) -> ApiResult<connection::Connection<String, AccountStatementEntry>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
-        let query = ConnectionQuery::<i64>::new(
+        let query = ConnectionQuery::<DescendingI64>::new(
             first,
             after,
             last,
             before,
             config.account_statements_connection_limit,
         )?;
-
         let mut account_statements = sqlx::query_as!(
             AccountStatementEntry,
             r#"
@@ -1098,23 +1095,24 @@ impl Account {
                     blocks.height = account_statements.block_height
                 WHERE
                     account_index = $5
-                    AND id > $1
-                    AND id < $2
+                    AND id > $2
+                    AND id < $1
                 ORDER BY
-                    (CASE WHEN $4 THEN id END) DESC,
-                    (CASE WHEN NOT $4 THEN id END) ASC
+                    (CASE WHEN $4 THEN id END) ASC,
+                    (CASE WHEN NOT $4 THEN id END) DESC
                 LIMIT $3
             )
             ORDER BY
-                id ASC
+                id DESC
             "#,
-            query.from,
-            query.to,
+            i64::from(query.from),
+            i64::from(query.to),
             query.limit,
             query.is_last,
             &self.index
         )
         .fetch(pool);
+
         let mut connection = connection::Connection::new(false, false);
         let mut min_index = None;
         let mut max_index = None;
@@ -1144,10 +1142,9 @@ impl Account {
             .await?;
 
             connection.has_previous_page =
-                result.min_id.map_or(false, |db_min| db_min < page_min_id);
-            connection.has_next_page = result.max_id.map_or(false, |db_max| db_max > page_max_id);
+                result.max_id.map_or(false, |db_max| db_max > page_max_id);
+            connection.has_next_page = result.min_id.map_or(false, |db_min| db_min < page_min_id);
         }
-
         Ok(connection)
     }
 
@@ -1163,7 +1160,7 @@ impl Account {
     ) -> ApiResult<connection::Connection<String, AccountReward>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
-        let query = ConnectionQuery::<i64>::new(
+        let query = ConnectionQuery::<DescendingI64>::new(
             first,
             after,
             last,
@@ -1202,15 +1199,15 @@ impl Account {
                     AND id > $1
                     AND id < $2
                 ORDER BY
-                    CASE WHEN $4 THEN id END DESC,
-                    CASE WHEN NOT $4 THEN id END ASC
+                    (CASE WHEN $4 THEN id END) ASC,
+                    (CASE WHEN NOT $4 THEN id END) DESC
                 LIMIT $3
             )
             ORDER BY
-                id ASC
+                id DESC
             "#,
-            query.from,
-            query.to,
+            i64::from(query.from),
+            i64::from(query.to),
             query.limit,
             query.is_last,
             &self.index
@@ -1252,8 +1249,8 @@ impl Account {
             .await?;
 
             connection.has_previous_page =
-                result.min_id.map_or(false, |db_min| db_min < page_min_id);
-            connection.has_next_page = result.max_id.map_or(false, |db_max| db_max > page_max_id);
+                result.max_id.map_or(false, |db_max| db_max > page_max_id);
+            connection.has_next_page = result.min_id.map_or(false, |db_min| db_min < page_min_id);
         }
         Ok(connection)
     }

@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT MAX(index) as max_index, MIN(index) as min_index\n                    FROM tokens\n                    WHERE\n                        starts_with(token_address, $1)\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "max_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "min_index",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "021e50721e9db42250076b47c100ecd44f1e7ddec6016bc62352fc53ee0ee9b3"
+}

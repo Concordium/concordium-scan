@@ -38,12 +38,12 @@
 
 <script lang="ts" setup>
 import type { PaginationTarget } from '~/composables/usePagination'
-import type { PageInfo, DelegationSummary } from '~/types/generated'
+import type { PageInfo, PassiveDelegationSummary } from '~/types/generated'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 import Amount from '~/components/atoms/Amount.vue'
 
 type Props = {
-	delegators: DelegationSummary[]
+	delegators: PassiveDelegationSummary[]
 	pageInfo: PageInfo
 	totalCount: number
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void

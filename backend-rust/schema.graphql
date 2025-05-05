@@ -216,7 +216,7 @@ type AccountStatementEntry {
 	timestamp: DateTime!
 	entryType: AccountStatementEntryType!
 	id: ID!
-	amount: UnsignedLong!
+	amount: Long!
 	accountBalance: UnsignedLong!
 	reference: BlockOrTransaction!
 }
@@ -334,6 +334,14 @@ type AccountsCollectionSegment {
 	"A flattened list of the items."
 	items: [AccountToken!]!
 	totalCount: Int!
+}
+
+type AccountsMetrics {
+	"Total number of accounts created (all time)."
+	lastCumulativeAccountsCreated: Int!
+	"Total number of accounts created in requested period."
+	accountsCreated: Int!
+	buckets: AccountMetricsBuckets!
 }
 
 type AccountsUpdatedSubscriptionItem {
@@ -857,7 +865,7 @@ type Cis2Event {
 	transactionIndex: Int!
 	indexPerToken: Int!
 	transaction: Transaction!
-	event: CisEvent
+	event: CisEvent!
 }
 
 type CisBurnEvent {
@@ -1287,7 +1295,6 @@ type HoldingResponse {
 	percentage: Float!
 }
 
-
 type ImportState {
 	epochDuration: TimeSpan!
 }
@@ -1519,11 +1526,29 @@ type ModuleReferenceEvent {
 	sender: AccountAddress!
 	blockHeight: Int!
 	transactionHash: String!
+	transactionIndex: Int!
 	blockSlotTime: DateTime!
 	displaySchema: String
 	moduleReferenceRejectEvents(skip: Int, take: Int): ModuleReferenceRejectEventsCollectionSegment!
 	moduleReferenceContractLinkEvents(skip: Int, take: Int): ModuleReferenceContractLinkEventsCollectionSegment!
 	linkedContracts(skip: Int, take: Int): LinkedContractsCollectionSegment!
+}
+
+type ModuleReferenceEventConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [ModuleReferenceEventEdge!]!
+	"A list of nodes."
+	nodes: [ModuleReferenceEvent!]!
+}
+
+"An edge in a connection."
+type ModuleReferenceEventEdge {
+	"The item at the end of the edge"
+	node: ModuleReferenceEvent!
+	"A cursor for use in pagination"
+	cursor: String!
 }
 
 type ModuleReferenceRejectEvent {
@@ -2020,7 +2045,9 @@ type Query {
 		"Returns the elements in the list that come before the specified cursor."
 		before: String
 	): TokenConnection!
-	accountsMetrics(period: MetricsPeriod!): AccountMetrics!
+
+	accountsMetrics(period: MetricsPeriod!): AccountsMetrics!
+  
 	"""
 	Fetches baker metrics for the specified period.
 	
@@ -2144,6 +2171,16 @@ type SearchResult {
 		"Returns the elements in the list that come before the specified cursor."
 		before: String
 	): ContractConnection!
+	modules(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): ModuleReferenceEventConnection!
 	blocks(
 		"Returns the first _n_ elements from the list."
 		first: Int,
@@ -2265,6 +2302,7 @@ type StableCoinOverview {
 	noOfTxnLast24H: Int!
 	valuesTransferredLast24H: Float!
 }
+
 
 type StakeOverMaximumThresholdForPool {
 	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
@@ -2458,6 +2496,7 @@ type TransactionFeeDistributionChainUpdatePayload {
 	gasAccount: Decimal!
 }
 
+
 type TransactionMResponse {
 	from: String!
 	to: String!
@@ -2467,6 +2506,7 @@ type TransactionMResponse {
 	value: Float!
 	transactionHash: String!
 }
+
 
 type TransactionMetrics {
 	"Total number of transactions (all time)."
@@ -2507,10 +2547,12 @@ type Transfer {
 	amount: Float!
 }
 
+
 type TransferMemo {
 	rawHex: String!
 	decoded: DecodedText!
 }
+
 
 type TransferSummary {
 	dateTime: DateTime!
@@ -2523,6 +2565,7 @@ type TransferSummaryResponse {
 	totalTxnCount: Int!
 	totalValue: Float!
 }
+
 
 type Transferred {
 	amount: UnsignedLong!

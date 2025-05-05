@@ -2,7 +2,46 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.1.51] - 2025-04-30
+
+### Changed
+
+- Rename `AccountMetrics` to `AccountsMetrics` for backwards compatibility with the old dotnet backend.
+- `Token::token_events` returns the `Cis2Token` event directly now instead of wrapping it into an option.
+
+## [0.1.50] - 2025-04-28
+
+Modifying search key on the following tables to all be using `text_pattern_ops` because it is faster when using prefix searches only
+- `accounts`
+- `blocks`
+- `tokens`
+
+## [0.1.49] - 2025-04-28
+
+- Bump lock file to reflect new SDK version
+
+## [0.1.48] - 2025-04-28
+
+### Added
+
+- Add `SearchResult::node_statuses`.
+- Add `SearchResult::tokens`.
+- Add `SearchResult::modules`.
+
+### Fixed
+
+- Optimise `Account::transactions` performance
+- Fix potential issue on `accountMetrics` which occurred when a blocks containing account creation occurred on the exact same time as the borders of the buckets slots
+- Fix query performance issues on `accountMetrics` when dataset becomes too large 
+- Fix account statements performance issues where conditions was being used without indexes
+- Fix account statements where when querying an address using the complete address and not the canonical address
+- Fix account statements using DESC ordering per default instead of ASC
+- Fix account rewards using DESC ordering per default instead of ASC
+- Fix account transactions using DESC ordering per default instead of ASC
+- Fix account transaction altering index to be account index first
+- Fix account transactions queries to be using WHERE instead of join
+- Fix baker transactions pagination
+- Fix baker delegation pagination to be sorted by stake as primary instead of using account index.
 
 ### Changed
 

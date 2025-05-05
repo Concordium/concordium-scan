@@ -252,6 +252,14 @@ pub enum SchemaVersion {
     ReindexCredentialDeployment,
     #[display("0028:Reindex reward metrics, using time as leading column")]
     ReindexRewardMetrics,
+    #[display("0029:Index account transactions")]
+    IndexAccountTransactions,
+    #[display("0030:Reindex account statement entry type")]
+    ReindexAccountAccountStatementEntryType,
+    #[display("0031:Reindex affected accounts")]
+    ReindexAffectedAccounts,
+    #[display("0032:Reindex ginhash")]
+    ReindexGinHash,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -259,7 +267,7 @@ impl SchemaVersion {
     /// have been introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::BakerPeriodApyViews;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::ReindexRewardMetrics;
+    const LATEST: SchemaVersion = SchemaVersion::ReindexGinHash;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -307,6 +315,10 @@ impl SchemaVersion {
             SchemaVersion::UpdateGenesisValidatorInfo => false,
             SchemaVersion::ReindexCredentialDeployment => false,
             SchemaVersion::ReindexRewardMetrics => false,
+            SchemaVersion::IndexAccountTransactions => false,
+            SchemaVersion::ReindexAccountAccountStatementEntryType => false,
+            SchemaVersion::ReindexAffectedAccounts => false,
+            SchemaVersion::ReindexGinHash => false,
         }
     }
 
@@ -345,6 +357,10 @@ impl SchemaVersion {
             SchemaVersion::UpdateGenesisValidatorInfo => false,
             SchemaVersion::ReindexCredentialDeployment => false,
             SchemaVersion::ReindexRewardMetrics => false,
+            SchemaVersion::IndexAccountTransactions => false,
+            SchemaVersion::ReindexAccountAccountStatementEntryType => false,
+            SchemaVersion::ReindexAffectedAccounts => false,
+            SchemaVersion::ReindexGinHash => false,
         }
     }
 
@@ -518,7 +534,37 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::ReindexRewardMetrics
             }
-            SchemaVersion::ReindexRewardMetrics => unimplemented!(
+            SchemaVersion::ReindexRewardMetrics => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0029_index_account_transactions.sql"
+                    )))
+                    .await?;
+                SchemaVersion::IndexAccountTransactions
+            }
+            SchemaVersion::IndexAccountTransactions => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0030_reindex_account_statement_entry_type_idx.sql"
+                    )))
+                    .await?;
+                SchemaVersion::ReindexAccountAccountStatementEntryType
+            }
+            SchemaVersion::ReindexAccountAccountStatementEntryType => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0031_reindex_affected_accounts.sql"
+                    )))
+                    .await?;
+                SchemaVersion::ReindexAffectedAccounts
+            }
+            SchemaVersion::ReindexAffectedAccounts => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!("./migrations/m0032_reindex_gin_hash.sql")))
+                    .await?;
+                SchemaVersion::ReindexGinHash
+            }
+            SchemaVersion::ReindexGinHash => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
