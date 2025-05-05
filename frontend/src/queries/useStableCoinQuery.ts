@@ -7,7 +7,7 @@ export type Stablecoin = {
 	name?: string
 	symbol?: string
 	valueInDoller?: number
-	totalUniqueHolder?: number
+	totalUniqueHolders?: number
 	supplyPercentage?: string
 	percentage?: string
 	address?: string

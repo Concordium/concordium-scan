@@ -54,12 +54,6 @@ const hoverColors = [
 	'#FFA3D7', // Soft Pink
 ]
 
-interface DailySummaryItem {
-	date: string
-	transactionCount: number
-	totalAmount: string
-}
-
 // Define Props
 const props = defineProps<{
 	transferSummary?: StableCoinTokenTransferResponse
@@ -70,7 +64,7 @@ const props = defineProps<{
 const chartLabels = computed(
 	() =>
 		props.transferSummary?.transferSummary?.dailySummary?.map(
-			({ dateTime }: DailySummaryItem) => {
+			({ dateTime }) => {
 				const date = new Date(dateTime)
 				const year = date.getFullYear()
 				const month = String(date.getMonth() + 1).padStart(2, '0')

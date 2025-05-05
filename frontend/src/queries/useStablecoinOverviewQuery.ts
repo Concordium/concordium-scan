@@ -5,7 +5,7 @@ type StablecoinOverviewResponse = {
 		totalMarketcap?: number
 		noOfTxnLast24H?: number
 		numberOfUniqueHolders?: number
-		valuesTransferdLast24H?: number
+		valuesTransferredLast24H?: number
 	}
 }
 

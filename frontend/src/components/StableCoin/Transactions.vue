@@ -29,7 +29,7 @@
 								:key="index"
 							>
 								<TableTd>
-									<TransactionLink :hash="coin.transactionHash" />
+									<TransactionLink :hash="coin.transactionHash ?? ''" />
 								</TableTd>
 								<TableTd>
 									{{ coin.dateTime ? timeAgo(coin.dateTime) : '-' }}

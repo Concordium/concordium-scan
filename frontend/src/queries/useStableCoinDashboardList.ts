@@ -4,6 +4,9 @@ export type Holder = {
 	address?: string
 	holdings?: Holding[]
 	symbol?: string
+	assetName?: string
+	percentage?: number
+	quantity?: number
 }
 
 export type Holding = {
@@ -29,7 +32,7 @@ export type StableCoin = {
 	totalUniqueHolder?: number
 	totalSupply?: number
 	circulatingSupply?: number
-	holding?: Holder[]
+	holdings?: Holder[]
 	transactions?: Transaction[]
 }
 
@@ -82,9 +85,10 @@ const STABLECOIN_DASHBOARD_LIST_QUERY = gql<StableCoinDashboardListResponse>`
 
 export const useStableCoinDashboardList = (
 	symbol: string,
-	limit: number,
-	lastNTransactions: number
+	limit: Ref<number>,
+	lastNTransactions: Ref<number>
 ) => {
+	console.log(symbol, limit, lastNTransactions)
 	const { data, executeQuery, fetching } = useQuery({
 		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: STABLECOIN_DASHBOARD_LIST_QUERY,
