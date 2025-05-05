@@ -114,14 +114,6 @@ input AccountFilterInput {
 	isDelegator: Boolean!
 }
 
-type AccountMetrics {
-	"Total number of accounts created (all time)."
-	lastCumulativeAccountsCreated: Int!
-	"Total number of accounts created in requested period."
-	accountsCreated: Int!
-	buckets: AccountMetricsBuckets!
-}
-
 type AccountMetricsBuckets {
 	"The width (time interval) of each bucket."
 	bucketWidth: TimeSpan!
@@ -1295,6 +1287,7 @@ type HoldingResponse {
 	percentage: Float!
 }
 
+
 type ImportState {
 	epochDuration: TimeSpan!
 }
@@ -2045,9 +2038,7 @@ type Query {
 		"Returns the elements in the list that come before the specified cursor."
 		before: String
 	): TokenConnection!
-
 	accountsMetrics(period: MetricsPeriod!): AccountsMetrics!
-  
 	"""
 	Fetches baker metrics for the specified period.
 	
@@ -2303,7 +2294,6 @@ type StableCoinOverview {
 	valuesTransferredLast24H: Float!
 }
 
-
 type StakeOverMaximumThresholdForPool {
 	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
 }
@@ -2496,7 +2486,6 @@ type TransactionFeeDistributionChainUpdatePayload {
 	gasAccount: Decimal!
 }
 
-
 type TransactionMResponse {
 	from: String!
 	to: String!
@@ -2506,7 +2495,6 @@ type TransactionMResponse {
 	value: Float!
 	transactionHash: String!
 }
-
 
 type TransactionMetrics {
 	"Total number of transactions (all time)."
@@ -2547,12 +2535,10 @@ type Transfer {
 	amount: Float!
 }
 
-
 type TransferMemo {
 	rawHex: String!
 	decoded: DecodedText!
 }
-
 
 type TransferSummary {
 	dateTime: DateTime!
@@ -2565,7 +2551,6 @@ type TransferSummaryResponse {
 	totalTxnCount: Int!
 	totalValue: Float!
 }
-
 
 type Transferred {
 	amount: UnsignedLong!

@@ -12,17 +12,17 @@
 				<TransactionLink :hash="tokenEvent.transaction!.transactionHash" />
 			</TableTd>
 			<TableTd>
-				{{ tokenEvent.event?.__typename?.slice(3, -5) }}
+				{{ tokenEvent.event.__typename?.slice(3, -5) }}
 			</TableTd>
 			<TableTd>
 				<DetailsView
-					v-if="tokenEvent.event?.__typename === 'CisTokenMetadataEvent'"
+					v-if="tokenEvent.event.__typename === 'CisTokenMetadataEvent'"
 					:id="i"
 				>
 					<CisTokenMetadataEventDetails :event="tokenEvent.event" />
 				</DetailsView>
 				<DetailsView
-					v-if="tokenEvent.event?.__typename === 'CisBurnEvent'"
+					v-if="tokenEvent.event.__typename === 'CisBurnEvent'"
 					:id="i"
 				>
 					<CisBurnEventDetails
@@ -32,7 +32,7 @@
 					/>
 				</DetailsView>
 				<DetailsView
-					v-if="tokenEvent.event?.__typename === 'CisMintEvent'"
+					v-if="tokenEvent.event.__typename === 'CisMintEvent'"
 					:id="i"
 				>
 					<CisMintEventDetails
@@ -42,7 +42,7 @@
 					/>
 				</DetailsView>
 				<DetailsView
-					v-if="tokenEvent.event?.__typename === 'CisTransferEvent'"
+					v-if="tokenEvent.event.__typename === 'CisTransferEvent'"
 					:id="i"
 				>
 					<CisTransferEventDetails

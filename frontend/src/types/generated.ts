@@ -145,15 +145,6 @@ export type AccountFilterInput = {
   isDelegator: Scalars['Boolean'];
 };
 
-export type AccountMetrics = {
-  __typename?: 'AccountMetrics';
-  /** Total number of accounts created in requested period. */
-  accountsCreated: Scalars['Int'];
-  buckets: AccountMetricsBuckets;
-  /** Total number of accounts created (all time). */
-  lastCumulativeAccountsCreated: Scalars['Int'];
-};
-
 export type AccountMetricsBuckets = {
   __typename?: 'AccountMetricsBuckets';
   /** The width (time interval) of each bucket. */
@@ -254,7 +245,7 @@ export enum AccountSort {
 export type AccountStatementEntry = {
   __typename?: 'AccountStatementEntry';
   accountBalance: Scalars['UnsignedLong'];
-  amount: Scalars['UnsignedLong'];
+  amount: Scalars['Long'];
   entryType: AccountStatementEntryType;
   id: Scalars['ID'];
   reference: BlockOrTransaction;
@@ -384,6 +375,15 @@ export type AccountsCollectionSegment = {
   /** Information to aid in pagination. */
   pageInfo: CollectionSegmentInfo;
   totalCount: Scalars['Int'];
+};
+
+export type AccountsMetrics = {
+  __typename?: 'AccountsMetrics';
+  /** Total number of accounts created in requested period. */
+  accountsCreated: Scalars['Int'];
+  buckets: AccountMetricsBuckets;
+  /** Total number of accounts created (all time). */
+  lastCumulativeAccountsCreated: Scalars['Int'];
 };
 
 export type AccountsUpdatedSubscriptionItem = {
@@ -945,7 +945,7 @@ export type Cis2Event = {
   __typename?: 'Cis2Event';
   contractIndex: Scalars['Int'];
   contractSubIndex: Scalars['Int'];
-  event?: Maybe<CisEvent>;
+  event: CisEvent;
   indexPerToken: Scalars['Int'];
   tokenId: Scalars['String'];
   transaction: Transaction;
@@ -1737,6 +1737,7 @@ export type ModuleReferenceEvent = {
   moduleReferenceRejectEvents: ModuleReferenceRejectEventsCollectionSegment;
   sender: AccountAddress;
   transactionHash: Scalars['String'];
+  transactionIndex: Scalars['Int'];
 };
 
 
@@ -1755,6 +1756,25 @@ export type ModuleReferenceEventModuleReferenceContractLinkEventsArgs = {
 export type ModuleReferenceEventModuleReferenceRejectEventsArgs = {
   skip?: InputMaybe<Scalars['Int']>;
   take?: InputMaybe<Scalars['Int']>;
+};
+
+export type ModuleReferenceEventConnection = {
+  __typename?: 'ModuleReferenceEventConnection';
+  /** A list of edges. */
+  edges: Array<ModuleReferenceEventEdge>;
+  /** A list of nodes. */
+  nodes: Array<ModuleReferenceEvent>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type ModuleReferenceEventEdge = {
+  __typename?: 'ModuleReferenceEventEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: ModuleReferenceEvent;
 };
 
 export type ModuleReferenceRejectEvent = {
@@ -2213,7 +2233,7 @@ export type Query = {
   account: Account;
   accountByAddress: Account;
   accounts: AccountConnection;
-  accountsMetrics: AccountMetrics;
+  accountsMetrics: AccountsMetrics;
   baker: Baker;
   bakerByBakerId: Baker;
   /**
@@ -2248,7 +2268,6 @@ export type Query = {
   search: SearchResult;
   stablecoin?: Maybe<StableCoin>;
   stablecoinOverview: StableCoinOverview;
-  holdingResponse: HoldingResponse;
   stablecoins: Array<StableCoin>;
   stablecoinsBySupply: Array<StableCoin>;
   suspendedValidators: SuspendedValidators;
@@ -2574,6 +2593,7 @@ export type SearchResult = {
   bakers: BakerConnection;
   blocks: BlockConnection;
   contracts: ContractConnection;
+  modules: ModuleReferenceEventConnection;
   nodeStatuses: NodeStatusConnection;
   tokens: TokenConnection;
   transactions: TransactionConnection;
@@ -2605,6 +2625,14 @@ export type SearchResultBlocksArgs = {
 
 
 export type SearchResultContractsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type SearchResultModulesArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
