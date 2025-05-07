@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [1.7.15] - 2025-05-07
 ### Added
 
 - Implemented stable coin dashboard with the following sections: Overview, Supply, Holders
