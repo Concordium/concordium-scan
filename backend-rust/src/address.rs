@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::{graphql_api::ApiResult, scalar_types::UnsignedLong};
 use async_graphql::{ComplexObject, SimpleObject, Union};
 
@@ -18,6 +20,11 @@ impl From<String> for AccountAddress {
             as_string,
         }
     }
+}
+// TODO: will remove this when we will read from the db (this is for creating a
+// hashset of addresses to find unique as we are reading from json data)
+impl fmt::Display for AccountAddress {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{}", self.as_string) }
 }
 
 pub type ContractIndex = UnsignedLong; // TODO check format.

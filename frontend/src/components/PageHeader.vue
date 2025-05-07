@@ -1,6 +1,6 @@
 <template>
 	<header
-		class="xl:container xl:mx-auto max-w-screen flex items-center md:justify-between p-5 md:mb-20 gap-4"
+		class="xl:container xl:mx-auto max-w-screen flex items-center md:justify-between p-5 md:mb-5 gap-4"
 	>
 		<div class="flex align-middle items-center">
 			<NuxtLink to="/" class="font-bold">
