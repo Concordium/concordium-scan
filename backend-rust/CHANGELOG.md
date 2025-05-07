@@ -4,9 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+### Added
+ 
+- Balance statistics api: added the deprecated `TotalAmounUnlocked` parameter for backwards compatability with comments that it will be removed in a future release. `TotalAmountUnlocked` is now the preferred parameter for this api
+
+
 ### Changed
 
 - A dummy server for plt support and which new queries are now exposed at the backend (Will be removed later).
+
 
 ## [0.1.51] - 2025-04-30
 
