@@ -48,7 +48,8 @@ impl Service {
         State(state): State<Self>,
     ) -> ApiResult<String> {
         let amount = match params.field {
-            Balance::TotalAmount | Balance::TotalAmountUnlocked => {
+            // deprecated: please use 'totalAmountUnlocked' going forward over 'totalAmounUnlocked' as 'totalAmounUnlocked' is now deprecated and will be removed in a future release
+            Balance::TotalAmount | Balance::TotalAmountUnlocked | Balance::TotalAmounUnlocked => {
                 sqlx::query_scalar!("SELECT total_amount FROM blocks ORDER BY height DESC LIMIT 1")
                     .fetch_optional(&state.pool)
                     .await?
@@ -178,6 +179,7 @@ enum Balance {
     TotalAmount,
     TotalAmountCirculating,
     TotalAmountUnlocked,
+    TotalAmounUnlocked, // deprecated: please use 'totalAmountUnlocked' going forward over 'totalAmounUnlocked' as 'totalAmounUnlocked' is now deprecated and will be removed in a future release
 }
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
