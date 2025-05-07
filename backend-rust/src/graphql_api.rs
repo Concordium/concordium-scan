@@ -14,6 +14,7 @@ pub mod node_status;
 mod passive_delegation;
 mod reward_metrics;
 mod search_result;
+mod stable_coin;
 mod suspended_validators;
 mod token;
 mod transaction;
@@ -33,6 +34,7 @@ use async_graphql::{
 };
 use async_graphql_axum::GraphQLSubscription;
 use block::Block;
+
 use chrono::{Duration, TimeDelta, Utc};
 use concordium_rust_sdk::{
     base::contracts_common::schema::VersionedSchemaError, id::types as sdk_types,
@@ -163,6 +165,7 @@ pub struct Query(
     suspended_validators::QuerySuspendedValidators,
     baker::QueryBaker,
     block::QueryBlocks,
+    stable_coin::QueryStableCoins,
     transaction::QueryTransactions,
     account::QueryAccounts,
     module_reference_event::QueryModuleReferenceEvent,

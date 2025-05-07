@@ -39,6 +39,10 @@ export default defineNuxtConfig({
 			// Enable only for development.
 			// (env NUXT_PUBLIC_ENABLE_URQL_DEVTOOLS)
 			enableUrqlDevtools: false,
+
+			//Environment config for stable coin menu display
+			// (env NUXT_PUBLIC_ENABLE_PLT_FEATURES)
+			enablePltFeatures: false,
 		},
 	},
 	// Directory for finding the source files.

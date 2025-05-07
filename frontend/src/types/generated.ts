@@ -1443,6 +1443,14 @@ export type GasRewardsCpv2Update = {
   chainUpdate: Scalars['Decimal'];
 };
 
+export type HoldingResponse = {
+  __typename?: 'HoldingResponse';
+  address: Scalars['String'];
+  assetName: Scalars['String'];
+  percentage: Scalars['Float'];
+  quantity: Scalars['Float'];
+};
+
 export type ImportState = {
   __typename?: 'ImportState';
   epochDuration: Scalars['TimeSpan'];
@@ -1591,6 +1599,18 @@ export type KeyIndexAlreadyInUse = {
 
 export type LatestChainParameters = ChainParametersV1;
 
+export type LatestTransactionResponse = {
+  __typename?: 'LatestTransactionResponse';
+  amount: Scalars['Float'];
+  assetMetadata?: Maybe<Metadata>;
+  assetName: Scalars['String'];
+  dateTime: Scalars['DateTime'];
+  from: Scalars['String'];
+  to: Scalars['String'];
+  transactionHash: Scalars['String'];
+  value: Scalars['Float'];
+};
+
 export type Level1KeysChainUpdatePayload = {
   __typename?: 'Level1KeysChainUpdatePayload';
   /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
@@ -1615,6 +1635,11 @@ export type LinkedContractsCollectionSegment = {
   /** A flattened list of the items. */
   items: Array<LinkedContract>;
   totalCount: Scalars['Int'];
+};
+
+export type Metadata = {
+  __typename?: 'Metadata';
+  iconUrl: Scalars['String'];
 };
 
 export enum MetricsPeriod {
@@ -2230,6 +2255,7 @@ export type Query = {
   contracts: ContractConnection;
   importState: ImportState;
   latestChainParameters: LatestChainParameters;
+  latestTransactions?: Maybe<Array<LatestTransactionResponse>>;
   moduleReferenceEvent: ModuleReferenceEvent;
   nodeStatus?: Maybe<NodeStatus>;
   nodeStatuses: NodeStatusConnection;
@@ -2240,6 +2266,10 @@ export type Query = {
   rewardMetrics: RewardMetrics;
   rewardMetricsForAccount: RewardMetrics;
   search: SearchResult;
+  stablecoin?: Maybe<StableCoin>;
+  stablecoinOverview: StableCoinOverview;
+  stablecoins: Array<StableCoin>;
+  stablecoinsBySupply: Array<StableCoin>;
   suspendedValidators: SuspendedValidators;
   token: Token;
   tokens: TokenConnection;
@@ -2247,6 +2277,7 @@ export type Query = {
   transactionByTransactionHash: Transaction;
   transactionMetrics: TransactionMetrics;
   transactions: TransactionConnection;
+  transferSummary: TransferSummaryResponse;
   versions: Versions;
 };
 
@@ -2338,6 +2369,11 @@ export type QueryContractsArgs = {
 };
 
 
+export type QueryLatestTransactionsArgs = {
+  limit?: InputMaybe<Scalars['Int']>;
+};
+
+
 export type QueryModuleReferenceEventArgs = {
   moduleReference: Scalars['String'];
 };
@@ -2385,6 +2421,19 @@ export type QuerySearchArgs = {
 };
 
 
+export type QueryStablecoinArgs = {
+  lastNTransactions?: InputMaybe<Scalars['Int']>;
+  limit?: InputMaybe<Scalars['Int']>;
+  minQuantity?: InputMaybe<Scalars['Float']>;
+  symbol: Scalars['String'];
+};
+
+
+export type QueryStablecoinsBySupplyArgs = {
+  minSupply: Scalars['Int'];
+};
+
+
 export type QueryTokenArgs = {
   contractIndex: Scalars['UnsignedLong'];
   contractSubIndex: Scalars['UnsignedLong'];
@@ -2420,6 +2469,12 @@ export type QueryTransactionsArgs = {
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
   last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type QueryTransferSummaryArgs = {
+  assetName: Scalars['String'];
+  days?: InputMaybe<Scalars['Int']>;
 };
 
 /**
@@ -2647,6 +2702,32 @@ export enum SpecialEventTypeFilter {
   ValidatorPrimedForSuspension = 'VALIDATOR_PRIMED_FOR_SUSPENSION',
   ValidatorSuspended = 'VALIDATOR_SUSPENDED'
 }
+
+export type StableCoin = {
+  __typename?: 'StableCoin';
+  circulatingSupply: Scalars['Int'];
+  decimal: Scalars['Int'];
+  holdings?: Maybe<Array<HoldingResponse>>;
+  issuer: Scalars['String'];
+  metadata?: Maybe<Metadata>;
+  name: Scalars['String'];
+  symbol: Scalars['String'];
+  totalSupply: Scalars['Int'];
+  totalUniqueHolders?: Maybe<Scalars['Int']>;
+  transactions?: Maybe<Array<TransactionMResponse>>;
+  transfers?: Maybe<Array<Transfer>>;
+  valueInDollar: Scalars['Float'];
+};
+
+export type StableCoinOverview = {
+  __typename?: 'StableCoinOverview';
+  noOfTxn: Scalars['Int'];
+  noOfTxnLast24H: Scalars['Int'];
+  numberOfUniqueHolders: Scalars['Int'];
+  totalMarketcap: Scalars['Float'];
+  valuesTransferred: Scalars['Float'];
+  valuesTransferredLast24H: Scalars['Float'];
+};
 
 export type StakeOverMaximumThresholdForPool = {
   __typename?: 'StakeOverMaximumThresholdForPool';
@@ -2876,6 +2957,17 @@ export type TransactionFeeDistributionChainUpdatePayload = {
   gasAccount: Scalars['Decimal'];
 };
 
+export type TransactionMResponse = {
+  __typename?: 'TransactionMResponse';
+  amount: Scalars['Float'];
+  assetName: Scalars['String'];
+  dateTime: Scalars['DateTime'];
+  from: Scalars['String'];
+  to: Scalars['String'];
+  transactionHash: Scalars['String'];
+  value: Scalars['Float'];
+};
+
 export type TransactionMetrics = {
   __typename?: 'TransactionMetrics';
   buckets: TransactionMetricsBuckets;
@@ -2909,10 +3001,33 @@ export type TransactionResult = Rejected | Success;
 
 export type TransactionType = AccountTransaction | CredentialDeploymentTransaction | UpdateTransaction;
 
+export type Transfer = {
+  __typename?: 'Transfer';
+  amount: Scalars['Float'];
+  assetName: Scalars['String'];
+  dateTime: Scalars['DateTime'];
+  from: AccountAddress;
+  to: AccountAddress;
+};
+
 export type TransferMemo = {
   __typename?: 'TransferMemo';
   decoded: DecodedText;
   rawHex: Scalars['String'];
+};
+
+export type TransferSummary = {
+  __typename?: 'TransferSummary';
+  dateTime: Scalars['DateTime'];
+  totalAmount: Scalars['Float'];
+  transactionCount: Scalars['Int'];
+};
+
+export type TransferSummaryResponse = {
+  __typename?: 'TransferSummaryResponse';
+  dailySummary: Array<TransferSummary>;
+  totalTxnCount: Scalars['Int'];
+  totalValue: Scalars['Float'];
 };
 
 export type Transferred = {

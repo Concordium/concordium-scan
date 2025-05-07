@@ -2,7 +2,7 @@
 	<ClientOnly>
 		<div
 			v-if="breakpoint >= Breakpoint.LG"
-			class="grid mb-20 gap-4"
+			class="grid mb-10 gap-4"
 			:class="props.nonCarouselClasses"
 		>
 			<slot />
