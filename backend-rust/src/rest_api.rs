@@ -182,7 +182,7 @@ enum Balance {
     TotalAmountUnlocked,
     TotalAmounUnlocked, /* deprecated: please use 'totalAmountUnlocked' going forward over
                          * 'totalAmounUnlocked' as 'totalAmounUnlocked' is now deprecated and
-                         * will be removed in a future release */
+                         * should be removed when no more activity is registered for this field */
 }
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
