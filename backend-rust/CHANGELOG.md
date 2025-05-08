@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - Fix missing node `ema` and `emsd` values reported by the node collector backend.
 - Fix performance issue in `Query::transactionMetrics`.
+- Fix the rewards query to search correct from and to values - originally was incorrect was searching from the to value and to the from value.
 
 ### Added
 

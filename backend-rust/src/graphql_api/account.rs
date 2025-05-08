@@ -1196,8 +1196,8 @@ impl Account {
                         'TransactionFeeReward'
                     )
                     AND account_index = $5
-                    AND id > $1
-                    AND id < $2
+                    AND id > $2
+                    AND id < $1
                 ORDER BY
                     (CASE WHEN $4 THEN id END) ASC,
                     (CASE WHEN NOT $4 THEN id END) DESC
