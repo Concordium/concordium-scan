@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - Fix missing node `ema` and `emsd` values reported by the node collector backend.
+- Fix performance issue in `Query::transactionMetrics`.
 
 ### Added
 
