@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix missing node `ema` and `emsd` values reported by the node collector backend.
 
 ### Added
 

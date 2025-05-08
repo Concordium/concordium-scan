@@ -185,6 +185,7 @@ impl Service {
     }
 }
 
+#[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 #[derive(SimpleObject)]
@@ -207,22 +208,32 @@ pub struct ExternalNodeStatus {
     pub best_block_transaction_count: Option<u64>,
     pub best_block_transaction_energy_cost: Option<u64>,
     pub best_block_transactions_size: Option<u64>,
-    pub block_arrive_latency_ema: Option<f64>,
-    pub block_arrive_latency_emsd: Option<f64>,
-    pub block_arrive_period_ema: Option<f64>,
-    pub block_arrive_period_emsd: Option<f64>,
-    pub block_receive_latency_ema: Option<f64>,
-    pub block_receive_latency_emsd: Option<f64>,
-    pub block_receive_period_ema: Option<f64>,
-    pub block_receive_period_emsd: Option<f64>,
+    #[graphql(skip)]
+    pub block_arrive_latency_EMA: Option<f64>,
+    #[graphql(skip)]
+    pub block_arrive_latency_EMSD: Option<f64>,
+    #[graphql(skip)]
+    pub block_arrive_period_EMA: Option<f64>,
+    #[graphql(skip)]
+    pub block_arrive_period_EMSD: Option<f64>,
+    #[graphql(skip)]
+    pub block_receive_latency_EMA: Option<f64>,
+    #[graphql(skip)]
+    pub block_receive_latency_EMSD: Option<f64>,
+    #[graphql(skip)]
+    pub block_receive_period_EMA: Option<f64>,
+    #[graphql(skip)]
+    pub block_receive_period_EMSD: Option<f64>,
     pub blocks_received_count: Option<u64>,
     pub blocks_verified_count: Option<u64>,
     pub consensus_baker_id: Option<u64>,
     pub consensus_running: bool,
     pub finalization_committee_member: bool,
     pub finalization_count: Option<u64>,
-    pub finalization_period_ema: Option<f64>,
-    pub finalization_period_emsd: Option<f64>,
+    #[graphql(skip)]
+    pub finalization_period_EMA: Option<f64>,
+    #[graphql(skip)]
+    pub finalization_period_EMSD: Option<f64>,
     pub finalized_block: String,
     pub finalized_block_height: u64,
     pub finalized_block_parent: String,
@@ -236,8 +247,10 @@ pub struct ExternalNodeStatus {
     pub peer_type: String,
     #[graphql(skip)]
     pub peers_list: Vec<String>,
-    pub transactions_per_block_ema: Option<f64>,
-    pub transactions_per_block_emsd: Option<f64>,
+    #[graphql(skip)]
+    pub transactions_per_block_EMA: Option<f64>,
+    #[graphql(skip)]
+    pub transactions_per_block_EMSD: Option<f64>,
     pub uptime: u64,
 }
 
@@ -246,6 +259,30 @@ impl ExternalNodeStatus {
     async fn id(&self) -> types::ID { types::ID::from(&self.node_id) }
 
     async fn client_version(&self) -> &str { &self.client }
+
+    async fn block_arrive_latency_ema(&self) -> Option<f64> { self.block_arrive_latency_EMA }
+
+    async fn block_arrive_latency_emsd(&self) -> Option<f64> { self.block_arrive_latency_EMSD }
+
+    async fn block_arrive_period_ema(&self) -> Option<f64> { self.block_arrive_period_EMA }
+
+    async fn block_arrive_period_emsd(&self) -> Option<f64> { self.block_arrive_period_EMSD }
+
+    async fn block_receive_latency_ema(&self) -> Option<f64> { self.block_receive_latency_EMA }
+
+    async fn block_receive_latency_emsd(&self) -> Option<f64> { self.block_receive_latency_EMSD }
+
+    async fn block_receive_period_ema(&self) -> Option<f64> { self.block_receive_period_EMA }
+
+    async fn block_receive_period_emsd(&self) -> Option<f64> { self.block_receive_period_EMSD }
+
+    async fn finalization_period_ema(&self) -> Option<f64> { self.finalization_period_EMA }
+
+    async fn finalization_period_emsd(&self) -> Option<f64> { self.finalization_period_EMSD }
+
+    async fn transactions_per_block_ema(&self) -> Option<f64> { self.transactions_per_block_EMA }
+
+    async fn transactions_per_block_emsd(&self) -> Option<f64> { self.transactions_per_block_EMSD }
 }
 
 #[derive(SimpleObject, Clone)]
