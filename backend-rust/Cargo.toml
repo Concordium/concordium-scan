@@ -13,7 +13,7 @@ publish = false
 anyhow = "1"
 async-graphql = {version = "7.0", features = ["chrono", "tracing"] }
 async-graphql-axum = "7.0"
-axum = "0.7"
+axum = "0.8"
 ciborium = "0.2"
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4.5", features = ["derive", "env", "cargo"] }
@@ -34,8 +34,9 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 rust_decimal = "1.35"
 iso8601-duration = { version = "0.2", features = ["chrono"] }
 tokio-util = "0.7"
-prometheus-client = "0.22"
 tonic = { version = "0.10.2", features = ["tls-roots", "tls"]}
+prometheus-client = "0.23"
+tower = "0.5.2"
 tower-http = { version = "0.6", features = ["cors"] }
 bigdecimal = "0.4.7"
 regex = "1.10.4"

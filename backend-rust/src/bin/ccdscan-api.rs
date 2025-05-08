@@ -201,7 +201,7 @@ async fn main() -> anyhow::Result<()> {
             config.clone(),
             nodes_status_receiver,
         );
-        let rest_service = rest_api::Service::new(pool.clone(), config);
+        let rest_service = rest_api::Service::new(pool.clone(), config, &mut registry);
         let tcp_listener =
             TcpListener::bind(cli.listen).await.context("Parsing TCP listener address failed")?;
         let stop_signal = cancel_token.child_token();

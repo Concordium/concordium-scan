@@ -1,4 +1,5 @@
-use std::sync::Arc;
+//! Module containing the implementation of a service providing the public
+//! facing REST API for `ccdscan-api`.
 
 use crate::graphql_api::{AccountStatementEntryType, ApiServiceConfig};
 use axum::{
@@ -11,23 +12,41 @@ use axum::{
 use chrono::{DateTime, TimeDelta, Utc};
 use concordium_rust_sdk::{common::types::Amount, id::types::AccountAddress};
 use futures::TryStreamExt as _;
+use prometheus_client::registry::Registry;
 use reqwest::StatusCode;
 use sqlx::PgPool;
+use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 
-#[derive(Debug, Clone)]
+/// Service providing the router for the REST API.
+#[derive(Debug)]
 pub struct Service {
+    /// Layer adding monitoring for the routes.
+    monitor_layer: monitor::MonitorLayer,
+    /// State shared between handlers.
+    state:         RouterState,
+}
+
+/// State shared between handlers.
+#[derive(Debug, Clone)]
+struct RouterState {
+    /// Database connection pool.
     pool:   PgPool,
+    /// Configurations for the API.
     config: Arc<ApiServiceConfig>,
 }
 
+/// The maximum number days to cover in the exported account statements.
 const EXPORT_MAX_DAYS: i64 = 31;
 
 impl Service {
-    pub fn new(pool: PgPool, config: Arc<ApiServiceConfig>) -> Self {
+    pub fn new(pool: PgPool, config: Arc<ApiServiceConfig>, registry: &mut Registry) -> Self {
         Self {
-            pool,
-            config,
+            state:         RouterState {
+                pool,
+                config,
+            },
+            monitor_layer: monitor::MonitorLayer::new(registry.sub_registry_with_prefix("rest")),
         }
     }
 
@@ -40,12 +59,13 @@ impl Service {
             .route("/rest/balance-statistics/latest", get(Self::latest_balance_statistics))
             .route("/rest/export/statement", get(Self::export_account_statements))
             .layer(cors_layer)
-            .with_state(self)
+            .layer(self.monitor_layer)
+            .with_state(self.state)
     }
 
     async fn latest_balance_statistics(
         Query(params): Query<LatestBalanceStatistics>,
-        State(state): State<Self>,
+        State(state): State<RouterState>,
     ) -> ApiResult<String> {
         let amount = match params.field {
             // deprecated: please use 'totalAmountUnlocked' going forward over 'totalAmounUnlocked'
@@ -91,7 +111,7 @@ impl Service {
 
     async fn export_account_statements(
         Query(params): Query<ExportAccountStatement>,
-        State(state): State<Self>,
+        State(state): State<RouterState>,
     ) -> ApiResult<(AppendHeaders<[(HeaderName, String); 2]>, String)> {
         let to = params.to_time.unwrap_or_else(Utc::now);
         let from = params.from_time.unwrap_or_else(|| to - TimeDelta::days(EXPORT_MAX_DAYS));
@@ -217,5 +237,112 @@ impl IntoResponse for ApiError {
             ApiError::NotFound => StatusCode::NOT_FOUND,
         };
         (status, self.to_string()).into_response()
+    }
+}
+
+mod monitor {
+    use axum::http::{Request, Response};
+    use prometheus_client::{
+        encoding::EncodeLabelSet,
+        metrics::{family::Family, histogram},
+        registry::Registry,
+    };
+    use std::{future::Future, pin::Pin, task};
+
+    /// tower layer adding monitoring to a service.
+    #[derive(Debug, Clone)]
+    pub struct MonitorLayer {
+        /// Metric tracking the response status code and response duration.
+        requests: Family<QueryLabels, histogram::Histogram>,
+    }
+    impl MonitorLayer {
+        pub fn new(registry: &mut Registry) -> Self {
+            let requests: Family<QueryLabels, _> = Family::new_with_constructor(|| {
+                histogram::Histogram::new(histogram::exponential_buckets(0.010, 2.0, 10))
+            });
+            registry.register(
+                "request_duration_seconds",
+                "Duration of seconds for responding to requests for the separate REST API",
+                requests.clone(),
+            );
+            Self {
+                requests,
+            }
+        }
+    }
+
+    impl<S> tower::Layer<S> for MonitorLayer {
+        type Service = MonitorService<S>;
+
+        fn layer(&self, inner: S) -> Self::Service {
+            MonitorService {
+                inner,
+                metrics: self.clone(),
+            }
+        }
+    }
+
+    /// Service middleware tracking metrics.
+    #[derive(Debug, Clone)]
+    pub struct MonitorService<S> {
+        /// The inner service.
+        inner:   S,
+        /// The metrics being tracked.
+        metrics: MonitorLayer,
+    }
+
+    /// Type representing the Prometheus labels used for metrics related to
+    /// queries to the REST API.
+    #[derive(Debug, Clone, EncodeLabelSet, PartialEq, Eq, Hash)]
+    struct QueryLabels {
+        /// Path in the request.
+        path:   String,
+        /// Query parameters after the path in the request.
+        params: Option<String>,
+        /// The response status code.
+        status: Option<u16>,
+    }
+
+    impl<S, R, ResBody, F> tower::Service<Request<R>> for MonitorService<S>
+    where
+        S: tower::Service<Request<R>, Response = Response<ResBody>, Future = F>,
+        F: Future<Output = Result<S::Response, S::Error>> + 'static + Send,
+    {
+        type Error = S::Error;
+        type Future = Pin<Box<dyn Future<Output = Result<S::Response, S::Error>> + Send>>;
+        type Response = S::Response;
+
+        fn poll_ready(
+            &mut self,
+            cx: &mut task::Context<'_>,
+        ) -> task::Poll<Result<(), Self::Error>> {
+            self.inner.poll_ready(cx)
+        }
+
+        fn call(&mut self, req: Request<R>) -> Self::Future {
+            let start = tokio::time::Instant::now();
+            let uri = req.uri();
+            let endpoint = String::from(uri.path());
+            let params = uri.query().map(|q| q.to_owned());
+            let inner_fut = self.inner.call(req);
+            let requests = self.metrics.requests.clone();
+            Box::pin(async move {
+                let res = inner_fut.await;
+                let duration = start.elapsed();
+                let status = if let Ok(response) = &res {
+                    Some(u16::from(response.status()))
+                } else {
+                    None
+                };
+                requests
+                    .get_or_create(&QueryLabels {
+                        path: endpoint,
+                        params,
+                        status,
+                    })
+                    .observe(duration.as_secs_f64());
+                res
+            })
+        }
     }
 }
