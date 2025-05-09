@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT * FROM (\n                SELECT\n                    token_id,\n                    contract_index,\n                    contract_sub_index,\n                    balance AS raw_balance,\n                    account_index AS account_id,\n                    change_seq\n                FROM account_tokens\n                JOIN tokens\n                    ON tokens.index = account_tokens.token_index\n                WHERE account_tokens.balance != 0\n                    AND account_tokens.account_index = $5\n                    AND $2 < change_seq\n                    AND change_seq < $1\n                ORDER BY\n                    CASE WHEN NOT $4 THEN change_seq END DESC,\n                    CASE WHEN $4 THEN change_seq END ASC\n                LIMIT $3\n            ) ORDER BY change_seq DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "token_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "contract_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "contract_sub_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "raw_balance",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "account_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "change_seq",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Bool",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "94e0b0df1c151558b5615ea95144b97545635028748c91179a2ccca41c6676a6"
+}

@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Fix issue in `Account::tokens` showing the last page first and mismatching page information.
 - Fix edge case for `BakerPool::delegators` and `PassiveDelegation::delegators` when the outer sorting (delegated stake) are equal for the page bounds, the inner sorting (account index) got ignored.
 - Fix missing node `ema` and `emsd` values reported by the node collector backend.
 - Fix performance issue in `Query::transactionMetrics`.
