@@ -3190,9 +3190,27 @@ impl<'a> BakerPool<'a> {
                     delegated_stake as staked_amount
                 FROM accounts
                 WHERE delegated_target_baker_id = $7
-                    AND ((delegated_stake > $2 AND delegated_stake < $1)
-                    OR (delegated_stake = $2 AND index > $3)
-                    OR (delegated_stake = $1 AND index < $4))
+                    AND (
+                        (delegated_stake > $2
+                            AND delegated_stake < $1
+                        )
+                        -- When outer bounds are not equal, filter separate for each inner bound.
+                        OR (
+                            $1 != $2
+                            AND (
+                                -- Start inner bound for page.
+                                (delegated_stake = $1 AND index < $4)
+                                -- End inner bound for page.
+                                OR (delegated_stake = $2 AND index > $3)
+                            )
+                        )
+                        -- When outer bounds are equal, use one filter for both bounds.
+                        OR (
+                            $1 = $2
+                            AND delegated_stake = $1
+                            AND index < $4 AND index > $3
+                        )
+                    )
                 ORDER BY
                     (CASE WHEN $6 THEN delegated_stake END) ASC,
                     (CASE WHEN $6 THEN accounts.index END) ASC,

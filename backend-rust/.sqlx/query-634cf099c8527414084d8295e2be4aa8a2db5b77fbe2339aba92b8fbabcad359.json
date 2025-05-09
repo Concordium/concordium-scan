@@ -1,0 +1,45 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM (\n                SELECT\n                    index,\n                    address as account_address,\n                    delegated_restake_earnings as restake_earnings,\n                    delegated_stake as staked_amount\n                FROM accounts\n                WHERE\n                    -- Only delegators.\n                    -- This is only NULL for accounts which are not delegating.\n                    delegated_restake_earnings IS NOT NULL\n                    -- Target NULL represents the passive pool.\n                    AND delegated_target_baker_id IS NULL\n                    -- Filter according to after/before bounds.\n                    AND (\n                        (delegated_stake > $2\n                            AND delegated_stake < $1\n                        )\n                        -- When outer bounds are not equal, filter separate for each inner bound.\n                        OR (\n                            $1 != $2\n                            AND (\n                                -- Start inner bound for page.\n                                (delegated_stake = $1 AND index < $4)\n                                -- End inner bound for page.\n                                OR (delegated_stake = $2 AND index > $3)\n                            )\n                        )\n                        -- When outer bounds are equal, use one filter for both bounds.\n                        OR (\n                            $1 = $2\n                            AND delegated_stake = $1\n                            AND index < $4 AND index > $3\n                        )\n                    )\n                ORDER BY\n                    (CASE WHEN $6 THEN delegated_stake END) ASC,\n                    (CASE WHEN $6 THEN accounts.index END) ASC,\n                    (CASE WHEN NOT $6 THEN delegated_stake END) DESC,\n                    (CASE WHEN NOT $6 THEN accounts.index END) DESC\n                LIMIT $5\n            ) AS delegators\n            ORDER BY delegators.staked_amount DESC, delegators.index DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "account_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "restake_earnings",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "staked_amount",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "634cf099c8527414084d8295e2be4aa8a2db5b77fbe2339aba92b8fbabcad359"
+}
