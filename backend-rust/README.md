@@ -47,6 +47,26 @@ For full list of configuration options for the indexer service run:
 ccdscan-indexer --help
 ```
 
+The processing of blocks in the indexer is done in two stages. The `pre-process` stage (first stage) queries a batch of new finalized blockchain blocks from the node and 
+prepares the data to be inserted into the database in parallel. The size of the batch can be tweaked via the environmental variable:
+
+```
+--max-parallel-block-preprocessors <MAX_PARALLEL_BLOCK_PREPROCESSORS>
+Maximum number of blocks being preprocessed in parallel [env: CCDSCAN_INDEXER_CONFIG_MAX_PARALLEL_BLOCK_PREPROCESSORS=] [default: 8]
+```
+
+The larger the batch size and the more nodes the indexer has available to cycle through the faster the indexer catches up to the top of the chain (until we hit limits in the node being not able to response to all the requests from the indexer anymore or we hit limits not to be able to cycle faster anymore through the nodes). At some point, the nodes might get overloaded by the amount of requests from the indexer, and would return an error (e.g., `too many requests`). You can tweak the indexer via the environmental variables to avoid overloading the nodes:
+
+```
+--node-request-rate-limit <NODE_REQUEST_RATE_LIMIT>
+Enables rate limit on the number of requests send through each connection to the node. Provided as the number of requests per second [env: CCDSCAN_INDEXER_CONFIG_NODE_REQUEST_RATE_LIMIT=]
+--node-request-concurrency-limit <NODE_REQUEST_CONCURRENCY_LIMIT>
+Enables limit on the number of concurrent requests send through each connection to the node [env: CCDSCAN_INDEXER_CONFIG_NODE_REQUEST_CONCURRENCY_LIMIT=]
+```
+
+The `save` stage (second stage) stores processed blockchain block info sequentially in the database.
+For indexer efficiency, every data processing that can be done in parallel should be in the `pre-process` stage. The `save` stage sequentially processes each block and only includes processing that can not be done in parallel. Because of the `save` stage only one instance of the indexer may run at any one time, as data needs to be sequentially inserted into the database.
+
 ## Database schema setup and migrations
 
 To set up the database schema either from an empty database or migration from an older release of `ccdscan-indexer` run:
@@ -96,6 +116,8 @@ ccdscan-api --help
 Starting the GraphQL API Service above will provide you an interface
 (defaults to [127.0.0.1:8000](http://127.0.0.1:8000)) to execute GraphQL queries.
 
+Note: We temporarily added another UI playground at `http://localhost:8000/playground` since above graphiQL interface is broken at the moment [see](https://github.com/Concordium/concordium-scan/pull/703).
+
 An example is shown below:
 
 Query:
@@ -133,6 +155,46 @@ Variables:
 ```
 
 ![ExampleQuery](./ExampleQuery.png)
+
+### Small services included in the GraphQL API Service:
+
+#### Monitoring:
+
+When the GraphQL API service is run, it exposes a metric endpoint [metric endpoint](https://github.com/Concordium/concordium-scan/blob/main/backend-rust/src/router.rs):
+
+```
+http://localhost:8003/metrics
+```
+
+This endpoint is scraped by Prometheus, and the collected metrics are visualized in Grafana dashboards for internal monitoring.
+
+#### Rest API server:
+
+When the GraphQL API service is run, it exposes rest [API (legacy) endpoints](https://github.com/Concordium/concordium-scan/blob/main/backend-rust/src/rest_api.rs):
+
+These legacy api endpoints need to be maintained for backwards compatibility since several external partners scrap the total CCD supply in circulation from these endpoints.
+
+```
+http://localhost:8000/rest/balance-statistics/latest?field=totalamountunlocked&unit=ccd
+```
+
+```
+http://localhost:8000/rest/balance-statistics/latest?field=totalamountcirculating&unit=ccd
+```
+
+```
+http://localhost:8000/rest/balance-statistics/latest?field=totalamount&unit=ccd
+```
+
+The rest api also handles the exporting of account statements:
+
+```
+http://localhost:8000/rest/export/statement
+```
+
+#### Http client to the Node Collector Backend:
+
+When the GraphQL API service is run, it queries node infos in the [file] (https://github.com/Concordium/concordium-scan/blob/main/backend-rust/src/graphql_api/node_status.rs#L111) from the [node collector backend](https://github.com/Concordium/concordium-node/tree/main/collector-backend).
 
 ## Contributing
 
