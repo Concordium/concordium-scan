@@ -2603,15 +2603,16 @@ impl CurrentBaker {
 
         // Calculating the `leverage_bound_cap`
 
-        #[rustfmt::skip]
         // Transformation applied to the `leverage_bound_cap_for_pool` formula:
         //
+        // ```
         // `leverage_bound_cap_for_pool`
         // = (λ – 1) * Cₚ
         // = (leverage_bound_numerator / leverage_bound_denominator – 1) * Cₚ
         // = (leverage_bound_numerator / leverage_bound_denominator – (leverage_bound_denominator / leverage_bound_denominator)) * Cₚ
         // = (leverage_bound_numerator – leverage_bound_denominator) / leverage_bound_denominator) * Cₚ
         // = (leverage_bound_numerator – leverage_bound_denominator) * Cₚ / leverage_bound_denominator
+        // ```
         //
         // WHERE
         // λ is the leverage bound
@@ -2637,9 +2638,9 @@ impl CurrentBaker {
 
         // Calculating the `capital_bound_cap`
 
-        #[rustfmt::skip]
         // Transformation applied to the `capital_bound_cap_for_pool` formula:
         //
+        // ```
         // `capital_bound_cap_for_pool`
         // = floor( (κ * (T - Dₚ) - Cₚ) / (1 - K) )
         // = floor( (capital_bound/100_000 * (T - Dₚ) - Cₚ) / (1 - capital_bound/100_000) )
@@ -2650,6 +2651,7 @@ impl CurrentBaker {
         // = floor( ((capital_bound / 100_000 * (T - Dₚ) - Cₚ)  / (1 - capital_bound / 100_000)) * (100_000 / 100_000) )
         // = floor( (capital_bound / 100_000 * (T - Dₚ) - Cₚ) * 100_000 / (1 - capital_bound / 100_000) * 100_000) )
         // = floor( (capital_bound * (T - Dₚ) - 100_000 * Cₚ) / (100_000 - capital_bound) )
+        // ```
 
         // WHERE
         // κ is the capital bound

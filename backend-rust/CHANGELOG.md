@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file.
 
 - Balance statistics api: added the deprecated `TotalAmounUnlocked` parameter for backwards compatability with comments that it will be removed in a future release. `TotalAmountUnlocked` is now the preferred parameter for this api.
 - Add `/playground` endpoint for `ccdscan-api` for access to GraphQL Playground IDE.
-
+- Add monitoring metric `api_rest_request_duration_seconds` tracking response status code and response duration time for requests for the public REST API.
 
 ### Changed
 
