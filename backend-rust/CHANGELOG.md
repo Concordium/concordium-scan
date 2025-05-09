@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Removed
+
+- Remove pool related options from `ccdscan-indexer`, that is `--min-connections` (env `CCDSCAN_INDEXER_DATABASE_MIN_CONNECTIONS`) and `--max-connections` (env `CCDSCAN_INDEXER_DATABASE_MAX_CONNECTIONS`).
+
 ### Fixed
 
 - Fix issue in `Account::tokens` showing the last page first and mismatching page information.
@@ -20,8 +24,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- The `ccdscan-indexer` binary no longer uses a database pool, reducing the overhead and number of connections to the database.
 - A dummy server for plt support and which new queries are now exposed at the backend (Will be removed later).
-
 
 ## [0.1.51] - 2025-04-30
 

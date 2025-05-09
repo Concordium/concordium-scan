@@ -4,7 +4,7 @@
 //! did not update the passive delegators properly. This was fixed again in
 //! migration m0022, but the passive delegators with restake_earnings enabled
 //! missed their increase in stake due to this.
-use super::{SchemaVersion, Transaction};
+use super::SchemaVersion;
 use anyhow::Context;
 use concordium_rust_sdk::v2::{self, BlockIdentifier};
 use futures::{StreamExt, TryStreamExt};
@@ -14,7 +14,7 @@ const NEXT_SCHEMA_VERSION: SchemaVersion = SchemaVersion::FixPassiveDelegatorsSt
 
 /// Migration reindexing the current stake for delegators to the passive pool.
 pub async fn run(
-    tx: &mut Transaction,
+    tx: &mut sqlx::PgTransaction<'_>,
     endpoints: &[v2::Endpoint],
 ) -> anyhow::Result<SchemaVersion> {
     let latest_height: Option<i64> =

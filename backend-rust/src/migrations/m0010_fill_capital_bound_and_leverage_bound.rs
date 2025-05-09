@@ -5,7 +5,7 @@
 //! - `leverage_bound_numerator`
 //! - `leverage_bound_denominator`
 
-use super::{SchemaVersion, Transaction};
+use super::SchemaVersion;
 use anyhow::Context;
 use concordium_rust_sdk::{
     types::PartsPerHundredThousands,
@@ -16,7 +16,7 @@ use sqlx::Executor;
 /// Run database migration to fill the new columns `capital_bound` and
 /// `leverage_bound`.
 pub async fn run(
-    tx: &mut Transaction,
+    tx: &mut sqlx::PgTransaction<'_>,
     endpoints: &[v2::Endpoint],
     next_schema_version: SchemaVersion,
 ) -> anyhow::Result<SchemaVersion> {

@@ -1,11 +1,9 @@
 use anyhow::Context;
 use concordium_rust_sdk::v2;
-use sqlx::{Executor, PgPool};
+use sqlx::{Connection as _, Executor, PgPool};
 use std::cmp::Ordering;
 use tokio_util::sync::CancellationToken;
 use tracing::info;
-
-type Transaction = sqlx::Transaction<'static, sqlx::Postgres>;
 
 mod m0005_fix_dangling_delegators;
 mod m0006_fix_stake;
@@ -90,19 +88,23 @@ The following breaking schema migrations have happened:
 
 /// Migrate the database schema to the latest version.
 pub async fn run_migrations(
-    pool: PgPool,
+    db_connect_options: sqlx::postgres::PgConnectOptions,
     endpoints: Vec<v2::Endpoint>,
     cancel_token: CancellationToken,
 ) -> anyhow::Result<()> {
     cancel_token
         .run_until_cancelled(async move {
-            ensure_migrations_table(&pool).await?;
-            let mut current = current_schema_version(&pool).await?;
+            let mut db_connection = sqlx::PgConnection::connect_with(&db_connect_options)
+                .await
+                .context("Failed establishing the database connection")?;
+            ensure_migrations_table(&mut db_connection).await?;
+            let mut current = current_schema_version(db_connection.as_mut()).await?;
             info!("Current database schema version {}", current.as_i64());
             info!("Latest database schema version {}", SchemaVersion::LATEST.as_i64());
             while current < SchemaVersion::LATEST {
                 info!("Running migration from database schema version {}", current.as_i64());
-                let new_version = current.migration_to_next(&pool, endpoints.as_slice()).await?;
+                let new_version =
+                    current.migration_to_next(&mut db_connection, endpoints.as_slice()).await?;
                 if new_version.is_partial() {
                     info!(
                         "Committing partial migration to schema version {}",
@@ -125,8 +127,10 @@ pub async fn run_migrations(
 
 /// Check whether the current database schema version matches the latest known
 /// database schema version.
-pub async fn ensure_latest_schema_version(pool: &PgPool) -> anyhow::Result<()> {
-    if !has_migration_table(pool).await? {
+pub async fn ensure_latest_schema_version(
+    db_connection: &mut sqlx::PgConnection,
+) -> anyhow::Result<()> {
+    if !has_migration_table(&mut *db_connection).await? {
         anyhow::bail!(
             "Failed to find the database schema version.
 
@@ -134,7 +138,7 @@ To allow running database migrations provide the `--migrate` flag.
 Use `--help` for more information."
         )
     }
-    let current = current_schema_version(pool).await?;
+    let current = current_schema_version(db_connection).await?;
     if current != SchemaVersion::LATEST {
         anyhow::bail!(
             "Current database schema version is not the latest
@@ -367,7 +371,7 @@ impl SchemaVersion {
     /// Run migrations for this schema version to the next.
     async fn migration_to_next(
         &self,
-        pool: &PgPool,
+        pool: &mut sqlx::PgConnection,
         endpoints: &[v2::Endpoint],
     ) -> anyhow::Result<SchemaVersion> {
         let mut tx = pool.begin().await?;
@@ -577,7 +581,7 @@ impl SchemaVersion {
 }
 
 /// Set up the migrations tables if not already there.
-async fn ensure_migrations_table(pool: &PgPool) -> anyhow::Result<()> {
+async fn ensure_migrations_table(db_connection: &mut sqlx::PgConnection) -> anyhow::Result<()> {
     sqlx::query!(
         r#"CREATE TABLE IF NOT EXISTS migrations (
             version BIGINT PRIMARY KEY,
@@ -587,13 +591,13 @@ async fn ensure_migrations_table(pool: &PgPool) -> anyhow::Result<()> {
             end_time TIMESTAMPTZ NOT NULL
         )"#
     )
-    .execute(pool)
+    .execute(db_connection)
     .await?;
     Ok(())
 }
 
 /// Check the existence of the 'migration' table.
-async fn has_migration_table(pool: &PgPool) -> anyhow::Result<bool> {
+async fn has_migration_table(db_connection: impl sqlx::PgExecutor<'_>) -> anyhow::Result<bool> {
     let has_migration_table = sqlx::query_scalar!(
         "SELECT EXISTS (
             SELECT FROM information_schema.tables
@@ -601,7 +605,7 @@ async fn has_migration_table(pool: &PgPool) -> anyhow::Result<bool> {
             AND    table_name   = 'migrations'
         )"
     )
-    .fetch_one(pool)
+    .fetch_one(db_connection)
     .await?
     .unwrap_or(false);
     Ok(has_migration_table)
@@ -609,9 +613,11 @@ async fn has_migration_table(pool: &PgPool) -> anyhow::Result<bool> {
 
 /// Query the migrations table for the current database schema version.
 /// Results in an error if not migrations table found.
-pub async fn current_schema_version(pool: &PgPool) -> anyhow::Result<SchemaVersion> {
+pub async fn current_schema_version(
+    db_connection: impl sqlx::PgExecutor<'_>,
+) -> anyhow::Result<SchemaVersion> {
     let version = sqlx::query_scalar!("SELECT MAX(version) FROM migrations")
-        .fetch_one(pool)
+        .fetch_one(db_connection)
         .await?
         .unwrap_or(0);
     SchemaVersion::from_version(version).context("Unknown database schema version")
@@ -619,7 +625,7 @@ pub async fn current_schema_version(pool: &PgPool) -> anyhow::Result<SchemaVersi
 
 /// Update the migrations table with a new migration.
 async fn insert_migration(
-    connection: &mut Transaction,
+    connection: &mut sqlx::PgTransaction<'_>,
     migration: &Migration,
     start_time: chrono::DateTime<chrono::Utc>,
     end_time: chrono::DateTime<chrono::Utc>,
