@@ -9,7 +9,7 @@
 //! fetches a Concordium node for the Credential Registration ID to include in
 //! the events and updates the stored CCD fee cost to `0`.
 
-use super::{SchemaVersion, Transaction};
+use super::SchemaVersion;
 use crate::transaction_event::{credentials, Event};
 use anyhow::Context;
 use concordium_rust_sdk::{base::hashes::TransactionHash, types::BlockItemSummaryDetails, v2};
@@ -19,7 +19,7 @@ const NEXT_SCHEMA_VERSION: SchemaVersion = SchemaVersion::ReindexCredentialDeplo
 
 /// Migration reindexing credential deployments.
 pub async fn run(
-    tx: &mut Transaction,
+    tx: &mut sqlx::PgTransaction<'_>,
     endpoints: &[v2::Endpoint],
 ) -> anyhow::Result<SchemaVersion> {
     let deployments: Vec<String> = sqlx::query_scalar(

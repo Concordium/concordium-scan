@@ -18,7 +18,7 @@ impl InsertRemovedBaker {
 
     pub async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         sqlx::query!(
@@ -46,10 +46,7 @@ impl DeleteRemovedBakerWhenPresent {
         })
     }
 
-    pub async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
+    pub async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         sqlx::query!("DELETE FROM bakers_removed WHERE id = $1", self.baker_id)
             .execute(tx.as_mut())
             .await?

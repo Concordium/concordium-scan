@@ -905,7 +905,7 @@ impl PreparedTransactionRejectReason {
 
     pub async fn process(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
     ) -> anyhow::Result<serde_json::Value> {
         let reason = match self {
             Self::Ready(reason) => reason.clone(),
@@ -931,7 +931,7 @@ pub struct PreparedRejectedReceive {
 impl PreparedRejectedReceive {
     pub async fn process(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
     ) -> anyhow::Result<RejectedReceive> {
         // Handle and store errors
         let (message, message_parsing_status) = self.process_message(tx).await?;
@@ -949,7 +949,7 @@ impl PreparedRejectedReceive {
     /// instance.
     async fn process_message(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
     ) -> anyhow::Result<(Option<String>, InstanceMessageParsingStatus)> {
         use InstanceMessageParsingStatus as Status;
         if self.message_as_hex.is_empty() {

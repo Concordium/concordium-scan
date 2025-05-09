@@ -1,7 +1,7 @@
 //! Migration fixing corrupt data in table `bakers` column `staked` and
 //! `accounts` column `delegated_stake`.
 
-use super::{SchemaVersion, Transaction};
+use super::SchemaVersion;
 use anyhow::Context;
 use concordium_rust_sdk::{types::AbsoluteBlockHeight, v2};
 use tokio_stream::StreamExt;
@@ -12,7 +12,7 @@ const NEXT_SCHEMA_VERSION: SchemaVersion = SchemaVersion::FixStakedAmounts;
 /// Run database migration and returns the new database schema version when
 /// successful.
 pub async fn run(
-    tx: &mut Transaction,
+    tx: &mut sqlx::PgTransaction<'_>,
     endpoints: &[v2::Endpoint],
 ) -> anyhow::Result<SchemaVersion> {
     // Get the last processed block height.

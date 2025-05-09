@@ -1,6 +1,6 @@
 //! Adding table tracking rewards paid to delegators, passive delegators, and
 //! baker accounts at past payday blocks and populate the table.
-use super::{SchemaVersion, Transaction};
+use super::SchemaVersion;
 use anyhow::Context;
 use concordium_rust_sdk::{
     types::{AbsoluteBlockHeight, SpecialTransactionOutcome},
@@ -12,7 +12,7 @@ use sqlx::Executor;
 /// Run database migration to fill in historical payday blocks into the new
 /// table.
 pub async fn run(
-    tx: &mut Transaction,
+    tx: &mut sqlx::PgTransaction<'_>,
     endpoints: &[v2::Endpoint],
     next_schema_version: SchemaVersion,
 ) -> anyhow::Result<SchemaVersion> {

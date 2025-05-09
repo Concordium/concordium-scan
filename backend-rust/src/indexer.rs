@@ -51,7 +51,7 @@ use prometheus_client::{
     },
     registry::Registry,
 };
-use sqlx::PgPool;
+use sqlx::{postgres::PgConnectOptions, Connection as _, PgConnection};
 use std::{collections::HashSet, convert::TryInto};
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
@@ -128,33 +128,34 @@ impl IndexerService {
     /// Construct the service. This reads the current state from the database.
     pub async fn new(
         endpoints: Vec<v2::Endpoint>,
-        pool: PgPool,
+        db_connect_options: PgConnectOptions,
+        mut db_connection: PgConnection,
         registry: &mut Registry,
         config: IndexerServiceConfig,
     ) -> anyhow::Result<Self> {
         let last_height_stored = sqlx::query!(
             "
-                SELECT height 
-                FROM blocks 
-                ORDER BY height 
+                SELECT height
+                FROM blocks
+                ORDER BY height
                 DESC LIMIT 1
             "
         )
-        .fetch_optional(&pool)
+        .fetch_optional(db_connection.as_mut())
         .await?
         .map(|r| r.height);
 
         let start_height = if let Some(height) = last_height_stored {
             u64::try_from(height)? + 1
         } else {
-            save_genesis_data(endpoints[0].clone(), &pool)
+            save_genesis_data(endpoints[0].clone(), db_connection.as_mut())
                 .await
                 .context("Failed initializing the database with the genesis block")?;
             1
         };
         let genesis_block_hash: sdk_types::hashes::BlockHash =
             sqlx::query!("SELECT hash FROM blocks WHERE height=0")
-                .fetch_one(&pool)
+                .fetch_one(db_connection.as_mut())
                 .await?
                 .hash
                 .parse()?;
@@ -165,7 +166,8 @@ impl IndexerService {
             registry.sub_registry_with_prefix("preprocessor"),
         );
         let block_processor = BlockProcessor::new(
-            pool,
+            db_connect_options,
+            db_connection,
             config.max_successive_failures,
             registry.sub_registry_with_prefix("processor"),
         )
@@ -510,27 +512,30 @@ async fn compute_total_stake_capital(
 /// Type implementing the `ProcessEvent` handling the insertion of prepared
 /// blocks.
 struct BlockProcessor {
-    /// Database connection pool
-    pool: PgPool,
+    /// Options for the database connection.
+    db_connect_options:          PgConnectOptions,
+    /// Database connection.
+    db_connection:               PgConnection,
     /// Histogram collecting batch size
-    batch_size: Histogram,
+    batch_size:                  Histogram,
     /// Metric counting the total number of failed attempts to process
     /// blocks.
-    processing_failures: Counter,
+    processing_failures:         Counter,
     /// Histogram collecting the time it took to process a block.
     processing_duration_seconds: Histogram,
     /// Max number of acceptable successive failures before shutting down the
     /// service.
-    max_successive_failures: u32,
+    max_successive_failures:     u32,
     /// Starting context which is tracked across processing blocks.
-    current_context: BlockProcessingContext,
+    current_context:             BlockProcessingContext,
 }
 impl BlockProcessor {
     /// Construct the block processor by loading the initial state from the
     /// database. This assumes at least the genesis block is in the
     /// database.
     async fn new(
-        pool: PgPool,
+        db_connect_options: PgConnectOptions,
+        mut db_connection: PgConnection,
         max_successive_failures: u32,
         registry: &mut Registry,
     ) -> anyhow::Result<Self> {
@@ -545,7 +550,7 @@ impl BlockProcessor {
             LIMIT 1
             "
         )
-        .fetch_one(&pool)
+        .fetch_one(db_connection.as_mut())
         .await
         .context("Failed to query data for save context")?;
 
@@ -559,7 +564,7 @@ impl BlockProcessor {
             LIMIT 1
             "
         )
-        .fetch_one(&pool)
+        .fetch_one(db_connection.as_mut())
         .await
         .context("Failed to query data for save context")?;
 
@@ -589,7 +594,8 @@ impl BlockProcessor {
         registry.register("batch_size", "Batch sizes", batch_size.clone());
 
         Ok(Self {
-            pool,
+            db_connect_options,
+            db_connection,
             current_context: starting_context,
             batch_size,
             processing_failures,
@@ -618,10 +624,12 @@ impl ProcessEvent for BlockProcessor {
     async fn process(&mut self, batch: &Self::Data) -> Result<Self::Description, Self::Error> {
         let start_time = Instant::now();
         let mut out = format!("Processed {} blocks:", batch.len());
-        let mut tx = self.pool.begin().await.context("Failed to create SQL transaction")?;
         // Clone the context, to avoid mutating the current context until we are certain
         // nothing fails.
         let mut new_context = self.current_context.clone();
+
+        let mut tx =
+            self.db_connection.begin().await.context("Failed to create SQL transaction")?;
         PreparedBlock::batch_save(batch, &mut new_context, &mut tx).await?;
         for block in batch {
             if let Some(migration) = block.protocol_update_migration.as_ref() {
@@ -667,6 +675,9 @@ impl ProcessEvent for BlockProcessor {
     ) -> Result<bool, Self::Error> {
         info!("Failed processing {} times in row: \n{:?}", successive_failures, error);
         self.processing_failures.inc();
+        self.db_connection = PgConnection::connect_with(&self.db_connect_options)
+            .await
+            .context("Failed to establish new connection to the database")?;
         Ok(self.max_successive_failures >= successive_failures)
     }
 }
@@ -693,7 +704,7 @@ struct BlockProcessingContext {
 /// block.
 async fn process_release_schedules(
     last_block_slot_time: DateTime<Utc>,
-    tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    tx: &mut sqlx::PgTransaction<'_>,
 ) -> anyhow::Result<()> {
     sqlx::query!(
         "DELETE FROM scheduled_releases
@@ -721,7 +732,7 @@ struct BlockData {
 
 /// Function for initializing the database with the genesis block.
 /// This should only be called if the database is empty.
-async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Result<()> {
+async fn save_genesis_data(endpoint: v2::Endpoint, pool: &mut PgConnection) -> anyhow::Result<()> {
     let mut client = v2::Client::new(endpoint)
         .await
         .context("Failed to establish connection to Concordium Node")?;
@@ -929,7 +940,7 @@ impl PreparedBlock {
     async fn batch_save(
         batch: &[Self],
         context: &mut BlockProcessingContext,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
     ) -> anyhow::Result<()> {
         let mut heights = Vec::with_capacity(batch.len());
         let mut hashes = Vec::with_capacity(batch.len());
@@ -1099,10 +1110,7 @@ impl ProtocolUpdateMigration {
         Ok(migration)
     }
 
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         match self {
             Self::P4(migration) => {
                 migration.save(tx).await.context("Failed Protocol version 4 data migration")
@@ -1184,10 +1192,7 @@ impl P4ProtocolUpdateMigration {
         })
     }
 
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         sqlx::query!(
             "UPDATE bakers SET
              open_status = status,
@@ -1238,7 +1243,7 @@ struct PreparedAccountStatement {
 impl PreparedAccountStatement {
     async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: Option<i64>,
     ) -> anyhow::Result<()> {
         sqlx::query!(
@@ -1409,10 +1414,7 @@ impl PreparedBlockItem {
         })
     }
 
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         let reject = if let Some(reason) = &self.reject {
             Some(reason.process(tx).await?)
         } else {
@@ -1553,7 +1555,7 @@ impl PreparedBlockItemEvent {
 
     async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         match self {
@@ -1868,7 +1870,7 @@ impl PreparedEvent {
 
     async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         tx_idx: i64,
         protocol_version: ProtocolVersion,
     ) -> anyhow::Result<()> {
@@ -1953,11 +1955,7 @@ impl PreparedEventEnvelope {
         })
     }
 
-    pub async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-        tx_idx: i64,
-    ) -> anyhow::Result<()> {
+    pub async fn save(&self, tx: &mut sqlx::PgTransaction<'_>, tx_idx: i64) -> anyhow::Result<()> {
         self.event.save(tx, tx_idx, self.metadata.protocol_version).await
     }
 }
@@ -1982,7 +1980,7 @@ impl PreparedAccountCreation {
 
     async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         let account_index = sqlx::query_scalar!(
@@ -2021,7 +2019,7 @@ struct PreparedAccountDelegationEvents {
 impl PreparedAccountDelegationEvents {
     async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
         protocol_version: ProtocolVersion,
     ) -> anyhow::Result<()> {
@@ -2122,7 +2120,7 @@ impl PreparedAccountDelegationEvent {
 
     async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
         protocol_version: ProtocolVersion,
     ) -> anyhow::Result<()> {
@@ -2339,7 +2337,7 @@ impl BakerRemoved {
 
     async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         self.move_delegators
@@ -2370,10 +2368,7 @@ impl RemoveBaker {
         })
     }
 
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         sqlx::query!("DELETE FROM bakers WHERE id=$1", self.baker_id,)
             .execute(tx.as_mut())
             .await?
@@ -2397,10 +2392,7 @@ impl MovePoolDelegatorsToPassivePool {
         })
     }
 
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         sqlx::query!(
             "UPDATE accounts
              SET delegated_target_baker_id = NULL
@@ -2423,7 +2415,7 @@ struct PreparedBakerEvents {
 impl PreparedBakerEvents {
     async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
         protocol_version: ProtocolVersion,
     ) -> anyhow::Result<()> {
@@ -2609,7 +2601,7 @@ impl PreparedBakerEvent {
 
     async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
         protocol_version: ProtocolVersion,
     ) -> anyhow::Result<()> {
@@ -2876,7 +2868,7 @@ impl PreparedModuleDeployed {
 
     async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         sqlx::query!(
@@ -2919,7 +2911,7 @@ impl PreparedModuleLinkAction {
 
     async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         sqlx::query!(
@@ -3048,7 +3040,7 @@ impl PreparedContractInitialized {
 
     async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         sqlx::query!(
@@ -3101,7 +3093,7 @@ enum PreparedRejectedEvent {
 impl PreparedRejectedEvent {
     async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         match self {
@@ -3131,7 +3123,7 @@ impl PreparedRejectModuleTransaction {
 
     async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         sqlx::query!(
@@ -3186,7 +3178,7 @@ impl PreparedContractUpdates {
 
     async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         for elm in &self.trace_elements {
@@ -3344,7 +3336,7 @@ impl PreparedTraceElement {
 
     async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         sqlx::query!(
@@ -3404,7 +3396,7 @@ enum PreparedContractTraceEvent {
 impl PreparedContractTraceEvent {
     async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         match self {
@@ -3455,7 +3447,7 @@ impl PreparedTraceEventUpgrade {
 
     async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         self.module_removed.save(tx, transaction_index).await?;
@@ -3479,7 +3471,7 @@ impl PreparedUpdateContractLastUpgrade {
 
     async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         sqlx::query!(
@@ -3531,7 +3523,7 @@ impl PreparedTraceEventTransfer {
 
     async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         self.update_contract_balance.save(tx).await?;
@@ -3584,7 +3576,7 @@ impl PreparedTraceEventUpdate {
 
     async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         match &self.sender {
@@ -3625,10 +3617,7 @@ impl PreparedUpdateContractBalance {
         })
     }
 
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         sqlx::query!(
             "UPDATE contracts SET amount = amount + $1 WHERE index = $2 AND sub_index = $3",
             self.change,
@@ -3658,7 +3647,7 @@ impl PreparedRejectContractUpdateTransaction {
 
     async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         sqlx::query!(
@@ -3693,7 +3682,7 @@ async fn process_cis2_token_event(
     contract_index: i64,
     contract_sub_index: i64,
     transaction_index: i64,
-    tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    tx: &mut sqlx::PgTransaction<'_>,
 ) -> anyhow::Result<()> {
     match cis2_token_event {
         // - The `total_supply` value of a token is inserted/updated in the database here.
@@ -4179,7 +4168,7 @@ impl PreparedScheduledReleases {
 
     async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         sqlx::query!(
@@ -4238,7 +4227,7 @@ impl PreparedUpdateEncryptedBalance {
 
     pub async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         self.public_balance_change.save(tx, Some(transaction_index)).await?;
@@ -4280,7 +4269,7 @@ impl PreparedUpdateAccountBalance {
 
     pub async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: Option<i64>,
     ) -> anyhow::Result<()> {
         if self.change == 0 {
@@ -4351,7 +4340,7 @@ impl PreparedCcdTransferEvent {
 
     async fn save(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         self.update_sender
@@ -4419,10 +4408,7 @@ impl PreparedSpecialTransactionOutcomes {
         })
     }
 
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         self.insert_special_transaction_outcomes.save(tx).await?;
         if let Some(payday_updates) = &self.payday_updates {
             payday_updates.save(tx).await?;
@@ -4552,10 +4538,7 @@ impl PreparedPaydaySpecialTransactionOutcomes {
         })
     }
 
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         if !self.has_reward_events {
             return Ok(());
         }
@@ -4711,10 +4694,7 @@ impl PreparedInsertBlockSpecialTransactionOutcomes {
         })
     }
 
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         sqlx::query!(
             "INSERT INTO block_special_transaction_outcomes
                  (block_height, block_outcome_index, outcome_type, outcome)
@@ -4906,10 +4886,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
         Ok(results)
     }
 
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         match self {
             Self::Rewards(events) => {
                 for event in events {
@@ -4956,10 +4933,7 @@ impl AccountReceivedReward {
         })
     }
 
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         self.update_account_balance.save(tx, None).await?;
         self.update_stake.save(tx).await?;
         Ok(())
@@ -4990,10 +4964,7 @@ impl RestakeEarnings {
         }
     }
 
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         // Update the account if delegated_restake_earnings is set and is true, meaning
         // the account is delegating.
         let account_row = sqlx::query!(
@@ -5069,10 +5040,7 @@ impl PreparedValidatorPrimedForSuspension {
         })
     }
 
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         sqlx::query!(
             "UPDATE bakers
                 SET
@@ -5122,10 +5090,7 @@ impl PreparedUnmarkPrimedForSuspension {
         })
     }
 
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         if self.baker_ids.is_empty() {
             return Ok(());
         }
@@ -5243,10 +5208,7 @@ impl PreparedPayDayBlock {
         })
     }
 
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         // Save the commission rates to the database.
         self.baker_payday_commission_rates.save(tx).await?;
         self.passive_delegation_payday_commission_rates.save(tx).await?;
@@ -5307,10 +5269,7 @@ impl PreparedPassiveDelegationPaydayCommissionRates {
         })
     }
 
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         // The fields `transaction_commission`, `baking_commission`, and
         // `finalization_commission` are either all `Some` or all `None`.
         if let (
@@ -5383,10 +5342,7 @@ impl PreparedBakerPaydayCommissionRates {
         })
     }
 
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         sqlx::query!(
             "DELETE FROM
                 bakers_payday_commission_rates"
@@ -5458,10 +5414,7 @@ impl PreparedPaydayLotteryPowers {
         })
     }
 
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         sqlx::query!(
             "DELETE FROM
                 bakers_payday_lottery_powers"
@@ -5516,10 +5469,7 @@ impl PreparedPaydayBakerPoolStakes {
         Ok(out)
     }
 
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         sqlx::query!(
             "INSERT INTO payday_baker_pool_stakes (
                  payday_block,
@@ -5561,10 +5511,7 @@ impl PreparedPaydayPassivePoolStake {
         })
     }
 
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         sqlx::query!(
             "INSERT INTO payday_passive_pool_stakes (
                  payday_block,
@@ -5586,10 +5533,7 @@ impl PreparedPaydayPassivePoolStake {
 struct RefreshLatestBakerApy;
 
 impl RefreshLatestBakerApy {
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         sqlx::query!("REFRESH MATERIALIZED VIEW CONCURRENTLY latest_baker_apy_30_days")
             .execute(tx.as_mut())
             .await?;
@@ -5608,10 +5552,7 @@ impl PreparedValidatorSuspension {
         })
     }
 
-    async fn save(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         sqlx::query!(
             "UPDATE bakers
                 SET

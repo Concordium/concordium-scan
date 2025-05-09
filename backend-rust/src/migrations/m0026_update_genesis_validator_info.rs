@@ -4,7 +4,7 @@
 //! protocol version 4, bakers prior to this protocol version became pools
 //! implicitly and older versions of the indexer missed their pool information.
 
-use super::{SchemaVersion, Transaction};
+use super::SchemaVersion;
 use crate::transaction_event::baker::BakerPoolOpenStatus;
 use anyhow::Context;
 use concordium_rust_sdk::{
@@ -18,7 +18,7 @@ const NEXT_SCHEMA_VERSION: SchemaVersion = SchemaVersion::UpdateGenesisValidator
 
 /// Migration updating pool information those bakers where this is missing.
 pub async fn run(
-    tx: &mut Transaction,
+    tx: &mut sqlx::PgTransaction<'_>,
     endpoints: &[v2::Endpoint],
 ) -> anyhow::Result<SchemaVersion> {
     let latest_height: Option<i64> =

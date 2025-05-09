@@ -5,7 +5,7 @@
 //!   passive pool as their target validator pool got closed or removed (found
 //!   in the matching `.sql` file).
 
-use super::{SchemaVersion, Transaction};
+use super::SchemaVersion;
 use anyhow::Context;
 use concordium_rust_sdk::{types::AbsoluteBlockHeight, v2};
 use sqlx::Executor;
@@ -16,7 +16,7 @@ use tracing::debug;
 /// Run database migration and returns the new database schema version when
 /// successful.
 pub async fn run(
-    tx: &mut Transaction,
+    tx: &mut sqlx::PgTransaction<'_>,
     endpoints: &[v2::Endpoint],
 ) -> anyhow::Result<SchemaVersion> {
     // Fix data from the unhandled `DelegationEvent::RemoveBaker` event, which is
