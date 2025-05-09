@@ -42,7 +42,7 @@ SELECT
   ) AS "start_index!",
   COALESCE(
     (
-      SELECT MAX(index+1)
+      SELECT MAX(index) + 1
       FROM accounts
       WHERE transaction_index <= tx_end
     ), 0
