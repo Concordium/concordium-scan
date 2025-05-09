@@ -172,7 +172,7 @@ This endpoint is scraped by Prometheus, and the collected metrics are visualized
 
 When the GraphQL API service is run, it exposes rest [API (legacy) endpoints](https://github.com/Concordium/concordium-scan/blob/main/backend-rust/src/rest_api.rs):
 
-These legacy api endpoints need to be maintained for backwards compatibility since several external partners (e.g. `coingecko`/`coinmarketcap`) scrap the total CCD supply in circulation from these endpoints.
+These legacy api endpoints need to be maintained for backwards compatibility since several external partners scrap the total CCD supply in circulation from these endpoints.
 
 ```
 http://localhost:8000/rest/balance-statistics/latest?field=totalamountunlocked&unit=ccd
