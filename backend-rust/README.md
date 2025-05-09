@@ -116,7 +116,7 @@ ccdscan-api --help
 Starting the GraphQL API Service above will provide you an interface
 (defaults to [127.0.0.1:8000](http://127.0.0.1:8000)) to execute GraphQL queries.
 
-Note: We temporarily added another UI playground at `http://localhost:8000/playground` since above graphiQL interface was done [see](https://github.com/Concordium/concordium-scan/pull/703).
+Note: We temporarily added another UI playground at `http://localhost:8000/playground` since above graphiQL interface is broken at the moment [see](https://github.com/Concordium/concordium-scan/pull/703).
 
 An example is shown below:
 
@@ -170,7 +170,7 @@ This endpoint is scraped by Prometheus, and the collected metrics are visualized
 
 #### Rest API server:
 
-When the GraphQL API service is run, it exposes rest API (legacy) endpoints [API (legacy) endpoints](https://github.com/Concordium/concordium-scan/blob/main/backend-rust/src/rest_api.rs):
+When the GraphQL API service is run, it exposes rest [API (legacy) endpoints](https://github.com/Concordium/concordium-scan/blob/main/backend-rust/src/rest_api.rs):
 
 These legacy api endpoints need to be maintained for backwards compatibility since several external partners (e.g. `coingecko`/`coinmarketcap`) scrap the total CCD supply in circulation from these endpoints.
 
