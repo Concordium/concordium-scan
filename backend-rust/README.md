@@ -47,7 +47,7 @@ For full list of configuration options for the indexer service run:
 ccdscan-indexer --help
 ```
 
-The processing of blocks in the indexer is done in two stages. The `pre-process` stage (fist stage) queries a batch of new finalized blockchain blocks from the node and 
+The processing of blocks in the indexer is done in two stages. The `pre-process` stage (first stage) queries a batch of new finalized blockchain blocks from the node and 
 prepares the data to be inserted into the database in parallel. The size of the batch can be tweaked via the environmental variable:
 
 ```
@@ -55,7 +55,7 @@ prepares the data to be inserted into the database in parallel. The size of the 
 Maximum number of blocks being preprocessed in parallel [env: CCDSCAN_INDEXER_CONFIG_MAX_PARALLEL_BLOCK_PREPROCESSORS=] [default: 8]
 ```
 
-The larger the batch size and the more nodes the indexer has available to cycle through the faster the indexer catches up to the top of the chain (until we hit limits in the node being not able to response to all the requests from the indexer anymore or we hit limits to not be able to cycle faster anymore through the nodes). At some point the nodes might get overloaded by the amount of requests from the indexer, and would return an error (e.g. `too many requests`). You can tweak the indexer via the environmental variables to avoid overloading the nodes:
+The larger the batch size and the more nodes the indexer has available to cycle through the faster the indexer catches up to the top of the chain (until we hit limits in the node being not able to response to all the requests from the indexer anymore or we hit limits not to be able to cycle faster anymore through the nodes). At some point, the nodes might get overloaded by the amount of requests from the indexer, and would return an error (e.g., `too many requests`). You can tweak the indexer via the environmental variables to avoid overloading the nodes:
 
 ```
 --node-request-rate-limit <NODE_REQUEST_RATE_LIMIT>
@@ -64,8 +64,8 @@ Enables rate limit on the number of requests send through each connection to the
 Enables limit on the number of concurrent requests send through each connection to the node [env: CCDSCAN_INDEXER_CONFIG_NODE_REQUEST_CONCURRENCY_LIMIT=]
 ```
 
-The `save` stage (second stage) stores processed blockchain blocks info sequentially in the database.
-For indexer efficiently, every processing of data that can be done in paralles should be in the `pre-process` stage. The `save` stage sequentially processes each block and only includes processing that can not be done in parallel. Because of the `save` stage only one instance of the indexer may run at any one time, as data needs to be sequentially inserted into the database.
+The `save` stage (second stage) stores processed blockchain block info sequentially in the database.
+For indexer efficiency, every data processing that can be done in parallel should be in the `pre-process` stage. The `save` stage sequentially processes each block and only includes processing that can not be done in parallel. Because of the `save` stage only one instance of the indexer may run at any one time, as data needs to be sequentially inserted into the database.
 
 ## Database schema setup and migrations
 
@@ -156,9 +156,11 @@ Variables:
 
 ![ExampleQuery](./ExampleQuery.png)
 
-### Monitoring:
+### Small services included in the GraphQL API Service:
 
-When the api service is run, it exposes a metric entpoint [metric entpoint](https://github.com/Concordium/concordium-scan/blob/main/backend-rust/src/router.rs):
+#### Monitoring:
+
+When the GraphQL API service is run, it exposes a metric endpoint [metric endpoint](https://github.com/Concordium/concordium-scan/blob/main/backend-rust/src/router.rs):
 
 ```
 http://localhost:8003/metrics
@@ -166,9 +168,9 @@ http://localhost:8003/metrics
 
 This endpoint is scraped by Prometheus, and the collected metrics are visualized in Grafana dashboards for internal monitoring.
 
-### API rest server:
+#### Rest API server:
 
-When the api service is run, it exposes a rest API (legacy) entpoints [API (legacy) entpoints](https://github.com/Concordium/concordium-scan/blob/main/backend-rust/src/rest_api.rs):
+When the GraphQL API service is run, it exposes rest API (legacy) endpoints [API (legacy) endpoints](https://github.com/Concordium/concordium-scan/blob/main/backend-rust/src/rest_api.rs):
 
 These legacy api endpoints need to be maintained for backwards compatibility since several external partners (e.g. `coingecko`/`coinmarketcap`) scrap the total CCD supply in circulation from these endpoints.
 
@@ -184,11 +186,15 @@ http://localhost:8000/rest/balance-statistics/latest?field=totalamountcirculatin
 http://localhost:8000/rest/balance-statistics/latest?field=totalamount&unit=ccd
 ```
 
-The api also handles the exporting of account statements
+The rest api also handles the exporting of account statements:
 
 ```
 http://localhost:8000/rest/export/statement
 ```
+
+#### Http client to the Node Collector Backend:
+
+When the GraphQL API service is run, it queries node infos in the [file] (https://github.com/Concordium/concordium-scan/blob/main/backend-rust/src/graphql_api/node_status.rs#L111) from the [node collector backend](https://github.com/Concordium/concordium-node/tree/main/collector-backend).
 
 ## Contributing
 
