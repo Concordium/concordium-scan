@@ -35,7 +35,7 @@ SELECT
   bucket_time AS "bucket_time!",
   COALESCE(
     (
-      SELECT MAX(index+1)
+      SELECT MAX(index) + 1
       FROM accounts
       WHERE transaction_index <= tx_start
     ), 0
