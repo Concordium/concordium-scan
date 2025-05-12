@@ -8,7 +8,7 @@ use crate::{
     scalar_types::{Amount, BlockHeight, DateTime, TimeSpan},
 };
 
-use super::{get_config, get_pool, ApiError};
+use super::{get_config, get_pool, ApiError, InternalError};
 
 #[derive(SimpleObject)]
 struct BlockMetrics {
@@ -210,7 +210,7 @@ LEFT JOIN LATERAL (
             y_last_total_micro_ccd_staked: Vec::new(),
         };
         for row in bucket_query {
-            buckets.x_time.push(row.bucket_start.ok_or(ApiError::InternalError(
+            buckets.x_time.push(row.bucket_start.ok_or(InternalError::InternalError(
                 "Unexpected missing time for bucket".to_string(),
             ))?);
             buckets.y_blocks_added.push(row.y_blocks_added.unwrap_or(0));

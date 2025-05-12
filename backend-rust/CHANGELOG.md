@@ -26,6 +26,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Hide internal errors from the `ccdscan-api` GraphQL API response and produced an ERROR level log message instead.
 - The `ccdscan-indexer` binary no longer uses a database pool, reducing the overhead and number of connections to the database.
 - A dummy server for plt support and which new queries are now exposed at the backend (Will be removed later).
 

@@ -1,7 +1,7 @@
 use crate::{
     address::Address as ScalarAddress,
     decoded_text::DecodedText,
-    graphql_api::{ApiError, ApiResult},
+    graphql_api::{ApiResult, InternalError},
     scalar_types::{BigInteger, Byte, DateTime, UnsignedLong},
     transaction_event::transfers::TimestampedAmount,
 };
@@ -81,7 +81,7 @@ impl DataRegistered {
     async fn decoded(&self) -> ApiResult<DecodedText> {
         let decoded_data = hex::decode(&self.data_as_hex).map_err(|e| {
             error!("Invalid hex encoding {:?} in a controlled environment", e);
-            ApiError::InternalError("Failed to decode hex data".to_string())
+            InternalError::InternalError("Failed to decode hex data".to_string())
         })?;
 
         Ok(DecodedText::from_bytes(decoded_data.as_slice()))
