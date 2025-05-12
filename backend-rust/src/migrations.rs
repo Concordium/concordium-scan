@@ -2,7 +2,6 @@ use anyhow::Context;
 use concordium_rust_sdk::v2;
 use sqlx::{Connection as _, Executor, PgPool};
 use std::cmp::Ordering;
-use tokio_util::sync::CancellationToken;
 use tracing::info;
 
 mod m0005_fix_dangling_delegators;
@@ -88,40 +87,23 @@ The following breaking schema migrations have happened:
 
 /// Migrate the database schema to the latest version.
 pub async fn run_migrations(
-    db_connect_options: sqlx::postgres::PgConnectOptions,
+    db_connection: &mut sqlx::PgConnection,
     endpoints: Vec<v2::Endpoint>,
-    cancel_token: CancellationToken,
 ) -> anyhow::Result<()> {
-    cancel_token
-        .run_until_cancelled(async move {
-            let mut db_connection = sqlx::PgConnection::connect_with(&db_connect_options)
-                .await
-                .context("Failed establishing the database connection")?;
-            ensure_migrations_table(&mut db_connection).await?;
-            let mut current = current_schema_version(db_connection.as_mut()).await?;
-            info!("Current database schema version {}", current.as_i64());
-            info!("Latest database schema version {}", SchemaVersion::LATEST.as_i64());
-            while current < SchemaVersion::LATEST {
-                info!("Running migration from database schema version {}", current.as_i64());
-                let new_version =
-                    current.migration_to_next(&mut db_connection, endpoints.as_slice()).await?;
-                if new_version.is_partial() {
-                    info!(
-                        "Committing partial migration to schema version {}",
-                        new_version.as_i64()
-                    );
-                } else {
-                    info!(
-                        "Migrated database schema to version {} successfully",
-                        new_version.as_i64()
-                    );
-                }
-                current = new_version
-            }
-            Ok::<_, anyhow::Error>(())
-        })
-        .await
-        .transpose()?;
+    ensure_migrations_table(db_connection).await?;
+    let mut current = current_schema_version(&mut *db_connection).await?;
+    info!("Current database schema version {}", current.as_i64());
+    info!("Latest database schema version {}", SchemaVersion::LATEST.as_i64());
+    while current < SchemaVersion::LATEST {
+        info!("Running migration from database schema version {}", current.as_i64());
+        let new_version = current.migration_to_next(db_connection, endpoints.as_slice()).await?;
+        if new_version.is_partial() {
+            info!("Committing partial migration to schema version {}", new_version.as_i64());
+        } else {
+            info!("Migrated database schema to version {} successfully", new_version.as_i64());
+        }
+        current = new_version
+    }
     Ok(())
 }
 

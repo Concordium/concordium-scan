@@ -72,12 +72,14 @@ struct DotenvCli {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // Parse CLI args and env variables
     if let Some(dotenv) = DotenvCli::parse().dotenv {
         dotenvy::from_filename(dotenv)?;
     } else {
         let _ = dotenvy::dotenv();
     }
     let cli = Cli::parse();
+    // Setup filter for the logging
     let filter = if std::env::var("RUST_LOG").is_ok() {
         // If RUST_LOG env is defined we fallback to the default behavior of the env
         // filter.
@@ -90,8 +92,6 @@ async fn main() -> anyhow::Result<()> {
         format!("info,{pkg_name}={0},{crate_name}={0}", cli.log_level).parse()?
     };
     tracing_subscriber::registry().with(tracing_subscriber::fmt::layer()).with(filter).init();
-    let cancel_token = CancellationToken::new();
-
     // Handle TLS configuration and set timeouts according to the configuration for
     // every endpoint.
     let endpoints: Vec<v2::Endpoint> = cli
@@ -121,24 +121,36 @@ async fn main() -> anyhow::Result<()> {
                 .connect_timeout(Duration::from_secs(cli.indexer_config.node_connect_timeout)))
         })
         .collect::<anyhow::Result<_>>()?;
-
+    // Open database connection
+    let mut db_connection = sqlx::PgConnection::connect_with(&cli.database_url)
+        .await
+        .context("Failed establishing the database connection")?;
+    // Acquire the indexer lock
+    let database_indexer_lock_timeout =
+        Duration::from_secs(cli.indexer_config.database_indexer_lock_timeout);
+    tokio::time::timeout(
+        database_indexer_lock_timeout,
+        indexer::acquire_indexer_lock(db_connection.as_mut()),
+    )
+    .await
+    .context(
+        "Acquire indexer lock timed out, another instance of ccdscan-indexer might already be \
+         running",
+    )??;
+    // Run migrations if allowed
+    let cancel_token = CancellationToken::new();
     if cli.migrate || cli.migrate_only {
-        let stop_signal = cancel_token.child_token();
         let endpoints = endpoints.clone();
-        let mut migration_task = tokio::spawn(migrations::run_migrations(
-            cli.database_url.clone(),
-            endpoints,
-            stop_signal,
-        ));
+        let migration_task = cancel_token
+            .run_until_cancelled(migrations::run_migrations(&mut db_connection, endpoints));
         tokio::select! {
             _ = tokio::signal::ctrl_c() => {
                 info!("Migrations aborted, shutting down");
                 cancel_token.cancel();
-                let _ = migration_task.await?;
                 return Ok(())
             },
-            result = &mut migration_task => {
-                if let Err(err) = result? {
+            result = migration_task => {
+                if let Err(err) = result.transpose() {
                     return Err(anyhow::format_err!("Migration error: {}", err))
                 }
             }
@@ -147,11 +159,8 @@ async fn main() -> anyhow::Result<()> {
             return Ok(());
         }
     }
-    let mut db_connection = sqlx::PgConnection::connect_with(&cli.database_url)
-        .await
-        .context("Failed establishing the database connection")?;
     migrations::ensure_latest_schema_version(&mut db_connection).await?;
-
+    // Setup information in the metric registry
     let mut registry = Registry::with_prefix("indexer");
     let service_info_family = Family::<Vec<(&str, String)>, Gauge>::default();
     let gauge =
@@ -167,7 +176,7 @@ async fn main() -> anyhow::Result<()> {
         "Timestamp of starting up the Indexer service (Unix time in milliseconds)",
         prometheus_client::metrics::gauge::ConstGauge::new(chrono::Utc::now().timestamp_millis()),
     );
-
+    // Setup and run the services
     let mut indexer_task = {
         let stop_signal = cancel_token.child_token();
         let indexer = indexer::IndexerService::new(
