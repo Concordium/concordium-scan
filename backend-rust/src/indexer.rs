@@ -1,6 +1,10 @@
 use crate::{
     block_special_event::{SpecialEvent, SpecialEventTypeFilter},
     graphql_api::AccountStatementEntryType,
+    indexer::statistics::{
+        BakerField::{Added, Removed},
+        Statistics,
+    },
     transaction_event::{
         baker::BakerPoolOpenStatus, events_from_summary,
         smart_contracts::ModuleReferenceContractLinkAction, CisBurnEvent, CisEvent, CisMintEvent,
@@ -40,6 +44,7 @@ use concordium_rust_sdk::{
         RPCError,
     },
 };
+use ensure_affected_rows::EnsureAffectedRows;
 use futures::{future::join_all, StreamExt, TryStreamExt};
 use num_traits::FromPrimitive;
 use prometheus_client::{
@@ -51,19 +56,33 @@ use prometheus_client::{
     },
     registry::Registry,
 };
-use sqlx::{postgres::PgConnectOptions, Connection as _, PgConnection};
-use std::{collections::HashSet, convert::TryInto};
+use sqlx::{
+    postgres::{PgAdvisoryLock, PgConnectOptions},
+    Connection as _, PgConnection,
+};
+use std::{collections::HashSet, convert::TryInto, time::Duration};
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
+
 mod db;
 mod ensure_affected_rows;
 mod statistics;
-use crate::indexer::statistics::{
-    BakerField::{Added, Removed},
-    Statistics,
-};
-use ensure_affected_rows::EnsureAffectedRows;
+
+/// Identifier for the PostgreSQL advisory lock for indexing.
+const ADVISORY_LOCK_INDEXER: &str = "ccdscan-indexing";
+
+/// Acquire the indexer lock for the provided connection.
+/// The lock will be released once the connection is shutdown.
+pub async fn acquire_indexer_lock(db_connection: &mut PgConnection) -> anyhow::Result<()> {
+    info!("Requesting the indexer advisory lock");
+    PgAdvisoryLock::new(ADVISORY_LOCK_INDEXER)
+        .acquire(db_connection.as_mut())
+        .await
+        .context("Failed to acquire the indexer advisory lock")?
+        .leak();
+    Ok(())
+}
 
 /// Service traversing each block of the chain, indexing it into a database.
 ///
@@ -93,6 +112,10 @@ pub struct IndexerServiceConfig {
     /// Connection timeout in seconds when connecting a Concordium Node.
     #[arg(long, env = "CCDSCAN_INDEXER_CONFIG_NODE_CONNECT_TIMEOUT", default_value = "10")]
     pub node_connect_timeout:             u64,
+    /// Acquire the indexer advisory lock timeout in seconds when connecting to
+    /// the database.
+    #[arg(long, env = "CCDSCAN_INDEXER_CONFIG_DATABASE_INDEXER_LOCK_TIMEOUT", default_value = "5")]
+    pub database_indexer_lock_timeout:    u64,
     /// Maximum number of blocks being preprocessed in parallel.
     #[arg(
         long,
@@ -133,6 +156,8 @@ impl IndexerService {
         registry: &mut Registry,
         config: IndexerServiceConfig,
     ) -> anyhow::Result<Self> {
+        let database_indexer_lock_timeout =
+            Duration::from_secs(config.database_indexer_lock_timeout);
         let last_height_stored = sqlx::query!(
             "
                 SELECT height
@@ -168,6 +193,7 @@ impl IndexerService {
         let block_processor = BlockProcessor::new(
             db_connect_options,
             db_connection,
+            database_indexer_lock_timeout,
             config.max_successive_failures,
             registry.sub_registry_with_prefix("processor"),
         )
@@ -514,7 +540,10 @@ async fn compute_total_stake_capital(
 struct BlockProcessor {
     /// Options for the database connection.
     db_connect_options:          PgConnectOptions,
-    /// Database connection.
+    /// Timeout for acquiring the indexer advisory lock after connecting to the
+    /// database.
+    db_indexer_lock_timeout:     Duration,
+    /// Current database connection.
     db_connection:               PgConnection,
     /// Histogram collecting batch size
     batch_size:                  Histogram,
@@ -536,6 +565,7 @@ impl BlockProcessor {
     async fn new(
         db_connect_options: PgConnectOptions,
         mut db_connection: PgConnection,
+        database_indexer_lock_timeout: Duration,
         max_successive_failures: u32,
         registry: &mut Registry,
     ) -> anyhow::Result<Self> {
@@ -596,6 +626,7 @@ impl BlockProcessor {
         Ok(Self {
             db_connect_options,
             db_connection,
+            db_indexer_lock_timeout: database_indexer_lock_timeout,
             current_context: starting_context,
             batch_size,
             processing_failures,
@@ -675,9 +706,19 @@ impl ProcessEvent for BlockProcessor {
     ) -> Result<bool, Self::Error> {
         info!("Failed processing {} times in row: \n{:?}", successive_failures, error);
         self.processing_failures.inc();
-        self.db_connection = PgConnection::connect_with(&self.db_connect_options)
+        let mut db_connection = PgConnection::connect_with(&self.db_connect_options)
             .await
             .context("Failed to establish new connection to the database")?;
+        tokio::time::timeout(
+            self.db_indexer_lock_timeout,
+            acquire_indexer_lock(db_connection.as_mut()),
+        )
+        .await
+        .context(
+            "Acquire indexer lock timed out, another instance of ccdscan-indexer might already be \
+             running",
+        )??;
+        self.db_connection = db_connection;
         Ok(self.max_successive_failures >= successive_failures)
     }
 }
