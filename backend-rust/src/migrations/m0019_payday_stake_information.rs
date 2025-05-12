@@ -2,7 +2,7 @@
 //! each pool and passive pool.
 //! This is then used to compute the APY.
 
-use super::{SchemaVersion, Transaction};
+use super::SchemaVersion;
 use anyhow::Context;
 use concordium_rust_sdk::{common::types::Amount, types::AbsoluteBlockHeight, v2};
 use futures::stream::TryStreamExt;
@@ -37,7 +37,7 @@ impl Data {
 /// Run database migration and returns the new database schema version when
 /// successful.
 pub async fn run(
-    tx: &mut Transaction,
+    tx: &mut sqlx::PgTransaction<'_>,
     endpoints: &[v2::Endpoint],
 ) -> anyhow::Result<SchemaVersion> {
     let last_processed_payday: Option<i64> =

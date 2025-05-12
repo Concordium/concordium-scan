@@ -866,17 +866,17 @@ impl Account {
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, AccountToken>> {
+    ) -> ApiResult<connection::Connection<DescendingI64, AccountToken>> {
+        type Cursor = DescendingI64;
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
-        let query = ConnectionQuery::<i64>::new(
+        let query = ConnectionQuery::<Cursor>::new(
             first,
             after,
             last,
             before,
             config.contract_connection_limit,
         )?;
-
         // Tokens with 0 balance are filtered out. We still display tokens with a
         // negative balance (buggy cis2 smart contract) to help smart contract
         // developers to debug their smart contracts.
@@ -896,48 +896,33 @@ impl Account {
                 FROM account_tokens
                 JOIN tokens
                     ON tokens.index = account_tokens.token_index
-                WHERE account_tokens.balance != 0 
+                WHERE account_tokens.balance != 0
                     AND account_tokens.account_index = $5
-                    AND $1 < change_seq 
-                    AND change_seq < $2
+                    AND $2 < change_seq
+                    AND change_seq < $1
                 ORDER BY
                     CASE WHEN NOT $4 THEN change_seq END DESC,
                     CASE WHEN $4 THEN change_seq END ASC
                 LIMIT $3
             ) ORDER BY change_seq DESC
             ",
-            query.from,
-            query.to,
+            query.from.cursor,
+            query.to.cursor,
             query.limit,
             query.is_last,
             &self.index
         )
         .fetch(pool);
-
         let mut connection = connection::Connection::new(false, false);
-
-        let mut page_max_index = None;
-        let mut page_min_index = None;
         while let Some(token) = row_stream.try_next().await? {
             let token = AccountToken::try_from(token)?;
-
-            page_max_index = Some(match page_max_index {
-                None => token.change_seq,
-                Some(current_max) => max(current_max, token.change_seq),
-            });
-
-            page_min_index = Some(match page_min_index {
-                None => token.change_seq,
-                Some(current_min) => min(current_min, token.change_seq),
-            });
-
-            connection.edges.push(connection::Edge::new(token.change_seq.to_string(), token));
+            let cursor = Cursor::from(token.change_seq);
+            connection.edges.push(connection::Edge::new(cursor, token));
         }
-
-        if let (Some(page_min_id), Some(page_max_id)) = (page_min_index, page_max_index) {
-            let result = sqlx::query!(
+        if let (Some(last), Some(first)) = (connection.edges.last(), connection.edges.first()) {
+            let bounds = sqlx::query!(
                 "
-                    SELECT MAX(change_seq) as max_id, MIN(change_seq) as min_id 
+                    SELECT MAX(change_seq) as first_cursor, MIN(change_seq) as last_cursor
                     FROM account_tokens
                     WHERE account_tokens.balance != 0
                         AND account_tokens.account_index = $1
@@ -946,12 +931,11 @@ impl Account {
             )
             .fetch_one(pool)
             .await?;
-
             connection.has_previous_page =
-                result.min_id.map_or(false, |db_min| db_min < page_min_id);
-            connection.has_next_page = result.max_id.map_or(false, |db_max| db_max > page_max_id);
+                bounds.first_cursor.map_or(false, |db_first| Cursor::from(db_first) < first.cursor);
+            connection.has_next_page =
+                bounds.last_cursor.map_or(false, |db_last| Cursor::from(db_last) > last.cursor);
         }
-
         Ok(connection)
     }
 
@@ -1196,8 +1180,8 @@ impl Account {
                         'TransactionFeeReward'
                     )
                     AND account_index = $5
-                    AND id > $1
-                    AND id < $2
+                    AND id > $2
+                    AND id < $1
                 ORDER BY
                     (CASE WHEN $4 THEN id END) ASC,
                     (CASE WHEN NOT $4 THEN id END) DESC

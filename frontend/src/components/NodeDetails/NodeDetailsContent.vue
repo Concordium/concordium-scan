@@ -5,10 +5,11 @@
 			<div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 mb-8 mb-8">
 				<DetailsCard>
 					<template #title>Validator</template>
-					<template #default
-						><BakerLink
+					<template #default>
+						<!-- We checked that the value is an integer, so the type cast with `!` is safe -->
+						<BakerLink
 							v-if="Number.isInteger(node.consensusBakerId)"
-							:id="node.consensusBakerId"
+							:id="node.consensusBakerId!"
 						/>
 						<div v-else>-</div>
 					</template>
@@ -114,7 +115,11 @@
 				<template #content>
 					<div v-if="node.peersCount > 0">
 						<div v-for="peer in node.peersList" :key="peer.nodeId">
-							<NodeLink v-if="peer.nodeStatus" :node="peer.nodeStatus" />
+							<NodeLink
+								v-if="peer.nodeStatus"
+								:node-id="peer.nodeStatus.id"
+								:node-name="peer.nodeStatus.nodeName"
+							/>
 							<div v-else class="ml-6">
 								<span class="numerical">({{ peer.nodeId }})</span>
 								<Tooltip text="Status for this node is unavailable">

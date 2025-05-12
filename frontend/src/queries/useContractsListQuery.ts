@@ -1,11 +1,11 @@
 import type { Ref } from 'vue'
 import { useQuery, gql } from '@urql/vue'
-import type { PageInfo, ContractsEdge } from '../types/generated'
+import type { PageInfo, ContractEdge } from '../types/generated'
 import type { QueryVariables } from '../types/queryVariables'
 
 export type ContractListResponse = {
 	contracts: {
-		edges: ContractsEdge[]
+		edges: ContractEdge[]
 		pageInfo: PageInfo
 	}
 }

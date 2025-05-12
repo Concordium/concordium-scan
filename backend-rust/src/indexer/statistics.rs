@@ -1,7 +1,6 @@
 use crate::scalar_types::DateTime;
 use anyhow::Result;
 use concordium_rust_sdk::base::contracts_common::CanonicalAccountAddress;
-use sqlx::{Postgres, Transaction};
 use std::collections::HashMap;
 use tracing::debug;
 
@@ -45,7 +44,7 @@ impl BakerStatistics {
     /// If changes have been recorded (baker_is_changed is true), it first
     /// attempts to update the latest row by adding the increments. If no
     /// row exists, it inserts a new row.
-    pub(crate) async fn save(&self, tx: &mut Transaction<'static, Postgres>) -> Result<()> {
+    pub(crate) async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> Result<()> {
         if !self.baker_is_changed {
             debug!("No change in baker count at block_height: {}", self.block_height);
             return Ok(());
@@ -120,7 +119,7 @@ impl RewardStatistics {
     /// Saves the reward statistics.
     /// For each account in the hashmap, a new row is inserted for the current
     /// block. Does no database operations given account rewards are empty
-    pub(crate) async fn save(&self, tx: &mut Transaction<'static, Postgres>) -> Result<()> {
+    pub(crate) async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> Result<()> {
         if self.account_rewards.is_empty() {
             debug!("No rewards at block_height: {}", self.block_height);
             return Ok(());
@@ -163,7 +162,7 @@ impl Statistics {
     }
 
     /// Persists statistics changes if recorded
-    pub(crate) async fn save(&self, tx: &mut Transaction<'static, Postgres>) -> Result<()> {
+    pub(crate) async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> Result<()> {
         self.baker_stats.save(tx).await?;
         self.reward_stats.save(tx).await?;
         Ok(())

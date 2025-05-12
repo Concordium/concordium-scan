@@ -7,7 +7,7 @@ use sqlx::postgres::types::PgInterval;
 use super::{get_pool, ApiError, ApiResult, DateTime, MetricsPeriod, TimeSpan};
 
 #[derive(SimpleObject)]
-struct AccountMetrics {
+struct AccountsMetrics {
     /// Total number of accounts created (all time).
     last_cumulative_accounts_created: i64,
 
@@ -46,7 +46,7 @@ impl QueryAccountMetrics {
         &self,
         ctx: &Context<'_>,
         period: MetricsPeriod,
-    ) -> ApiResult<AccountMetrics> {
+    ) -> ApiResult<AccountsMetrics> {
         let pool = get_pool(ctx)?;
         let end_time = Utc::now();
         let before_time = end_time - period.as_duration();
@@ -74,7 +74,7 @@ impl QueryAccountMetrics {
             *y_last_cumulative_accounts_created.last().unwrap_or(&0);
         let accounts_created = y_accounts_created.iter().sum();
 
-        Ok(AccountMetrics {
+        Ok(AccountsMetrics {
             last_cumulative_accounts_created,
             accounts_created,
             buckets: AccountMetricsBuckets {

@@ -1,14 +1,14 @@
 //! Deriving account canonical address from the account address and storing it
 //! in the database
 
-use super::{SchemaVersion, Transaction};
+use super::SchemaVersion;
 use sqlx::Executor;
 use std::str::FromStr;
 use tokio_stream::StreamExt;
 
 /// Run database migration and returns the new database schema version when
 /// successful.
-pub async fn run(tx: &mut Transaction) -> anyhow::Result<SchemaVersion> {
+pub async fn run(tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<SchemaVersion> {
     tx.as_mut()
         .execute(sqlx::raw_sql(include_str!(
             "m0008-pre-canonical-address-and-transaction-search-index.sql"

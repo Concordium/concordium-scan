@@ -1,6 +1,6 @@
 import { useQuery, gql } from '@urql/vue'
 import { useComponentState } from '~/composables/useComponentState'
-import type { Baker, BakerTransactionRelation } from '~/types/generated'
+import type { Baker, InterimTransaction } from '~/types/generated'
 import type { QueryVariables } from '~/types/queryVariables'
 
 type BakerTxResponse = {
@@ -64,9 +64,7 @@ export const useBakerTransactionsQuery = (
 
 	const dataRef = ref(data.value?.bakerByBakerId?.transactions?.nodes?.[0])
 
-	const componentState = useComponentState<
-		BakerTransactionRelation | undefined
-	>({
+	const componentState = useComponentState<InterimTransaction | undefined>({
 		fetching,
 		error,
 		data: dataRef,

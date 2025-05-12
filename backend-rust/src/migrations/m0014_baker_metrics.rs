@@ -1,4 +1,4 @@
-use super::{SchemaVersion, Transaction};
+use super::SchemaVersion;
 use anyhow::Context;
 use async_graphql::futures_util::StreamExt;
 use concordium_rust_sdk::{
@@ -9,7 +9,7 @@ use sqlx::Executor;
 
 /// Performs a migration that creates and populates the baker metrics table.
 pub async fn run(
-    tx: &mut Transaction,
+    tx: &mut sqlx::PgTransaction<'_>,
     endpoints: &[v2::Endpoint],
     next_schema_version: SchemaVersion,
 ) -> anyhow::Result<SchemaVersion> {

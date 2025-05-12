@@ -11,7 +11,7 @@ use prometheus_client::{
     registry::Registry,
 };
 use serde_json::json;
-use sqlx::postgres::PgPoolOptions;
+use sqlx::{postgres::PgConnectOptions, Connection as _};
 use std::{net::SocketAddr, path::PathBuf, time::Duration};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
@@ -26,13 +26,7 @@ struct Cli {
     /// Use an environment variable when the connection contains a password, as
     /// command line arguments are visible across OS processes.
     #[arg(long, env = "CCDSCAN_INDEXER_DATABASE_URL")]
-    database_url:      String,
-    /// Minimum number of connections in the pool.
-    #[arg(long, env = "CCDSCAN_INDEXER_DATABASE_MIN_CONNECTIONS", default_value_t = 5)]
-    min_connections:   u32,
-    /// Maximum number of connections in the pool.
-    #[arg(long, env = "CCDSCAN_INDEXER_DATABASE_MAX_CONNECTIONS", default_value_t = 10)]
-    max_connections:   u32,
+    database_url:      PgConnectOptions,
     /// gRPC interface of the node. Several can be provided.
     #[arg(
         long,
@@ -78,12 +72,14 @@ struct DotenvCli {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // Parse CLI args and env variables
     if let Some(dotenv) = DotenvCli::parse().dotenv {
         dotenvy::from_filename(dotenv)?;
     } else {
         let _ = dotenvy::dotenv();
     }
     let cli = Cli::parse();
+    // Setup filter for the logging
     let filter = if std::env::var("RUST_LOG").is_ok() {
         // If RUST_LOG env is defined we fallback to the default behavior of the env
         // filter.
@@ -96,14 +92,6 @@ async fn main() -> anyhow::Result<()> {
         format!("info,{pkg_name}={0},{crate_name}={0}", cli.log_level).parse()?
     };
     tracing_subscriber::registry().with(tracing_subscriber::fmt::layer()).with(filter).init();
-    let pool = PgPoolOptions::new()
-        .min_connections(cli.min_connections)
-        .max_connections(cli.max_connections)
-        .connect(&cli.database_url)
-        .await
-        .context("Failed constructing database connection pool")?;
-    let cancel_token = CancellationToken::new();
-
     // Handle TLS configuration and set timeouts according to the configuration for
     // every endpoint.
     let endpoints: Vec<v2::Endpoint> = cli
@@ -133,22 +121,36 @@ async fn main() -> anyhow::Result<()> {
                 .connect_timeout(Duration::from_secs(cli.indexer_config.node_connect_timeout)))
         })
         .collect::<anyhow::Result<_>>()?;
-
+    // Open database connection
+    let mut db_connection = sqlx::PgConnection::connect_with(&cli.database_url)
+        .await
+        .context("Failed establishing the database connection")?;
+    // Acquire the indexer lock
+    let database_indexer_lock_timeout =
+        Duration::from_secs(cli.indexer_config.database_indexer_lock_timeout);
+    tokio::time::timeout(
+        database_indexer_lock_timeout,
+        indexer::acquire_indexer_lock(db_connection.as_mut()),
+    )
+    .await
+    .context(
+        "Acquire indexer lock timed out, another instance of ccdscan-indexer might already be \
+         running",
+    )??;
+    // Run migrations if allowed
+    let cancel_token = CancellationToken::new();
     if cli.migrate || cli.migrate_only {
-        let pool = pool.clone();
-        let stop_signal = cancel_token.child_token();
         let endpoints = endpoints.clone();
-        let mut migration_task =
-            tokio::spawn(migrations::run_migrations(pool, endpoints, stop_signal));
+        let migration_task = cancel_token
+            .run_until_cancelled(migrations::run_migrations(&mut db_connection, endpoints));
         tokio::select! {
             _ = tokio::signal::ctrl_c() => {
                 info!("Migrations aborted, shutting down");
                 cancel_token.cancel();
-                let _ = migration_task.await?;
                 return Ok(())
             },
-            result = &mut migration_task => {
-                if let Err(err) = result? {
+            result = migration_task => {
+                if let Err(err) = result.transpose() {
                     return Err(anyhow::format_err!("Migration error: {}", err))
                 }
             }
@@ -157,8 +159,8 @@ async fn main() -> anyhow::Result<()> {
             return Ok(());
         }
     }
-    migrations::ensure_latest_schema_version(&pool).await?;
-
+    migrations::ensure_latest_schema_version(&mut db_connection).await?;
+    // Setup information in the metric registry
     let mut registry = Registry::with_prefix("indexer");
     let service_info_family = Family::<Vec<(&str, String)>, Gauge>::default();
     let gauge =
@@ -174,18 +176,22 @@ async fn main() -> anyhow::Result<()> {
         "Timestamp of starting up the Indexer service (Unix time in milliseconds)",
         prometheus_client::metrics::gauge::ConstGauge::new(chrono::Utc::now().timestamp_millis()),
     );
-
+    // Setup and run the services
     let mut indexer_task = {
-        let pool = pool.clone();
         let stop_signal = cancel_token.child_token();
-        let indexer =
-            indexer::IndexerService::new(endpoints, pool, &mut registry, cli.indexer_config)
-                .await?;
+        let indexer = indexer::IndexerService::new(
+            endpoints,
+            cli.database_url.clone(),
+            db_connection,
+            &mut registry,
+            cli.indexer_config,
+        )
+        .await?;
         tokio::spawn(indexer.run(stop_signal))
     };
     let mut monitoring_task = {
         let health_routes =
-            axum::Router::new().route("/", axum::routing::get(health)).with_state(pool);
+            axum::Router::new().route("/", axum::routing::get(health)).with_state(cli.database_url);
         let tcp_listener = TcpListener::bind(cli.monitoring_listen)
             .await
             .context("Parsing TCP listener address failed")?;
@@ -221,18 +227,29 @@ async fn main() -> anyhow::Result<()> {
 /// GET Handler for route `/health`.
 /// Verifying the indexer service state is as expected.
 async fn health(
-    axum::extract::State(pool): axum::extract::State<sqlx::PgPool>,
+    axum::extract::State(db_connect_options): axum::extract::State<PgConnectOptions>,
 ) -> (StatusCode, Json<serde_json::Value>) {
-    let database_connected = migrations::ensure_latest_schema_version(&pool).await.is_ok();
-    let status_code = if database_connected {
-        StatusCode::OK
+    if check_health(&db_connect_options).await.is_ok() {
+        (
+            StatusCode::OK,
+            Json(json!({
+                "database_status": "connected",
+            })),
+        )
     } else {
-        StatusCode::INTERNAL_SERVER_ERROR
-    };
-    (
-        status_code,
-        Json(json!({
-            "database_status": if database_connected {"connected"} else {"not connected"},
-        })),
-    )
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({
+                "database_status": "not connected",
+            })),
+        )
+    }
+}
+
+/// Function verifying the indexer health, returns Ok if healthy otherwise an
+/// Err.
+async fn check_health(db_connect_options: &PgConnectOptions) -> anyhow::Result<()> {
+    let mut db_connection = sqlx::PgConnection::connect_with(db_connect_options).await?;
+    migrations::ensure_latest_schema_version(&mut db_connection).await?;
+    Ok(())
 }

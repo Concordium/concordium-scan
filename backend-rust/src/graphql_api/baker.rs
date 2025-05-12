@@ -2603,15 +2603,16 @@ impl CurrentBaker {
 
         // Calculating the `leverage_bound_cap`
 
-        #[rustfmt::skip]
         // Transformation applied to the `leverage_bound_cap_for_pool` formula:
         //
+        // ```
         // `leverage_bound_cap_for_pool`
         // = (λ – 1) * Cₚ
         // = (leverage_bound_numerator / leverage_bound_denominator – 1) * Cₚ
         // = (leverage_bound_numerator / leverage_bound_denominator – (leverage_bound_denominator / leverage_bound_denominator)) * Cₚ
         // = (leverage_bound_numerator – leverage_bound_denominator) / leverage_bound_denominator) * Cₚ
         // = (leverage_bound_numerator – leverage_bound_denominator) * Cₚ / leverage_bound_denominator
+        // ```
         //
         // WHERE
         // λ is the leverage bound
@@ -2637,9 +2638,9 @@ impl CurrentBaker {
 
         // Calculating the `capital_bound_cap`
 
-        #[rustfmt::skip]
         // Transformation applied to the `capital_bound_cap_for_pool` formula:
         //
+        // ```
         // `capital_bound_cap_for_pool`
         // = floor( (κ * (T - Dₚ) - Cₚ) / (1 - K) )
         // = floor( (capital_bound/100_000 * (T - Dₚ) - Cₚ) / (1 - capital_bound/100_000) )
@@ -2650,6 +2651,7 @@ impl CurrentBaker {
         // = floor( ((capital_bound / 100_000 * (T - Dₚ) - Cₚ)  / (1 - capital_bound / 100_000)) * (100_000 / 100_000) )
         // = floor( (capital_bound / 100_000 * (T - Dₚ) - Cₚ) * 100_000 / (1 - capital_bound / 100_000) * 100_000) )
         // = floor( (capital_bound * (T - Dₚ) - 100_000 * Cₚ) / (100_000 - capital_bound) )
+        // ```
 
         // WHERE
         // κ is the capital bound
@@ -3162,10 +3164,16 @@ impl<'a> BakerPool<'a> {
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
-    ) -> ApiResult<connection::Connection<DescendingI64, DelegationSummary>> {
+    ) -> ApiResult<
+        connection::Connection<NestedCursor<DescendingI64, DescendingI64>, DelegationSummary>,
+    > {
+        type StakeCursor = DescendingI64;
+        type BakerIdCursor = DescendingI64;
+        type Cursor = NestedCursor<StakeCursor, BakerIdCursor>;
+
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
-        let query = ConnectionQuery::<DescendingI64>::new(
+        let query = ConnectionQuery::<Cursor>::new(
             first,
             after,
             last,
@@ -3181,39 +3189,108 @@ impl<'a> BakerPool<'a> {
                     delegated_restake_earnings as restake_earnings,
                     delegated_stake as staked_amount
                 FROM accounts
-                WHERE delegated_target_baker_id = $5 AND
-                    accounts.index > $2 AND accounts.index < $1
+                WHERE delegated_target_baker_id = $7
+                    AND (
+                        (delegated_stake > $2
+                            AND delegated_stake < $1
+                        )
+                        -- When outer bounds are not equal, filter separate for each inner bound.
+                        OR (
+                            $1 != $2
+                            AND (
+                                -- Start inner bound for page.
+                                (delegated_stake = $1 AND index < $4)
+                                -- End inner bound for page.
+                                OR (delegated_stake = $2 AND index > $3)
+                            )
+                        )
+                        -- When outer bounds are equal, use one filter for both bounds.
+                        OR (
+                            $1 = $2
+                            AND delegated_stake = $1
+                            AND index < $4 AND index > $3
+                        )
+                    )
                 ORDER BY
-                    (CASE WHEN $4 THEN accounts.index END) ASC,
-                    (CASE WHEN NOT $4 THEN accounts.index END) DESC
-                LIMIT $3
+                    (CASE WHEN $6 THEN delegated_stake END) ASC,
+                    (CASE WHEN $6 THEN accounts.index END) ASC,
+                    (CASE WHEN NOT $6 THEN delegated_stake END) DESC,
+                    (CASE WHEN NOT $6 THEN accounts.index END) DESC
+                LIMIT $5
             ) AS delegators
-            ORDER BY delegators.index DESC",
-            i64::from(query.from),
-            i64::from(query.to),
+            ORDER BY delegators.staked_amount DESC, delegators.index DESC",
+            i64::from(query.from.outer),
+            i64::from(query.to.outer),
+            i64::from(query.from.inner),
+            i64::from(query.to.inner),
             query.limit,
             query.is_last,
             self.id
         )
         .fetch(pool);
+
         let mut connection = connection::Connection::new(false, false);
         while let Some(delegator) = row_stream.try_next().await? {
-            connection.edges.push(connection::Edge::new(delegator.index.into(), delegator));
+            let cursor = NestedCursor {
+                outer: delegator.staked_amount.into(),
+                inner: delegator.index.into(),
+            };
+            connection.edges.push(connection::Edge::new(cursor, delegator));
         }
-        if let Some(page_max_index) = connection.edges.first() {
-            if let Some(max_index) = sqlx::query_scalar!(
-                "SELECT MAX(index) FROM accounts WHERE delegated_target_baker_id = $1",
-                self.id
+
+        let (Some(last_item), Some(first_item)) =
+            (connection.edges.last(), connection.edges.first())
+        else {
+            // No items so we just return without updating next/prev page info.
+            return Ok(connection);
+        };
+
+        let collection_ends = sqlx::query!(
+            "WITH
+                starting as (
+                    SELECT
+                        index AS start_index,
+                        delegated_stake AS start_stake
+                    FROM accounts
+                    WHERE
+                        delegated_target_baker_id = $1
+                    ORDER BY
+                        delegated_stake DESC,
+                        index DESC
+                    LIMIT 1
+                ),
+                ending as (
+                    SELECT
+                        index AS end_index,
+                        delegated_stake AS end_stake
+                    FROM accounts
+                    WHERE
+                        delegated_target_baker_id = $1
+                    ORDER BY
+                        delegated_stake ASC,
+                        index ASC
+                    LIMIT 1
+                )
+           SELECT * FROM starting, ending",
+            self.id
+        )
+        .fetch_optional(pool)
+        .await?;
+        let collection_ends = collection_ends.ok_or_else(|| {
+            ApiError::InternalError(
+                "Failed to find collection ends for a non-empty collection".to_string(),
             )
-            .fetch_one(pool)
-            .await?
-            {
-                connection.has_previous_page = max_index > page_max_index.node.index;
-            }
-        }
-        if let Some(edge) = connection.edges.last() {
-            connection.has_next_page = edge.node.index != 0;
-        }
+        })?;
+        let collection_start_cursor = Cursor {
+            outer: collection_ends.start_stake.into(),
+            inner: collection_ends.start_index.into(),
+        };
+        let collection_end_cursor = Cursor {
+            outer: collection_ends.end_stake.into(),
+            inner: collection_ends.end_index.into(),
+        };
+        connection.has_previous_page = collection_start_cursor < first_item.cursor;
+        connection.has_next_page = collection_end_cursor > last_item.cursor;
         Ok(connection)
     }
 

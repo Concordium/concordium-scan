@@ -20,13 +20,31 @@ All notable changes to this project will be documented in this file.
   - `useBlockSubscription`
 - Move account statement export to use `rust-backend` API.
 
+### Added
+
+- Implemented stable coin dashboard with the following sections: Overview, Supply, Holders
+- Implemented stable coin issuer specific dashboard with the following sections: Overview, Holder table, Holder distribution
+- Added environment config `enablePltFeatures` to control stable coin menu display.
+
+## [1.7.14] - 2025-04-30
+
+### Changed
+
+- Generate the graphQL types from the schema of the new Rust backend.
+- The `NodeLink` component requires a `node-id` and `node-name` as input now so that the component can be used with the `NodeStatus` type as well as the `PeerReference` type. 
+- Use the correct `PassiveDelegationSummary` type instead of the `DelegationSummary` type in the `PassiveDelegation` component.
+- Handle the case that the types `selfSuspended`, `inactiveSuspended`, or `primedForSuspension` can be `undefined` in `BakerSuspension` component.
+- Remove the `CisUpdateOperatorEvent` component as only token events are displayed and the `CisUpdateOperatorEvent` is not associated to any token id.
+- Remove the parsed `cis2Event` logs as the events are already displayed in the same component.
+- Rename `TokenEvent` to `Cis2Event`, `ContractsEdge` to `ContractEdge`, and `BakerTransactionRelation` to `InterimTransaction` to align with the new schema.
+- The `lastCumulativeAccountsCreated`, `lastCumulativeTransactionCount`, and `sumRewardAmount` are optional types now and set to 0 if not presen in reward metrics.
+- Extend the type `updateTransactionTypes` with the missing cases `VALIDATOR_SCORE_PARAMETERS_UPDATE`, `GAS_REWARDS_CPV_2_UPDATE`, `MINT_DISTRIBUTION_CPV_1_UPDATE`, `UPDATE_LEVEL_1_KEYS`, and `UPDATE_LEVEL_2_KEYS`.
+
 ## [1.7.13] - 2025-04-14
 
 ### Fixed
 
 - Support `node_statuses` id format of fungy backend when obtaining legacy backend id format in `NodeLink` component
-
-## [1.7.12] - 2025-04-10
 
 ### Fixed
 

@@ -14,6 +14,7 @@ pub mod node_status;
 mod passive_delegation;
 mod reward_metrics;
 mod search_result;
+mod stable_coin;
 mod suspended_validators;
 mod token;
 mod transaction;
@@ -28,11 +29,14 @@ use crate::{
 };
 use anyhow::Context as _;
 use async_graphql::{
-    http::GraphiQLSource, types::connection, ComplexObject, Context, EmptyMutation, Enum,
-    MergedObject, Object, SDLExportOptions, Schema, SimpleObject, Subscription, Union,
+    http::{playground_source, GraphQLPlaygroundConfig, GraphiQLSource},
+    types::connection,
+    ComplexObject, Context, EmptyMutation, Enum, MergedObject, Object, SDLExportOptions, Schema,
+    SimpleObject, Subscription, Union,
 };
 use async_graphql_axum::GraphQLSubscription;
 use block::Block;
+
 use chrono::{Duration, TimeDelta, Utc};
 use concordium_rust_sdk::{
     base::contracts_common::schema::VersionedSchemaError, id::types as sdk_types,
@@ -163,6 +167,7 @@ pub struct Query(
     suspended_validators::QuerySuspendedValidators,
     baker::QueryBaker,
     block::QueryBlocks,
+    stable_coin::QueryStableCoins,
     transaction::QueryTransactions,
     account::QueryAccounts,
     module_reference_event::QueryModuleReferenceEvent,
@@ -180,6 +185,11 @@ pub struct Service {
     schema: Schema<Query, EmptyMutation, Subscription>,
 }
 impl Service {
+    /// Route for posting queries to the GraphQL API.
+    const API_GRAPHQL_ROUTE: &str = "/api/graphql";
+    /// Route for websocket subscriptions of the GraphQL API
+    const WEBSOCKET_GRAPHQL_ROUTE: &str = "/ws/graphql";
+
     pub fn new(
         subscription: Subscription,
         registry: &mut Registry,
@@ -214,21 +224,29 @@ impl Service {
             .allow_headers(Any);
         axum::Router::new()
             .route("/", axum::routing::get(Self::graphiql))
+            .route("/playground", axum::routing::get(Self::playground))
             .route(
-                "/api/graphql",
+                Self::API_GRAPHQL_ROUTE,
                 axum::routing::post_service(async_graphql_axum::GraphQL::new(self.schema.clone())),
             )
-            .route_service("/ws/graphql", GraphQLSubscription::new(self.schema))
+            .route_service(Self::WEBSOCKET_GRAPHQL_ROUTE, GraphQLSubscription::new(self.schema))
             .layer(cors_layer)
     }
 
     async fn graphiql() -> impl axum::response::IntoResponse {
         axum::response::Html(
             GraphiQLSource::build()
-                .endpoint("/api/graphql")
-                .subscription_endpoint("/ws/graphql")
+                .endpoint(Self::API_GRAPHQL_ROUTE)
+                .subscription_endpoint(Self::WEBSOCKET_GRAPHQL_ROUTE)
                 .finish(),
         )
+    }
+
+    async fn playground() -> impl axum::response::IntoResponse {
+        axum::response::Html(playground_source(
+            GraphQLPlaygroundConfig::new(Self::API_GRAPHQL_ROUTE)
+                .subscription_endpoint(Self::WEBSOCKET_GRAPHQL_ROUTE),
+        ))
     }
 }
 

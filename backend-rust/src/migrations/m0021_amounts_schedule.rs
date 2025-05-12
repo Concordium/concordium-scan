@@ -1,4 +1,4 @@
-use super::{SchemaVersion, Transaction};
+use super::SchemaVersion;
 use crate::transaction_event::events_from_summary;
 use anyhow::Context;
 use async_graphql::futures_util::StreamExt;
@@ -13,7 +13,7 @@ use concordium_rust_sdk::{
 /// Performs a migration that alters the events of transactions being a transfer
 /// with schedule
 pub async fn run(
-    tx: &mut Transaction,
+    tx: &mut sqlx::PgTransaction<'_>,
     endpoints: &[v2::Endpoint],
     next_schema_version: SchemaVersion,
 ) -> anyhow::Result<SchemaVersion> {

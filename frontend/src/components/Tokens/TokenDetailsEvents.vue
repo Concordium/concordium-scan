@@ -7,7 +7,7 @@
 		</TableRow>
 	</TableHead>
 	<TableBody>
-		<TableRow v-for="(tokenEvent, i) in tokenEvents" :key="tokenEvent.id">
+		<TableRow v-for="(tokenEvent, i) in tokenEvents" :key="tokenEvent.tokenId">
 			<TableTd>
 				<TransactionLink :hash="tokenEvent.transaction!.transactionHash" />
 			</TableTd>
@@ -51,16 +51,6 @@
 						:symbol="symbol"
 					/>
 				</DetailsView>
-				<DetailsView
-					v-if="tokenEvent.event.__typename === 'CisUpdateOperatorEvent'"
-					:id="i"
-				>
-					<CisUpdateOperatorEventDetails
-						:event="tokenEvent.event"
-						:decimals="decimals"
-						:symbol="symbol"
-					/>
-				</DetailsView>
 			</TableTd>
 		</TableRow>
 	</TableBody>
@@ -71,12 +61,11 @@ import DetailsView from '../Details/DetailsView.vue'
 import CisTokenMetadataEventDetails from './Events/CisTokenMetadataEventDetails.vue'
 import CisBurnEventDetails from './Events/CisBurnEventDetails.vue'
 import CisMintEventDetails from './Events/CisMintEventDetails.vue'
-import CisUpdateOperatorEventDetails from './Events/CisUpdateOperatorEventDetails.vue'
 import CisTransferEventDetails from './Events/CisTransferEventDetails.vue'
-import type { TokenEvent } from '~~/src/types/generated'
+import type { Cis2Event } from '~~/src/types/generated'
 
 type Props = {
-	tokenEvents: TokenEvent[]
+	tokenEvents: Cis2Event[]
 	decimals?: number | undefined
 	symbol?: string | undefined
 }

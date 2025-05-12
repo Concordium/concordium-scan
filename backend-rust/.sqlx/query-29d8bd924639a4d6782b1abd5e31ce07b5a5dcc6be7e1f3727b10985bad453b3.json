@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT MAX(change_seq) as first_cursor, MIN(change_seq) as last_cursor\n                    FROM account_tokens\n                    WHERE account_tokens.balance != 0\n                        AND account_tokens.account_index = $1\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "first_cursor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "last_cursor",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "29d8bd924639a4d6782b1abd5e31ce07b5a5dcc6be7e1f3727b10985bad453b3"
+}

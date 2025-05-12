@@ -4,6 +4,51 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Removed
+
+- Remove pool related options from `ccdscan-indexer`, that is `--min-connections` (env `CCDSCAN_INDEXER_DATABASE_MIN_CONNECTIONS`) and `--max-connections` (env `CCDSCAN_INDEXER_DATABASE_MAX_CONNECTIONS`).
+
+### Fixed
+
+- Fix issue in `Account::tokens` showing the last page first and mismatching page information.
+- Fix edge case for `BakerPool::delegators` and `PassiveDelegation::delegators` when the outer sorting (delegated stake) are equal for the page bounds, the inner sorting (account index) got ignored.
+- Fix missing node `ema` and `emsd` values reported by the node collector backend.
+- Fix performance issue in `Query::transactionMetrics`.
+- Fix the rewards query to search correct from and to values - originally was incorrect was searching from the to value and to the from value.
+- Fix the account metrics query to provide the right max index when searching for accounts created.
+
+### Added
+
+- Introduce lock preventing multiple instances of `ccdscan-indexer` from indexing at the same time. The process will wait for the lock otherwise exit with an error. The wait duration defaults to 5 seconds and can be configured using `--database-indexer-lock-timeout` (env `CCDSCAN_INDEXER_CONFIG_DATABASE_INDEXER_LOCK_TIMEOUT`).
+- Balance statistics api: added the deprecated `TotalAmounUnlocked` parameter for backwards compatability with comments that it will be removed in a future release. `TotalAmountUnlocked` is now the preferred parameter for this api.
+- Add `/playground` endpoint for `ccdscan-api` for access to GraphQL Playground IDE.
+- Add monitoring metric `api_rest_request_duration_seconds` tracking response status code and response duration time for requests for the public REST API.
+
+### Changed
+
+- The `ccdscan-indexer` binary no longer uses a database pool, reducing the overhead and number of connections to the database.
+- A dummy server for plt support and which new queries are now exposed at the backend (Will be removed later).
+
+## [0.1.51] - 2025-04-30
+
+### Changed
+
+- Rename `AccountMetrics` to `AccountsMetrics` for backwards compatibility with the old dotnet backend.
+- `Token::token_events` returns the `Cis2Token` event directly now instead of wrapping it into an option.
+
+## [0.1.50] - 2025-04-28
+
+Modifying search key on the following tables to all be using `text_pattern_ops` because it is faster when using prefix searches only
+- `accounts`
+- `blocks`
+- `tokens`
+
+## [0.1.49] - 2025-04-28
+
+- Bump lock file to reflect new SDK version
+
+## [0.1.48] - 2025-04-28
+
 ### Added
 
 - Add `SearchResult::node_statuses`.
@@ -23,6 +68,7 @@ All notable changes to this project will be documented in this file.
 - Fix account transaction altering index to be account index first
 - Fix account transactions queries to be using WHERE instead of join
 - Fix baker transactions pagination
+- Fix baker delegation pagination to be sorted by stake as primary instead of using account index.
 
 ## [0.1.47]
 

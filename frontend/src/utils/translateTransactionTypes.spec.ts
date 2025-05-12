@@ -1,11 +1,11 @@
 import { translateTransactionType } from './translateTransactionTypes'
 import type {
+	CredentialDeploymentTransactionType,
+	UpdateTransactionType,
 	AccountTransaction,
 	AccountTransactionType,
 	UpdateTransaction,
-	UpdateTransactionType,
 	CredentialDeploymentTransaction,
-	CredentialDeploymentTransactionType,
 } from '~/types/generated'
 
 describe('translateTransactionTypes', () => {
@@ -77,16 +77,6 @@ describe('translateTransactionTypes', () => {
 				'Unknown update transaction'
 			)
 		})
-
-		it('should have a fallback for a missing update transaction type', () => {
-			const transactionType: UpdateTransaction = {
-				__typename: 'UpdateTransaction',
-			}
-
-			expect(translateTransactionType(transactionType)).toBe(
-				'Unknown update transaction'
-			)
-		})
 	})
 
 	describe('credential deployment transactions', () => {
@@ -107,16 +97,6 @@ describe('translateTransactionTypes', () => {
 				__typename: 'CredentialDeploymentTransaction',
 				// @ts-expect-error : test for fallback
 				credentialDeploymentTransactionType: 'KITTEN_DEPLOYMENT',
-			}
-
-			expect(translateTransactionType(transactionType)).toBe(
-				'Unknown credential deployment'
-			)
-		})
-
-		it('should have a fallback for an missing credential deployment transaction type', () => {
-			const transactionType: CredentialDeploymentTransaction = {
-				__typename: 'CredentialDeploymentTransaction',
 			}
 
 			expect(translateTransactionType(transactionType)).toBe(

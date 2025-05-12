@@ -15,7 +15,7 @@
 	<TableBody>
 		<TableRow
 			v-for="linkEvent in linkEvents"
-			:key="linkEvent.transactionHash + linkEvent.moduleReference"
+			:key="linkEvent.transactionHash + linkEvent.contractAddress"
 		>
 			<TableTd class="numerical">
 				<TransactionLink :hash="linkEvent.transactionHash" />
