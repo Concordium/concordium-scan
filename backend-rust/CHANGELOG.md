@@ -19,6 +19,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Introduce lock preventing multiple instances of `ccdscan-indexer` from indexing at the same time. The process will wait for the lock otherwise exit with an error. The wait duration defaults to 5 seconds and can be configured using `--database-indexer-lock-timeout` (env `CCDSCAN_INDEXER_CONFIG_DATABASE_INDEXER_LOCK_TIMEOUT`).
 - Balance statistics api: added the deprecated `TotalAmounUnlocked` parameter for backwards compatability with comments that it will be removed in a future release. `TotalAmountUnlocked` is now the preferred parameter for this api.
 - Add `/playground` endpoint for `ccdscan-api` for access to GraphQL Playground IDE.
 - Add monitoring metric `api_rest_request_duration_seconds` tracking response status code and response duration time for requests for the public REST API.

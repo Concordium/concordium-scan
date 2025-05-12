@@ -26,7 +26,7 @@ If the new version of the services introduced a new database schema that is `des
 
 The indexer talks to a Concordium node in order to gather data about the chain, which it then inserts into a PostgreSQL database.
 Note that the connected Concordium node needs to be caught-up to protocol 7 or above.
-Note that only one instance of the indexer may run at any one time, as multiple instances would conflict with each other.
+Note that the indexer uses a PostgreSQL advisory lock to ensure only one instance is running migrations and/or indexing at any one time, as multiple instances would conflict with each other.
 
 ### Configuring
 
