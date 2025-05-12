@@ -57,5 +57,5 @@ const allRoutes: Route[] = [
 // Now, filter it based on env
 const routes = enablePltFeatures
 	? allRoutes
-	: allRoutes.filter(route => route.title !== 'Stable Coin')
+	: allRoutes.filter(route => route.title !== 'Protocol-Level Tokens')
 </script>
