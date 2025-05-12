@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+Database schema version: 33
+
 ### Removed
 
 - Remove pool related options from `ccdscan-indexer`, that is `--min-connections` (env `CCDSCAN_INDEXER_DATABASE_MIN_CONNECTIONS`) and `--max-connections` (env `CCDSCAN_INDEXER_DATABASE_MAX_CONNECTIONS`).
@@ -19,6 +21,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Add partial contract index search to the query `SearchResult::contracts`.
+- Add database migration 33 to add a column `index_text` to the `contracts` table. An index is added over that column to support partial contract index searches.
 - Introduce lock preventing multiple instances of `ccdscan-indexer` from indexing at the same time. The process will wait for the lock otherwise exit with an error. The wait duration defaults to 5 seconds and can be configured using `--database-indexer-lock-timeout` (env `CCDSCAN_INDEXER_CONFIG_DATABASE_INDEXER_LOCK_TIMEOUT`).
 - Balance statistics api: added the deprecated `TotalAmounUnlocked` parameter for backwards compatability with comments that it will be removed in a future release. `TotalAmountUnlocked` is now the preferred parameter for this api.
 - Add `/playground` endpoint for `ccdscan-api` for access to GraphQL Playground IDE.

@@ -79,7 +79,8 @@ impl SearchResult {
                     JOIN blocks ON transactions.block_height = blocks.height
                     JOIN accounts ON transactions.sender_index = accounts.index
                 WHERE 
-                    contracts.index = $5 AND
+                    contracts.index = $5 OR 
+                    starts_with(contracts.index_text, $6) AND      
                     contracts.index > $1 AND 
                     contracts.index < $2
                 ORDER BY
@@ -88,11 +89,12 @@ impl SearchResult {
                 LIMIT $3
             ) AS contract_data
             ORDER BY contract_data.index DESC",
-            i64::from(query.from),
-            i64::from(query.to),
-            query.limit,
-            query.is_last,
-            lower_case_query.parse::<i64>().ok(),
+            i64::from(query.from),                // $1
+            i64::from(query.to),                  // $2
+            query.limit,                          // $3
+            query.is_last,                        // $4
+            lower_case_query.parse::<i64>().ok(), // $5
+            lower_case_query                      // $6
         )
         .fetch(pool);
 
@@ -141,9 +143,12 @@ impl SearchResult {
                 "
                     SELECT MAX(index) as db_max_index, MIN(index) as db_min_index
                     FROM contracts
-                    WHERE contracts.index = $1
+                    WHERE 
+                        contracts.index = $1 OR 
+                        starts_with(contracts.index_text, $2)
                 ",
-                lower_case_query.parse::<i64>().ok()
+                lower_case_query.parse::<i64>().ok(), // $1
+                lower_case_query                      // $2
             )
             .fetch_one(pool)
             .await?;
