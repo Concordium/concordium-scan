@@ -1,0 +1,47 @@
+name: Check generated GraphQL client
+
+on:
+  push:
+    branches: main
+    paths:
+        - backend-rust/schema.graphql
+        - frontend/src/types/generated.ts
+        - .github/**
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+    branches: [ main ]
+    paths:
+        - backend-rust/schema.graphql
+        - frontend/src/types/generated.ts
+        - .github/**
+env:
+  NODE_VERSION: "18.18.2"
+
+jobs:
+  check:
+    name: Generate and compare the generated GraphQL client
+    # Don't run on draft pull requests
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+          cache-dependency-path: frontend/yarn.lock
+      - name: Install deps
+        run: yarn install --frozen-lockfile --immutable
+      - name: Backup the current generated
+        run: cp src/types/generated.ts $RUNNER_TEMP/current.ts
+      - name: Generate the client
+        run: yarn gql-codegen
+      - name: Compare the generated with the committed client code
+        # Diff the files ignoring any difference in comments
+        run: diff $RUNNER_TEMP/current.ts src/types/generated.ts --ignore-matching-lines '^\s*[\/*]'
