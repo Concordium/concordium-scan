@@ -16,7 +16,6 @@ const VersionsQuery = gql<VersionsResponse>`
 
 export const useVersionsQuery = () => {
 	const { data } = useQuery({
-		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: VersionsQuery,
 		requestPolicy: 'cache-and-network',
 	})

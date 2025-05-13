@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Move remaining queries to use the new `rust-backend` API.
+  - `useSearchQuery`
+  - `usePassiveDelegationPoolRewardMetrics`
+  - `useBakerTransactionsQuery`
+  - `useBakerRewardsQuery`
+  - `useBakerDelegatorsQuery`
+  - `useAccountsMetricsQuery`
+  - `useAccountRewardMetricsQuery`
+  - `useAccountQuery`
+  - `useAccountsListQuery`
+  - `useAccountsUpdatedSubscription`
+  - `useBlockSubscription`
+- Move account statement export to use `rust-backend` API.
+
 ### Added
 
 - Implemented stable coin dashboard with the following sections: Overview, Supply, Holders
@@ -23,7 +39,6 @@ All notable changes to this project will be documented in this file.
 - Rename `TokenEvent` to `Cis2Event`, `ContractsEdge` to `ContractEdge`, and `BakerTransactionRelation` to `InterimTransaction` to align with the new schema.
 - The `lastCumulativeAccountsCreated`, `lastCumulativeTransactionCount`, and `sumRewardAmount` are optional types now and set to 0 if not presen in reward metrics.
 - Extend the type `updateTransactionTypes` with the missing cases `VALIDATOR_SCORE_PARAMETERS_UPDATE`, `GAS_REWARDS_CPV_2_UPDATE`, `MINT_DISTRIBUTION_CPV_1_UPDATE`, `UPDATE_LEVEL_1_KEYS`, and `UPDATE_LEVEL_2_KEYS`.
-
 
 ## [1.7.13] - 2025-04-14
 
