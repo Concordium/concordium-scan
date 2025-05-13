@@ -1,6 +1,6 @@
 use crate::{
     address::{Address, ContractAddress},
-    graphql_api::{get_pool, ApiError, ApiResult},
+    graphql_api::{get_pool, ApiError, ApiResult, InternalError},
     scalar_types::Amount,
 };
 use async_graphql::{connection, ComplexObject, Context, Enum, SimpleObject};
@@ -94,7 +94,7 @@ impl ContractInitialized {
         // Get the init param schema if it exists.
         let opt_init_param_schema = if let Some(schema) = row.display_schema.as_ref() {
             let versioned_schema = VersionedModuleSchema::new(schema, &None).map_err(|_| {
-                ApiError::InternalError(
+                InternalError::InternalError(
                     "Database bytes should be a valid VersionedModuleSchema".to_string(),
                 )
             })?;
@@ -151,7 +151,7 @@ impl ContractInitialized {
         // Get the event schema if it exists.
         let opt_event_schema = if let Some(schema) = row.display_schema.as_ref() {
             let versioned_schema = VersionedModuleSchema::new(schema, &None).map_err(|_| {
-                ApiError::InternalError(
+                InternalError::InternalError(
                     "Database bytes should be a valid VersionedModuleSchema".to_string(),
                 )
             })?;
@@ -221,7 +221,7 @@ impl ContractUpdated {
         // Get the receive param schema if it exists.
         let opt_receive_param_schema = if let Some(schema) = row.display_schema.as_ref() {
             let versioned_schema = VersionedModuleSchema::new(schema, &None).map_err(|_| {
-                ApiError::InternalError(
+                InternalError::InternalError(
                     "Database bytes should be a valid VersionedModuleSchema".to_string(),
                 )
             })?;
@@ -283,7 +283,7 @@ impl ContractUpdated {
         // Get the event schema if it exists.
         let opt_event_schema = if let Some(schema) = row.display_schema.as_ref() {
             let versioned_schema = VersionedModuleSchema::new(schema, &None).map_err(|_| {
-                ApiError::InternalError(
+                InternalError::InternalError(
                     "Database bytes should be a valid VersionedModuleSchema".to_string(),
                 )
             })?;
@@ -364,7 +364,7 @@ impl ContractInterrupted {
         // Get the event schema if it exists.
         let opt_event_schema = if let Some(schema) = row.display_schema.as_ref() {
             let versioned_schema = VersionedModuleSchema::new(schema, &None).map_err(|_| {
-                ApiError::InternalError(
+                InternalError::InternalError(
                     "Database bytes should be a valid VersionedModuleSchema".to_string(),
                 )
             })?;
@@ -465,7 +465,7 @@ fn decode_value_with_schema(
     opt_schema: Option<&Type>,
     value: &[u8],
     schema_name: SmartContractSchemaNames,
-) -> Result<String, ApiError> {
+) -> ApiResult<String> {
     let Some(schema) = opt_schema else {
         // Note: There could be something better displayed than this string if no schema
         // is available for decoding at the frontend long-term.
@@ -475,7 +475,9 @@ fn decode_value_with_schema(
                 schema_name.kind()
             ),
         })
-        .map_err(|_| ApiError::InternalError("Should be valid error string".to_string()));
+        .map_err(|_| {
+            InternalError::InternalError("Should be valid error string".to_string()).into()
+        });
     };
 
     let mut cursor = Cursor::new(&value);
@@ -501,7 +503,7 @@ fn decode_value_with_schema(
                         ),
                     })
                     .map_err(|_| {
-                        ApiError::InternalError("Should be valid error string".to_string())
+                        InternalError::InternalError("Should be valid error string".to_string())
                     })?)
                 }
             }
@@ -522,7 +524,9 @@ fn decode_value_with_schema(
                     e.display(true)
                 ),
             })
-            .map_err(|_| ApiError::InternalError("Should be valid error string".to_string()))?)
+            .map_err(|_| {
+                InternalError::InternalError("Should be valid error string".to_string())
+            })?)
         }
     }
 }

@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+Database schema version: 33
+
 ### Removed
 
 - Remove pool related options from `ccdscan-indexer`, that is `--min-connections` (env `CCDSCAN_INDEXER_DATABASE_MIN_CONNECTIONS`) and `--max-connections` (env `CCDSCAN_INDEXER_DATABASE_MAX_CONNECTIONS`).
@@ -15,9 +17,12 @@ All notable changes to this project will be documented in this file.
 - Fix missing node `ema` and `emsd` values reported by the node collector backend.
 - Fix performance issue in `Query::transactionMetrics`.
 - Fix the rewards query to search correct from and to values - originally was incorrect was searching from the to value and to the from value.
+- Fix the account metrics query to provide the right max index when searching for accounts created.
 
 ### Added
 
+- Add partial contract index search to the query `SearchResult::contracts`.
+- Add database migration 33 to add a column `index_text` to the `contracts` table. An index is added over that column to support partial contract index searches.
 - Introduce lock preventing multiple instances of `ccdscan-indexer` from indexing at the same time. The process will wait for the lock otherwise exit with an error. The wait duration defaults to 5 seconds and can be configured using `--database-indexer-lock-timeout` (env `CCDSCAN_INDEXER_CONFIG_DATABASE_INDEXER_LOCK_TIMEOUT`).
 - Balance statistics api: added the deprecated `TotalAmounUnlocked` parameter for backwards compatability with comments that it will be removed in a future release. `TotalAmountUnlocked` is now the preferred parameter for this api.
 - Add `/playground` endpoint for `ccdscan-api` for access to GraphQL Playground IDE.
@@ -25,7 +30,9 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+
 - Passing `--schema-out <file>` option to the `ccdscan-api` binary no longer requires any other options such as the database URL to be set.
+- Hide internal errors from the `ccdscan-api` GraphQL API response and produced an ERROR level log message instead.
 - The `ccdscan-indexer` binary no longer uses a database pool, reducing the overhead and number of connections to the database.
 - A dummy server for plt support and which new queries are now exposed at the backend (Will be removed later).
 

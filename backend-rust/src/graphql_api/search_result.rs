@@ -6,7 +6,7 @@ use super::{
     module_reference_event::ModuleReferenceEvent,
     node_status::NodeInfoReceiver,
     token::Token,
-    ApiError, ApiResult, ConnectionQuery,
+    ApiResult, ConnectionQuery, InternalError,
 };
 use crate::{
     connection::{connection_from_slice, DescendingI64, NestedCursor},
@@ -46,7 +46,7 @@ impl SearchResult {
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, contract::Contract>> {
         let contract_index_regex: Regex = Regex::new("^[0-9]+$")
-            .map_err(|e| ApiError::InternalError(format!("Invalid regex: {}", e)))?;
+            .map_err(|e| InternalError::InternalError(format!("Invalid regex: {}", e)))?;
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
         let query = ConnectionQuery::<i64>::new(
@@ -79,7 +79,8 @@ impl SearchResult {
                     JOIN blocks ON transactions.block_height = blocks.height
                     JOIN accounts ON transactions.sender_index = accounts.index
                 WHERE 
-                    contracts.index = $5 AND
+                    contracts.index = $5 OR 
+                    starts_with(contracts.index_text, $6) AND      
                     contracts.index > $1 AND 
                     contracts.index < $2
                 ORDER BY
@@ -88,22 +89,23 @@ impl SearchResult {
                 LIMIT $3
             ) AS contract_data
             ORDER BY contract_data.index DESC",
-            i64::from(query.from),
-            i64::from(query.to),
-            query.limit,
-            query.is_last,
-            lower_case_query.parse::<i64>().ok(),
+            i64::from(query.from),                // $1
+            i64::from(query.to),                  // $2
+            query.limit,                          // $3
+            query.is_last,                        // $4
+            lower_case_query.parse::<i64>().ok(), // $5
+            lower_case_query                      // $6
         )
         .fetch(pool);
 
         while let Some(row) = row_stream.try_next().await? {
             let contract_address_index =
                 row.index.try_into().map_err(|e: <u64 as TryFrom<i64>>::Error| {
-                    ApiError::InternalError(e.to_string())
+                    InternalError::InternalError(e.to_string())
                 })?;
             let contract_address_sub_index =
                 row.sub_index.try_into().map_err(|e: <u64 as TryFrom<i64>>::Error| {
-                    ApiError::InternalError(e.to_string())
+                    InternalError::InternalError(e.to_string())
                 })?;
 
             let snapshot = ContractSnapshot {
@@ -141,20 +143,23 @@ impl SearchResult {
                 "
                     SELECT MAX(index) as db_max_index, MIN(index) as db_min_index
                     FROM contracts
-                    WHERE contracts.index = $1
+                    WHERE 
+                        contracts.index = $1 OR 
+                        starts_with(contracts.index_text, $2)
                 ",
-                lower_case_query.parse::<i64>().ok()
+                lower_case_query.parse::<i64>().ok(), // $1
+                lower_case_query                      // $2
             )
             .fetch_one(pool)
             .await?;
 
             let page_max: i64 =
                 page_max_id.node.contract_address_index.0.try_into().map_err(|e| {
-                    ApiError::InternalError(format!("A contract index is too large: {}", e))
+                    InternalError::InternalError(format!("A contract index is too large: {}", e))
                 })?;
             let page_min: i64 =
                 page_min_id.node.contract_address_index.0.try_into().map_err(|e| {
-                    ApiError::InternalError(format!("A contract index is too large: {}", e))
+                    InternalError::InternalError(format!("A contract index is too large: {}", e))
                 })?;
 
             connection.has_previous_page =
@@ -179,7 +184,7 @@ impl SearchResult {
         let mut connection = connection::Connection::new(false, false);
 
         let module_hash_regex: Regex = Regex::new(r"^[a-fA-F0-9]{1,64}$")
-            .map_err(|_| ApiError::InternalError("Invalid regex".to_string()))?;
+            .map_err(|_| InternalError::InternalError("Invalid regex".to_string()))?;
         if !module_hash_regex.is_match(&self.query) {
             return Ok(connection);
         }
@@ -366,7 +371,7 @@ impl SearchResult {
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Block>> {
         let block_hash_regex: Regex = Regex::new(r"^[a-fA-F0-9]{1,64}$")
-            .map_err(|_| ApiError::InternalError("Invalid regex".to_string()))?;
+            .map_err(|_| InternalError::InternalError("Invalid regex".to_string()))?;
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
         let query =
@@ -447,7 +452,7 @@ impl SearchResult {
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Transaction>> {
         let transaction_hash_regex: Regex = Regex::new(r"^[a-fA-F0-9]{1,64}$")
-            .map_err(|_| ApiError::InternalError("Invalid regex".to_string()))?;
+            .map_err(|_| InternalError::InternalError("Invalid regex".to_string()))?;
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
         let query = ConnectionQuery::<DescendingI64>::new(
@@ -527,7 +532,7 @@ impl SearchResult {
     ) -> ApiResult<connection::Connection<String, Token>> {
         // Base58 characters
         let token_address_regex: Regex = Regex::new(r"^[1-9A-HJ-NP-Za-km-z]+$")
-            .map_err(|_| ApiError::InternalError("Invalid regex".to_string()))?;
+            .map_err(|_| InternalError::InternalError("Invalid regex".to_string()))?;
 
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
@@ -606,7 +611,7 @@ impl SearchResult {
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Account>> {
         let account_address_regex: Regex = Regex::new(r"^[1-9A-HJ-NP-Za-km-z]{1,50}$")
-            .map_err(|_| ApiError::InternalError("Invalid regex".to_string()))?;
+            .map_err(|_| InternalError::InternalError("Invalid regex".to_string()))?;
         let pool = get_pool(ctx)?;
         let query = ConnectionQuery::<i64>::new(first, after, last, before, 10)?;
         let mut connection = connection::Connection::new(false, false);
@@ -709,7 +714,7 @@ impl SearchResult {
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, baker::Baker>> {
         let baker_index_regex: Regex = Regex::new("^[0-9]+$")
-            .map_err(|e| ApiError::InternalError(format!("Invalid regex: {}", e)))?;
+            .map_err(|e| InternalError::InternalError(format!("Invalid regex: {}", e)))?;
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
         let query =
@@ -811,11 +816,13 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, NodeStatus>> {
-        let handler = ctx.data::<NodeInfoReceiver>().map_err(ApiError::NoReceiver)?;
+        let handler = ctx.data::<NodeInfoReceiver>().map_err(InternalError::NoReceiver)?;
         let statuses = if let Some(statuses) = handler.borrow().clone() {
             statuses
         } else {
-            Err(ApiError::InternalError("Node collector backend has not responded".to_string()))?
+            Err(InternalError::InternalError(
+                "Node collector backend has not responded".to_string(),
+            ))?
         };
 
         let nodes: Vec<NodeStatus> = statuses

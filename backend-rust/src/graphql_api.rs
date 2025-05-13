@@ -200,6 +200,7 @@ impl Service {
         let schema = Schema::build(Query::default(), EmptyMutation, subscription)
             .extension(async_graphql::extensions::Tracing)
             .extension(monitor::MonitorExtension::new(registry))
+            .extension(logging::LoggingExtension)
             .data(receiver)
             .data(pool)
             .data(config)
@@ -247,6 +248,42 @@ impl Service {
             GraphQLPlaygroundConfig::new(Self::API_GRAPHQL_ROUTE)
                 .subscription_endpoint(Self::WEBSOCKET_GRAPHQL_ROUTE),
         ))
+    }
+}
+
+/// Module containing types and logic for building an async_graphql extension
+/// which captures internal errors and logs them.
+mod logging {
+    use super::ApiError;
+    use async_graphql::async_trait::async_trait;
+    use std::sync::Arc;
+
+    /// Log details for internal errors at ERROR level
+    #[derive(Debug, Clone)]
+    pub struct LoggingExtension;
+
+    impl async_graphql::extensions::ExtensionFactory for LoggingExtension {
+        fn create(&self) -> Arc<dyn async_graphql::extensions::Extension> { Arc::new(self.clone()) }
+    }
+    #[async_trait]
+    impl async_graphql::extensions::Extension for LoggingExtension {
+        async fn execute(
+            &self,
+            ctx: &async_graphql::extensions::ExtensionContext<'_>,
+            operation_name: Option<&str>,
+            next: async_graphql::extensions::NextExecute<'_>,
+        ) -> async_graphql::Response {
+            let response = next.run(ctx, operation_name).await;
+            let api_errors = response.errors.iter().filter_map(|err| {
+                err.source.as_ref().and_then(|source| source.downcast_ref::<ApiError>())
+            });
+            for err in api_errors {
+                if let ApiError::InternalServerError(internal_error) = err {
+                    tracing::error!("{}", internal_error);
+                }
+            }
+            response
+        }
     }
 }
 
@@ -392,6 +429,24 @@ mod monitor {
     }
 }
 
+/// Internal server error, whenever this is produced by the API an error log is
+/// produced. The user facing error will only be "Internal server error".
+#[derive(Debug, thiserror::Error, Clone)]
+pub enum InternalError {
+    #[error("Internal error (NoDatabasePool): {}", .0.message)]
+    NoDatabasePool(async_graphql::Error),
+    #[error("Internal error (NoServiceConfig): {}", .0.message)]
+    NoServiceConfig(async_graphql::Error),
+    #[error("Internal error: {}", .0.message)]
+    NoReceiver(async_graphql::Error),
+    #[error("Internal error (FailedDatabaseQuery): {0}")]
+    FailedDatabaseQuery(Arc<sqlx::Error>),
+    #[error("Internal error: Schema in database should be a valid versioned module schema")]
+    InvalidVersionedModuleSchema(#[from] VersionedSchemaError),
+    #[error("Internal error: {0}")]
+    InternalError(String),
+}
+
 /// All the errors that may be produced by the GraphQL API.
 ///
 /// Note that `async_graphql` requires this to be `Clone`, as it is used as a
@@ -401,14 +456,6 @@ mod monitor {
 pub enum ApiError {
     #[error("Could not find resource")]
     NotFound,
-    #[error("Internal error (NoDatabasePool): {}", .0.message)]
-    NoDatabasePool(async_graphql::Error),
-    #[error("Internal error (NoServiceConfig): {}", .0.message)]
-    NoServiceConfig(async_graphql::Error),
-    #[error("Internal error: {}", .0.message)]
-    NoReceiver(async_graphql::Error),
-    #[error("Internal error (FailedDatabaseQuery): {0}")]
-    FailedDatabaseQuery(Arc<sqlx::Error>),
     #[error("Invalid ID format: {0}")]
     InvalidIdInt(std::num::ParseIntError),
     #[error("Invalid cursor format: {0}")]
@@ -417,32 +464,38 @@ pub enum ApiError {
     DurationOutOfRange(Arc<Box<dyn Error + Send + Sync>>),
     #[error("The \"first\" and \"last\" parameters cannot exist at the same time")]
     QueryConnectionFirstLast,
-    #[error("Internal error: {0}")]
-    InternalError(String),
+    #[error("Internal server error")]
+    InternalServerError(#[from] InternalError),
     #[error("Invalid integer: {0}")]
     InvalidInt(#[from] std::num::TryFromIntError),
     #[error("Invalid integer: {0}")]
     InvalidIntString(#[from] std::num::ParseIntError),
     #[error("Parse error: {0}")]
     InvalidContractVersion(#[from] InvalidContractVersionError),
-    #[error("Schema in database should be a valid versioned module schema")]
-    InvalidVersionedModuleSchema(#[from] VersionedSchemaError),
+}
+
+impl From<sqlx::Error> for InternalError {
+    fn from(value: sqlx::Error) -> Self { InternalError::FailedDatabaseQuery(Arc::new(value)) }
 }
 
 impl From<sqlx::Error> for ApiError {
-    fn from(value: sqlx::Error) -> Self { ApiError::FailedDatabaseQuery(Arc::new(value)) }
+    fn from(value: sqlx::Error) -> Self { InternalError::from(value).into() }
+}
+
+impl From<VersionedSchemaError> for ApiError {
+    fn from(value: VersionedSchemaError) -> Self { InternalError::from(value).into() }
 }
 
 pub type ApiResult<A> = Result<A, ApiError>;
 
 /// Get the database pool from the context.
 pub fn get_pool<'a>(ctx: &Context<'a>) -> ApiResult<&'a PgPool> {
-    ctx.data::<PgPool>().map_err(ApiError::NoDatabasePool)
+    ctx.data::<PgPool>().map_err(|err| InternalError::NoDatabasePool(err).into())
 }
 
 /// Get service configuration from the context.
 pub fn get_config<'a>(ctx: &Context<'a>) -> ApiResult<&'a ApiServiceConfig> {
-    let config = ctx.data::<Arc<ApiServiceConfig>>().map_err(ApiError::NoServiceConfig)?;
+    let config = ctx.data::<Arc<ApiServiceConfig>>().map_err(InternalError::NoServiceConfig)?;
     Ok(config.as_ref())
 }
 
@@ -457,7 +510,7 @@ impl BaseQuery {
             backend_version: VERSION.to_string(),
             database_schema_version: current_schema_version(get_pool(ctx)?)
                 .await
-                .map_err(|e| ApiError::InternalError(e.to_string()))?
+                .map_err(|e| InternalError::InternalError(e.to_string()))?
                 .to_string(),
             api_supported_database_schema_version: SchemaVersion::API_SUPPORTED_SCHEMA_VERSION
                 .to_string(),
@@ -473,7 +526,7 @@ impl BaseQuery {
 
         Ok(ImportState {
             epoch_duration: TimeSpan(
-                Duration::try_milliseconds(epoch_duration).ok_or(ApiError::InternalError(
+                Duration::try_milliseconds(epoch_duration).ok_or(InternalError::InternalError(
                     "Epoch duration (epoch_duration) in the database should be a valid duration \
                      in milliseconds."
                         .to_string(),
@@ -521,7 +574,9 @@ impl BaseQuery {
         let next_payday_time = row
             .last_payday_block_slot_time
             .checked_add_signed(TimeDelta::milliseconds(payday_duration_milli_seconds))
-            .ok_or(ApiError::InternalError("`Next_payday_time` should not overflow".to_string()))?;
+            .ok_or(InternalError::InternalError(
+                "`Next_payday_time` should not overflow".to_string(),
+            ))?;
 
         Ok(PaydayStatus {
             next_payday_time,
@@ -734,7 +789,7 @@ impl PaydayStatus {
         let mut connection = connection::Connection::new(false, false);
 
         let last_payday_block_height =
-            self.opt_last_payday_block_height.ok_or(ApiError::InternalError(
+            self.opt_last_payday_block_height.ok_or(InternalError::InternalError(
                 "Indexer should have recorded a payday block in database if it was running for at \
                  least the duration of a payday."
                     .to_string(),

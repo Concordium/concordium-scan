@@ -1,6 +1,6 @@
 use super::{
     account::Account, get_config, get_pool, transaction::Transaction, ApiError, ApiResult,
-    CollectionSegmentInfo,
+    CollectionSegmentInfo, InternalError,
 };
 use crate::{
     address::ContractIndex,
@@ -143,8 +143,13 @@ impl Token {
 #[Object]
 impl Token {
     async fn initial_transaction(&self, ctx: &Context<'_>) -> ApiResult<Transaction> {
-        Transaction::query_by_index(get_pool(ctx)?, self.init_transaction_index).await?.ok_or(
-            ApiError::InternalError("Token: No transaction at init_transaction_index".to_string()),
+        Transaction::query_by_index(get_pool(ctx)?, self.init_transaction_index).await?.ok_or_else(
+            || {
+                InternalError::InternalError(
+                    "Token: No transaction at init_transaction_index".to_string(),
+                )
+                .into()
+            },
         )
     }
 
@@ -379,8 +384,13 @@ pub struct Cis2Event {
 #[ComplexObject]
 impl Cis2Event {
     async fn transaction(&self, ctx: &Context<'_>) -> ApiResult<Transaction> {
-        Transaction::query_by_index(get_pool(ctx)?, self.transaction_index).await?.ok_or(
-            ApiError::InternalError("Token: No transaction at transaction_index".to_string()),
+        Transaction::query_by_index(get_pool(ctx)?, self.transaction_index).await?.ok_or_else(
+            || {
+                InternalError::InternalError(
+                    "Token: No transaction at transaction_index".to_string(),
+                )
+                .into()
+            },
         )
     }
 
@@ -450,7 +460,7 @@ impl TryFrom<AccountTokenInterim> for AccountToken {
     type Error = ApiError;
 
     fn try_from(item: AccountTokenInterim) -> Result<Self, Self::Error> {
-        let change_seq = item.change_seq.ok_or(ApiError::InternalError(
+        let change_seq = item.change_seq.ok_or(InternalError::InternalError(
             "Change_seq is not set for the queried row in `account_tokens` table. 
             This error should not happen if at least one row exists in the table."
                 .to_string(),
