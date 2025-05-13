@@ -1,6 +1,6 @@
 use super::{
     baker::Baker, get_config, get_pool, token::AccountToken, AccountStatementEntryType, ApiError,
-    ApiResult, ConnectionQuery, OrderDir,
+    ApiResult, ConnectionQuery, InternalError, OrderDir,
 };
 use crate::{
     address::AccountAddress,
@@ -495,7 +495,7 @@ impl AccountReward {
 
     async fn reward_type(&self) -> ApiResult<RewardType> {
         let transaction: RewardType = self.entry_type.try_into().map_err(|_| {
-            ApiError::InternalError(format!(
+            InternalError::InternalError(format!(
                 "AccountStatementEntryType: Not a valid reward type: {}",
                 &self.entry_type
             ))
@@ -560,7 +560,7 @@ impl AccountStatementEntry {
         if let Some(id) = self.transaction_id {
             let transaction = Transaction::query_by_index(get_pool(ctx)?, id).await?;
             let transaction = transaction.ok_or_else(|| {
-                ApiError::InternalError(
+                InternalError::InternalError(
                     "AccountStatementEntry: No transaction at transaction_index".to_string(),
                 )
             })?;
@@ -591,10 +591,13 @@ struct AccountReleaseScheduleItem {
 #[Object]
 impl AccountReleaseScheduleItem {
     async fn transaction(&self, ctx: &Context<'_>) -> ApiResult<Transaction> {
-        Transaction::query_by_index(get_pool(ctx)?, self.transaction_index).await?.ok_or(
-            ApiError::InternalError(
-                "AccountReleaseScheduleItem: No transaction at transaction_index".to_string(),
-            ),
+        Transaction::query_by_index(get_pool(ctx)?, self.transaction_index).await?.ok_or_else(
+            || {
+                InternalError::InternalError(
+                    "AccountReleaseScheduleItem: No transaction at transaction_index".to_string(),
+                )
+                .into()
+            },
         )
     }
 

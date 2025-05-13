@@ -3,7 +3,7 @@ use super::{
     baker_and_delegator_types::{CommissionRates, DelegationSummary, PaydayPoolReward},
     get_config, get_pool,
     transaction::Transaction,
-    ApiError, ApiResult, ApiServiceConfig, ApyPeriod, ConnectionQuery,
+    ApiError, ApiResult, ApiServiceConfig, ApyPeriod, ConnectionQuery, InternalError,
 };
 use crate::{
     connection::{
@@ -2530,7 +2530,7 @@ impl CurrentBaker {
         let total_stake_percentage = (rust_decimal::Decimal::from(self.pool_total_staked)
             * rust_decimal::Decimal::from(100))
         .checked_div(rust_decimal::Decimal::from(total_stake))
-        .ok_or_else(|| ApiError::InternalError("Division by zero".to_string()))?
+        .ok_or_else(|| InternalError::InternalError("Division by zero".to_string()))?
         .into();
 
         // The code is re-implemented from the node code so that the node and the
@@ -2578,27 +2578,31 @@ impl CurrentBaker {
         // algorithm works. We check these constraints here to ensure the values
         // have been saved in this format to the database.
         if current_chain_parameters.leverage_bound_numerator < 0 {
-            return Err(ApiError::InternalError(
+            return Err(InternalError::InternalError(
                 "`leverage_bound_numerator` is negative in the database".to_string(),
-            ));
+            )
+            .into());
         }
         if current_chain_parameters.leverage_bound_denominator <= 0 {
-            return Err(ApiError::InternalError(
+            return Err(InternalError::InternalError(
                 "`leverage_bound_denominator` is not greater than 0 in the database".to_string(),
-            ));
+            )
+            .into());
         }
 
         if current_chain_parameters.leverage_bound_numerator
             < current_chain_parameters.leverage_bound_denominator
         {
-            return Err(ApiError::InternalError(
+            return Err(InternalError::InternalError(
                 "`leverage_bound` is smaller than 1 in the database".to_string(),
-            ));
+            )
+            .into());
         }
         if current_chain_parameters.capital_bound <= 0 {
-            return Err(ApiError::InternalError(
+            return Err(InternalError::InternalError(
                 "`capital_bound` is not greater than 0 in the database".to_string(),
-            ));
+            )
+            .into());
         }
 
         // Calculating the `leverage_bound_cap`
@@ -2707,19 +2711,20 @@ impl CurrentBaker {
             }),
             (None, _) => None,
             (Some(_), None) => {
-                return Err(ApiError::InternalError(
+                return Err(InternalError::InternalError(
                     "Invalid ranking state in database".to_string(),
-                ))
+                )
+                .into())
             }
         };
 
         let baker_id: u64 = self.id.try_into().map_err(|_| {
-            ApiError::InternalError(format!("A baker has a negative id: {}", self.id))
+            InternalError::InternalError(format!("A baker has a negative id: {}", self.id))
         })?;
 
-        let handler = ctx.data::<NodeInfoReceiver>().map_err(ApiError::NoReceiver)?;
+        let handler = ctx.data::<NodeInfoReceiver>().map_err(InternalError::NoReceiver)?;
         let statuses_ref = handler.borrow();
-        let statuses = statuses_ref.as_ref().ok_or(ApiError::InternalError(
+        let statuses = statuses_ref.as_ref().ok_or(InternalError::InternalError(
             "Node collector backend has not responded".to_string(),
         ))?;
 
@@ -2744,7 +2749,7 @@ impl CurrentBaker {
                     .as_ref()
                     .unwrap_or(&BigDecimal::default())
                     .try_into()
-                    .map_err(|e: anyhow::Error| ApiError::InternalError(e.to_string()))?,
+                    .map_err(|e: anyhow::Error| InternalError::InternalError(e.to_string()))?,
                 metadata_url: self.metadata_url.as_deref(),
                 self_suspended: self.self_suspended,
                 inactive_suspended: self.inactive_suspended,
@@ -3277,7 +3282,7 @@ impl<'a> BakerPool<'a> {
         .fetch_optional(pool)
         .await?;
         let collection_ends = collection_ends.ok_or_else(|| {
-            ApiError::InternalError(
+            InternalError::InternalError(
                 "Failed to find collection ends for a non-empty collection".to_string(),
             )
         })?;

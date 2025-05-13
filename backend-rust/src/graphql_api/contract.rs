@@ -1,6 +1,6 @@
 use super::{
     get_config, get_pool, token::TokensCollectionSegment, ApiError, ApiResult,
-    CollectionSegmentInfo, ConnectionQuery,
+    CollectionSegmentInfo, ConnectionQuery, InternalError,
 };
 use crate::{
     address::{AccountAddress, ContractIndex},
@@ -135,11 +135,11 @@ impl QueryContract {
         while let Some(row) = row_stream.try_next().await? {
             let contract_address_index =
                 row.index.try_into().map_err(|e: <u64 as TryFrom<i64>>::Error| {
-                    ApiError::InternalError(e.to_string())
+                    InternalError::InternalError(e.to_string())
                 })?;
             let contract_address_sub_index =
                 row.sub_index.try_into().map_err(|e: <u64 as TryFrom<i64>>::Error| {
-                    ApiError::InternalError(e.to_string())
+                    InternalError::InternalError(e.to_string())
                 })?;
 
             let snapshot = ContractSnapshot {
@@ -302,20 +302,23 @@ impl Contract {
 
         for row in rows {
             let Some(events) = row.events else {
-                return Err(ApiError::InternalError("Missing events in database".to_string()));
+                return Err(
+                    InternalError::InternalError("Missing events in database".to_string()).into()
+                );
             };
 
             let mut events: Vec<Event> = serde_json::from_value(events).map_err(|e| {
-                ApiError::InternalError(format!(
+                InternalError::InternalError(format!(
                     "Failed to deserialize events from database: {}",
                     e
                 ))
             })?;
 
             if row.trace_element_index as usize >= events.len() {
-                return Err(ApiError::InternalError(
+                return Err(InternalError::InternalError(
                     "Trace element index does not exist in events".to_string(),
-                ));
+                )
+                .into());
             }
 
             // Get the associated contract event from the `events` vector.
@@ -327,7 +330,7 @@ impl Contract {
                 | Event::ContractResumed(_)
                 | Event::ContractUpgraded(_)
                 | Event::ContractUpdated(_) => Ok(()),
-                _ => Err(ApiError::InternalError(format!(
+                _ => Err(InternalError::InternalError(format!(
                     "Not Transferred, ContractInterrupted, ContractResumed, ContractUpgraded, or \
                      ContractUpdated event; Wrong event enum tag: {:?}",
                     std::mem::discriminant(&event)
@@ -380,11 +383,13 @@ impl Contract {
             let row = row.ok_or(ApiError::NotFound)?;
 
             let Some(events) = row.events else {
-                return Err(ApiError::InternalError("Missing events in database".to_string()));
+                return Err(
+                    InternalError::InternalError("Missing events in database".to_string()).into()
+                );
             };
 
             let [event]: [Event; 1] = serde_json::from_value(events).map_err(|e| {
-                ApiError::InternalError(format!(
+                InternalError::InternalError(format!(
                     "Failed to deserialize events from database. Contract init transaction \
                      expects exactly one event: {}",
                     e
@@ -393,7 +398,7 @@ impl Contract {
 
             match event {
                 Event::ContractInitialized(_) => Ok(()),
-                _ => Err(ApiError::InternalError(format!(
+                _ => Err(InternalError::InternalError(format!(
                     "Not ContractInitialized event; Wrong event enum tag: {:?}",
                     std::mem::discriminant(&event)
                 ))),
@@ -565,7 +570,10 @@ impl ContractRejectEvent {
         if let Some(sqlx::types::Json(reason)) = self.rejected_event.as_ref() {
             Ok(reason)
         } else {
-            Err(ApiError::InternalError("ContractRejectEvent: No reject reason found".to_string()))
+            Err(InternalError::InternalError(
+                "ContractRejectEvent: No reject reason found".to_string(),
+            )
+            .into())
         }
     }
 

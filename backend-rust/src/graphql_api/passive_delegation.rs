@@ -1,6 +1,6 @@
 use super::{
     baker_and_delegator_types::{CommissionRates, DelegationSummary, PaydayPoolReward},
-    get_config, get_pool, ApiError, ApiResult, ApyPeriod,
+    get_config, get_pool, ApiError, ApiResult, ApyPeriod, InternalError,
 };
 use crate::{
     connection::{ConnectionQuery, DescendingI64, NestedCursor},
@@ -278,7 +278,7 @@ impl PassiveDelegation {
         .fetch_optional(pool)
         .await?;
         let collection_ends = collection_ends.ok_or_else(|| {
-            ApiError::InternalError(
+            InternalError::InternalError(
                 "Failed to find collection ends for a non-empty collection".to_string(),
             )
         })?;
@@ -324,7 +324,7 @@ impl PassiveDelegation {
 
         let delegated_stake_percentage: Decimal =
             delegated_stake_percentage.try_into().map_err(|e| {
-                ApiError::InternalError(format!(
+                InternalError::InternalError(format!(
                     "Can not convert `delegated_stake_percentage` to `scalar_types::Decimal`: {}",
                     e
                 ))
