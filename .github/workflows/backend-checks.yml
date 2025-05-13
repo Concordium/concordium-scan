@@ -63,3 +63,22 @@ jobs:
         run: |
           rustup default ${{ env.RUST_VERSION }}
           cargo test
+
+  schema-diff:
+    name: GraphQL schema diff
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install diff tool
+        run: npm i --global @graphql-inspector/ci graphql @graphql-inspector/diff-command @graphql-inspector/graphql-loader
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Build ccdscan-api and output schema
+        working-directory: backend-rust
+        run: |
+          rustup default ${{ env.RUST_VERSION }}
+          cargo run --bin ccdscan-api -- --schema-out $RUNNER_TEMP/schema.graphql
+      - name: Compare schemas
+        working-directory: backend-rust
+        run: graphql-inspector diff schema.graphql $RUNNER_TEMP/schema.graphql

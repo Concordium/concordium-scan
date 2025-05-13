@@ -30,6 +30,8 @@ Database schema version: 33
 
 ### Changed
 
+
+- Passing `--schema-out <file>` option to the `ccdscan-api` binary no longer requires any other options such as the database URL to be set.
 - Hide internal errors from the `ccdscan-api` GraphQL API response and produced an ERROR level log message instead.
 - The `ccdscan-indexer` binary no longer uses a database pool, reducing the overhead and number of connections to the database.
 - A dummy server for plt support and which new queries are now exposed at the backend (Will be removed later).
