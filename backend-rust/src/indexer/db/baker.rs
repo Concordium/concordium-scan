@@ -1,6 +1,7 @@
 //! Database operations related to baking/validating.
 
 use crate::indexer::ensure_affected_rows::EnsureAffectedRows;
+use anyhow::Context;
 use concordium_rust_sdk::types as sdk_types;
 
 /// Represents the database operation of adding a removed baker to the
@@ -51,6 +52,55 @@ impl DeleteRemovedBakerWhenPresent {
             .execute(tx.as_mut())
             .await?
             .ensure_affected_rows_in_range(0..=1)?;
+        Ok(())
+    }
+}
+
+/// Represents the database operation of removing baker from the baker table.
+#[derive(Debug)]
+pub struct RemoveBaker {
+    baker_id: i64,
+}
+impl RemoveBaker {
+    pub fn prepare(baker_id: &sdk_types::BakerId) -> anyhow::Result<Self> {
+        Ok(Self {
+            baker_id: baker_id.id.index.try_into()?,
+        })
+    }
+
+    pub async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
+        sqlx::query!("DELETE FROM bakers WHERE id=$1", self.baker_id,)
+            .execute(tx.as_mut())
+            .await?
+            .ensure_affected_one_row()
+            .context("Failed removing validator")?;
+        Ok(())
+    }
+}
+
+/// Represents the database operation of moving delegators for a pool to the
+/// passive pool.
+#[derive(Debug)]
+pub struct MovePoolDelegatorsToPassivePool {
+    /// Baker ID of the pool to move delegators from.
+    baker_id: i64,
+}
+impl MovePoolDelegatorsToPassivePool {
+    pub fn prepare(baker_id: &sdk_types::BakerId) -> anyhow::Result<Self> {
+        Ok(Self {
+            baker_id: baker_id.id.index.try_into()?,
+        })
+    }
+
+    pub async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
+        sqlx::query!(
+            "UPDATE accounts
+             SET delegated_target_baker_id = NULL
+             WHERE delegated_target_baker_id = $1",
+            self.baker_id
+        )
+        .execute(tx.as_mut())
+        .await?;
         Ok(())
     }
 }
