@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.0.0] - 2025-05-13
+
 Database schema version: 33
 
 ### Removed
@@ -29,7 +31,6 @@ Database schema version: 33
 - Add monitoring metric `api_rest_request_duration_seconds` tracking response status code and response duration time for requests for the public REST API.
 
 ### Changed
-
 
 - Passing `--schema-out <file>` option to the `ccdscan-api` binary no longer requires any other options such as the database URL to be set.
 - Hide internal errors from the `ccdscan-api` GraphQL API response and produced an ERROR level log message instead.
