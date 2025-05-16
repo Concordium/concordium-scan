@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO passive_delegation_payday_commission_rates (\n                    payday_transaction_commission,\n                    payday_baking_commission,\n                    payday_finalization_commission\n                )\n                VALUES ($1, $2, $3)\n                ON CONFLICT (id)\n                DO UPDATE SET\n                    payday_transaction_commission = EXCLUDED.payday_transaction_commission,\n                    payday_baking_commission = EXCLUDED.payday_baking_commission,\n                    payday_finalization_commission = EXCLUDED.payday_finalization_commission\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "48db771f854c8b2f6ed4365c1956407b46695feda738ae02af5ea955f4c634ad"
+}

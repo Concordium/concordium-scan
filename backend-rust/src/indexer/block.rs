@@ -1,3 +1,6 @@
+//! This module contains the block information computed during the concurrent
+//! preprocessing and the logic for how to do the sequential processing.
+
 use crate::indexer::{
     block_preprocessor::BlockData, block_processor::BlockProcessingContext, statistics::Statistics,
 };

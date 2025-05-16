@@ -1,3 +1,9 @@
+//! Contains the block processing logic.
+//!
+//! This step run sequential for batches of preprocessed blocks in same order as
+//! found in the chain. This step has access to a database connection and is
+//! responsible for updating the data in the database.
+
 use super::block::PreparedBlock;
 use crate::indexer::acquire_indexer_lock;
 use anyhow::Context;

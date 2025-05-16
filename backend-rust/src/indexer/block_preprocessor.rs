@@ -1,3 +1,10 @@
+//! Contains the block traverse logic for the preprocessing step.
+//!
+//! This step will be run concurrently for a number of blocks, fetch information
+//! and compute as much work as possible without depending on a database
+//! connection, reducing the work needed during the sequential processing step.
+
+use super::block::PreparedBlock;
 use anyhow::Context;
 use concordium_rust_sdk::{
     base::transactions::{BlockItem, EncodedPayload},
@@ -16,8 +23,6 @@ use prometheus_client::{
 };
 use tokio::{time::Instant, try_join};
 use tracing::{debug, error, info};
-
-use super::block::PreparedBlock;
 
 /// State tracked during block preprocessing, this also holds the implementation
 /// of [`Indexer`](concordium_rust_sdk::indexer::Indexer). Since several
