@@ -22,6 +22,7 @@ use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
     base::{
         contracts_common::{to_bytes, AccountAddress, CanonicalAccountAddress},
+        protocol_level_tokens,
         smart_contracts::WasmVersion,
         transactions::{BlockItem, EncodedPayload, Payload},
     },
@@ -63,7 +64,7 @@ use sqlx::{
 use std::{collections::HashSet, convert::TryInto, time::Duration};
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
-use tracing::{debug, error, info};
+use tracing::{debug, error, event, info};
 
 mod db;
 mod ensure_affected_rows;
@@ -1372,6 +1373,7 @@ impl PreparedBlockItem {
         item: &BlockItem<EncodedPayload>,
         statistics: &mut Statistics,
     ) -> anyhow::Result<Self> {
+        println!("Preparing block item {:?}", item_summary.details);
         let block_height = i64::try_from(data.finalized_block_info.height.height)?;
         let block_item_hash = item_summary.hash.to_string();
         let ccd_cost = if let BlockItemSummaryDetails::AccountCreation(_) = item_summary.details {
@@ -1401,7 +1403,13 @@ impl PreparedBlockItem {
                     (DbTransactionType::Update, None, None, Some(update_type))
                 }
             };
+
+        println!(
+            "Transaction type: {:?} Account type: {:?} Credential type: {:?} Update type: {:?}",
+            transaction_type, account_type, credential_type, update_type
+        );
         let success = item_summary.is_success();
+        println!("Success: {:?}", success);
         let (events, reject) = if success {
             let events = serde_json::to_value(events_from_summary(
                 item_summary.details.clone(),
@@ -1432,10 +1440,11 @@ impl PreparedBlockItem {
             .collect::<HashSet<Vec<u8>>>()
             .into_iter()
             .collect();
-
+        println!("Affected accounts: {:?}", affected_accounts);
         let prepared_event =
             PreparedBlockItemEvent::prepare(node_client, data, item_summary, item, statistics)
                 .await?;
+        println!("Prepared event: {:?}", prepared_event);
 
         Ok(Self {
             block_item_hash,
@@ -1461,6 +1470,24 @@ impl PreparedBlockItem {
         } else {
             None
         };
+
+        println!(
+            "Transaction Hash {:?}  CCD cost {:?} Energy cost {:?} Block height {:?} Sender {:?} \
+             Transaction type {:?} Account type {:?} Credential type {:?} Update type {:?} \
+             Success {:?} Events {:?} Reject {:?}",
+            self.block_item_hash,
+            self.ccd_cost,
+            self.energy_cost,
+            self.block_height,
+            self.sender,
+            self.transaction_type as DbTransactionType,
+            self.account_type as Option<AccountTransactionType>,
+            self.credential_type as Option<CredentialDeploymentTransactionType>,
+            self.update_type as Option<UpdateTransactionType>,
+            self.success,
+            self.events,
+            reject
+        );
 
         let tx_idx = sqlx::query_scalar!(
             "INSERT INTO transactions (
@@ -1643,6 +1670,9 @@ enum PreparedEvent {
     RejectedTransaction(PreparedRejectedEvent),
     /// No changes in the database was caused by this event.
     NoOperation,
+
+    TokenHolderEvents(PreparedTokenHolderEvents),
+    TokenGovernanceEvents(PreparedTokenGovernanceEvents),
 }
 impl PreparedEvent {
     async fn prepare(
@@ -1654,6 +1684,7 @@ impl PreparedEvent {
         statistics: &mut Statistics,
     ) -> anyhow::Result<Self> {
         let height = data.block_info.block_height;
+        println!("Effects: {:?}", details.effects);
         let prepared_event = match &details.effects {
             AccountTransactionEffects::None {
                 transaction_type,
@@ -1905,7 +1936,27 @@ impl PreparedEvent {
                     .map(|event| PreparedAccountDelegationEvent::prepare(event, statistics))
                     .collect::<anyhow::Result<Vec<_>>>()?,
             }),
+            AccountTransactionEffects::TokenHolder {
+                events,
+            } => {
+                println!("Token holder events: {:?}  ", events);
+                PreparedEvent::TokenHolderEvents(PreparedTokenHolderEvents {
+                    events: events
+                        .iter()
+                        .map(|event| PreparedTokenHolderEvent::prepare(event))
+                        .collect::<anyhow::Result<Vec<_>>>()?,
+                })
+            }
+            AccountTransactionEffects::TokenGovernance {
+                events,
+            } => PreparedEvent::TokenGovernanceEvents(PreparedTokenGovernanceEvents {
+                events: events
+                    .iter()
+                    .map(|event| PreparedTokenGovernanceEvent::prepare(event))
+                    .collect::<anyhow::Result<Vec<_>>>()?,
+            }),
         };
+
         Ok(prepared_event)
     }
 
@@ -1953,7 +2004,124 @@ impl PreparedEvent {
                 .await
                 .context("Failed processing block item event with rejected event"),
             PreparedEvent::NoOperation => Ok(()),
+            PreparedEvent::TokenHolderEvents(event) => Ok(()),
+            PreparedEvent::TokenGovernanceEvents(prepared_token_governance_events) => todo!(),
         }
+    }
+}
+
+#[derive(Debug)]
+struct PreparedTokenHolderEvents {
+    events: Vec<PreparedTokenHolderEvent>,
+}
+
+// impl PreparedTokenHolderEvents {
+//     async fn save(
+//         &self,
+//         tx: &mut sqlx::PgTransaction<'_>,
+//         transaction_index: i64,
+//         protocol_version: ProtocolVersion,
+//     ) -> anyhow::Result<()> {
+//         for event in &self.events {
+//             event.save(tx, transaction_index, protocol_version).await?;
+//         }
+//         Ok(())
+//     }
+// }
+
+#[derive(Debug)]
+struct TokenHolderEvent {
+    // Define the fields of the TokenHolderEvent
+    token_id:   String,
+    event_type: String,
+    details:    serde_json::Value,
+}
+
+impl TokenHolderEvent {
+    fn prepare(event: &protocol_level_tokens::TokenHolderEvent) -> anyhow::Result<Self> {
+        // Prepare the event for insertion into the database
+        let prepared = TokenHolderEvent {
+            token_id:   event.token_id.clone().into(),
+            event_type: event.event_type.clone().into(),
+            details: serde_cbor::from_slice(event.details.as_ref())?
+        };
+        Ok(prepared)
+    }
+}
+
+#[derive(Debug)]
+struct PreparedTokenHolderEvent {
+    event: Option<TokenHolderEvent>,
+}
+
+impl PreparedTokenHolderEvent {
+    fn prepare(event: &protocol_level_tokens::TokenHolderEvent) -> anyhow::Result<Self> {
+        // Prepare the event for insertion into the database
+        println!("Preparing token holder event: {:?}", event);
+
+        let prepared = PreparedTokenHolderEvent {
+            event: Some(TokenHolderEvent::prepare(event)?),
+        };
+        println!("Prepared token holder event: {:?}", prepared);
+        Ok(prepared)
+    }
+}
+
+// TokenGovernanceEvent
+#[derive(Debug)]
+struct TokenGovernanceEvent {
+    // Define the fields of the TokenGovernanceEvent
+    token_id:   String,
+    event_type: String,
+    details:    serde_json::Value,
+}
+
+impl TokenGovernanceEvent {
+    fn prepare(event: &protocol_level_tokens::TokenGovernanceEvent) -> anyhow::Result<Self> {
+        // Prepare the event for insertion into the database
+        let prepared = TokenGovernanceEvent {
+            token_id:   event.token_id.clone().into(),
+            event_type: event.event_type.clone().into(),
+            details:  serde_cbor::from_slice(event.details.as_ref())?
+        };
+        Ok(prepared)
+    }
+}
+
+#[derive(Debug)]
+struct PreparedTokenGovernanceEvents {
+    events: Vec<PreparedTokenGovernanceEvent>,
+}
+
+// impl PreparedTokenGovernanceEvents {
+//     async fn save(
+//         &self,
+//         tx: &mut sqlx::PgTransaction<'_>,
+//         transaction_index: i64,
+//         protocol_version: ProtocolVersion,
+//     ) -> anyhow::Result<()> {
+//         for event in &self.events {
+//             event.save(tx, transaction_index, protocol_version).await?;
+//         }
+//         Ok(())
+//     }
+// }
+
+#[derive(Debug)]
+struct PreparedTokenGovernanceEvent {
+    event: Option<TokenGovernanceEvent>,
+}
+
+impl PreparedTokenGovernanceEvent {
+    fn prepare(event: &protocol_level_tokens::TokenGovernanceEvent) -> anyhow::Result<Self> {
+        // Prepare the event for insertion into the database
+        println!("Preparing token governance event: {:?}", event);
+
+        let prepared = PreparedTokenGovernanceEvent {
+            event: Some(TokenGovernanceEvent::prepare(event)?),
+        };
+        println!("Prepared token governance event: {:?}", prepared);
+        Ok(prepared)
     }
 }
 

@@ -1,13 +1,16 @@
+use std::str::FromStr;
+
 use crate::{
     address::{AccountAddress, Address, ContractAddress},
     scalar_types::{Amount, BakerId},
 };
 use anyhow::Context;
 use async_graphql::{Enum, SimpleObject, Union};
+use axum::extract::FromRef;
 use concordium_rust_sdk::base::{
-    contracts_common::schema::{VersionedModuleSchema, VersionedSchemaError},
-    smart_contracts::ReceiveName,
+    contracts_common::schema::{VersionedModuleSchema, VersionedSchemaError}, protocol_level_tokens::RawCbor, smart_contracts::ReceiveName
 };
+use serde::{Deserialize, Serialize};
 
 #[derive(Union, Clone, serde::Serialize, serde::Deserialize)]
 pub enum TransactionRejectReason {
@@ -66,6 +69,8 @@ pub enum TransactionRejectReason {
     StakeOverMaximumThresholdForPool(StakeOverMaximumThresholdForPool),
     PoolWouldBecomeOverDelegated(PoolWouldBecomeOverDelegated),
     PoolClosed(PoolClosed),
+    TokenHolderTransactionFailed(TokenHolderTransactionRejectReason),
+    NonExistentTokenId(NonExistentTokenId),
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone, Copy)]
@@ -566,6 +571,21 @@ pub struct PoolClosed {
     dummy: bool,
 }
 
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
+pub struct TokenHolderTransactionRejectReason {
+    /// The unique symbol of the token, which produced this event.
+    pub token_id:   String,
+    /// The type of event produced.
+    pub event_type: String,
+    /// The details of the event produced, in the raw byte encoded form.
+    pub details:    Option<serde_json::Value>,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
+pub struct NonExistentTokenId {
+    token_id: String,
+}
+
 /// TransactionRejectReason being prepared for indexing.
 /// Most reject reasons can just be inserted, but a few require some processing
 /// before inserting.
@@ -796,7 +816,6 @@ impl PreparedTransactionRejectReason {
                     dummy: true,
                 })
             }
-
             RejectReason::NotAllowedMultipleCredentials => {
                 TransactionRejectReason::NotAllowedMultipleCredentials(
                     NotAllowedMultipleCredentials {
@@ -898,6 +917,24 @@ impl PreparedTransactionRejectReason {
             RejectReason::PoolClosed => TransactionRejectReason::PoolClosed(PoolClosed {
                 dummy: true,
             }),
+            RejectReason::NonExistentTokenId {
+                token_id,
+            } => TransactionRejectReason::NonExistentTokenId(NonExistentTokenId {
+                token_id: token_id.clone().into(),
+            }),
+            RejectReason::TokenHolderTransactionFailed(token_module_reject_reason) => {
+             
+                TransactionRejectReason::TokenHolderTransactionFailed(
+                    TokenHolderTransactionRejectReason {
+                        token_id:   token_module_reject_reason.token_id.clone().into(),
+                        event_type: token_module_reject_reason.event_type.clone().into(),
+                        details:   match token_module_reject_reason.details {
+                            Some(details) => serde_cbor::from_slice(details.as_ref())?,
+                            None => Some(serde_json::Value::Null),
+                        }
+                    },
+                )
+            }
         };
         let value = serde_json::to_value(&reason)?;
         Ok(Self::Ready(value))

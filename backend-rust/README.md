@@ -219,6 +219,17 @@ To quickly get a PostgreSQL database instance running using [docker.io](https://
 ```
 docker run -p 5432:5432 -e POSTGRES_PASSWORD=password -e POSTGRES_DB="ccdscan" --rm postgres:16
 ```
+TODO: Remove before check-in
+```
+docker run \
+  -p 5432:5432 \
+  -e POSTGRES_PASSWORD=password \
+  -e POSTGRES_DB=ccdscan \
+  -v pgdata:/var/lib/postgresql/data \
+  --name ccdscan-db \
+  -d postgres:16
+
+```
 
 ### Running database migrations
 

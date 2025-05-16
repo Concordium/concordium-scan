@@ -1,6 +1,8 @@
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 CREATE TYPE account_transaction_type AS ENUM (
+'TokenHolder',
+    'TokenGovernance',
     'InitializeSmartContractInstance',
     'UpdateSmartContractInstance',
     'SimpleTransfer',
@@ -22,6 +24,7 @@ CREATE TYPE account_transaction_type AS ENUM (
     'RegisterData',
     'ConfigureBaker',
     'ConfigureDelegation'
+    
 );
 
 CREATE TYPE credential_deployment_transaction_type AS ENUM (
@@ -53,7 +56,8 @@ CREATE TYPE update_transaction_type AS ENUM (
     'MinBlockTimeUpdate',
     'BlockEnergyLimitUpdate',
     'FinalizationCommitteeParametersUpdate',
-    'ValidatorScoreParametersUpdate'
+    'ValidatorScoreParametersUpdate',
+    'CreatePltUpdate'
 );
 
 CREATE TYPE transaction_type AS ENUM (

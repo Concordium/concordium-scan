@@ -34,7 +34,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 rust_decimal = "1.35"
 iso8601-duration = { version = "0.2", features = ["chrono"] }
 tokio-util = "0.7"
-tonic = { version = "0.10.2", features = ["tls-roots", "tls"]}
+tonic = { version = "0.12.0", features = ["tls-roots", "tls"]}
 prometheus-client = "0.23"
 tower = "0.5.2"
 tower-http = { version = "0.6", features = ["cors"] }
@@ -42,6 +42,7 @@ bigdecimal = "0.4.7"
 regex = "1.10.4"
 num-derive = "0.4.2"
 num-traits = "0.2.19"
+serde_cbor = "0.11"
 
 [dev-dependencies]
 mockito = "1.4"

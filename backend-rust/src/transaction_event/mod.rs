@@ -16,6 +16,7 @@ pub mod chain_update;
 pub mod credentials;
 pub mod delegation;
 pub mod smart_contracts;
+pub mod token;
 pub mod transfers;
 
 #[derive(Union, serde::Serialize, serde::Deserialize)]
@@ -68,6 +69,10 @@ pub enum Event {
     // Misc
     DataRegistered(DataRegistered),
     ChainUpdateEnqueued(chain_update::ChainUpdateEnqueued),
+
+    // Token events
+    TokenHolderEvent(token::TokenHolderEvent),
+    TokenGovernanceEvent(token::TokenGovernanceEvent),
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -558,6 +563,32 @@ pub fn events_from_summary(
                     })
                     .collect::<anyhow::Result<Vec<_>>>()?
             }
+            AccountTransactionEffects::TokenHolder {
+                events,
+            } => events
+                .iter()
+                .map(|event| {
+                    Ok(Event::TokenHolderEvent(token::TokenHolderEvent {
+                        token_id:   event.token_id.clone().into(),
+                        event_type: event.event_type.clone().into(),
+                        details:    serde_cbor::from_slice(event.details.as_ref())?
+                    }))
+                })
+                .collect::<anyhow::Result<Vec<_>>>()?,
+
+            AccountTransactionEffects::TokenGovernance {
+                events,
+            } => events
+                .iter()
+                .map(|event| {
+                    Ok(Event::TokenGovernanceEvent(token::TokenGovernanceEvent {
+                        token_id: event.token_id.clone().into(),
+                        action:   event.event_type.clone().into(),
+                        details: serde_cbor::from_slice(event.details.as_ref())?,
+                        
+                    }))
+                })
+                .collect::<anyhow::Result<Vec<_>>>()?,
         },
         BlockItemSummaryDetails::AccountCreation(details) => {
             vec![

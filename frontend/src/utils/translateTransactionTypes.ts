@@ -28,6 +28,8 @@ const translations = {
 		SIMPLE_TRANSFER_WITH_MEMO: 'Simple transfer with memo',
 		ENCRYPTED_TRANSFER_WITH_MEMO: 'Encrypted transfer with memo',
 		TRANSFER_WITH_SCHEDULE_WITH_MEMO: 'Transfer with schedule and memo',
+		TOKEN_HOLDER: 'Token holder',
+		TOKEN_GOVERNANCE: 'Token governance',
 		UNKNOWN: 'Unknown account transaction',
 	} as Record<AccountTransactionType | 'UNKNOWN', string>,
 	credentialDeploymentTypes: {
@@ -67,6 +69,7 @@ const translations = {
 			'Update mint distribution chain parameters version 1',
 		UPDATE_LEVEL_1_KEYS: 'Update level 1 keys',
 		UPDATE_LEVEL_2_KEYS: 'Update level 2 keys',
+		CREATE_PLT_UPDATE:'Update create PLT',
 		UNKNOWN: 'Unknown update transaction',
 	} as Record<UpdateTransactionType | 'UNKNOWN', string>,
 }

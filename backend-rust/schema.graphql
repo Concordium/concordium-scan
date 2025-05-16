@@ -317,6 +317,8 @@ enum AccountTransactionType {
 	REGISTER_DATA
 	CONFIGURE_BAKER
 	CONFIGURE_DELEGATION
+	TOKEN_HOLDER
+	TOKEN_GOVERNANCE
 }
 
 "A segment of a collection."
@@ -848,7 +850,7 @@ type ChainUpdateEnqueued {
 	payload: ChainUpdatePayload!
 }
 
-union ChainUpdatePayload = ProtocolChainUpdatePayload | MinBlockTimeUpdate | TimeoutParametersUpdate | FinalizationCommitteeParametersUpdate | BlockEnergyLimitUpdate | GasRewardsCpv2Update | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | FoundationAccountChainUpdatePayload | MintDistributionChainUpdatePayload | MintDistributionV1ChainUpdatePayload | TransactionFeeDistributionChainUpdatePayload | GasRewardsChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | RootKeysChainUpdatePayload | Level1KeysChainUpdatePayload | AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | CooldownParametersChainUpdatePayload | PoolParametersChainUpdatePayload | TimeParametersChainUpdatePayload | ValidatorScoreParametersUpdate
+union ChainUpdatePayload = ProtocolChainUpdatePayload | MinBlockTimeUpdate | TimeoutParametersUpdate | FinalizationCommitteeParametersUpdate | BlockEnergyLimitUpdate | GasRewardsCpv2Update | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | FoundationAccountChainUpdatePayload | MintDistributionChainUpdatePayload | MintDistributionV1ChainUpdatePayload | TransactionFeeDistributionChainUpdatePayload | GasRewardsChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | RootKeysChainUpdatePayload | Level1KeysChainUpdatePayload | AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | CooldownParametersChainUpdatePayload | PoolParametersChainUpdatePayload | TimeParametersChainUpdatePayload | ValidatorScoreParametersUpdate | CreatePltUpdate
 
 type Cis2Event {
 	tokenId: String!
@@ -1058,6 +1060,17 @@ type CooldownParametersChainUpdatePayload {
 	delegatorCooldown: UnsignedLong!
 }
 
+type CreatePltUpdate {
+	"The address of the account that will govern the token."
+	governanceAccount: AccountAddress!
+	"""
+	The number of decimal places used in the representation of amounts of
+	this token. This determines the smallest representable fraction of
+	the token. This can be at most 255.
+	"""
+	decimals: Int!
+}
+
 type CredentialDeployed {
 	regId: String!
 	accountAddress: AccountAddress!
@@ -1213,7 +1226,7 @@ type EuroPerEnergyChainUpdatePayload {
 	exchangeRate: Ratio!
 }
 
-union Event = Transferred | TransferMemo | TransferredWithSchedule | EncryptedAmountsRemoved | AmountAddedByDecryption | EncryptedSelfAmountAdded | NewEncryptedAmount | AccountCreated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | BakerSetOpenStatus | BakerSetMetadataURL | BakerSetTransactionFeeCommission | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerDelegationRemoved | BakerSuspended | BakerResumed | ContractInitialized | ContractModuleDeployed | ContractUpdated | ContractCall | ContractInterrupted | ContractResumed | ContractUpgraded | DelegationAdded | DelegationRemoved | DelegationStakeIncreased | DelegationStakeDecreased | DelegationSetRestakeEarnings | DelegationSetDelegationTarget | DataRegistered | ChainUpdateEnqueued
+union Event = Transferred | TransferMemo | TransferredWithSchedule | EncryptedAmountsRemoved | AmountAddedByDecryption | EncryptedSelfAmountAdded | NewEncryptedAmount | AccountCreated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | BakerSetOpenStatus | BakerSetMetadataURL | BakerSetTransactionFeeCommission | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerDelegationRemoved | BakerSuspended | BakerResumed | ContractInitialized | ContractModuleDeployed | ContractUpdated | ContractCall | ContractInterrupted | ContractResumed | ContractUpgraded | DelegationAdded | DelegationRemoved | DelegationStakeIncreased | DelegationStakeDecreased | DelegationSetRestakeEarnings | DelegationSetDelegationTarget | DataRegistered | ChainUpdateEnqueued | TokenHolderEvent | TokenGovernanceEvent
 
 type EventConnection {
 	"Information to aid in pagination."
@@ -1399,6 +1412,9 @@ type InvalidReceiveMethod {
 type InvalidTransferToPublicProof {
 	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
 }
+
+"A scalar that can represent any JSON value."
+scalar JSON
 
 type KeyIndexAlreadyInUse {
 	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
@@ -1595,22 +1611,12 @@ type NodeStatus {
 	bestBlockTransactionCount: Int
 	bestBlockTransactionEnergyCost: Int
 	bestBlockTransactionsSize: Int
-	blockArriveLatencyEma: Float
-	blockArriveLatencyEmsd: Float
-	blockArrivePeriodEma: Float
-	blockArrivePeriodEmsd: Float
-	blockReceiveLatencyEma: Float
-	blockReceiveLatencyEmsd: Float
-	blockReceivePeriodEma: Float
-	blockReceivePeriodEmsd: Float
 	blocksReceivedCount: Int
 	blocksVerifiedCount: Int
 	consensusBakerId: Int
 	consensusRunning: Boolean!
 	finalizationCommitteeMember: Boolean!
 	finalizationCount: Int
-	finalizationPeriodEma: Float
-	finalizationPeriodEmsd: Float
 	finalizedBlock: String!
 	finalizedBlockHeight: Int!
 	finalizedBlockParent: String!
@@ -1622,11 +1628,21 @@ type NodeStatus {
 	packetsSent: Int!
 	peersCount: Int!
 	peerType: String!
-	transactionsPerBlockEma: Float
-	transactionsPerBlockEmsd: Float
 	uptime: Int!
 	id: ID!
 	clientVersion: String!
+	blockArriveLatencyEma: Float
+	blockArriveLatencyEmsd: Float
+	blockArrivePeriodEma: Float
+	blockArrivePeriodEmsd: Float
+	blockReceiveLatencyEma: Float
+	blockReceiveLatencyEmsd: Float
+	blockReceivePeriodEma: Float
+	blockReceivePeriodEmsd: Float
+	finalizationPeriodEma: Float
+	finalizationPeriodEmsd: Float
+	transactionsPerBlockEma: Float
+	transactionsPerBlockEmsd: Float
 	peersList: [PeerReference!]!
 }
 
@@ -1657,6 +1673,10 @@ type NonExistentCredentialId {
 
 type NonExistentRewardAccount {
 	accountAddress: AccountAddress!
+}
+
+type NonExistentTokenId {
+	tokenId: String!
 }
 
 type NonIncreasingSchedule {
@@ -2440,6 +2460,27 @@ type TokenEventsCollectionSegment {
 	totalCount: Int!
 }
 
+type TokenGovernanceEvent {
+	tokenId: String!
+	action: String!
+	details: JSON!
+}
+
+type TokenHolderEvent {
+	tokenId: String!
+	eventType: String!
+	details: JSON!
+}
+
+type TokenHolderTransactionRejectReason {
+	"The unique symbol of the token, which produced this event."
+	tokenId: String!
+	"The type of event produced."
+	eventType: String!
+	"The details of the event produced, in the raw byte encoded form."
+	details: JSON
+}
+
 "A segment of a collection."
 type TokensCollectionSegment {
 	"A flattened list of the items."
@@ -2521,7 +2562,7 @@ type TransactionMetricsBuckets {
 	y_TransactionCount: [Int!]!
 }
 
-union TransactionRejectReason = ModuleNotWf | ModuleHashAlreadyExists | InvalidAccountReference | InvalidInitMethod | InvalidReceiveMethod | InvalidModuleReference | InvalidContractAddress | RuntimeFailure | AmountTooLarge | SerializationFailure | OutOfEnergy | RejectedInit | RejectedReceive | NonExistentRewardAccount | InvalidProof | AlreadyABaker | NotABaker | InsufficientBalanceForBakerStake | StakeUnderMinimumThresholdForBaking | BakerInCooldown | DuplicateAggregationKey | NonExistentCredentialId | KeyIndexAlreadyInUse | InvalidAccountThreshold | InvalidCredentialKeySignThreshold | InvalidEncryptedAmountTransferProof | InvalidTransferToPublicProof | EncryptedAmountSelfTransfer | InvalidIndexOnEncryptedTransfer | ZeroScheduledAmount | NonIncreasingSchedule | FirstScheduledReleaseExpired | ScheduledSelfTransfer | InvalidCredentials | DuplicateCredIds | NonExistentCredIds | RemoveFirstCredential | CredentialHolderDidNotSign | NotAllowedMultipleCredentials | NotAllowedToReceiveEncrypted | NotAllowedToHandleEncrypted | MissingBakerAddParameters | FinalizationRewardCommissionNotInRange | BakingRewardCommissionNotInRange | TransactionFeeCommissionNotInRange | AlreadyADelegator | InsufficientBalanceForDelegationStake | MissingDelegationAddParameters | InsufficientDelegationStake | DelegatorInCooldown | NotADelegator | DelegationTargetNotABaker | StakeOverMaximumThresholdForPool | PoolWouldBecomeOverDelegated | PoolClosed
+union TransactionRejectReason = ModuleNotWf | ModuleHashAlreadyExists | InvalidAccountReference | InvalidInitMethod | InvalidReceiveMethod | InvalidModuleReference | InvalidContractAddress | RuntimeFailure | AmountTooLarge | SerializationFailure | OutOfEnergy | RejectedInit | RejectedReceive | NonExistentRewardAccount | InvalidProof | AlreadyABaker | NotABaker | InsufficientBalanceForBakerStake | StakeUnderMinimumThresholdForBaking | BakerInCooldown | DuplicateAggregationKey | NonExistentCredentialId | KeyIndexAlreadyInUse | InvalidAccountThreshold | InvalidCredentialKeySignThreshold | InvalidEncryptedAmountTransferProof | InvalidTransferToPublicProof | EncryptedAmountSelfTransfer | InvalidIndexOnEncryptedTransfer | ZeroScheduledAmount | NonIncreasingSchedule | FirstScheduledReleaseExpired | ScheduledSelfTransfer | InvalidCredentials | DuplicateCredIds | NonExistentCredIds | RemoveFirstCredential | CredentialHolderDidNotSign | NotAllowedMultipleCredentials | NotAllowedToReceiveEncrypted | NotAllowedToHandleEncrypted | MissingBakerAddParameters | FinalizationRewardCommissionNotInRange | BakingRewardCommissionNotInRange | TransactionFeeCommissionNotInRange | AlreadyADelegator | InsufficientBalanceForDelegationStake | MissingDelegationAddParameters | InsufficientDelegationStake | DelegatorInCooldown | NotADelegator | DelegationTargetNotABaker | StakeOverMaximumThresholdForPool | PoolWouldBecomeOverDelegated | PoolClosed | TokenHolderTransactionRejectReason | NonExistentTokenId
 
 union TransactionResult = Success | Rejected
 
@@ -2607,6 +2648,7 @@ enum UpdateTransactionType {
 	BLOCK_ENERGY_LIMIT_UPDATE
 	FINALIZATION_COMMITTEE_PARAMETERS_UPDATE
 	VALIDATOR_SCORE_PARAMETERS_UPDATE
+	CREATE_PLT_UPDATE
 }
 
 type ValidatorPrimedForSuspension {
