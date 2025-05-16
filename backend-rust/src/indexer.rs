@@ -1,3 +1,7 @@
+//! The main indexer service and configurations, spawning task for traversing
+//! the blocks preprocessing each concurrently  and one task for processing each
+//! block sequentially.
+
 use anyhow::Context;
 use concordium_rust_sdk::{indexer::TraverseConfig, types as sdk_types, v2};
 use futures::StreamExt;

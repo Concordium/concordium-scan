@@ -1,3 +1,7 @@
+//! This module contains information computed for a single block item during the
+//! concurrent preprocessing and the logic for how to do the sequential
+//! processing into the database.
+
 use crate::{
     indexer::{
         block_preprocessor::BlockData, ensure_affected_rows::EnsureAffectedRows,

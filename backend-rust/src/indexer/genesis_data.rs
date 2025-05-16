@@ -1,3 +1,6 @@
+//! Function and types for populating the database with initial information
+//! found in the genesis block.
+
 use super::block_preprocessor::compute_total_stake_capital;
 use crate::transaction_event::baker::BakerPoolOpenStatus;
 use anyhow::Context;
