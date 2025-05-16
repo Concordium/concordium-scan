@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix performance issue in `Query::bakerMetrics`.
+
 ## [2.0.0] - 2025-05-13
 
 Database schema version: 33
