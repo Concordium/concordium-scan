@@ -5,7 +5,7 @@ use crate::{
 use async_graphql::{Context, Object, SimpleObject};
 use chrono::Utc;
 use sqlx::postgres::types::PgInterval;
-use std::sync::Arc;
+use std::{ops::Sub, sync::Arc};
 
 use super::InternalError;
 
@@ -46,10 +46,10 @@ impl QueryBakerMetrics {
             InternalError::InternalError("No metrics found for the given period".to_string())
         })?;
 
-        let mut current_period_baker_count: u64 = first_row
-            .bucket_previous_count_total
-            .try_into()
-            .map_err(|_| InternalError::InternalError("Invalid initial baker count".to_string()))?;
+        let mut current_period_baker_count: u64 =
+            first_row.added_before.sub(first_row.removed_before).try_into().map_err(|_| {
+                InternalError::InternalError("Invalid initial baker count".to_string())
+            })?;
 
         let (mut bakers_added, mut bakers_removed) = (0, 0);
         let mut x_time = Vec::with_capacity(rows.len());
@@ -59,11 +59,13 @@ impl QueryBakerMetrics {
         for r in rows.iter() {
             x_time.push(r.bucket_time);
 
-            let added_during_period: u64 = r.bucket_bakers_added.try_into()?;
+            let bucket_bakers_added = r.added_after - r.added_before;
+            let added_during_period: u64 = bucket_bakers_added.try_into()?;
             bakers_added += added_during_period;
             y_bakers_added.push(added_during_period);
 
-            let removed_during_period: u64 = r.bucket_bakers_removed.try_into()?;
+            let bucket_bakers_removed = r.removed_after - r.removed_before;
+            let removed_during_period: u64 = bucket_bakers_removed.try_into()?;
             bakers_removed += removed_during_period;
             y_bakers_removed.push(removed_during_period);
 

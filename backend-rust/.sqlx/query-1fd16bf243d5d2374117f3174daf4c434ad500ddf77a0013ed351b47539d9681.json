@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    bucket_time.bucket_start as \"bucket_time!\",\n    COALESCE((SELECT\n        total_bakers_added\n     FROM metrics_bakers\n     WHERE block_height < before_bucket.height\n     ORDER BY block_height DESC\n     LIMIT 1), 0) as \"added_before!\",\n    COALESCE((SELECT\n        total_bakers_removed\n     FROM metrics_bakers\n     WHERE block_height < before_bucket.height\n     ORDER BY block_height DESC\n     LIMIT 1), 0) as \"removed_before!\",\n    COALESCE((SELECT\n        total_bakers_added\n     FROM metrics_bakers\n     WHERE block_height < after_bucket.height\n     ORDER BY block_height DESC\n     LIMIT 1), 0) as \"added_after!\",\n    COALESCE((SELECT\n        total_bakers_removed\n     FROM metrics_bakers\n     WHERE block_height < after_bucket.height\n     ORDER BY block_height DESC\n     LIMIT 1), 0) as \"removed_after!\"\nFROM\n    date_bin_series(\n        $3::interval,\n        $2,\n        $1\n    ) AS bucket_time\nLEFT JOIN LATERAL (\n    SELECT\n        height\n    FROM blocks\n    WHERE slot_time < bucket_time.bucket_start\n    ORDER BY slot_time DESC\n    LIMIT 1\n) before_bucket ON true\nLEFT JOIN LATERAL (\n    SELECT\n        height\n    FROM blocks\n    WHERE slot_time < bucket_time.bucket_end\n    ORDER BY slot_time DESC\n    LIMIT 1\n) after_bucket ON true\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "bucket_time!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 1,
+        "name": "added_before!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "removed_before!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "added_after!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "removed_after!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Timestamptz",
+        "Interval"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "1fd16bf243d5d2374117f3174daf4c434ad500ddf77a0013ed351b47539d9681"
+}
