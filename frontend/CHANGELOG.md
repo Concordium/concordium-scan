@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.8.0] - 2025-05-19
+
+### Removed
+
+- Remove the temporary maintenance banner.
+
 ### Changed
 
 - Move remaining queries to use the new `rust-backend` API.
@@ -31,7 +37,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - Generate the graphQL types from the schema of the new Rust backend.
-- The `NodeLink` component requires a `node-id` and `node-name` as input now so that the component can be used with the `NodeStatus` type as well as the `PeerReference` type. 
+- The `NodeLink` component requires a `node-id` and `node-name` as input now so that the component can be used with the `NodeStatus` type as well as the `PeerReference` type.
 - Use the correct `PassiveDelegationSummary` type instead of the `DelegationSummary` type in the `PassiveDelegation` component.
 - Handle the case that the types `selfSuspended`, `inactiveSuspended`, or `primedForSuspension` can be `undefined` in `BakerSuspension` component.
 - Remove the `CisUpdateOperatorEvent` component as only token events are displayed and the `CisUpdateOperatorEvent` is not associated to any token id.
