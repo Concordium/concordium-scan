@@ -1,3 +1,7 @@
+//! This module contains information computed for delegation events in an
+//! account transaction during the concurrent preprocessing and the logic for
+//! how to do the sequential processing into the database.
+
 use super::baker_events::BakerRemoved;
 use crate::indexer::{ensure_affected_rows::EnsureAffectedRows, statistics::Statistics};
 use anyhow::Context;
@@ -24,6 +28,7 @@ impl PreparedAccountDelegationEvents {
     }
 }
 
+/// Represents a single delegation event.
 #[derive(Debug)]
 pub enum PreparedAccountDelegationEvent {
     StakeIncrease {

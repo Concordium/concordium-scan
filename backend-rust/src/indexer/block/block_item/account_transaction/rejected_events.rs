@@ -1,3 +1,7 @@
+//! This module contains information computed for rejected account transaction
+//! events in an account transaction during the concurrent preprocessing and the
+//! logic for how to do the sequential processing into the database.
+
 use anyhow::Context;
 use concordium_rust_sdk::{
     base::transactions::{BlockItem, EncodedPayload, Payload},

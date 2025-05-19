@@ -1,7 +1,14 @@
+//! This module contains information computed for smart contract instance
+//! related events in an account transaction during the concurrent preprocessing
+//! and the logic for how to do the sequential processing into the database.
+
 use super::module_events::PreparedModuleLinkAction;
 use crate::{
     graphql_api::AccountStatementEntryType,
-    indexer::{block_preprocessor::BlockData, db, ensure_affected_rows::EnsureAffectedRows},
+    indexer::{
+        block_preprocessor::BlockData, db::update_account_balance::PreparedUpdateAccountBalance,
+        ensure_affected_rows::EnsureAffectedRows,
+    },
     transaction_event::{
         smart_contracts::ModuleReferenceContractLinkAction, CisBurnEvent, CisEvent, CisMintEvent,
         CisTokenMetadataEvent, CisTransferEvent,
@@ -29,7 +36,7 @@ pub struct PreparedContractInitialized {
     name:                 String,
     amount:               i64,
     module_link_event:    PreparedModuleLinkAction,
-    transfer_to_contract: db::account::PreparedUpdateAccountBalance,
+    transfer_to_contract: PreparedUpdateAccountBalance,
     cis2_token_events:    Vec<CisEvent>,
 }
 
@@ -53,7 +60,7 @@ impl PreparedContractInitialized {
             event.address,
             ModuleReferenceContractLinkAction::Added,
         )?;
-        let transfer_to_contract = db::account::PreparedUpdateAccountBalance::prepare(
+        let transfer_to_contract = PreparedUpdateAccountBalance::prepare(
             sender_account,
             -amount,
             data.block_info.block_height,
@@ -510,7 +517,7 @@ struct PreparedTraceEventTransfer {
     /// Update the contract balance with the transferred CCD.
     update_contract_balance:  PreparedUpdateContractBalance,
     /// Update the account balance receiving CCD.
-    update_receiving_account: db::account::PreparedUpdateAccountBalance,
+    update_receiving_account: PreparedUpdateAccountBalance,
 }
 
 impl PreparedTraceEventTransfer {
@@ -523,7 +530,7 @@ impl PreparedTraceEventTransfer {
         let amount: i64 = amount.micro_ccd().try_into()?;
         let update_contract_balance =
             PreparedUpdateContractBalance::prepare(sender_contract, -amount)?;
-        let update_receiving_account = db::account::PreparedUpdateAccountBalance::prepare(
+        let update_receiving_account = PreparedUpdateAccountBalance::prepare(
             receiving_account,
             amount,
             block_height,
@@ -556,7 +563,7 @@ struct PreparedTraceEventUpdate {
 
 #[derive(Debug)]
 enum PreparedTraceEventUpdateSender {
-    Account(db::account::PreparedUpdateAccountBalance),
+    Account(PreparedUpdateAccountBalance),
     Contract(PreparedUpdateContractBalance),
 }
 
@@ -569,14 +576,14 @@ impl PreparedTraceEventUpdate {
     ) -> anyhow::Result<Self> {
         let amount: i64 = amount.micro_ccd().try_into()?;
         let sender = match sender {
-            sdk_types::Address::Account(address) => PreparedTraceEventUpdateSender::Account(
-                db::account::PreparedUpdateAccountBalance::prepare(
+            sdk_types::Address::Account(address) => {
+                PreparedTraceEventUpdateSender::Account(PreparedUpdateAccountBalance::prepare(
                     &address,
                     -amount,
                     block_height,
                     AccountStatementEntryType::TransferOut,
-                )?,
-            ),
+                )?)
+            }
             sdk_types::Address::Contract(contract) => PreparedTraceEventUpdateSender::Contract(
                 PreparedUpdateContractBalance::prepare(contract, -amount)?,
             ),

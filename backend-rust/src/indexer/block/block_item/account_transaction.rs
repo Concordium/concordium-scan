@@ -1,7 +1,15 @@
+//! Information for events computed for a single account transaction block item
+//! during the concurrent preprocessing and the logic for how to do the
+//! sequential processing into the database.
+//!
+//! Note: Storing of the block item (transaction) is already covered above
+//! this point, here we processed the events and outcomes depending on the type
+//! of account transaction.
+
 use crate::{
     graphql_api::AccountStatementEntryType,
     indexer::{
-        block_preprocessor::BlockData, db::account::PreparedUpdateAccountBalance,
+        block_preprocessor::BlockData, db::update_account_balance::PreparedUpdateAccountBalance,
         statistics::Statistics,
     },
 };

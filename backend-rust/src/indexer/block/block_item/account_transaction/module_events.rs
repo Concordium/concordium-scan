@@ -1,3 +1,7 @@
+//! This module contains information computed for smart contract module related
+//! events in an account transaction during the concurrent preprocessing and the
+//! logic for how to do the sequential processing into the database.
+
 use crate::transaction_event::smart_contracts::ModuleReferenceContractLinkAction;
 use anyhow::Context;
 use concordium_rust_sdk::{

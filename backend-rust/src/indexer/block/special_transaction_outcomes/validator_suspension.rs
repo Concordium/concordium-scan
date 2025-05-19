@@ -1,3 +1,11 @@
+//! This module contains information computed for the special transaction
+//! outcomes related to validator suspension and events which would (implicitly)
+//! drop the primed for suspension flag.
+//!
+//! Validator suspension was first introduced in Concordium Protocol Version 8
+//! and is a system for suspending inactive validators such that they are not
+//! considered as part of consensus.
+
 use crate::indexer::{block_preprocessor::BlockData, ensure_affected_rows::EnsureAffectedRows};
 use concordium_rust_sdk::types::{AbsoluteBlockHeight, BakerId, ProtocolVersion};
 

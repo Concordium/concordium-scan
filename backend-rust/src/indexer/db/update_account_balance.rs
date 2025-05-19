@@ -1,3 +1,6 @@
+//! Module with database operation for updating the balance of an account, while
+//! building the account statements index.
+
 use crate::{
     graphql_api::AccountStatementEntryType, indexer::ensure_affected_rows::EnsureAffectedRows,
 };
@@ -6,60 +9,6 @@ use concordium_rust_sdk::{
     base::contracts_common::CanonicalAccountAddress, id::types::AccountAddress,
     types::AbsoluteBlockHeight,
 };
-
-/// Database operation for adding new row into the account statement table.
-/// This reads the current balance of the account and assumes the balance is
-/// already updated with the amount part of the statement.
-#[derive(Debug)]
-pub struct PreparedAccountStatement {
-    pub canonical_address: CanonicalAccountAddress,
-    pub amount:            i64,
-    pub block_height:      i64,
-    pub transaction_type:  AccountStatementEntryType,
-}
-
-impl PreparedAccountStatement {
-    pub async fn save(
-        &self,
-        tx: &mut sqlx::PgTransaction<'_>,
-        transaction_index: Option<i64>,
-    ) -> anyhow::Result<()> {
-        sqlx::query!(
-            "WITH account_info AS (
-            SELECT index AS account_index, amount AS current_balance
-            FROM accounts
-            WHERE canonical_address = $1
-        )
-        INSERT INTO account_statements (
-            account_index,
-            entry_type,
-            amount,
-            block_height,
-            transaction_id,
-            account_balance
-        )
-        SELECT
-            account_index,
-            $2,
-            $3,
-            $4,
-            $5,
-            current_balance
-        FROM account_info",
-            self.canonical_address.0.as_slice(),
-            self.transaction_type as AccountStatementEntryType,
-            self.amount,
-            self.block_height,
-            transaction_index
-        )
-        .execute(tx.as_mut())
-        .await?
-        .ensure_affected_one_row()
-        .with_context(|| format!("Failed insert into account_statements: {:?}", self))?;
-
-        Ok(())
-    }
-}
 
 /// Represents change in the balance of some account.
 #[derive(Debug)]
@@ -125,6 +74,60 @@ impl PreparedUpdateAccountBalance {
         // Add the account statement, note that this operation assumes the account
         // balance is already updated.
         self.account_statement.save(tx, transaction_index).await?;
+        Ok(())
+    }
+}
+
+/// Database operation for adding new row into the account statement table.
+/// This reads the current balance of the account and assumes the balance is
+/// already updated with the amount part of the statement.
+#[derive(Debug)]
+struct PreparedAccountStatement {
+    canonical_address: CanonicalAccountAddress,
+    amount:            i64,
+    block_height:      i64,
+    transaction_type:  AccountStatementEntryType,
+}
+
+impl PreparedAccountStatement {
+    async fn save(
+        &self,
+        tx: &mut sqlx::PgTransaction<'_>,
+        transaction_index: Option<i64>,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            "WITH account_info AS (
+            SELECT index AS account_index, amount AS current_balance
+            FROM accounts
+            WHERE canonical_address = $1
+        )
+        INSERT INTO account_statements (
+            account_index,
+            entry_type,
+            amount,
+            block_height,
+            transaction_id,
+            account_balance
+        )
+        SELECT
+            account_index,
+            $2,
+            $3,
+            $4,
+            $5,
+            current_balance
+        FROM account_info",
+            self.canonical_address.0.as_slice(),
+            self.transaction_type as AccountStatementEntryType,
+            self.amount,
+            self.block_height,
+            transaction_index
+        )
+        .execute(tx.as_mut())
+        .await?
+        .ensure_affected_one_row()
+        .with_context(|| format!("Failed insert into account_statements: {:?}", self))?;
+
         Ok(())
     }
 }

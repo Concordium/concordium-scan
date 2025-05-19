@@ -1,3 +1,7 @@
+//! Information computed for a single account creation (aka. credential
+//! deployment) block item during the concurrent preprocessing and the logic for
+//! how to do the sequential processing into the database.
+
 use concordium_rust_sdk::base::contracts_common::CanonicalAccountAddress;
 
 /// Prepared database insertion of a new account.

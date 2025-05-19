@@ -1,7 +1,12 @@
+//! This module contains information computed for transfer CCD events in an
+//! account transaction during the concurrent preprocessing and the logic for
+//! how to do the sequential processing into the database.
+
 use crate::{
     graphql_api::AccountStatementEntryType,
     indexer::{
-        db::account::PreparedUpdateAccountBalance, ensure_affected_rows::EnsureAffectedRows,
+        db::update_account_balance::PreparedUpdateAccountBalance,
+        ensure_affected_rows::EnsureAffectedRows,
     },
 };
 use anyhow::Context;

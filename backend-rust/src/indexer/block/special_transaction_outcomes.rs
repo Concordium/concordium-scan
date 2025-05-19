@@ -1,3 +1,10 @@
+//! Data collected for special transaction outcomes for in each block during the
+//! concurrent preprocessing and the logic for how to do the sequential
+//! processing into the database.
+//! Special transaction outcomes are events in a block, which are not an
+//! immediate outcome of a block item (transaction) on chain, such as rewards
+//! and validator suspension.
+
 use anyhow::Context;
 use concordium_rust_sdk::{
     base::contracts_common::CanonicalAccountAddress,
@@ -9,7 +16,10 @@ use concordium_rust_sdk::{
 use crate::{
     block_special_event::{SpecialEvent, SpecialEventTypeFilter},
     graphql_api::AccountStatementEntryType,
-    indexer::{db, ensure_affected_rows::EnsureAffectedRows, statistics::Statistics},
+    indexer::{
+        db::update_account_balance::PreparedUpdateAccountBalance,
+        ensure_affected_rows::EnsureAffectedRows, statistics::Statistics,
+    },
 };
 
 pub mod payday;
@@ -567,7 +577,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
 /// Represents the event of an account receiving a reward.
 struct AccountReceivedReward {
     /// Update the balance of the account.
-    update_account_balance: db::account::PreparedUpdateAccountBalance,
+    update_account_balance: PreparedUpdateAccountBalance,
     /// Update the stake if restake earnings.
     update_stake:           RestakeEarnings,
 }
@@ -583,7 +593,7 @@ impl AccountReceivedReward {
     ) -> anyhow::Result<Self> {
         statistics.reward_stats.increment(account_address.get_canonical_address(), amount);
         Ok(Self {
-            update_account_balance: db::account::PreparedUpdateAccountBalance::prepare(
+            update_account_balance: PreparedUpdateAccountBalance::prepare(
                 account_address,
                 amount,
                 block_height,

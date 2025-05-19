@@ -1,3 +1,11 @@
+//! This module contains information computed for a single block with payday
+//! during the concurrent preprocessing and the logic for how to do the
+//! sequential processing into the database.
+//!
+//! The concept of a payday where first introduced in Concordium Protocol
+//! Version 4, and is the event of rewards being paid out to validators and
+//! finalizers by the end of a reward period.
+
 use crate::indexer::ensure_affected_rows::EnsureAffectedRows;
 use anyhow::Context;
 use bigdecimal::BigDecimal;

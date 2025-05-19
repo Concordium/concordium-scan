@@ -1,3 +1,9 @@
+//! Module with indexer data migrations due to protocol updates.
+//!
+//! Protocol updates which are changing current behavior might include some data
+//! migration, which we need to mirror or refetch when first indexing in the new
+//! protocol version.
+
 use crate::{
     indexer::{block_preprocessor::BlockData, ensure_affected_rows::EnsureAffectedRows},
     transaction_event::baker::BakerPoolOpenStatus,
@@ -12,6 +18,8 @@ use futures::TryStreamExt;
 /// Represents a data migration due to an update of the protocol.
 #[derive(Debug)]
 pub enum ProtocolUpdateMigration {
+    /// Data migration for the first block produced in Concordium Protocol
+    /// Cersion 4
     P4(P4ProtocolUpdateMigration),
 }
 impl ProtocolUpdateMigration {
@@ -41,7 +49,12 @@ impl ProtocolUpdateMigration {
     }
 }
 
-/// Data migration for the first block in Concordium protocol version 4.
+/// Data migration to run for the first block in Concordium protocol version 4.
+/// This protocol version introduces stake delegation and therefore
+/// baker/validator pools as well. Validators/bakers in P3 are migrated to be
+/// pools, with default values specified in the protocol update. This migration
+/// fetches the pool information for the migrated bakers/validators in the first
+/// block of protocol version 4
 #[derive(Debug)]
 pub struct P4ProtocolUpdateMigration {
     baker_ids:                     Vec<i64>,

@@ -1,6 +1,9 @@
+//! This module contains information computed for baker related events in an
+//! account transaction during the concurrent preprocessing and the logic for
+//! how to do the sequential processing into the database.
+
 use crate::{
     indexer::{
-        db,
         ensure_affected_rows::EnsureAffectedRows,
         statistics::{BakerField, Statistics},
     },
@@ -14,11 +17,11 @@ use concordium_rust_sdk::types::{self as sdk_types, PartsPerHundredThousands, Pr
 #[derive(Debug)]
 pub struct BakerRemoved {
     /// Move delegators to the passive pool.
-    move_delegators: db::baker::MovePoolDelegatorsToPassivePool,
+    move_delegators: MovePoolDelegatorsToPassivePool,
     /// Remove the baker from the bakers table.
-    remove_baker:    db::baker::RemoveBaker,
+    remove_baker:    RemoveBaker,
     /// Add the baker to the bakers_removed table.
-    insert_removed:  db::baker::InsertRemovedBaker,
+    insert_removed:  InsertRemovedBaker,
 }
 impl BakerRemoved {
     pub fn prepare(
@@ -27,9 +30,9 @@ impl BakerRemoved {
     ) -> anyhow::Result<Self> {
         statistics.baker_stats.increment(BakerField::Removed, 1);
         Ok(Self {
-            move_delegators: db::baker::MovePoolDelegatorsToPassivePool::prepare(baker_id)?,
-            remove_baker:    db::baker::RemoveBaker::prepare(baker_id)?,
-            insert_removed:  db::baker::InsertRemovedBaker::prepare(baker_id)?,
+            move_delegators: MovePoolDelegatorsToPassivePool::prepare(baker_id)?,
+            remove_baker:    RemoveBaker::prepare(baker_id)?,
+            insert_removed:  InsertRemovedBaker::prepare(baker_id)?,
         })
     }
 
@@ -85,7 +88,7 @@ pub enum PreparedBakerEvent {
         baker_id:             i64,
         staked:               i64,
         restake_earnings:     bool,
-        delete_removed_baker: db::baker::DeleteRemovedBakerWhenPresent,
+        delete_removed_baker: DeleteRemovedBakerWhenPresent,
     },
     Remove(BakerRemoved),
     StakeIncrease {
@@ -104,7 +107,7 @@ pub enum PreparedBakerEvent {
         baker_id:        i64,
         open_status:     BakerPoolOpenStatus,
         /// When set to ClosedForAll move delegators to passive pool.
-        move_delegators: Option<db::baker::MovePoolDelegatorsToPassivePool>,
+        move_delegators: Option<MovePoolDelegatorsToPassivePool>,
     },
     SetMetadataUrl {
         baker_id:     i64,
@@ -148,7 +151,7 @@ impl PreparedBakerEvent {
                     baker_id:             details.keys_event.baker_id.id.index.try_into()?,
                     staked:               details.stake.micro_ccd().try_into()?,
                     restake_earnings:     details.restake_earnings,
-                    delete_removed_baker: db::baker::DeleteRemovedBakerWhenPresent::prepare(
+                    delete_removed_baker: DeleteRemovedBakerWhenPresent::prepare(
                         &details.keys_event.baker_id,
                     )?,
                 }
@@ -186,7 +189,7 @@ impl PreparedBakerEvent {
             } => {
                 let open_status = open_status.to_owned().into();
                 let move_delegators = if matches!(open_status, BakerPoolOpenStatus::ClosedForAll) {
-                    Some(db::baker::MovePoolDelegatorsToPassivePool::prepare(baker_id)?)
+                    Some(MovePoolDelegatorsToPassivePool::prepare(baker_id)?)
                 } else {
                     None
                 };
@@ -480,6 +483,108 @@ impl PreparedBakerEvent {
             }
             PreparedBakerEvent::NoOperation => (),
         }
+        Ok(())
+    }
+}
+
+/// Represents the database operation of removing baker from the baker
+/// table.
+#[derive(Debug)]
+pub struct RemoveBaker {
+    baker_id: i64,
+}
+impl RemoveBaker {
+    pub fn prepare(baker_id: &sdk_types::BakerId) -> anyhow::Result<Self> {
+        Ok(Self {
+            baker_id: baker_id.id.index.try_into()?,
+        })
+    }
+
+    pub async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
+        sqlx::query!("DELETE FROM bakers WHERE id=$1", self.baker_id,)
+            .execute(tx.as_mut())
+            .await?
+            .ensure_affected_one_row()
+            .context("Failed removing validator")?;
+        Ok(())
+    }
+}
+
+/// Represents the database operation of moving delegators for a pool to the
+/// passive pool.
+#[derive(Debug)]
+pub struct MovePoolDelegatorsToPassivePool {
+    /// Baker ID of the pool to move delegators from.
+    baker_id: i64,
+}
+impl MovePoolDelegatorsToPassivePool {
+    fn prepare(baker_id: &sdk_types::BakerId) -> anyhow::Result<Self> {
+        Ok(Self {
+            baker_id: baker_id.id.index.try_into()?,
+        })
+    }
+
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
+        sqlx::query!(
+            "UPDATE accounts
+             SET delegated_target_baker_id = NULL
+             WHERE delegated_target_baker_id = $1",
+            self.baker_id
+        )
+        .execute(tx.as_mut())
+        .await?;
+        Ok(())
+    }
+}
+
+/// Represents the database operation of deleting a baker from the
+/// bakers_removed table when present.
+#[derive(Debug)]
+pub struct DeleteRemovedBakerWhenPresent {
+    baker_id: i64,
+}
+impl DeleteRemovedBakerWhenPresent {
+    fn prepare(baker_id: &sdk_types::BakerId) -> anyhow::Result<Self> {
+        Ok(Self {
+            baker_id: baker_id.id.index.try_into()?,
+        })
+    }
+
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
+        sqlx::query!("DELETE FROM bakers_removed WHERE id = $1", self.baker_id)
+            .execute(tx.as_mut())
+            .await?
+            .ensure_affected_rows_in_range(0..=1)?;
+        Ok(())
+    }
+}
+
+/// Represents the database operation of adding a removed baker to the
+/// bakers_removed table.
+#[derive(Debug)]
+pub struct InsertRemovedBaker {
+    baker_id: i64,
+}
+impl InsertRemovedBaker {
+    fn prepare(baker_id: &sdk_types::BakerId) -> anyhow::Result<Self> {
+        Ok(Self {
+            baker_id: baker_id.id.index.try_into()?,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::PgTransaction<'_>,
+        transaction_index: i64,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            "INSERT INTO bakers_removed (id, removed_by_tx_index) VALUES ($1, $2)",
+            self.baker_id,
+            transaction_index
+        )
+        .execute(tx.as_mut())
+        .await?
+        .ensure_affected_one_row()?;
         Ok(())
     }
 }
