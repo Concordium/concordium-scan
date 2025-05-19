@@ -248,15 +248,17 @@ pub enum SchemaVersion {
     ReindexGinHash,
     #[display("0033:Index for partial contracts search")]
     IndexPartialContractsSearch,
+    #[display("0034: New account transaction types are added")]
+    UpdateAccountTransactionTypes,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking (destructive) database schema versions
     /// have been introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
-        SchemaVersion::IndexPartialContractsSearch;
+        SchemaVersion::UpdateAccountTransactionTypes;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::IndexPartialContractsSearch;
+    const LATEST: SchemaVersion = SchemaVersion::UpdateAccountTransactionTypes;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -309,6 +311,7 @@ impl SchemaVersion {
             SchemaVersion::ReindexAffectedAccounts => false,
             SchemaVersion::ReindexGinHash => false,
             SchemaVersion::IndexPartialContractsSearch => false,
+            SchemaVersion::UpdateAccountTransactionTypes => false,
         }
     }
 
@@ -352,6 +355,7 @@ impl SchemaVersion {
             SchemaVersion::ReindexAffectedAccounts => false,
             SchemaVersion::ReindexGinHash => false,
             SchemaVersion::IndexPartialContractsSearch => false,
+            SchemaVersion::UpdateAccountTransactionTypes => false,
         }
     }
 
@@ -563,7 +567,15 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::IndexPartialContractsSearch
             }
-            SchemaVersion::IndexPartialContractsSearch => unimplemented!(
+            SchemaVersion::IndexPartialContractsSearch => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0034_update_account_transaction_types.sql"
+                    )))
+                    .await?;
+                SchemaVersion::UpdateAccountTransactionTypes
+            }
+            SchemaVersion::UpdateAccountTransactionTypes => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),

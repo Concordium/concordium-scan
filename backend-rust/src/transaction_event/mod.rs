@@ -97,6 +97,7 @@ pub fn events_from_summary(
     value: concordium_rust_sdk::types::BlockItemSummaryDetails,
     block_time: DateTime,
 ) -> anyhow::Result<Vec<Event>> {
+    println!("events_from_summary: {:?}", value);
     use concordium_rust_sdk::types::{AccountTransactionEffects, BlockItemSummaryDetails};
     let events = match value {
         BlockItemSummaryDetails::AccountTransaction(details) => match details.effects {
@@ -565,7 +566,10 @@ pub fn events_from_summary(
             }
             AccountTransactionEffects::TokenHolder {
                 events,
-            } => events
+            } =>{
+                
+                println!("TokenHolder events: {:?}", events);
+                 events
                 .iter()
                 .map(|event| {
                     Ok(Event::TokenHolderEvent(token::TokenHolderEvent {
@@ -574,11 +578,14 @@ pub fn events_from_summary(
                         details:    serde_cbor::from_slice(event.details.as_ref())?
                     }))
                 })
-                .collect::<anyhow::Result<Vec<_>>>()?,
+                .collect::<anyhow::Result<Vec<_>>>()?},
 
             AccountTransactionEffects::TokenGovernance {
                 events,
-            } => events
+            } =>{
+                
+                println!("TokenGovernance events: {:?}", events);
+                 events
                 .iter()
                 .map(|event| {
                     Ok(Event::TokenGovernanceEvent(token::TokenGovernanceEvent {
@@ -588,7 +595,7 @@ pub fn events_from_summary(
                         
                     }))
                 })
-                .collect::<anyhow::Result<Vec<_>>>()?,
+                .collect::<anyhow::Result<Vec<_>>>()?},
         },
         BlockItemSummaryDetails::AccountCreation(details) => {
             vec![

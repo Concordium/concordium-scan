@@ -1,8 +1,6 @@
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 CREATE TYPE account_transaction_type AS ENUM (
-'TokenHolder',
-    'TokenGovernance',
     'InitializeSmartContractInstance',
     'UpdateSmartContractInstance',
     'SimpleTransfer',

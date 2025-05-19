@@ -5,47 +5,32 @@
 		({{ convertTimestampToRelative(event.effectiveTime, NOW, true) }})
 		<br />
 
-		<span
-			v-if="
-				event.payload.__typename === 'AddAnonymityRevokerChainUpdatePayload'
-			"
-			class="text-theme-faded"
-		>
+		<span v-if="
+			event.payload.__typename === 'AddAnonymityRevokerChainUpdatePayload'
+		" class="text-theme-faded">
 			Add anonymity revoker '{{ event.payload.name }}'
 		</span>
 
-		<span
-			v-else-if="
-				event.payload.__typename === 'AddIdentityProviderChainUpdatePayload'
-			"
-			class="text-theme-faded"
-		>
+		<span v-else-if="
+			event.payload.__typename === 'AddIdentityProviderChainUpdatePayload'
+		" class="text-theme-faded">
 			Add identity provider '{{ event.payload.name }}'
 		</span>
 
-		<span
-			v-else-if="
-				event.payload.__typename === 'BakerStakeThresholdChainUpdatePayload'
-			"
-			class="text-theme-faded"
-		>
+		<span v-else-if="
+			event.payload.__typename === 'BakerStakeThresholdChainUpdatePayload'
+		" class="text-theme-faded">
 			Update validator stake threshold to
 			{{ convertMicroCcdToCcd(event.payload.amount) }}Ͼ
 		</span>
 
-		<span
-			v-else-if="
-				event.payload.__typename === 'ElectionDifficultyChainUpdatePayload'
-			"
-			class="text-theme-faded"
-		>
+		<span v-else-if="
+			event.payload.__typename === 'ElectionDifficultyChainUpdatePayload'
+		" class="text-theme-faded">
 			Update election difficulty to {{ event.payload.electionDifficulty }}%
 		</span>
 
-		<span
-			v-else-if="event.payload.__typename === 'EuroPerEnergyChainUpdatePayload'"
-			class="text-theme-faded"
-		>
+		<span v-else-if="event.payload.__typename === 'EuroPerEnergyChainUpdatePayload'" class="text-theme-faded">
 			Update EUR/ENERGY exchange rate to
 			{{
 				event.payload.exchangeRate.numerator /
@@ -53,20 +38,14 @@
 			}}
 		</span>
 
-		<span
-			v-else-if="
-				event.payload.__typename === 'FoundationAccountChainUpdatePayload'
-			"
-			class="text-theme-faded"
-		>
+		<span v-else-if="
+			event.payload.__typename === 'FoundationAccountChainUpdatePayload'
+		" class="text-theme-faded">
 			Change foundation account to
 			<AccountLink :address="event.payload.accountAddress.asString" />
 		</span>
 
-		<span
-			v-else-if="event.payload.__typename === 'GasRewardsChainUpdatePayload'"
-			class="text-theme-faded"
-		>
+		<span v-else-if="event.payload.__typename === 'GasRewardsChainUpdatePayload'" class="text-theme-faded">
 			Update gas rewards to:
 
 			<DescriptionList class="mt-4 ml-8">
@@ -105,24 +84,18 @@
 			</DescriptionList>
 		</span>
 
-		<span
-			v-else-if="event.payload.__typename === 'Level1KeysChainUpdatePayload'"
-			class="text-theme-faded"
-		>
+		<span v-else-if="event.payload.__typename === 'Level1KeysChainUpdatePayload'" class="text-theme-faded">
 			Update Level 1 keys
 		</span>
 
-		<span
-			v-else-if="
-				event.payload.__typename === 'MicroCcdPerEuroChainUpdatePayload'
-			"
-			class="text-theme-faded"
-		>
+		<span v-else-if="
+			event.payload.__typename === 'MicroCcdPerEuroChainUpdatePayload'
+		" class="text-theme-faded">
 			Update CCD/EUR exchange rate to
 			{{
 				convertMicroCcdToCcd(
 					event.payload.exchangeRate.numerator /
-						event.payload.exchangeRate.denominator
+					event.payload.exchangeRate.denominator
 				)
 			}}
 
@@ -131,17 +104,14 @@
 				formatNumber(
 					(event.payload.exchangeRate.denominator /
 						event.payload.exchangeRate.numerator) *
-						1_000_000
+					1_000_000
 				)
 			}}€)
 		</span>
 
-		<span
-			v-else-if="
-				event.payload.__typename === 'MintDistributionChainUpdatePayload'
-			"
-			class="text-theme-faded"
-		>
+		<span v-else-if="
+			event.payload.__typename === 'MintDistributionChainUpdatePayload'
+		" class="text-theme-faded">
 			Update mint distribution to:
 
 			<DescriptionList class="mt-4 ml-8">
@@ -170,30 +140,19 @@
 			</DescriptionList>
 		</span>
 
-		<span
-			v-else-if="event.payload.__typename === 'ProtocolChainUpdatePayload'"
-			class="text-theme-faded"
-		>
+		<span v-else-if="event.payload.__typename === 'ProtocolChainUpdatePayload'" class="text-theme-faded">
 			Update protocol: '{{ event.payload.message }}'.
-			<ExternalLink :href="event.payload.specificationUrl"
-				>See specification</ExternalLink
-			>
+			<ExternalLink :href="event.payload.specificationUrl">See specification</ExternalLink>
 		</span>
 
-		<span
-			v-else-if="event.payload.__typename === 'RootKeysChainUpdatePayload'"
-			class="text-theme-faded"
-		>
+		<span v-else-if="event.payload.__typename === 'RootKeysChainUpdatePayload'" class="text-theme-faded">
 			Update root keys
 		</span>
 
-		<span
-			v-else-if="
-				event.payload.__typename ===
-				'TransactionFeeDistributionChainUpdatePayload'
-			"
-			class="text-theme-faded"
-		>
+		<span v-else-if="
+			event.payload.__typename ===
+			'TransactionFeeDistributionChainUpdatePayload'
+		" class="text-theme-faded">
 			Update transaction fee distribution to:
 
 			<DescriptionList class="mt-4 ml-8">
@@ -212,12 +171,9 @@
 			</DescriptionList>
 		</span>
 
-		<span
-			v-else-if="
-				event.payload.__typename === 'CooldownParametersChainUpdatePayload'
-			"
-			class="text-theme-faded"
-		>
+		<span v-else-if="
+			event.payload.__typename === 'CooldownParametersChainUpdatePayload'
+		" class="text-theme-faded">
 			Update cooldown parameters to:
 
 			<DescriptionList class="mt-4 ml-8">
@@ -240,12 +196,9 @@
 			</DescriptionList>
 		</span>
 
-		<span
-			v-else-if="
-				event.payload.__typename === 'PoolParametersChainUpdatePayload'
-			"
-			class="text-theme-faded"
-		>
+		<span v-else-if="
+			event.payload.__typename === 'PoolParametersChainUpdatePayload'
+		" class="text-theme-faded">
 			Update pool parameters to:
 
 			<DescriptionList class="mt-4 ml-8">
@@ -253,33 +206,27 @@
 					Block commission range
 					<template #content>
 						<span class="numerical">
-							{{ event.payload.bakingCommissionRange.min * 100 }} </span
-						>% -
+							{{ event.payload.bakingCommissionRange.min * 100 }} </span>% -
 						<span class="numerical">
-							{{ event.payload.bakingCommissionRange.max * 100 }} </span
-						>%
+							{{ event.payload.bakingCommissionRange.max * 100 }} </span>%
 					</template>
 				</DescriptionListItem>
 				<DescriptionListItem>
 					Finalization commission range
 					<template #content>
 						<span class="numerical">
-							{{ event.payload.finalizationCommissionRange.min * 100 }}</span
-						>% -
+							{{ event.payload.finalizationCommissionRange.min * 100 }}</span>% -
 						<span class="numerical">
-							{{ event.payload.finalizationCommissionRange.max * 100 }} </span
-						>%
+							{{ event.payload.finalizationCommissionRange.max * 100 }} </span>%
 					</template>
 				</DescriptionListItem>
 				<DescriptionListItem>
 					Transaction commission range
 					<template #content>
 						<span class="numerical">
-							{{ event.payload.transactionCommissionRange.min * 100 }}</span
-						>% -
+							{{ event.payload.transactionCommissionRange.min * 100 }}</span>% -
 						<span class="numerical">
-							{{ event.payload.transactionCommissionRange.max * 100 }}</span
-						>%
+							{{ event.payload.transactionCommissionRange.max * 100 }}</span>%
 					</template>
 				</DescriptionListItem>
 
@@ -288,8 +235,7 @@
 					<template #content>
 						<span class="numerical">{{
 							event.payload.passiveBakingCommission * 100
-						}}</span
-						>%
+						}}</span>%
 					</template>
 				</DescriptionListItem>
 				<DescriptionListItem>
@@ -297,8 +243,7 @@
 					<template #content>
 						<span class="numerical">{{
 							event.payload.passiveTransactionCommission * 100
-						}}</span
-						>%
+						}}</span>%
 					</template>
 				</DescriptionListItem>
 				<DescriptionListItem>
@@ -306,25 +251,20 @@
 					<template #content>
 						<span class="numerical">{{
 							event.payload.passiveFinalizationCommission * 100
-						}}</span
-						>%
+						}}</span>%
 					</template>
 				</DescriptionListItem>
 
 				<DescriptionListItem>
 					Min. validator stake
 					<template #content>
-						<Amount
-							:amount="event.payload.minimumEquityCapital"
-							:show-symbol="true"
-						/>
+						<Amount :amount="event.payload.minimumEquityCapital" :show-symbol="true" />
 					</template>
 				</DescriptionListItem>
 				<DescriptionListItem>
 					Max. capital bound
 					<template #content>
-						<span class="numerical">{{ event.payload.capitalBound * 100 }}</span
-						>%
+						<span class="numerical">{{ event.payload.capitalBound * 100 }}</span>%
 					</template>
 				</DescriptionListItem>
 				<DescriptionListItem>
@@ -339,12 +279,9 @@
 			</DescriptionList>
 		</span>
 
-		<span
-			v-else-if="
-				event.payload.__typename === 'TimeParametersChainUpdatePayload'
-			"
-			class="text-theme-faded"
-		>
+		<span v-else-if="
+			event.payload.__typename === 'TimeParametersChainUpdatePayload'
+		" class="text-theme-faded">
 			Update time parameters to:
 
 			<DescriptionList class="mt-4 ml-8">
@@ -368,12 +305,9 @@
 			</DescriptionList>
 		</span>
 
-		<span
-			v-else-if="
-				event.payload.__typename === 'MintDistributionV1ChainUpdatePayload'
-			"
-			class="text-theme-faded"
-		>
+		<span v-else-if="
+			event.payload.__typename === 'MintDistributionV1ChainUpdatePayload'
+		" class="text-theme-faded">
 			Update mint distribution to:
 
 			<DescriptionList class="mt-4 ml-8">
@@ -393,10 +327,7 @@
 				</DescriptionListItem>
 			</DescriptionList>
 		</span>
-		<span
-			v-else-if="event.payload.__typename === 'GasRewardsCpv2Update'"
-			class="text-theme-faded"
-		>
+		<span v-else-if="event.payload.__typename === 'GasRewardsCpv2Update'" class="text-theme-faded">
 			Update gas rewards to:
 
 			<DescriptionList class="mt-4 ml-8">
@@ -426,10 +357,7 @@
 				</DescriptionListItem>
 			</DescriptionList>
 		</span>
-		<span
-			v-else-if="event.payload.__typename === 'BlockEnergyLimitUpdate'"
-			class="text-theme-faded"
-		>
+		<span v-else-if="event.payload.__typename === 'BlockEnergyLimitUpdate'" class="text-theme-faded">
 			Updated block energy limit to:
 
 			<DescriptionList class="mt-4 ml-8">
@@ -443,12 +371,9 @@
 				</DescriptionListItem>
 			</DescriptionList>
 		</span>
-		<span
-			v-else-if="
-				event.payload.__typename === 'FinalizationCommitteeParametersUpdate'
-			"
-			class="text-theme-faded"
-		>
+		<span v-else-if="
+			event.payload.__typename === 'FinalizationCommitteeParametersUpdate'
+		" class="text-theme-faded">
 			Updated finalization committee parameters to:
 
 			<DescriptionList class="mt-4 ml-8">
@@ -478,10 +403,7 @@
 				</DescriptionListItem>
 			</DescriptionList>
 		</span>
-		<span
-			v-else-if="event.payload.__typename === 'TimeoutParametersUpdate'"
-			class="text-theme-faded"
-		>
+		<span v-else-if="event.payload.__typename === 'TimeoutParametersUpdate'" class="text-theme-faded">
 			Updated timeout parameters to:
 
 			<DescriptionList class="mt-4 ml-8">
@@ -517,10 +439,7 @@
 				</DescriptionListItem>
 			</DescriptionList>
 		</span>
-		<span
-			v-else-if="event.payload.__typename === 'MinBlockTimeUpdate'"
-			class="text-theme-faded"
-		>
+		<span v-else-if="event.payload.__typename === 'MinBlockTimeUpdate'" class="text-theme-faded">
 			Updated min block time to:
 
 			<DescriptionList class="mt-4 ml-8">
@@ -533,8 +452,16 @@
 					</template>
 				</DescriptionListItem>
 			</DescriptionList>
+
+		</span>
+		<span v-else-if="event.payload.__typename === 'CreatePltUpdate'" class="text-theme-faded">
+			Create Plt Token From Governance Account 
+
+			<AccountLink :address="event.payload.governanceAccount.asString" />
+
 		</span>
 	</span>
+
 </template>
 
 <script setup lang="ts">
