@@ -1,16 +1,13 @@
-use std::str::FromStr;
-
 use crate::{
     address::{AccountAddress, Address, ContractAddress},
     scalar_types::{Amount, BakerId},
 };
 use anyhow::Context;
 use async_graphql::{Enum, SimpleObject, Union};
-use axum::extract::FromRef;
 use concordium_rust_sdk::base::{
-    contracts_common::schema::{VersionedModuleSchema, VersionedSchemaError}, protocol_level_tokens::RawCbor, smart_contracts::ReceiveName
+    contracts_common::schema::{VersionedModuleSchema, VersionedSchemaError},
+    smart_contracts::ReceiveName,
 };
-use serde::{Deserialize, Serialize};
 
 #[derive(Union, Clone, serde::Serialize, serde::Deserialize)]
 pub enum TransactionRejectReason {
@@ -923,15 +920,14 @@ impl PreparedTransactionRejectReason {
                 token_id: token_id.clone().into(),
             }),
             RejectReason::TokenHolderTransactionFailed(token_module_reject_reason) => {
-             
                 TransactionRejectReason::TokenHolderTransactionFailed(
                     TokenHolderTransactionRejectReason {
                         token_id:   token_module_reject_reason.token_id.clone().into(),
                         event_type: token_module_reject_reason.event_type.clone().into(),
-                        details:   match token_module_reject_reason.details {
+                        details:    match token_module_reject_reason.details {
                             Some(details) => serde_cbor::from_slice(details.as_ref())?,
                             None => Some(serde_json::Value::Null),
-                        }
+                        },
                     },
                 )
             }
