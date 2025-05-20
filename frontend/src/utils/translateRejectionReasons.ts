@@ -48,15 +48,11 @@ const translations: TranslationMap = {
 		'The account is not allowed incoming or outgoing encrypted transfers',
 	NonExistentTokenId: 'Token ID does not exist',
 	TokenHolderTransactionRejectReason: 'Token holder transaction reject reason',
-
-	
 }
 
 export const translateRejectionReasons = (
 	rejectReason: TransactionRejectReason
-) =>{
-	console.log(rejectReason) 
-	
+) => {
 	return rejectReason.__typename && translations[rejectReason.__typename]
 		? translations[rejectReason.__typename]
 		: 'Unknown rejection reason'

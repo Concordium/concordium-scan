@@ -1,8 +1,9 @@
 <template>
 	<span>
-
-        Plt Token with token id "<span class="font-bold">{{  props.reason.tokenId }}</span>"" does not exist.
-
+		Plt Token with token id "<span class="font-bold">{{
+			props.reason.tokenId
+		}}</span
+		>"" does not exist.
 	</span>
 </template>
 
@@ -14,5 +15,4 @@ type Props = {
 }
 
 const props = defineProps<Props>()
-
 </script>

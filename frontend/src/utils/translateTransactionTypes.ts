@@ -69,7 +69,7 @@ const translations = {
 			'Update mint distribution chain parameters version 1',
 		UPDATE_LEVEL_1_KEYS: 'Update level 1 keys',
 		UPDATE_LEVEL_2_KEYS: 'Update level 2 keys',
-		CREATE_PLT_UPDATE:'Update create PLT',
+		CREATE_PLT_UPDATE: 'Update create PLT',
 		UNKNOWN: 'Unknown update transaction',
 	} as Record<UpdateTransactionType | 'UNKNOWN', string>,
 }

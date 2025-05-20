@@ -135,7 +135,8 @@
 		/>
 		<NonExistentTokenId
 			v-else-if="reason.__typename === 'NonExistentTokenId'"
-			:reason="reason" />
+			:reason="reason"
+		/>
 		<TokenHolderTransactionRejectReason
 			v-else-if="reason.__typename === 'TokenHolderTransactionRejectReason'"
 			:reason="reason"
