@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix issue in `/rest/export/statement` causing error `Invalid integer: out of range integral type conversion attempted` when exporting account statements for period where the account had negative statement entry (transfer or transaction fee).
+
 ## [2.0.1] - 2025-05-19
 
 ### Fixed
