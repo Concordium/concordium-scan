@@ -1176,12 +1176,8 @@ impl Account {
                 ON
                     blocks.height = account_statements.block_height
                 WHERE
-                    entry_type IN (
-                        'FinalizationReward',
-                        'FoundationReward',
-                        'BakerReward',
-                        'TransactionFeeReward'
-                    )
+                    -- Range covers entry types related to rewards: 'FinalizationReward', 'FoundationReward', 'BakerReward', 'TransactionFeeReward'
+                    entry_type BETWEEN 'FinalizationReward' AND 'TransactionFeeReward'
                     AND account_index = $5
                     AND id > $2
                     AND id < $1
@@ -1223,12 +1219,8 @@ impl Account {
                     SELECT MAX(id) as max_id, MIN(id) as min_id
                     FROM account_statements
                     WHERE account_index = $1
-                    AND entry_type IN (
-                        'FinalizationReward',
-                        'FoundationReward',
-                        'BakerReward',
-                        'TransactionFeeReward'
-                    )
+                    -- Range covers entry types related to rewards: 'FinalizationReward', 'FoundationReward', 'BakerReward', 'TransactionFeeReward'
+                    AND entry_type BETWEEN 'FinalizationReward' AND 'TransactionFeeReward'
                 "#,
                 &self.index
             )
