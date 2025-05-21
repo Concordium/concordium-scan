@@ -402,7 +402,6 @@ export const useBlockSpecialEventsQuery = ({
 		BlockSpecialEventsResponse | undefined
 	>({
 		query: BlockSpecialEventsQuery,
-		context: { url: useRuntimeConfig().public.apiUrlRust },
 		requestPolicy: 'cache-first',
 		variables: {
 			blockId,

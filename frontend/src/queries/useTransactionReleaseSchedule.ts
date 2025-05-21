@@ -56,7 +56,6 @@ export const useTransactionReleaseSchedule = (
 	schedulePaging: QueryVariables
 ) => {
 	const { data } = useQuery({
-		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: TransactionReleaseScheduleQuery,
 		requestPolicy: 'cache-first',
 		variables: {
