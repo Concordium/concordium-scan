@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.0.3] - 2025-05-21
+
+- Fix query performance issue when getting account rewards for accounts with large number of account statements to better use the index.
+
 ## [2.0.2] - 2025-05-21
 
 Database schema version: 34

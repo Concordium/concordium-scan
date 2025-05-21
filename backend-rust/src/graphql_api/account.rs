@@ -1160,21 +1160,16 @@ impl Account {
             SELECT
                 id as "id!",
                 block_height as "block_height!",
-                timestamp,
+                blocks.slot_time as "timestamp",
                 entry_type as "entry_type!: AccountStatementEntryType",
                 amount as "amount!"
             FROM (
                 SELECT
                     id,
                     block_height,
-                    blocks.slot_time as "timestamp",
                     entry_type,
                     amount
                 FROM account_statements
-                JOIN
-                    blocks
-                ON
-                    blocks.height = account_statements.block_height
                 WHERE
                     -- Range covers entry types related to rewards: 'FinalizationReward', 'FoundationReward', 'BakerReward', 'TransactionFeeReward'
                     entry_type BETWEEN 'FinalizationReward' AND 'TransactionFeeReward'
@@ -1185,7 +1180,8 @@ impl Account {
                     (CASE WHEN $4 THEN id END) ASC,
                     (CASE WHEN NOT $4 THEN id END) DESC
                 LIMIT $3
-            )
+            ) statements
+            JOIN blocks ON blocks.height = statements.block_height
             ORDER BY
                 id DESC
             "#,
