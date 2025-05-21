@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT MAX(id) as max_id, MIN(id) as min_id\n                    FROM account_statements\n                    WHERE account_index = $1\n                    -- Range covers entry types related to rewards: 'FinalizationReward', 'FoundationReward', 'BakerReward', 'TransactionFeeReward'\n                    AND entry_type BETWEEN 'FinalizationReward' AND 'TransactionFeeReward'\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "max_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "min_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "860905c2c7d02ce3ad78fc4ae403e6a92dd8d176fbcb8e3a34b5e7bea184cd1f"
+}

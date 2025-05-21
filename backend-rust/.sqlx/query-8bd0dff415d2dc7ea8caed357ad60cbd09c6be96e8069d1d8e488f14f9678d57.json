@@ -1,0 +1,67 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                id as \"id!\",\n                block_height as \"block_height!\",\n                timestamp,\n                entry_type as \"entry_type!: AccountStatementEntryType\",\n                amount as \"amount!\"\n            FROM (\n                SELECT\n                    id,\n                    block_height,\n                    blocks.slot_time as \"timestamp\",\n                    entry_type,\n                    amount\n                FROM account_statements\n                JOIN\n                    blocks\n                ON\n                    blocks.height = account_statements.block_height\n                WHERE\n                    -- Range covers entry types related to rewards: 'FinalizationReward', 'FoundationReward', 'BakerReward', 'TransactionFeeReward'\n                    entry_type BETWEEN 'FinalizationReward' AND 'TransactionFeeReward'\n                    AND account_index = $5\n                    AND id > $2\n                    AND id < $1\n                ORDER BY\n                    (CASE WHEN $4 THEN id END) ASC,\n                    (CASE WHEN NOT $4 THEN id END) DESC\n                LIMIT $3\n            )\n            ORDER BY\n                id DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "block_height!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "timestamp",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "entry_type!: AccountStatementEntryType",
+        "type_info": {
+          "Custom": {
+            "name": "account_statement_entry_type",
+            "kind": {
+              "Enum": [
+                "TransferIn",
+                "TransferOut",
+                "AmountDecrypted",
+                "AmountEncrypted",
+                "TransactionFee",
+                "FinalizationReward",
+                "FoundationReward",
+                "BakerReward",
+                "TransactionFeeReward"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "amount!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Bool",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "8bd0dff415d2dc7ea8caed357ad60cbd09c6be96e8069d1d8e488f14f9678d57"
+}

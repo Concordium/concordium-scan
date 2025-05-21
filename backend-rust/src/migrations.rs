@@ -248,6 +248,8 @@ pub enum SchemaVersion {
     ReindexGinHash,
     #[display("0033:Index for partial contracts search")]
     IndexPartialContractsSearch,
+    #[display("0034:Separate index for account statements and account rewards")]
+    IndexAccountRewards,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -256,7 +258,7 @@ impl SchemaVersion {
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
         SchemaVersion::IndexPartialContractsSearch;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::IndexPartialContractsSearch;
+    const LATEST: SchemaVersion = SchemaVersion::IndexAccountRewards;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -309,6 +311,7 @@ impl SchemaVersion {
             SchemaVersion::ReindexAffectedAccounts => false,
             SchemaVersion::ReindexGinHash => false,
             SchemaVersion::IndexPartialContractsSearch => false,
+            SchemaVersion::IndexAccountRewards => false,
         }
     }
 
@@ -352,6 +355,7 @@ impl SchemaVersion {
             SchemaVersion::ReindexAffectedAccounts => false,
             SchemaVersion::ReindexGinHash => false,
             SchemaVersion::IndexPartialContractsSearch => false,
+            SchemaVersion::IndexAccountRewards => false,
         }
     }
 
@@ -563,7 +567,15 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::IndexPartialContractsSearch
             }
-            SchemaVersion::IndexPartialContractsSearch => unimplemented!(
+            SchemaVersion::IndexPartialContractsSearch => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0034_reindex_account_statement_entry_type_rewards_idx.sql"
+                    )))
+                    .await?;
+                SchemaVersion::IndexAccountRewards
+            }
+            SchemaVersion::IndexAccountRewards => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
