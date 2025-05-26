@@ -137,8 +137,8 @@
 			v-else-if="reason.__typename === 'NonExistentTokenId'"
 			:reason="reason"
 		/>
-		<TokenHolderTransactionRejectReason
-			v-else-if="reason.__typename === 'TokenHolderTransactionRejectReason'"
+		<TokenModule
+			v-else-if="reason.__typename === 'TokenModule'"
 			:reason="reason"
 		/>
 		<span v-else>{{ translateRejectionReasons(reason) }}</span>
@@ -163,7 +163,7 @@ import ScheduledSelfTransfer from './Reasons/ScheduledSelfTransfer.vue'
 import DuplicateCredIds from './Reasons/DuplicateCredIds.vue'
 import NonExistentCredIds from './Reasons/NonExistentCredIds.vue'
 import NonExistentTokenId from './Reasons/NonExistentTokenId.vue'
-import TokenHolderTransactionRejectReason from './Reasons/TokenHolderTransactionRejectReason.vue'
+import TokenModule from './Reasons/TokenModule.vue'
 import { translateRejectionReasons } from '~/utils/translateRejectionReasons'
 import type { TransactionRejectReason } from '~/types/generated'
 import MissingBakerAddParameters from '~/components/RejectionReason/Reasons/MissingBakerAddParameters.vue'

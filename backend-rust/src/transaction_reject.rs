@@ -66,8 +66,9 @@ pub enum TransactionRejectReason {
     StakeOverMaximumThresholdForPool(StakeOverMaximumThresholdForPool),
     PoolWouldBecomeOverDelegated(PoolWouldBecomeOverDelegated),
     PoolClosed(PoolClosed),
-    TokenHolderTransactionFailed(TokenHolderTransactionRejectReason),
     NonExistentTokenId(NonExistentTokenId),
+    TokenModule(TokenModule),
+    UnauthorizedTokenGovernance(UnauthorizedTokenGovernance),
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone, Copy)]
@@ -569,7 +570,12 @@ pub struct PoolClosed {
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
-pub struct TokenHolderTransactionRejectReason {
+pub struct NonExistentTokenId {
+    token_id: String,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
+pub struct TokenModule {
     /// The unique symbol of the token, which produced this event.
     pub token_id:   String,
     /// The type of event produced.
@@ -579,8 +585,10 @@ pub struct TokenHolderTransactionRejectReason {
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
-pub struct NonExistentTokenId {
-    token_id: String,
+
+pub struct UnauthorizedTokenGovernance {
+    /// The unique symbol of the token, which produced this event.
+    pub token_id: String,
 }
 
 /// TransactionRejectReason being prepared for indexing.
@@ -919,17 +927,23 @@ impl PreparedTransactionRejectReason {
             } => TransactionRejectReason::NonExistentTokenId(NonExistentTokenId {
                 token_id: token_id.clone().into(),
             }),
-            RejectReason::TokenHolderTransactionFailed(token_module_reject_reason) => {
-                TransactionRejectReason::TokenHolderTransactionFailed(
-                    TokenHolderTransactionRejectReason {
-                        token_id:   token_module_reject_reason.token_id.clone().into(),
-                        event_type: token_module_reject_reason.event_type.clone().into(),
-                        details:    match token_module_reject_reason.details {
-                            Some(details) => serde_cbor::from_slice(details.as_ref())?,
-                            None => Some(serde_json::Value::Null),
-                        },
+            RejectReason::TokenModule(token_module_reject_reason) => {
+                TransactionRejectReason::TokenModule(TokenModule {
+                    token_id:   token_module_reject_reason.token_id.clone().into(),
+                    event_type: token_module_reject_reason.event_type.clone().into(),
+                    details:    match token_module_reject_reason.details {
+                        Some(details) => serde_cbor::from_slice(details.as_ref())?,
+                        None => Some(serde_json::Value::Null),
                     },
-                )
+                })
+            }
+
+            RejectReason::UnauthorizedTokenGovernance {
+                token_id,
+            } => {
+                TransactionRejectReason::UnauthorizedTokenGovernance(UnauthorizedTokenGovernance {
+                    token_id: token_id.clone().into(),
+                })
             }
         };
         let value = serde_json::to_value(&reason)?;

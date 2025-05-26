@@ -516,13 +516,17 @@ reason {
 		tokenId
   }
 
-  ... on  TokenHolderTransactionRejectReason{
+  ... on  TokenModule{
 		__typename
 		 tokenId
         eventType
         details
 
   }
+		... on UnauthorizedTokenGovernance {
+		__typename
+		tokenId
+		}
 }
 `
 

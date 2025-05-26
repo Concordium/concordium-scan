@@ -70,7 +70,7 @@ pub enum Event {
     DataRegistered(DataRegistered),
     ChainUpdateEnqueued(chain_update::ChainUpdateEnqueued),
 
-    // Token events
+    // Plt
     TokenHolderEvent(token::TokenHolderEvent),
     TokenGovernanceEvent(token::TokenGovernanceEvent),
 }
@@ -97,7 +97,6 @@ pub fn events_from_summary(
     value: concordium_rust_sdk::types::BlockItemSummaryDetails,
     block_time: DateTime,
 ) -> anyhow::Result<Vec<Event>> {
-    println!("events_from_summary: {:?}", value);
     use concordium_rust_sdk::types::{AccountTransactionEffects, BlockItemSummaryDetails};
     let events = match value {
         BlockItemSummaryDetails::AccountTransaction(details) => match details.effects {
@@ -566,35 +565,29 @@ pub fn events_from_summary(
             }
             AccountTransactionEffects::TokenHolder {
                 events,
-            } => {
-                println!("TokenHolder events: {:?}", events);
-                events
-                    .iter()
-                    .map(|event| {
-                        Ok(Event::TokenHolderEvent(token::TokenHolderEvent {
-                            token_id:   event.token_id.clone().into(),
-                            event_type: event.event_type.clone().into(),
-                            details:    serde_cbor::from_slice(event.details.as_ref())?,
-                        }))
-                    })
-                    .collect::<anyhow::Result<Vec<_>>>()?
-            }
+            } => events
+                .iter()
+                .map(|event| {
+                    Ok(Event::TokenHolderEvent(token::TokenHolderEvent {
+                        token_id:   event.token_id.clone().into(),
+                        event_type: event.event_type.clone().into(),
+                        details:    serde_cbor::from_slice(event.details.as_ref())?,
+                    }))
+                })
+                .collect::<anyhow::Result<Vec<_>>>()?,
 
             AccountTransactionEffects::TokenGovernance {
                 events,
-            } => {
-                println!("TokenGovernance events: {:?}", events);
-                events
-                    .iter()
-                    .map(|event| {
-                        Ok(Event::TokenGovernanceEvent(token::TokenGovernanceEvent {
-                            token_id: event.token_id.clone().into(),
-                            action:   event.event_type.clone().into(),
-                            details:  serde_cbor::from_slice(event.details.as_ref())?,
-                        }))
-                    })
-                    .collect::<anyhow::Result<Vec<_>>>()?
-            }
+            } => events
+                .iter()
+                .map(|event| {
+                    Ok(Event::TokenGovernanceEvent(token::TokenGovernanceEvent {
+                        token_id: event.token_id.clone().into(),
+                        action:   event.event_type.clone().into(),
+                        details:  serde_cbor::from_slice(event.details.as_ref())?,
+                    }))
+                })
+                .collect::<anyhow::Result<Vec<_>>>()?,
         },
         BlockItemSummaryDetails::AccountCreation(details) => {
             vec![

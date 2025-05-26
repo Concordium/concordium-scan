@@ -47,7 +47,8 @@ const translations: TranslationMap = {
 	NotAllowedToHandleEncrypted:
 		'The account is not allowed incoming or outgoing encrypted transfers',
 	NonExistentTokenId: 'Token ID does not exist',
-	TokenHolderTransactionRejectReason: 'Token holder transaction reject reason',
+	TokenModule: 'Token module transaction reject reason',
+	UnauthorizedTokenGovernance: 'Unauthorized token governance action',
 }
 
 export const translateRejectionReasons = (

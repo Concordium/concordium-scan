@@ -140,7 +140,7 @@ Use `--help` for more information.",
 #[display("Migration {version}:{description}")]
 struct Migration {
     /// Version number for the database schema.
-    version: i64,
+    version:     i64,
     /// Short description of the point of the migration.
     description: String,
     /// Whether the migration does a breaking change to the database schema.
@@ -152,7 +152,7 @@ struct Migration {
 impl From<SchemaVersion> for Migration {
     fn from(value: SchemaVersion) -> Self {
         Migration {
-            version: value.as_i64(),
+            version:     value.as_i64(),
             description: value.to_string(),
             destructive: value.is_destructive(),
         }
@@ -257,8 +257,7 @@ impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking (destructive) database schema versions
     /// have been introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
-        SchemaVersion::IndexAccountRewards;
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::IndexAccountRewards;
     /// The latest known version of the schema.
     const LATEST: SchemaVersion = SchemaVersion::UpdateAccountTransactionTypes;
 
@@ -269,9 +268,7 @@ impl SchemaVersion {
     }
 
     /// Convert to the integer representation used as version in the database.
-    fn as_i64(self) -> i64 {
-        self as i64
-    }
+    fn as_i64(self) -> i64 { self as i64 }
 
     /// Whether introducing the database schema version is destructive, meaning
     /// not backwards compatible.

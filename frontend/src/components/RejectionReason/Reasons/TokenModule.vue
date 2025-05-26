@@ -95,10 +95,10 @@
 <script setup lang="ts">
 // import { convertMicroCcdToCcd } from '~/utils/format'
 // import Contract from '~/components/molecules/Contract.vue'
-import type { TokenHolderTransactionRejectReason } from '~/types/generated'
+import type { TokenModule } from '~/types/generated'
 
 type Props = {
-	reason: TokenHolderTransactionRejectReason
+	reason: TokenModule
 }
 
 const props = defineProps<Props>()
