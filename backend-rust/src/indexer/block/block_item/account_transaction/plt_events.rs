@@ -2,7 +2,6 @@ use concordium_rust_sdk::{protocol_level_tokens, types::ProtocolVersion};
 
 #[derive(Debug)]
 #[allow(dead_code)]
-
 pub struct PreparedTokenHolderEvents {
     pub events: Vec<PreparedTokenHolderEvent>,
 }
@@ -20,7 +19,6 @@ impl PreparedTokenHolderEvents {
 
 #[derive(Debug)]
 #[allow(dead_code)]
-
 pub struct TokenHolderEvent {
     // Define the fields of the TokenHolderEvent
     token_id:   String,
@@ -42,7 +40,6 @@ impl TokenHolderEvent {
 
 #[derive(Debug)]
 #[allow(dead_code)]
-
 pub struct PreparedTokenHolderEvent {
     pub event: Option<TokenHolderEvent>,
 }
@@ -82,7 +79,6 @@ impl TokenGovernanceEvent {
 
 #[allow(dead_code)]
 #[derive(Debug)]
-
 pub struct PreparedTokenGovernanceEvents {
     pub events: Vec<PreparedTokenGovernanceEvent>,
 }
@@ -100,7 +96,6 @@ impl PreparedTokenGovernanceEvents {
 
 #[derive(Debug)]
 #[allow(dead_code)]
-
 pub struct PreparedTokenGovernanceEvent {
     pub event: Option<TokenGovernanceEvent>,
 }
