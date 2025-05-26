@@ -37,7 +37,7 @@ mod transfer_events;
 pub struct PreparedAccountTransaction {
     /// Update the balance of the sender account with the cost (transaction
     /// fee).
-    fee:   PreparedUpdateAccountBalance,
+    fee: PreparedUpdateAccountBalance,
     /// Updates based on the events of the account transaction.
     event: PreparedEventEnvelope,
 }
@@ -90,7 +90,7 @@ impl PreparedAccountTransaction {
 #[derive(Debug)]
 struct PreparedEventEnvelope {
     metadata: EventMetadata,
-    event:    PreparedEvent,
+    event: PreparedEvent,
 }
 
 impl PreparedEventEnvelope {
@@ -238,12 +238,12 @@ impl PreparedEvent {
 
                 let event = if update.increased {
                     concordium_rust_sdk::types::BakerEvent::BakerStakeIncreased {
-                        baker_id:  update.baker_id,
+                        baker_id: update.baker_id,
                         new_stake: update.new_stake,
                     }
                 } else {
                     concordium_rust_sdk::types::BakerEvent::BakerStakeDecreased {
-                        baker_id:  update.baker_id,
+                        baker_id: update.baker_id,
                         new_stake: update.new_stake,
                     }
                 };
@@ -259,7 +259,7 @@ impl PreparedEvent {
             } => {
                 let events = vec![baker_events::PreparedBakerEvent::prepare(
                     &concordium_rust_sdk::types::BakerEvent::BakerRestakeEarningsUpdated {
-                        baker_id:         *baker_id,
+                        baker_id: *baker_id,
                         restake_earnings: *restake_earnings,
                     },
                     statistics,
@@ -351,7 +351,7 @@ impl PreparedEvent {
             } => PreparedEvent::TokenHolderEvents(PreparedTokenHolderEvents {
                 events: events
                     .iter()
-                    .map(|event| PreparedTokenHolderEvent::prepare(event))
+                    .map(PreparedTokenHolderEvent::prepare)
                     .collect::<anyhow::Result<Vec<_>>>()?,
             }),
             AccountTransactionEffects::TokenGovernance {
@@ -359,7 +359,7 @@ impl PreparedEvent {
             } => PreparedEvent::TokenGovernanceEvents(PreparedTokenGovernanceEvents {
                 events: events
                     .iter()
-                    .map(|event| PreparedTokenGovernanceEvent::prepare(event))
+                    .map(PreparedTokenGovernanceEvent::prepare)
                     .collect::<anyhow::Result<Vec<_>>>()?,
             }),
         };

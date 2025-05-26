@@ -71,8 +71,8 @@ pub enum Event {
     ChainUpdateEnqueued(chain_update::ChainUpdateEnqueued),
 
     // Plt
-    TokenHolderEvent(token::TokenHolderEvent),
-    TokenGovernanceEvent(token::TokenGovernanceEvent),
+    TokenHolder(token::TokenHolderEvent),
+    TokenGovernance(token::TokenGovernanceEvent),
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -568,7 +568,7 @@ pub fn events_from_summary(
             } => events
                 .iter()
                 .map(|event| {
-                    Ok(Event::TokenHolderEvent(token::TokenHolderEvent {
+                    Ok(Event::TokenHolder(token::TokenHolderEvent {
                         token_id:   event.token_id.clone().into(),
                         event_type: event.event_type.clone().into(),
                         details:    serde_cbor::from_slice(event.details.as_ref())?,
@@ -581,7 +581,7 @@ pub fn events_from_summary(
             } => events
                 .iter()
                 .map(|event| {
-                    Ok(Event::TokenGovernanceEvent(token::TokenGovernanceEvent {
+                    Ok(Event::TokenGovernance(token::TokenGovernanceEvent {
                         token_id: event.token_id.clone().into(),
                         action:   event.event_type.clone().into(),
                         details:  serde_cbor::from_slice(event.details.as_ref())?,
