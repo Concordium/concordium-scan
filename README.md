@@ -13,9 +13,6 @@ It consists of two main parts:
 - **[frontend/](./frontend/README.md)**  
   A server-side rendered single page app written in [Vue](https://vuejs.org/) and [TypeScript](https://www.typescriptlang.org/), which consumes data from the [GraphQL](https://graphql.org/) endpoint exposed by the backend.
 
-Note: In the past, the project used the legacy [backend](./backend/README.md) written in [.NET](https://dotnet.microsoft.com/en-us/) instead of the Rust [backend-rust/](./backend-rust/README.md). 
-Some legacy code/pipelines remain in this repo until we are confident we can remove the legacy code/pipelines.
-
 ## Releasing the docker container images:
 
 The project contains different [release pipelines](.github/workflows).

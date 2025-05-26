@@ -1,1 +1,0 @@
-﻿ALTER TABLE graphql_payday_status ADD COLUMN protocol_version INT NOT NULL DEFAULT 0;
