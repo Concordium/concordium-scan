@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.0.3] - 2025-05-21
+
+- Fix query performance issue when getting account rewards for accounts with large number of account statements to better use the index.
+
+## [2.0.2] - 2025-05-21
+
+Database schema version: 34
+
+### Fixed
+
+- Fix performance issue when getting account rewards for accounts with large number of account statements as migration 34.
+- Fix issue in `/rest/export/statement` causing error `Invalid integer: out of range integral type conversion attempted` when exporting account statements for period where the account had negative statement entry (transfer or transaction fee).
+
+## [2.0.1] - 2025-05-19
+
+### Fixed
+
+- Fix performance issue in `Query::bakerMetrics`.
+
 ## [2.0.0] - 2025-05-13
 
 Database schema version: 33

@@ -1160,28 +1160,19 @@ impl Account {
             SELECT
                 id as "id!",
                 block_height as "block_height!",
-                timestamp,
+                blocks.slot_time as "timestamp",
                 entry_type as "entry_type!: AccountStatementEntryType",
                 amount as "amount!"
             FROM (
                 SELECT
                     id,
                     block_height,
-                    blocks.slot_time as "timestamp",
                     entry_type,
                     amount
                 FROM account_statements
-                JOIN
-                    blocks
-                ON
-                    blocks.height = account_statements.block_height
                 WHERE
-                    entry_type IN (
-                        'FinalizationReward',
-                        'FoundationReward',
-                        'BakerReward',
-                        'TransactionFeeReward'
-                    )
+                    -- Range covers entry types related to rewards: 'FinalizationReward', 'FoundationReward', 'BakerReward', 'TransactionFeeReward'
+                    entry_type BETWEEN 'FinalizationReward' AND 'TransactionFeeReward'
                     AND account_index = $5
                     AND id > $2
                     AND id < $1
@@ -1189,7 +1180,8 @@ impl Account {
                     (CASE WHEN $4 THEN id END) ASC,
                     (CASE WHEN NOT $4 THEN id END) DESC
                 LIMIT $3
-            )
+            ) statements
+            JOIN blocks ON blocks.height = statements.block_height
             ORDER BY
                 id DESC
             "#,
@@ -1223,12 +1215,8 @@ impl Account {
                     SELECT MAX(id) as max_id, MIN(id) as min_id
                     FROM account_statements
                     WHERE account_index = $1
-                    AND entry_type IN (
-                        'FinalizationReward',
-                        'FoundationReward',
-                        'BakerReward',
-                        'TransactionFeeReward'
-                    )
+                    -- Range covers entry types related to rewards: 'FinalizationReward', 'FoundationReward', 'BakerReward', 'TransactionFeeReward'
+                    AND entry_type BETWEEN 'FinalizationReward' AND 'TransactionFeeReward'
                 "#,
                 &self.index
             )

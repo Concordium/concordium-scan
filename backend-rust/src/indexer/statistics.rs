@@ -1,3 +1,5 @@
+//! Tracker for various statistics in a block to then be stored in the database.
+
 use crate::scalar_types::DateTime;
 use anyhow::Result;
 use concordium_rust_sdk::base::contracts_common::CanonicalAccountAddress;
@@ -119,7 +121,7 @@ impl RewardStatistics {
     /// Saves the reward statistics.
     /// For each account in the hashmap, a new row is inserted for the current
     /// block. Does no database operations given account rewards are empty
-    pub(crate) async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> Result<()> {
+    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> Result<()> {
         if self.account_rewards.is_empty() {
             debug!("No rewards at block_height: {}", self.block_height);
             return Ok(());

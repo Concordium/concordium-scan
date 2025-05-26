@@ -140,7 +140,7 @@ Use `--help` for more information.",
 #[display("Migration {version}:{description}")]
 struct Migration {
     /// Version number for the database schema.
-    version:     i64,
+    version: i64,
     /// Short description of the point of the migration.
     description: String,
     /// Whether the migration does a breaking change to the database schema.
@@ -152,7 +152,7 @@ struct Migration {
 impl From<SchemaVersion> for Migration {
     fn from(value: SchemaVersion) -> Self {
         Migration {
-            version:     value.as_i64(),
+            version: value.as_i64(),
             description: value.to_string(),
             destructive: value.is_destructive(),
         }
@@ -248,7 +248,9 @@ pub enum SchemaVersion {
     ReindexGinHash,
     #[display("0033:Index for partial contracts search")]
     IndexPartialContractsSearch,
-    #[display("0034: New account transaction types are added")]
+    #[display("0034:Separate index for account statements and account rewards")]
+    IndexAccountRewards,
+    #[display("0035: New account transaction types are added")]
     UpdateAccountTransactionTypes,
 }
 impl SchemaVersion {
@@ -256,7 +258,7 @@ impl SchemaVersion {
     /// Fails at startup if any breaking (destructive) database schema versions
     /// have been introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
-        SchemaVersion::UpdateAccountTransactionTypes;
+        SchemaVersion::IndexAccountRewards;
     /// The latest known version of the schema.
     const LATEST: SchemaVersion = SchemaVersion::UpdateAccountTransactionTypes;
 
@@ -267,7 +269,9 @@ impl SchemaVersion {
     }
 
     /// Convert to the integer representation used as version in the database.
-    fn as_i64(self) -> i64 { self as i64 }
+    fn as_i64(self) -> i64 {
+        self as i64
+    }
 
     /// Whether introducing the database schema version is destructive, meaning
     /// not backwards compatible.
@@ -311,6 +315,7 @@ impl SchemaVersion {
             SchemaVersion::ReindexAffectedAccounts => false,
             SchemaVersion::ReindexGinHash => false,
             SchemaVersion::IndexPartialContractsSearch => false,
+            SchemaVersion::IndexAccountRewards => false,
             SchemaVersion::UpdateAccountTransactionTypes => false,
         }
     }
@@ -355,6 +360,7 @@ impl SchemaVersion {
             SchemaVersion::ReindexAffectedAccounts => false,
             SchemaVersion::ReindexGinHash => false,
             SchemaVersion::IndexPartialContractsSearch => false,
+            SchemaVersion::IndexAccountRewards => false,
             SchemaVersion::UpdateAccountTransactionTypes => false,
         }
     }
@@ -570,7 +576,15 @@ impl SchemaVersion {
             SchemaVersion::IndexPartialContractsSearch => {
                 tx.as_mut()
                     .execute(sqlx::raw_sql(include_str!(
-                        "./migrations/m0034_update_account_transaction_types.sql"
+                        "./migrations/m0034_reindex_account_statement_entry_type_rewards_idx.sql"
+                    )))
+                    .await?;
+                SchemaVersion::IndexAccountRewards
+            }
+            SchemaVersion::IndexAccountRewards => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0035_update_account_transaction_types.sql"
                     )))
                     .await?;
                 SchemaVersion::UpdateAccountTransactionTypes

@@ -142,12 +142,18 @@ impl Service {
         .fetch(&state.pool);
         let mut csv = String::from("Time,Amount (CCD),Balance (CCD),Label\n");
         while let Some(row) = rows.try_next().await? {
-            let amount = Amount::from_micro_ccd(row.amount.try_into()?);
             let account_balance = Amount::from_micro_ccd(row.account_balance.try_into()?);
+            let amount_sign = if row.amount.is_negative() {
+                "-"
+            } else {
+                ""
+            };
+            let amount = Amount::from_micro_ccd(row.amount.abs().try_into()?);
             csv.push_str(
                 format!(
-                    "{},{},{},{}\n",
+                    "{},{}{},{},{}\n",
                     row.timestamp.to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+                    amount_sign,
                     amount,
                     account_balance,
                     row.entry_type
