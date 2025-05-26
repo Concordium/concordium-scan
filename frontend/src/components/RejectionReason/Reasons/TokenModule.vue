@@ -101,6 +101,7 @@ type Props = {
 	reason: TokenModule
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const props = defineProps<Props>()
 
 // const addressType = computed(() =>
