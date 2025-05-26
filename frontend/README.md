@@ -153,7 +153,7 @@ describe('Button', () => {
 
 We are using [GraphQL Code Generator](https://www.graphql-code-generator.com/) to generate types from our GraphQL schema. Whenever there is a change in the schema, you can run the below commands which will generate a new set of types in `types/generated.ts` file. You should not edit this file manually, as the codegen will simply overwrite changes.
 
-- Navigate into the `backend-rust` folder and run:
+- Navigate into the `backend` folder and run:
 
 ```
 env SQLX_OFFLINE=true cargo run --bin ccdscan-api -- --schema-out ./schema.graphql
