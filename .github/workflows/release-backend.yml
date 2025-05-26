@@ -26,7 +26,7 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           TAG_VERSION=${TAG##ccdscan-backend/}
-          EXPECTED=$(yq .package.version backend-rust/Cargo.toml)
+          EXPECTED=$(yq .package.version backend/Cargo.toml)
           EXTRACTED="$TAG_VERSION"
           if [ ! "$EXPECTED" = "$EXTRACTED" ] ; then
             echo "::error::$EXPECTED does not match $EXTRACTED."
@@ -53,8 +53,8 @@ jobs:
       - name: Build indexer docker image
         uses: docker/build-push-action@v6
         with:
-          context: backend-rust
-          file: backend-rust/Dockerfile
+          context: backend
+          file: backend/Dockerfile
           tags: concordium/ccdscan-indexer:${{ env.TAG_VERSION }}
           push: true
           build-args: |
@@ -63,8 +63,8 @@ jobs:
       - name: Build api docker image
         uses: docker/build-push-action@v6
         with:
-          context: backend-rust
-          file: backend-rust/Dockerfile
+          context: backend
+          file: backend/Dockerfile
           tags: concordium/ccdscan-api:${{ env.TAG_VERSION }}
           push: true
           build-args: |

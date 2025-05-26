@@ -1,6 +1,3 @@
-[submodule "backend-rust/concordium-rust-sdk"]
-	path = backend-rust/concordium-rust-sdk
+[submodule "backend/concordium-rust-sdk"]
+	path = backend/concordium-rust-sdk
 	url = ../concordium-rust-sdk.git
-[submodule "backend/concordium-net-sdk"]
-	path = backend/concordium-net-sdk
-	url = ../concordium-net-sdk.git
