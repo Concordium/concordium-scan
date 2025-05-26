@@ -108,7 +108,7 @@ impl IndexerService {
         .map(|r| r.height);
 
         let start_height = if let Some(height) = last_height_stored {
-            u64::try_from(7996)? + 1
+            u64::try_from(height)? + 1
         } else {
             genesis_data::save_genesis_data(endpoints[0].clone(), db_connection.as_mut())
                 .await
