@@ -8,6 +8,7 @@ use concordium_rust_sdk::base::{
     contracts_common::schema::{VersionedModuleSchema, VersionedSchemaError},
     smart_contracts::ReceiveName,
 };
+use serde::ser::Error as SerdeError;
 
 #[derive(Union, Clone, serde::Serialize, serde::Deserialize)]
 pub enum TransactionRejectReason {
@@ -931,14 +932,17 @@ impl PreparedTransactionRejectReason {
                 TransactionRejectReason::TokenModuleReject(TokenModuleReject {
                     token_id:   token_module_reject_reason.token_id.clone().into(),
                     event_type: token_module_reject_reason.event_type.clone().into(),
-                    details:    match token_module_reject_reason.details {
-                        Some(details) => {
-                            Some(serde_json::to_value(
-                                ciborium::from_reader::<ciborium::Value, _>(details.as_ref())?,
-                            )?)
-                        }
-                        None => None,
-                    },
+                    details:    token_module_reject_reason
+                        .details
+                        .map(|details| {
+                            let cbor_value =
+                                ciborium::from_reader::<ciborium::Value, _>(details.as_ref())
+                                    .map_err(|e| {
+                                        SerdeError::custom(format!("CBOR decode error: {}", e))
+                                    })?;
+                            serde_json::to_value(cbor_value)
+                        })
+                        .transpose()?,
                 })
             }
 

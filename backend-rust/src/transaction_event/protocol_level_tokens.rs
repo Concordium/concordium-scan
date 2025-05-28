@@ -8,9 +8,8 @@ pub struct TokenHolderEvent {
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-
 pub struct TokenGovernanceEvent {
-    pub token_id: String,
-    pub action:   String,
-    pub details:  serde_json::Value,
+    pub token_id:   String,
+    pub event_type: String,
+    pub details:    serde_json::Value,
 }

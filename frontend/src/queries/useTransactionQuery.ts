@@ -518,7 +518,7 @@ reason {
 
   ... on TokenModuleReject {
 		__typename
-		 tokenId
+		tokenId
         eventType
         details
 
@@ -526,7 +526,7 @@ reason {
   ... on UnauthorizedTokenGovernance {
 		__typename
 		tokenId
-		}
+  }
 }
 `
 

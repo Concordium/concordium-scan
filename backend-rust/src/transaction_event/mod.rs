@@ -587,11 +587,14 @@ pub fn events_from_summary(
                 .iter()
                 .map(|event| {
                     Ok(Event::TokenGovernance(protocol_level_tokens::TokenGovernanceEvent {
-                        token_id: event.token_id.clone().into(),
-                        action:   event.event_type.clone().into(),
-                        details:  serde_json::to_value(
-                            ciborium::from_reader::<ciborium::Value, _>(event.details.as_ref())?,
-                        )?,
+                        token_id:   event.token_id.clone().into(),
+                        event_type: event.event_type.clone().into(),
+                        details:    serde_json::to_value(ciborium::from_reader::<
+                            ciborium::Value,
+                            _,
+                        >(
+                            event.details.as_ref()
+                        )?)?,
                     }))
                 })
                 .collect::<anyhow::Result<Vec<_>>>()?,
