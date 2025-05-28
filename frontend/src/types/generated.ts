@@ -2927,8 +2927,8 @@ export type TokenEventsCollectionSegment = {
 
 export type TokenGovernanceEvent = {
   __typename?: 'TokenGovernanceEvent';
-  action: Scalars['String'];
   details: Scalars['JSON'];
+  eventType: Scalars['String'];
   tokenId: Scalars['String'];
 };
 

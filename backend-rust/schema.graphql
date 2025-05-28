@@ -2462,7 +2462,7 @@ type TokenEventsCollectionSegment {
 
 type TokenGovernanceEvent {
 	tokenId: String!
-	action: String!
+	eventType: String!
 	details: JSON!
 }
 
