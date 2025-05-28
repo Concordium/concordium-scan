@@ -22,7 +22,6 @@ CREATE TYPE account_transaction_type AS ENUM (
     'RegisterData',
     'ConfigureBaker',
     'ConfigureDelegation'
-    
 );
 
 CREATE TYPE credential_deployment_transaction_type AS ENUM (

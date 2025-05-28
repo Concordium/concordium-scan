@@ -67,7 +67,7 @@ pub enum TransactionRejectReason {
     PoolWouldBecomeOverDelegated(PoolWouldBecomeOverDelegated),
     PoolClosed(PoolClosed),
     NonExistentTokenId(NonExistentTokenId),
-    TokenModule(TokenModule),
+    TokenModuleReject(TokenModuleReject),
     UnauthorizedTokenGovernance(UnauthorizedTokenGovernance),
 }
 
@@ -575,7 +575,7 @@ pub struct NonExistentTokenId {
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
-pub struct TokenModule {
+pub struct TokenModuleReject {
     /// The unique symbol of the token, which produced this event.
     pub token_id:   String,
     /// The type of event produced.
@@ -928,12 +928,16 @@ impl PreparedTransactionRejectReason {
                 token_id: token_id.clone().into(),
             }),
             RejectReason::TokenModule(token_module_reject_reason) => {
-                TransactionRejectReason::TokenModule(TokenModule {
+                TransactionRejectReason::TokenModuleReject(TokenModuleReject {
                     token_id:   token_module_reject_reason.token_id.clone().into(),
                     event_type: token_module_reject_reason.event_type.clone().into(),
                     details:    match token_module_reject_reason.details {
-                        Some(details) => serde_cbor::from_slice(details.as_ref())?,
-                        None => Some(serde_json::Value::Null),
+                        Some(details) => {
+                            Some(serde_json::to_value(
+                                ciborium::from_reader::<ciborium::Value, _>(details.as_ref())?,
+                            )?)
+                        }
+                        None => None,
                     },
                 })
             }

@@ -1,6 +1,6 @@
 <template>
 	<span>
-		Plt Token with token id "<span class="font-bold">{{
+		Protocol level token with ID "<span class="font-bold">{{
 			props.reason.tokenId
 		}}</span
 		>"" does not exist.

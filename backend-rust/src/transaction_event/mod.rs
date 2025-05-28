@@ -15,8 +15,8 @@ pub mod baker;
 pub mod chain_update;
 pub mod credentials;
 pub mod delegation;
+pub mod protocol_level_tokens;
 pub mod smart_contracts;
-pub mod token;
 pub mod transfers;
 
 #[derive(Union, serde::Serialize, serde::Deserialize)]
@@ -71,8 +71,8 @@ pub enum Event {
     ChainUpdateEnqueued(chain_update::ChainUpdateEnqueued),
 
     // Plt
-    TokenHolder(token::TokenHolderEvent),
-    TokenGovernance(token::TokenGovernanceEvent),
+    TokenHolder(protocol_level_tokens::TokenHolderEvent),
+    TokenGovernance(protocol_level_tokens::TokenGovernanceEvent),
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -568,10 +568,15 @@ pub fn events_from_summary(
             } => events
                 .iter()
                 .map(|event| {
-                    Ok(Event::TokenHolder(token::TokenHolderEvent {
+                    Ok(Event::TokenHolder(protocol_level_tokens::TokenHolderEvent {
                         token_id:   event.token_id.clone().into(),
                         event_type: event.event_type.clone().into(),
-                        details:    serde_cbor::from_slice(event.details.as_ref())?,
+                        details:    serde_json::to_value(ciborium::from_reader::<
+                            ciborium::Value,
+                            _,
+                        >(
+                            event.details.as_ref()
+                        )?)?,
                     }))
                 })
                 .collect::<anyhow::Result<Vec<_>>>()?,
@@ -581,10 +586,12 @@ pub fn events_from_summary(
             } => events
                 .iter()
                 .map(|event| {
-                    Ok(Event::TokenGovernance(token::TokenGovernanceEvent {
+                    Ok(Event::TokenGovernance(protocol_level_tokens::TokenGovernanceEvent {
                         token_id: event.token_id.clone().into(),
                         action:   event.event_type.clone().into(),
-                        details:  serde_cbor::from_slice(event.details.as_ref())?,
+                        details:  serde_json::to_value(
+                            ciborium::from_reader::<ciborium::Value, _>(event.details.as_ref())?,
+                        )?,
                     }))
                 })
                 .collect::<anyhow::Result<Vec<_>>>()?,

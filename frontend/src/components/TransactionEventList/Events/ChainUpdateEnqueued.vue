@@ -538,8 +538,7 @@
 			v-else-if="event.payload.__typename === 'CreatePltUpdate'"
 			class="text-theme-faded"
 		>
-			Create Plt Token From Governance Account
-
+			Issue protocol level token with governance account:
 			<AccountLink :address="event.payload.governanceAccount.asString" />
 		</span>
 	</span>

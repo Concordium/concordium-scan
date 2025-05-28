@@ -1,112 +1,106 @@
-use concordium_rust_sdk::{protocol_level_tokens, types::ProtocolVersion};
+//! Structures and helpers for protocol-level token events (TokenHolder,
+//! TokenGovernance). These types are used to prepare and (optionally) persist
+//! token events during block processing.
 
+use concordium_rust_sdk::protocol_level_tokens;
+
+/// Collection of prepared token holder events.
+/// This struct is required by the event processing interface, even if not
+/// always used directly.
 #[derive(Debug)]
-#[allow(dead_code)]
+#[allow(dead_code)] // This type is needed for interface compatibility, even if not always used.
 pub struct PreparedTokenHolderEvents {
     pub events: Vec<PreparedTokenHolderEvent>,
 }
 
-impl PreparedTokenHolderEvents {
-    pub async fn save(
-        &self,
-        _tx: &mut sqlx::PgTransaction<'_>,
-        _transaction_index: i64,
-        _protocol_version: ProtocolVersion,
-    ) -> anyhow::Result<()> {
-        Ok(())
-    }
-}
-
+/// Represents a single token holder event, prepared for further processing.
+/// Fields may not always be accessed, but are kept for completeness and
+/// possible future use.
 #[derive(Debug)]
-#[allow(dead_code)]
+#[allow(dead_code)] // Fields are kept for completeness, even if not always used.
 pub struct TokenHolderEvent {
-    // Define the fields of the TokenHolderEvent
-    token_id:   String,
-    event_type: String,
-    details:    serde_json::Value,
+    pub token_id:   String,
+    pub event_type: String,
+    pub details:    serde_json::Value,
 }
 
 impl TokenHolderEvent {
+    /// Converts a protocol-level token holder event into a prepared event.
     pub fn prepare(event: &protocol_level_tokens::TokenHolderEvent) -> anyhow::Result<Self> {
-        // Prepare the event for insertion into the database
-        let prepared = TokenHolderEvent {
+        Ok(TokenHolderEvent {
             token_id:   event.token_id.clone().into(),
             event_type: event.event_type.clone().into(),
-            details:    serde_cbor::from_slice(event.details.as_ref())?,
-        };
-        Ok(prepared)
+            details:    serde_json::to_value(ciborium::from_reader::<ciborium::Value, _>(
+                event.details.as_ref(),
+            )?)?,
+        })
     }
 }
 
+/// Wraps a token holder event for compatibility with the event processing
+/// interface.
 #[derive(Debug)]
-#[allow(dead_code)]
+#[allow(dead_code)] // This type is needed for interface compatibility, even if not always used.
 pub struct PreparedTokenHolderEvent {
-    pub event: Option<TokenHolderEvent>,
+    pub event: TokenHolderEvent,
 }
 
 impl PreparedTokenHolderEvent {
+    /// Converts a protocol-level token holder event into a prepared wrapper.
     pub fn prepare(event: &protocol_level_tokens::TokenHolderEvent) -> anyhow::Result<Self> {
-        // Prepare the event for insertion into the database
-
-        let prepared = PreparedTokenHolderEvent {
-            event: Some(TokenHolderEvent::prepare(event)?),
-        };
-        Ok(prepared)
+        Ok(PreparedTokenHolderEvent {
+            event: TokenHolderEvent::prepare(event)?,
+        })
     }
 }
 
-// TokenGovernanceEvent
+/// Represents a single token governance event, prepared for further processing.
+/// Fields may not always be accessed, but are kept for completeness and
+/// possible future use.
 #[derive(Debug)]
-#[allow(dead_code)]
+#[allow(dead_code)] // Fields are kept for completeness, even if not always used.
 pub struct TokenGovernanceEvent {
-    // Define the fields of the TokenGovernanceEvent
-    token_id:   String,
-    event_type: String,
-    details:    serde_json::Value,
+    pub token_id:   String,
+    pub event_type: String,
+    pub details:    serde_json::Value,
 }
 
 impl TokenGovernanceEvent {
-    fn prepare(event: &protocol_level_tokens::TokenGovernanceEvent) -> anyhow::Result<Self> {
-        // Prepare the event for insertion into the database
-        let prepared = TokenGovernanceEvent {
+    /// Converts a protocol-level token governance event into a prepared event.
+    pub fn prepare(event: &protocol_level_tokens::TokenGovernanceEvent) -> anyhow::Result<Self> {
+        Ok(TokenGovernanceEvent {
             token_id:   event.token_id.clone().into(),
             event_type: event.event_type.clone().into(),
-            details:    serde_cbor::from_slice(event.details.as_ref())?,
-        };
-        Ok(prepared)
+            details:    serde_json::to_value(ciborium::from_reader::<ciborium::Value, _>(
+                event.details.as_ref(),
+            )?)?,
+        })
     }
 }
 
-#[allow(dead_code)]
+/// Collection of prepared token governance events.
+/// This struct is required by the event processing interface, even if not
+/// always used directly.
 #[derive(Debug)]
+#[allow(dead_code)] // This type is needed for interface compatibility, even if not always used.
 pub struct PreparedTokenGovernanceEvents {
     pub events: Vec<PreparedTokenGovernanceEvent>,
 }
 
-impl PreparedTokenGovernanceEvents {
-    pub async fn save(
-        &self,
-        _tx: &mut sqlx::PgTransaction<'_>,
-        _transaction_index: i64,
-        _protocol_version: ProtocolVersion,
-    ) -> anyhow::Result<()> {
-        Ok(())
-    }
-}
-
+/// Wraps a token governance event for compatibility with the event processing
+/// interface.
 #[derive(Debug)]
-#[allow(dead_code)]
+#[allow(dead_code)] // This type is needed for interface compatibility, even if not always used.
 pub struct PreparedTokenGovernanceEvent {
-    pub event: Option<TokenGovernanceEvent>,
+    pub event: TokenGovernanceEvent,
 }
 
 impl PreparedTokenGovernanceEvent {
+    /// Converts a protocol-level token governance event into a prepared
+    /// wrapper.
     pub fn prepare(event: &protocol_level_tokens::TokenGovernanceEvent) -> anyhow::Result<Self> {
-        // Prepare the event for insertion into the database
-
-        let prepared = PreparedTokenGovernanceEvent {
-            event: Some(TokenGovernanceEvent::prepare(event)?),
-        };
-        Ok(prepared)
+        Ok(PreparedTokenGovernanceEvent {
+            event: TokenGovernanceEvent::prepare(event)?,
+        })
     }
 }

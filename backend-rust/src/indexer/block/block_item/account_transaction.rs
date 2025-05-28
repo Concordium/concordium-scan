@@ -13,7 +13,7 @@ use crate::{
         statistics::Statistics,
     },
 };
-use anyhow::Context;
+use anyhow::{Context, Ok};
 use concordium_rust_sdk::{
     base::transactions::{BlockItem, EncodedPayload},
     id::types::AccountAddress,
@@ -148,7 +148,9 @@ enum PreparedEvent {
     /// No changes in the database was caused by this event.
     NoOperation,
 
+    /// Events related to token holders AccountTransactionEffects.
     TokenHolderEvents(plt_events::PreparedTokenHolderEvents),
+    /// Events related to token governance AccountTransactionEffects.
     TokenGovernanceEvents(plt_events::PreparedTokenGovernanceEvents),
 }
 impl PreparedEvent {
@@ -409,15 +411,9 @@ impl PreparedEvent {
                 .save(tx, tx_idx)
                 .await
                 .context("Failed processing block item event with rejected event"),
-            PreparedEvent::TokenHolderEvents(event) => event
-                .save(tx, tx_idx, protocol_version)
-                .await
-                .context("Failed processing block item event with token holder event"),
+            PreparedEvent::TokenHolderEvents(_event) => Ok(()),
 
-            PreparedEvent::TokenGovernanceEvents(event) => event
-                .save(tx, tx_idx, protocol_version)
-                .await
-                .context("Failed processing block item event with token governance event"),
+            PreparedEvent::TokenGovernanceEvents(_event) => Ok(()),
             PreparedEvent::NoOperation => Ok(()),
         }
     }

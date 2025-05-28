@@ -250,14 +250,15 @@ pub enum SchemaVersion {
     IndexPartialContractsSearch,
     #[display("0034:Separate index for account statements and account rewards")]
     IndexAccountRewards,
-    #[display("0035: New account transaction types are added")]
+    #[display("0035: PLT account transaction types are added")]
     UpdateAccountTransactionTypes,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking (destructive) database schema versions
     /// have been introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::IndexAccountRewards;
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
+        SchemaVersion::IndexPartialContractsSearch;
     /// The latest known version of the schema.
     const LATEST: SchemaVersion = SchemaVersion::UpdateAccountTransactionTypes;
 
