@@ -46,11 +46,15 @@ const translations: TranslationMap = {
 		'The account is not allowed to receive encrypted transfers because it has multiple credentials',
 	NotAllowedToHandleEncrypted:
 		'The account is not allowed incoming or outgoing encrypted transfers',
+	NonExistentTokenId: 'Token ID does not exist',
+	TokenModuleReject: 'Token module transaction reject reason',
+	UnauthorizedTokenGovernance: 'Unauthorized token governance action',
 }
 
 export const translateRejectionReasons = (
 	rejectReason: TransactionRejectReason
-) =>
-	rejectReason.__typename && translations[rejectReason.__typename]
+) => {
+	return rejectReason.__typename && translations[rejectReason.__typename]
 		? translations[rejectReason.__typename]
 		: 'Unknown rejection reason'
+}

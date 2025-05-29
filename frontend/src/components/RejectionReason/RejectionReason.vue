@@ -133,6 +133,14 @@
 			v-else-if="reason.__typename === 'PoolClosed'"
 			:reason="reason"
 		/>
+		<NonExistentTokenId
+			v-else-if="reason.__typename === 'NonExistentTokenId'"
+			:reason="reason"
+		/>
+		<TokenModuleReject
+			v-else-if="reason.__typename === 'TokenModuleReject'"
+			:reason="reason"
+		/>
 		<span v-else>{{ translateRejectionReasons(reason) }}</span>
 	</div>
 </template>
@@ -154,6 +162,8 @@ import EncryptedAmountSelfTransfer from './Reasons/EncryptedAmountSelfTransfer.v
 import ScheduledSelfTransfer from './Reasons/ScheduledSelfTransfer.vue'
 import DuplicateCredIds from './Reasons/DuplicateCredIds.vue'
 import NonExistentCredIds from './Reasons/NonExistentCredIds.vue'
+import NonExistentTokenId from './Reasons/NonExistentTokenId.vue'
+import TokenModuleReject from './Reasons/TokenModuleReject.vue'
 import { translateRejectionReasons } from '~/utils/translateRejectionReasons'
 import type { TransactionRejectReason } from '~/types/generated'
 import MissingBakerAddParameters from '~/components/RejectionReason/Reasons/MissingBakerAddParameters.vue'

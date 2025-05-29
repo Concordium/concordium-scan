@@ -13,18 +13,23 @@ use crate::{
         statistics::Statistics,
     },
 };
-use anyhow::Context;
+use anyhow::{Context, Ok};
 use concordium_rust_sdk::{
     base::transactions::{BlockItem, EncodedPayload},
     id::types::AccountAddress,
     types::{AccountTransactionDetails, AccountTransactionEffects, ProtocolVersion},
     v2,
 };
+use plt_events::{
+    PreparedTokenGovernanceEvent, PreparedTokenGovernanceEvents, PreparedTokenHolderEvent,
+    PreparedTokenHolderEvents,
+};
 
 mod baker_events;
 mod contract_events;
 mod delegation_events;
 mod module_events;
+mod plt_events;
 mod rejected_events;
 mod transfer_events;
 
@@ -142,6 +147,11 @@ enum PreparedEvent {
     RejectedTransaction(rejected_events::PreparedRejectedEvent),
     /// No changes in the database was caused by this event.
     NoOperation,
+
+    /// Events related to token holders AccountTransactionEffects.
+    TokenHolderEvents(plt_events::PreparedTokenHolderEvents),
+    /// Events related to token governance AccountTransactionEffects.
+    TokenGovernanceEvents(plt_events::PreparedTokenGovernanceEvents),
 }
 impl PreparedEvent {
     async fn prepare(
@@ -338,6 +348,22 @@ impl PreparedEvent {
                         .collect::<anyhow::Result<Vec<_>>>()?,
                 },
             ),
+            AccountTransactionEffects::TokenHolder {
+                events,
+            } => PreparedEvent::TokenHolderEvents(PreparedTokenHolderEvents {
+                events: events
+                    .iter()
+                    .map(PreparedTokenHolderEvent::prepare)
+                    .collect::<anyhow::Result<Vec<_>>>()?,
+            }),
+            AccountTransactionEffects::TokenGovernance {
+                events,
+            } => PreparedEvent::TokenGovernanceEvents(PreparedTokenGovernanceEvents {
+                events: events
+                    .iter()
+                    .map(PreparedTokenGovernanceEvent::prepare)
+                    .collect::<anyhow::Result<Vec<_>>>()?,
+            }),
         };
         Ok(prepared_event)
     }
@@ -385,6 +411,9 @@ impl PreparedEvent {
                 .save(tx, tx_idx)
                 .await
                 .context("Failed processing block item event with rejected event"),
+            PreparedEvent::TokenHolderEvents(_event) => Ok(()),
+
+            PreparedEvent::TokenGovernanceEvents(_event) => Ok(()),
             PreparedEvent::NoOperation => Ok(()),
         }
     }

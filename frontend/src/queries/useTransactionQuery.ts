@@ -283,6 +283,13 @@ __typename
 		... on BlockEnergyLimitUpdate {
 			energyLimit
 		}
+		...	on CreatePltUpdate{
+			decimals
+			governanceAccount {
+			asString
+			}
+		}
+
 	}
 }
 ... on Transferred {
@@ -503,6 +510,22 @@ reason {
   }
   ... on PoolClosed {
 		__typename
+  }
+  ... on NonExistentTokenId {
+		__typename
+		tokenId
+  }
+
+  ... on TokenModuleReject {
+		__typename
+		tokenId
+        eventType
+        details
+
+  }
+  ... on UnauthorizedTokenGovernance {
+		__typename
+		tokenId
   }
 }
 `

@@ -534,6 +534,13 @@
 				</DescriptionListItem>
 			</DescriptionList>
 		</span>
+		<span
+			v-else-if="event.payload.__typename === 'CreatePltUpdate'"
+			class="text-theme-faded"
+		>
+			Issue protocol level token with governance account:
+			<AccountLink :address="event.payload.governanceAccount.asString" />
+		</span>
 	</span>
 </template>
 

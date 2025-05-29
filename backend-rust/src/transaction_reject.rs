@@ -8,6 +8,7 @@ use concordium_rust_sdk::base::{
     contracts_common::schema::{VersionedModuleSchema, VersionedSchemaError},
     smart_contracts::ReceiveName,
 };
+use serde::ser::Error as SerdeError;
 
 #[derive(Union, Clone, serde::Serialize, serde::Deserialize)]
 pub enum TransactionRejectReason {
@@ -66,6 +67,9 @@ pub enum TransactionRejectReason {
     StakeOverMaximumThresholdForPool(StakeOverMaximumThresholdForPool),
     PoolWouldBecomeOverDelegated(PoolWouldBecomeOverDelegated),
     PoolClosed(PoolClosed),
+    NonExistentTokenId(NonExistentTokenId),
+    TokenModuleReject(TokenModuleReject),
+    UnauthorizedTokenGovernance(UnauthorizedTokenGovernance),
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone, Copy)]
@@ -566,6 +570,28 @@ pub struct PoolClosed {
     dummy: bool,
 }
 
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
+pub struct NonExistentTokenId {
+    token_id: String,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
+pub struct TokenModuleReject {
+    /// The unique symbol of the token, which produced this event.
+    pub token_id:   String,
+    /// The type of event produced.
+    pub event_type: String,
+    /// The details of the event produced, in the raw byte encoded form.
+    pub details:    Option<serde_json::Value>,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
+
+pub struct UnauthorizedTokenGovernance {
+    /// The unique symbol of the token, which produced this event.
+    pub token_id: String,
+}
+
 /// TransactionRejectReason being prepared for indexing.
 /// Most reject reasons can just be inserted, but a few require some processing
 /// before inserting.
@@ -796,7 +822,6 @@ impl PreparedTransactionRejectReason {
                     dummy: true,
                 })
             }
-
             RejectReason::NotAllowedMultipleCredentials => {
                 TransactionRejectReason::NotAllowedMultipleCredentials(
                     NotAllowedMultipleCredentials {
@@ -898,6 +923,36 @@ impl PreparedTransactionRejectReason {
             RejectReason::PoolClosed => TransactionRejectReason::PoolClosed(PoolClosed {
                 dummy: true,
             }),
+            RejectReason::NonExistentTokenId {
+                token_id,
+            } => TransactionRejectReason::NonExistentTokenId(NonExistentTokenId {
+                token_id: token_id.clone().into(),
+            }),
+            RejectReason::TokenModule(token_module_reject_reason) => {
+                TransactionRejectReason::TokenModuleReject(TokenModuleReject {
+                    token_id:   token_module_reject_reason.token_id.clone().into(),
+                    event_type: token_module_reject_reason.event_type.clone().into(),
+                    details:    token_module_reject_reason
+                        .details
+                        .map(|details| {
+                            let cbor_value =
+                                ciborium::from_reader::<ciborium::Value, _>(details.as_ref())
+                                    .map_err(|e| {
+                                        SerdeError::custom(format!("CBOR decode error: {}", e))
+                                    })?;
+                            serde_json::to_value(cbor_value)
+                        })
+                        .transpose()?,
+                })
+            }
+
+            RejectReason::UnauthorizedTokenGovernance {
+                token_id,
+            } => {
+                TransactionRejectReason::UnauthorizedTokenGovernance(UnauthorizedTokenGovernance {
+                    token_id: token_id.clone().into(),
+                })
+            }
         };
         let value = serde_json::to_value(&reason)?;
         Ok(Self::Ready(value))
