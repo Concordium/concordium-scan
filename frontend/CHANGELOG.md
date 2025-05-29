@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 - Implemented stable coin issuer specific dashboard with the following sections: Overview, Holder table, Holder distribution
 - Added environment config `enablePltFeatures` to control stable coin menu display.
 - Plt transactions are now displayed in the transaction list page.
+
 ## [1.7.14] - 2025-04-30
 
 ### Changed
