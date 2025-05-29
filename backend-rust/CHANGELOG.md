@@ -2,7 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [2.0.4] - 2025-06-29
+
+Database schema version: 35
+- Plt specific transaction events are now indexed and available in the API.
 
 ## [2.0.3] - 2025-05-21
 
