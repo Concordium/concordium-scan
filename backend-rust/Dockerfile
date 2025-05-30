@@ -6,6 +6,7 @@ FROM ${build_image} AS build
 WORKDIR /usr/app
 
 COPY Cargo.toml Cargo.lock ./
+COPY stablecoin.json transaction.json transfers.json walletholdings.json ./ 
 COPY src ./src
 COPY concordium-rust-sdk /usr/app/concordium-rust-sdk
 COPY .sqlx .sqlx
