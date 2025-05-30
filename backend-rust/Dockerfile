@@ -6,7 +6,6 @@ FROM ${build_image} AS build
 WORKDIR /usr/app
 
 COPY Cargo.toml Cargo.lock ./
-COPY stablecoin.json transaction.json transfers.json walletholdings.json ./ 
 COPY src ./src
 COPY concordium-rust-sdk /usr/app/concordium-rust-sdk
 COPY .sqlx .sqlx
@@ -16,7 +15,7 @@ RUN cargo build --release --locked
 FROM ${base_image}
 
 WORKDIR /usr/app
-
+COPY stablecoin.json transaction.json transfers.json walletholdings.json ./ 
 RUN apt-get update && \
     apt-get -y install ca-certificates
 
