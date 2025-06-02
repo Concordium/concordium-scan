@@ -3,6 +3,7 @@
 All notable changes to this project will be documented in this file.
 
 ## [2.0.5] - 2025-06-30
+
 - fix docker file to use mock data for plt dashboard
 
 ## [2.0.4] - 2025-06-29

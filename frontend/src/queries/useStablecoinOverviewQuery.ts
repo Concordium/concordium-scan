@@ -24,7 +24,6 @@ const STABLECOIN_OVERVIEW_QUERY = gql`
 
 export const useStablecoinOverviewQuery = () => {
 	const { data } = useQuery<StablecoinOverviewResponse>({
-		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: STABLECOIN_OVERVIEW_QUERY,
 		requestPolicy: 'cache-and-network',
 	})

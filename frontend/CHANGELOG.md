@@ -2,9 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.17.15] - 2025-06-29
-
-## [1.8.0] - 2025-05-19
+## Unreleased
 
 ### Removed
 
@@ -24,7 +22,10 @@ All notable changes to this project will be documented in this file.
   - `useAccountsListQuery`
   - `useAccountsUpdatedSubscription`
   - `useBlockSubscription`
+
 - Move account statement export to use `rust-backend` API.
+
+## [1.17.15] - 2025-06-29
 
 ### Added
 

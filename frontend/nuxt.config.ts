@@ -8,11 +8,11 @@ export default defineNuxtConfig({
 		public: {
 			version: process.env.npm_package_version,
 			// URL to use when sending GraphQL queries to the CCDscan API.
-			// (env NUXT_PUBLIC_API_URL_RUST)
-			apiUrlRust: 'http://localhost:8000/api/graphql',
+			// (env NUXT_PUBLIC_API_URL)
+			apiUrl: 'http://localhost:8000/api/graphql',
 			// URL to use when using websockets in GraphQL CCDscan API.
-			// (env NUXT_PUBLIC_WS_URL_RUST)
-			wsUrlRust: 'ws://localhost:8000/ws/graphql',
+			// (env NUXT_PUBLIC_WS_URL)
+			wsUrl: 'ws://localhost:8000/ws/graphql',
 			// Settings for how to display the explorer.
 			explorer: {
 				// The name to display for the explorer.

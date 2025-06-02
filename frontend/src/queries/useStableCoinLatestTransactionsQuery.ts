@@ -22,7 +22,6 @@ const STABLECOIN_LATEST_TRANSACTIONS = gql<stableCoinLatestTransactionsResponse>
 `
 export const useStableCoinLatestTransactionsQuery = (limit: number) => {
 	const { data, executeQuery, fetching } = useQuery({
-		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: STABLECOIN_LATEST_TRANSACTIONS,
 		requestPolicy: 'cache-and-network',
 		variables: { limit },
