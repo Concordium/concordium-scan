@@ -3,7 +3,10 @@ use crate::{
     scalar_types::{DateTime, Decimal, UnsignedInt, UnsignedLong},
 };
 use async_graphql::{SimpleObject, Union};
-use concordium_rust_sdk::types::{ExchangeRate, UpdatePayload};
+use concordium_rust_sdk::{
+    base::protocol_level_tokens,
+    types::{ExchangeRate, UpdatePayload},
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(SimpleObject, Serialize, Deserialize)]
@@ -55,6 +58,7 @@ pub enum ChainUpdatePayload {
     PoolParameters(PoolParametersChainUpdatePayload),
     TimeParameters(TimeParametersChainUpdatePayload),
     ValidatorScoreParameters(ValidatorScoreParametersUpdate),
+    CreatePlt(CreatePltUpdate),
 }
 
 #[derive(SimpleObject, Serialize, Deserialize)]
@@ -207,6 +211,25 @@ pub struct TimeParametersChainUpdatePayload {
 pub struct MintDistributionV1ChainUpdatePayload {
     pub baking_reward:       Decimal,
     pub finalization_reward: Decimal,
+}
+
+#[derive(SimpleObject, Serialize, Deserialize)]
+pub struct CreatePltUpdate {
+    /// The token symbol.
+    #[graphql(skip)]
+    pub token_symbol:              protocol_level_tokens::TokenId,
+    /// The hash that identifies the token module implementation.
+    #[graphql(skip)]
+    pub token_module:              protocol_level_tokens::TokenModuleRef,
+    /// The address of the account that will govern the token.
+    pub governance_account:        AccountAddress,
+    /// The number of decimal places used in the representation of amounts of
+    /// this token. This determines the smallest representable fraction of
+    /// the token. This can be at most 255.
+    pub decimals:                  u8,
+    /// The initialization parameters of the token, encoded in CBOR.
+    #[graphql(skip)]
+    pub initialization_parameters: protocol_level_tokens::RawCbor,
 }
 
 #[derive(SimpleObject, Serialize, Deserialize)]
@@ -395,6 +418,13 @@ impl From<UpdatePayload> for ChainUpdatePayload {
                     maximum_missed_rounds: UnsignedLong(update.max_missed_rounds),
                 })
             }
+            UpdatePayload::CreatePlt(update) => ChainUpdatePayload::CreatePlt(CreatePltUpdate {
+                token_symbol:              update.token_symbol,
+                token_module:              update.token_module,
+                governance_account:        update.governance_account.into(),
+                decimals:                  update.decimals,
+                initialization_parameters: update.initialization_parameters,
+            }),
         }
     }
 }

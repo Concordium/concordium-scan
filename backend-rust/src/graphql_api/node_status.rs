@@ -1,4 +1,4 @@
-use super::{ApiError, ApiResult};
+use super::{ApiResult, InternalError};
 use crate::connection::connection_from_slice;
 use async_graphql::{connection, types, ComplexObject, Context, Enum, Object, SimpleObject};
 use prometheus_client::{metrics::counter::Counter, registry::Registry};
@@ -29,11 +29,13 @@ impl QueryNodeStatus {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, NodeStatus>> {
-        let handler = ctx.data::<NodeInfoReceiver>().map_err(ApiError::NoReceiver)?;
+        let handler = ctx.data::<NodeInfoReceiver>().map_err(InternalError::NoReceiver)?;
         let mut statuses = if let Some(statuses) = handler.borrow().clone() {
             statuses
         } else {
-            Err(ApiError::InternalError("Node collector backend has not responded".to_string()))?
+            Err(InternalError::InternalError(
+                "Node collector backend has not responded".to_string(),
+            ))?
         };
 
         statuses.sort_by(|a, b| {
@@ -72,11 +74,11 @@ impl QueryNodeStatus {
         ctx: &Context<'_>,
         #[graphql(desc = "Return node with corresponding id")] id: types::ID,
     ) -> ApiResult<Option<NodeStatus>> {
-        let handler = ctx.data::<NodeInfoReceiver>().map_err(ApiError::NoReceiver)?;
+        let handler = ctx.data::<NodeInfoReceiver>().map_err(InternalError::NoReceiver)?;
         let statuses_ref = handler.borrow();
-        let statuses = statuses_ref.as_ref().ok_or(ApiError::InternalError(
-            "Node collector backend has not responded".to_string(),
-        ))?;
+        let statuses = statuses_ref.as_ref().ok_or_else(|| {
+            InternalError::InternalError("Node collector backend has not responded".to_string())
+        })?;
         let node = statuses.iter().find(|x| x.external.node_id == id.0).cloned();
         Ok(node)
     }

@@ -15,7 +15,7 @@ RUN cargo build --release --locked
 FROM ${base_image}
 
 WORKDIR /usr/app
-
+COPY stablecoin.json transaction.json transfers.json walletholdings.json ./ 
 RUN apt-get update && \
     apt-get -y install ca-certificates
 

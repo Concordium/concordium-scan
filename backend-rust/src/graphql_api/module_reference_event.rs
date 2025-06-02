@@ -1,4 +1,4 @@
-use super::{get_config, get_pool, ApiError, ApiResult};
+use super::{get_config, get_pool, ApiError, ApiResult, InternalError};
 use crate::{
     address::{AccountAddress, ContractAddress},
     scalar_types::{BlockHeight, DateTime, ModuleReference, TransactionHash, TransactionIndex},
@@ -43,7 +43,8 @@ impl QueryModuleReferenceEvent {
             .display_schema
             .as_ref()
             .map(|s| VersionedModuleSchema::new(s, &None).map(|schema| schema.to_string()))
-            .transpose()?;
+            .transpose()
+            .map_err(InternalError::from)?;
 
         Ok(ModuleReferenceEvent {
             module_reference,
@@ -265,9 +266,10 @@ impl ModuleReferenceRejectEvent {
         if let Some(sqlx::types::Json(reason)) = self.reject.as_ref() {
             Ok(reason)
         } else {
-            Err(ApiError::InternalError(
+            Err(InternalError::InternalError(
                 "ModuleReferenceRejectEvent: No reject reason found".to_string(),
-            ))
+            )
+            .into())
         }
     }
 }

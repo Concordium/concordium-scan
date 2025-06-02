@@ -1,6 +1,6 @@
 use crate::{
     address::AccountAddress,
-    graphql_api::{get_pool, ApiError, ApiResult},
+    graphql_api::{get_pool, ApiResult, InternalError},
     scalar_types::{AccountIndex, Amount, BakerId, Decimal},
 };
 use async_graphql::{ComplexObject, Context, Enum, SimpleObject};
@@ -147,7 +147,7 @@ async fn account_address(baker_id: &BakerId, ctx: &Context<'_>) -> ApiResult<Acc
         .fetch_one(pool)
         .await
         .map_err(|_| {
-            ApiError::InternalError(format!("Unable to find account with index {}", baker_id))
+            InternalError::InternalError(format!("Unable to find account with index {}", baker_id))
         })?;
     Ok(AccountAddress::from(address))
 }

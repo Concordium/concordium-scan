@@ -2,7 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [2.0.5] - 2025-06-30
+- fix docker file to use mock data for plt dashboard
+
+## [2.0.4] - 2025-06-29
+
+Database schema version: 35
+- Plt specific transaction events are now indexed and available in the API.
+
+## [2.0.3] - 2025-05-21
+
+- Fix query performance issue when getting account rewards for accounts with large number of account statements to better use the index.
+
+## [2.0.2] - 2025-05-21
+
+Database schema version: 34
+
+### Fixed
+
+- Fix performance issue when getting account rewards for accounts with large number of account statements as migration 34.
+- Fix issue in `/rest/export/statement` causing error `Invalid integer: out of range integral type conversion attempted` when exporting account statements for period where the account had negative statement entry (transfer or transaction fee).
+
+## [2.0.1] - 2025-05-19
+
+### Fixed
+
+- Fix performance issue in `Query::bakerMetrics`.
+
+## [2.0.0] - 2025-05-13
+
+Database schema version: 33
 
 ### Removed
 
@@ -19,6 +48,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Add partial contract index search to the query `SearchResult::contracts`.
+- Add database migration 33 to add a column `index_text` to the `contracts` table. An index is added over that column to support partial contract index searches.
 - Introduce lock preventing multiple instances of `ccdscan-indexer` from indexing at the same time. The process will wait for the lock otherwise exit with an error. The wait duration defaults to 5 seconds and can be configured using `--database-indexer-lock-timeout` (env `CCDSCAN_INDEXER_CONFIG_DATABASE_INDEXER_LOCK_TIMEOUT`).
 - Balance statistics api: added the deprecated `TotalAmounUnlocked` parameter for backwards compatability with comments that it will be removed in a future release. `TotalAmountUnlocked` is now the preferred parameter for this api.
 - Add `/playground` endpoint for `ccdscan-api` for access to GraphQL Playground IDE.
@@ -26,6 +57,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Passing `--schema-out <file>` option to the `ccdscan-api` binary no longer requires any other options such as the database URL to be set.
+- Hide internal errors from the `ccdscan-api` GraphQL API response and produced an ERROR level log message instead.
 - The `ccdscan-indexer` binary no longer uses a database pool, reducing the overhead and number of connections to the database.
 - A dummy server for plt support and which new queries are now exposed at the backend (Will be removed later).
 

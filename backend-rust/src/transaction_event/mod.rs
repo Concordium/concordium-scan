@@ -1,7 +1,7 @@
 use crate::{
     address::Address as ScalarAddress,
     decoded_text::DecodedText,
-    graphql_api::{ApiError, ApiResult},
+    graphql_api::{ApiResult, InternalError},
     scalar_types::{BigInteger, Byte, DateTime, UnsignedLong},
     transaction_event::transfers::TimestampedAmount,
 };
@@ -15,6 +15,7 @@ pub mod baker;
 pub mod chain_update;
 pub mod credentials;
 pub mod delegation;
+pub mod protocol_level_tokens;
 pub mod smart_contracts;
 pub mod transfers;
 
@@ -68,6 +69,10 @@ pub enum Event {
     // Misc
     DataRegistered(DataRegistered),
     ChainUpdateEnqueued(chain_update::ChainUpdateEnqueued),
+
+    // Plt
+    TokenHolder(protocol_level_tokens::TokenHolderEvent),
+    TokenGovernance(protocol_level_tokens::TokenGovernanceEvent),
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -81,7 +86,7 @@ impl DataRegistered {
     async fn decoded(&self) -> ApiResult<DecodedText> {
         let decoded_data = hex::decode(&self.data_as_hex).map_err(|e| {
             error!("Invalid hex encoding {:?} in a controlled environment", e);
-            ApiError::InternalError("Failed to decode hex data".to_string())
+            InternalError::InternalError("Failed to decode hex data".to_string())
         })?;
 
         Ok(DecodedText::from_bytes(decoded_data.as_slice()))
@@ -558,6 +563,41 @@ pub fn events_from_summary(
                     })
                     .collect::<anyhow::Result<Vec<_>>>()?
             }
+            AccountTransactionEffects::TokenHolder {
+                events,
+            } => events
+                .iter()
+                .map(|event| {
+                    Ok(Event::TokenHolder(protocol_level_tokens::TokenHolderEvent {
+                        token_id:   event.token_id.clone().into(),
+                        event_type: event.event_type.clone().into(),
+                        details:    serde_json::to_value(ciborium::from_reader::<
+                            ciborium::Value,
+                            _,
+                        >(
+                            event.details.as_ref()
+                        )?)?,
+                    }))
+                })
+                .collect::<anyhow::Result<Vec<_>>>()?,
+
+            AccountTransactionEffects::TokenGovernance {
+                events,
+            } => events
+                .iter()
+                .map(|event| {
+                    Ok(Event::TokenGovernance(protocol_level_tokens::TokenGovernanceEvent {
+                        token_id:   event.token_id.clone().into(),
+                        event_type: event.event_type.clone().into(),
+                        details:    serde_json::to_value(ciborium::from_reader::<
+                            ciborium::Value,
+                            _,
+                        >(
+                            event.details.as_ref()
+                        )?)?,
+                    }))
+                })
+                .collect::<anyhow::Result<Vec<_>>>()?,
         },
         BlockItemSummaryDetails::AccountCreation(details) => {
             vec![

@@ -2,7 +2,7 @@ use crate::{
     address::{AccountAddress, Address},
     connection::connection_from_slice,
     decoded_text::DecodedText,
-    graphql_api::{ApiError, ApiResult},
+    graphql_api::{ApiResult, InternalError},
     scalar_types::{Amount, DateTime, UnsignedLong},
 };
 use async_graphql::{connection::Connection, ComplexObject, SimpleObject};
@@ -83,7 +83,7 @@ impl TransferMemo {
     async fn decoded(&self) -> ApiResult<DecodedText> {
         let decoded_data = hex::decode(&self.raw_hex).map_err(|e| {
             error!("Invalid hex encoding {:?} in a controlled environment", e);
-            ApiError::InternalError("Failed to decode hex data".to_string())
+            InternalError::InternalError("Failed to decode hex data".to_string())
         })?;
 
         Ok(DecodedText::from_bytes(decoded_data.as_slice()))

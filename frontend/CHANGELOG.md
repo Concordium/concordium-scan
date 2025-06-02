@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.17.15] - 2025-06-29
 
 ## [1.8.0] - 2025-05-19
 
@@ -31,6 +31,7 @@ All notable changes to this project will be documented in this file.
 - Implemented stable coin dashboard with the following sections: Overview, Supply, Holders
 - Implemented stable coin issuer specific dashboard with the following sections: Overview, Holder table, Holder distribution
 - Added environment config `enablePltFeatures` to control stable coin menu display.
+- Plt transactions are now displayed in the transaction list page.
 
 ## [1.7.14] - 2025-04-30
 

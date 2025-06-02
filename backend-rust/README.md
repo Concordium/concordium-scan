@@ -194,7 +194,7 @@ http://localhost:8000/rest/export/statement
 
 #### Http client to the Node Collector Backend:
 
-When the GraphQL API service is run, it queries node infos in the [file] (https://github.com/Concordium/concordium-scan/blob/main/backend-rust/src/graphql_api/node_status.rs#L111) from the [node collector backend](https://github.com/Concordium/concordium-node/tree/main/collector-backend).
+When the GraphQL API service is run, it queries node infos in the [file](https://github.com/Concordium/concordium-scan/blob/main/backend-rust/src/graphql_api/node_status.rs#L111) from the [node collector backend](https://github.com/Concordium/concordium-node/tree/main/collector-backend).
 
 ## Contributing
 

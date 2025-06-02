@@ -19,6 +19,8 @@ export type Scalars = {
    */
   DateTime: any;
   Decimal: any;
+  /** A scalar that can represent any JSON value. */
+  JSON: any;
   Long: any;
   TimeSpan: any;
   UnsignedInt: any;
@@ -355,6 +357,8 @@ export enum AccountTransactionType {
   RemoveBaker = 'REMOVE_BAKER',
   SimpleTransfer = 'SIMPLE_TRANSFER',
   SimpleTransferWithMemo = 'SIMPLE_TRANSFER_WITH_MEMO',
+  TokenGovernance = 'TOKEN_GOVERNANCE',
+  TokenHolder = 'TOKEN_HOLDER',
   TransferToEncrypted = 'TRANSFER_TO_ENCRYPTED',
   TransferToPublic = 'TRANSFER_TO_PUBLIC',
   TransferWithSchedule = 'TRANSFER_WITH_SCHEDULE',
@@ -939,7 +943,7 @@ export type ChainUpdateEnqueued = {
   payload: ChainUpdatePayload;
 };
 
-export type ChainUpdatePayload = AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | BlockEnergyLimitUpdate | CooldownParametersChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | FinalizationCommitteeParametersUpdate | FoundationAccountChainUpdatePayload | GasRewardsChainUpdatePayload | GasRewardsCpv2Update | Level1KeysChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | MinBlockTimeUpdate | MintDistributionChainUpdatePayload | MintDistributionV1ChainUpdatePayload | PoolParametersChainUpdatePayload | ProtocolChainUpdatePayload | RootKeysChainUpdatePayload | TimeParametersChainUpdatePayload | TimeoutParametersUpdate | TransactionFeeDistributionChainUpdatePayload | ValidatorScoreParametersUpdate;
+export type ChainUpdatePayload = AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | BlockEnergyLimitUpdate | CooldownParametersChainUpdatePayload | CreatePltUpdate | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | FinalizationCommitteeParametersUpdate | FoundationAccountChainUpdatePayload | GasRewardsChainUpdatePayload | GasRewardsCpv2Update | Level1KeysChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | MinBlockTimeUpdate | MintDistributionChainUpdatePayload | MintDistributionV1ChainUpdatePayload | PoolParametersChainUpdatePayload | ProtocolChainUpdatePayload | RootKeysChainUpdatePayload | TimeParametersChainUpdatePayload | TimeoutParametersUpdate | TransactionFeeDistributionChainUpdatePayload | ValidatorScoreParametersUpdate;
 
 export type Cis2Event = {
   __typename?: 'Cis2Event';
@@ -1193,6 +1197,18 @@ export type CooldownParametersChainUpdatePayload = {
   poolOwnerCooldown: Scalars['UnsignedLong'];
 };
 
+export type CreatePltUpdate = {
+  __typename?: 'CreatePltUpdate';
+  /**
+   * The number of decimal places used in the representation of amounts of
+   * this token. This determines the smallest representable fraction of
+   * the token. This can be at most 255.
+   */
+  decimals: Scalars['Int'];
+  /** The address of the account that will govern the token. */
+  governanceAccount: AccountAddress;
+};
+
 export type CredentialDeployed = {
   __typename?: 'CredentialDeployed';
   accountAddress: AccountAddress;
@@ -1367,7 +1383,7 @@ export type EuroPerEnergyChainUpdatePayload = {
   exchangeRate: Ratio;
 };
 
-export type Event = AccountCreated | AmountAddedByDecryption | BakerAdded | BakerDelegationRemoved | BakerKeysUpdated | BakerRemoved | BakerResumed | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerSetMetadataUrl | BakerSetOpenStatus | BakerSetRestakeEarnings | BakerSetTransactionFeeCommission | BakerStakeDecreased | BakerStakeIncreased | BakerSuspended | ChainUpdateEnqueued | ContractCall | ContractInitialized | ContractInterrupted | ContractModuleDeployed | ContractResumed | ContractUpdated | ContractUpgraded | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | DelegationAdded | DelegationRemoved | DelegationSetDelegationTarget | DelegationSetRestakeEarnings | DelegationStakeDecreased | DelegationStakeIncreased | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | Transferred | TransferredWithSchedule;
+export type Event = AccountCreated | AmountAddedByDecryption | BakerAdded | BakerDelegationRemoved | BakerKeysUpdated | BakerRemoved | BakerResumed | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerSetMetadataUrl | BakerSetOpenStatus | BakerSetRestakeEarnings | BakerSetTransactionFeeCommission | BakerStakeDecreased | BakerStakeIncreased | BakerSuspended | ChainUpdateEnqueued | ContractCall | ContractInitialized | ContractInterrupted | ContractModuleDeployed | ContractResumed | ContractUpdated | ContractUpgraded | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | DelegationAdded | DelegationRemoved | DelegationSetDelegationTarget | DelegationSetRestakeEarnings | DelegationStakeDecreased | DelegationStakeIncreased | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TokenGovernanceEvent | TokenHolderEvent | TransferMemo | Transferred | TransferredWithSchedule;
 
 export type EventConnection = {
   __typename?: 'EventConnection';
@@ -1900,6 +1916,11 @@ export type NonExistentCredentialId = {
 export type NonExistentRewardAccount = {
   __typename?: 'NonExistentRewardAccount';
   accountAddress: AccountAddress;
+};
+
+export type NonExistentTokenId = {
+  __typename?: 'NonExistentTokenId';
+  tokenId: Scalars['String'];
 };
 
 export type NonIncreasingSchedule = {
@@ -2904,6 +2925,30 @@ export type TokenEventsCollectionSegment = {
   totalCount: Scalars['Int'];
 };
 
+export type TokenGovernanceEvent = {
+  __typename?: 'TokenGovernanceEvent';
+  details: Scalars['JSON'];
+  eventType: Scalars['String'];
+  tokenId: Scalars['String'];
+};
+
+export type TokenHolderEvent = {
+  __typename?: 'TokenHolderEvent';
+  details: Scalars['JSON'];
+  eventType: Scalars['String'];
+  tokenId: Scalars['String'];
+};
+
+export type TokenModuleReject = {
+  __typename?: 'TokenModuleReject';
+  /** The details of the event produced, in the raw byte encoded form. */
+  details?: Maybe<Scalars['JSON']>;
+  /** The type of event produced. */
+  eventType: Scalars['String'];
+  /** The unique symbol of the token, which produced this event. */
+  tokenId: Scalars['String'];
+};
+
 /** A segment of a collection. */
 export type TokensCollectionSegment = {
   __typename?: 'TokensCollectionSegment';
@@ -2995,7 +3040,7 @@ export type TransactionMetricsBuckets = {
   y_TransactionCount: Array<Scalars['Int']>;
 };
 
-export type TransactionRejectReason = AlreadyABaker | AlreadyADelegator | AmountTooLarge | BakerInCooldown | BakingRewardCommissionNotInRange | CredentialHolderDidNotSign | DelegationTargetNotABaker | DelegatorInCooldown | DuplicateAggregationKey | DuplicateCredIds | EncryptedAmountSelfTransfer | FinalizationRewardCommissionNotInRange | FirstScheduledReleaseExpired | InsufficientBalanceForBakerStake | InsufficientBalanceForDelegationStake | InsufficientDelegationStake | InvalidAccountReference | InvalidAccountThreshold | InvalidContractAddress | InvalidCredentialKeySignThreshold | InvalidCredentials | InvalidEncryptedAmountTransferProof | InvalidIndexOnEncryptedTransfer | InvalidInitMethod | InvalidModuleReference | InvalidProof | InvalidReceiveMethod | InvalidTransferToPublicProof | KeyIndexAlreadyInUse | MissingBakerAddParameters | MissingDelegationAddParameters | ModuleHashAlreadyExists | ModuleNotWf | NonExistentCredIds | NonExistentCredentialId | NonExistentRewardAccount | NonIncreasingSchedule | NotABaker | NotADelegator | NotAllowedMultipleCredentials | NotAllowedToHandleEncrypted | NotAllowedToReceiveEncrypted | OutOfEnergy | PoolClosed | PoolWouldBecomeOverDelegated | RejectedInit | RejectedReceive | RemoveFirstCredential | RuntimeFailure | ScheduledSelfTransfer | SerializationFailure | StakeOverMaximumThresholdForPool | StakeUnderMinimumThresholdForBaking | TransactionFeeCommissionNotInRange | ZeroScheduledAmount;
+export type TransactionRejectReason = AlreadyABaker | AlreadyADelegator | AmountTooLarge | BakerInCooldown | BakingRewardCommissionNotInRange | CredentialHolderDidNotSign | DelegationTargetNotABaker | DelegatorInCooldown | DuplicateAggregationKey | DuplicateCredIds | EncryptedAmountSelfTransfer | FinalizationRewardCommissionNotInRange | FirstScheduledReleaseExpired | InsufficientBalanceForBakerStake | InsufficientBalanceForDelegationStake | InsufficientDelegationStake | InvalidAccountReference | InvalidAccountThreshold | InvalidContractAddress | InvalidCredentialKeySignThreshold | InvalidCredentials | InvalidEncryptedAmountTransferProof | InvalidIndexOnEncryptedTransfer | InvalidInitMethod | InvalidModuleReference | InvalidProof | InvalidReceiveMethod | InvalidTransferToPublicProof | KeyIndexAlreadyInUse | MissingBakerAddParameters | MissingDelegationAddParameters | ModuleHashAlreadyExists | ModuleNotWf | NonExistentCredIds | NonExistentCredentialId | NonExistentRewardAccount | NonExistentTokenId | NonIncreasingSchedule | NotABaker | NotADelegator | NotAllowedMultipleCredentials | NotAllowedToHandleEncrypted | NotAllowedToReceiveEncrypted | OutOfEnergy | PoolClosed | PoolWouldBecomeOverDelegated | RejectedInit | RejectedReceive | RemoveFirstCredential | RuntimeFailure | ScheduledSelfTransfer | SerializationFailure | StakeOverMaximumThresholdForPool | StakeUnderMinimumThresholdForBaking | TokenModuleReject | TransactionFeeCommissionNotInRange | UnauthorizedTokenGovernance | ZeroScheduledAmount;
 
 export type TransactionResult = Rejected | Success;
 
@@ -3053,6 +3098,12 @@ export type TransferredWithScheduleAmountsScheduleArgs = {
   last?: InputMaybe<Scalars['Int']>;
 };
 
+export type UnauthorizedTokenGovernance = {
+  __typename?: 'UnauthorizedTokenGovernance';
+  /** The unique symbol of the token, which produced this event. */
+  tokenId: Scalars['String'];
+};
+
 export type UpdateTransaction = {
   __typename?: 'UpdateTransaction';
   updateTransactionType: UpdateTransactionType;
@@ -3060,6 +3111,7 @@ export type UpdateTransaction = {
 
 export enum UpdateTransactionType {
   BlockEnergyLimitUpdate = 'BLOCK_ENERGY_LIMIT_UPDATE',
+  CreatePltUpdate = 'CREATE_PLT_UPDATE',
   FinalizationCommitteeParametersUpdate = 'FINALIZATION_COMMITTEE_PARAMETERS_UPDATE',
   GasRewardsCpv_2Update = 'GAS_REWARDS_CPV_2_UPDATE',
   MintDistributionCpv_1Update = 'MINT_DISTRIBUTION_CPV_1_UPDATE',

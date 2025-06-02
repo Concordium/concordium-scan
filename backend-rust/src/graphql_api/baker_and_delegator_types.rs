@@ -1,4 +1,4 @@
-use super::{block::Block, get_pool, ApiError, ApiResult};
+use super::{block::Block, get_pool, ApiResult, InternalError};
 use crate::{
     address::AccountAddress,
     scalar_types::{Amount, BlockHeight, DateTime, Decimal},
@@ -96,15 +96,19 @@ impl DelegationSummary {
 
     async fn staked_amount(&self) -> ApiResult<Amount> {
         self.staked_amount.try_into().map_err(|_| {
-            ApiError::InternalError(
+            InternalError::InternalError(
                 "Staked amount in database should be a valid UnsignedLong".to_string(),
             )
+            .into()
         })
     }
 
     async fn restake_earnings(&self) -> ApiResult<bool> {
-        self.restake_earnings.ok_or(ApiError::InternalError(
-            "Delegator should have a boolean in the `restake_earnings` variable.".to_string(),
-        ))
+        self.restake_earnings.ok_or_else(|| {
+            InternalError::InternalError(
+                "Delegator should have a boolean in the `restake_earnings` variable.".to_string(),
+            )
+            .into()
+        })
     }
 }

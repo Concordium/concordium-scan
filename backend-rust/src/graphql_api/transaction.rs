@@ -1,4 +1,6 @@
-use super::{block::Block, get_config, get_pool, ApiError, ApiResult, ConnectionQuery};
+use super::{
+    block::Block, get_config, get_pool, ApiError, ApiResult, ConnectionQuery, InternalError,
+};
 use crate::{
     address::AccountAddress,
     connection::DescendingI64,
@@ -223,7 +225,7 @@ impl Transaction {
             DbTransactionType::CredentialDeployment => {
                 TransactionType::CredentialDeploymentTransaction(CredentialDeploymentTransaction {
                     credential_deployment_transaction_type: self.type_credential_deployment.ok_or(
-                        ApiError::InternalError(
+                        InternalError::InternalError(
                             "Database invariant violated, transaction type is credential \
                              deployment, but credential deployment type is null"
                                 .to_string(),
@@ -232,7 +234,7 @@ impl Transaction {
                 })
             }
             DbTransactionType::Update => TransactionType::UpdateTransaction(UpdateTransaction {
-                update_transaction_type: self.type_update.ok_or(ApiError::InternalError(
+                update_transaction_type: self.type_update.ok_or(InternalError::InternalError(
                     "Database invariant violated, transaction type is update, but update type is \
                      null"
                         .to_string(),
@@ -247,7 +249,7 @@ impl Transaction {
             let events = self
                 .events
                 .as_ref()
-                .ok_or(ApiError::InternalError("Success events is null".to_string()))?;
+                .ok_or(InternalError::InternalError("Success events is null".to_string()))?;
             Ok(TransactionResult::Success(Success {
                 events,
             }))
@@ -255,7 +257,7 @@ impl Transaction {
             let reason = self
                 .reject
                 .as_ref()
-                .ok_or(ApiError::InternalError("Success events is null".to_string()))?;
+                .ok_or(InternalError::InternalError("Success events is null".to_string()))?;
             Ok(TransactionResult::Rejected(Rejected {
                 reason,
             }))

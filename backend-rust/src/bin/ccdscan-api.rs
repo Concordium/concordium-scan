@@ -40,11 +40,6 @@ struct Cli {
     /// specified amount of time. Set to 0 to disable.
     #[arg(long, env = "CCDSCAN_API_DATABASE_STATEMENT_TIMEOUT_SECS", default_value_t = 30)]
     statement_timeout_secs: u64,
-    /// Outputs the GraphQL Schema for the API and then exits. The output is
-    /// stored as a file at the provided path or to stdout when '-' is
-    /// provided.
-    #[arg(long)]
-    schema_out: Option<PathBuf>,
     /// Address to listen to for API requests.
     #[arg(long, env = "CCDSCAN_API_ADDRESS", default_value = "127.0.0.1:8000")]
     listen: SocketAddr,
@@ -95,24 +90,47 @@ struct Cli {
     // This argument is actually handled before hand using `DotenvCli`.
     #[arg(long)]
     dotenv: Option<PathBuf>,
+    /// Outputs the GraphQL Schema for the API and then exits. The output is
+    /// stored as a file at the provided path or to stdout when '-' is
+    /// provided.
+    // This is only part of this struct in order to generate help information.
+    // This argument is actually handled before hand using `DotenvCli`.
+    #[arg(long)]
+    schema_out: Option<PathBuf>,
 }
 
 /// CLI argument parser first used for parsing only the --dotenv option.
 /// Allowing loading the provided file before parsing the remaining arguments
-/// and producing errors
+/// and producing errors.
 #[derive(Parser)]
 #[command(ignore_errors = true, disable_help_flag = true, disable_version_flag = true)]
-struct DotenvCli {
+struct PreCli {
     #[arg(long)]
-    dotenv: Option<PathBuf>,
+    dotenv:     Option<PathBuf>,
+    #[arg(long)]
+    schema_out: Option<PathBuf>,
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    if let Some(dotenv) = DotenvCli::parse().dotenv {
+    let pre_cli_args = PreCli::parse();
+    if let Some(dotenv) = pre_cli_args.dotenv {
         dotenvy::from_filename(dotenv)?;
     } else {
         let _ = dotenvy::dotenv();
+    }
+    // Handle the schema output argument before parsing the remaining arguments, to
+    // make the remaining optional in this case.
+    if let Some(schema_file) = pre_cli_args.schema_out {
+        let sdl = graphql_api::Service::sdl();
+        if schema_file.as_path() == std::path::Path::new("-") {
+            eprintln!("Writing schema to stdout");
+            print!("{}", sdl);
+        } else {
+            eprintln!("Writing schema to {}", schema_file.to_string_lossy());
+            std::fs::write(schema_file, sdl).context("Failed to write schema")?;
+        }
+        return Ok(());
     }
     let cli = Cli::parse();
     let filter = if std::env::var("RUST_LOG").is_ok() {
@@ -127,17 +145,6 @@ async fn main() -> anyhow::Result<()> {
         format!("info,{pkg_name}={0},{crate_name}={0}", cli.log_level).parse()?
     };
     tracing_subscriber::registry().with(tracing_subscriber::fmt::layer()).with(filter).init();
-    if let Some(schema_file) = cli.schema_out {
-        let sdl = graphql_api::Service::sdl();
-        if schema_file.as_path() == std::path::Path::new("-") {
-            eprintln!("Writing schema to stdout");
-            print!("{}", sdl);
-        } else {
-            eprintln!("Writing schema to {}", schema_file.to_string_lossy());
-            std::fs::write(schema_file, sdl).context("Failed to write schema")?;
-        }
-        return Ok(());
-    }
 
     let connection_options: PgConnectOptions = cli.database_url.parse()?;
     let pool = PgPoolOptions::new()
