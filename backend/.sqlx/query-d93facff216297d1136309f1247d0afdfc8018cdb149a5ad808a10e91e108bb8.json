@@ -53,7 +53,9 @@
                 "UpdateCredentials",
                 "RegisterData",
                 "ConfigureBaker",
-                "ConfigureDelegation"
+                "ConfigureDelegation",
+                "TokenHolder",
+                "TokenGovernance"
               ]
             }
           }
@@ -97,7 +99,8 @@
                 "MinBlockTimeUpdate",
                 "BlockEnergyLimitUpdate",
                 "FinalizationCommitteeParametersUpdate",
-                "ValidatorScoreParametersUpdate"
+                "ValidatorScoreParametersUpdate",
+                "CreatePltUpdate"
               ]
             }
           }

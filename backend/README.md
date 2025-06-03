@@ -160,7 +160,7 @@ Variables:
 
 #### Monitoring:
 
-When the GraphQL API service is run, it exposes a metric endpoint [metric endpoint](https://github.com/Concordium/concordium-scan/blob/main/backend-rust/src/router.rs):
+When the GraphQL API service is run, it exposes a metric endpoint [metric endpoint](https://github.com/Concordium/concordium-scan/blob/main/backend/src/router.rs):
 
 ```
 http://localhost:8003/metrics
@@ -170,7 +170,7 @@ This endpoint is scraped by Prometheus, and the collected metrics are visualized
 
 #### Rest API server:
 
-When the GraphQL API service is run, it exposes rest [API (legacy) endpoints](https://github.com/Concordium/concordium-scan/blob/main/backend-rust/src/rest_api.rs):
+When the GraphQL API service is run, it exposes rest [API (legacy) endpoints](https://github.com/Concordium/concordium-scan/blob/main/backend/src/rest_api.rs):
 
 These legacy api endpoints need to be maintained for backwards compatibility since several external partners scrap the total CCD supply in circulation from these endpoints.
 
@@ -194,7 +194,7 @@ http://localhost:8000/rest/export/statement
 
 #### Http client to the Node Collector Backend:
 
-When the GraphQL API service is run, it queries node infos in the [file](https://github.com/Concordium/concordium-scan/blob/main/backend-rust/src/graphql_api/node_status.rs#L111) from the [node collector backend](https://github.com/Concordium/concordium-node/tree/main/collector-backend).
+When the GraphQL API service is run, it queries node infos in the [file](https://github.com/Concordium/concordium-scan/blob/main/backend/src/graphql_api/node_status.rs#L111) from the [node collector backend](https://github.com/Concordium/concordium-node/tree/main/collector-backend).
 
 ## Contributing
 

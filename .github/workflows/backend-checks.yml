@@ -1,16 +1,16 @@
-name: Check backend (Rust)
+name: Check backend
 
 on:
   push:
     branches: main
     paths:
-        - backend-rust/**
+        - backend/**
         - .github/**
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, edited]
     branches: [ main ]
     paths:
-        - backend-rust/**
+        - backend/**
         - .github/**
 
 env:
@@ -25,7 +25,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Check formatting
-        working-directory: backend-rust
+        working-directory: backend
         run: |
           rustup default ${{ env.RUST_FMT }}
           rustup component add rustfmt
@@ -44,7 +44,7 @@ jobs:
           rustup default ${{ env.RUST_VERSION }}
           rustup component add clippy
       - name: Run clippy
-        working-directory: backend-rust
+        working-directory: backend
         run: |
           cargo clippy --color=always --tests -- -D warnings
 
@@ -59,7 +59,7 @@ jobs:
         with:
           submodules: recursive
       - name: Run unit tests
-        working-directory: backend-rust
+        working-directory: backend
         run: |
           rustup default ${{ env.RUST_VERSION }}
           cargo test
@@ -75,10 +75,10 @@ jobs:
         with:
           submodules: recursive
       - name: Build ccdscan-api and output schema
-        working-directory: backend-rust
+        working-directory: backend
         run: |
           rustup default ${{ env.RUST_VERSION }}
           cargo run --bin ccdscan-api -- --schema-out $RUNNER_TEMP/schema.graphql
       - name: Compare schemas
-        working-directory: backend-rust
+        working-directory: backend
         run: graphql-inspector diff schema.graphql $RUNNER_TEMP/schema.graphql
