@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM (\n                SELECT\n                    index,\n                    block_height,\n                    hash,\n                    ccd_cost,\n                    energy_cost,\n                    sender_index,\n                    type as \"tx_type: DbTransactionType\",\n                    type_account as \"type_account: AccountTransactionType\",\n                    type_credential_deployment as \"type_credential_deployment: CredentialDeploymentTransactionType\",\n                    type_update as \"type_update: UpdateTransactionType\",\n                    success,\n                    events as \"events: sqlx::types::Json<Vec<Event>>\",\n                    reject as \"reject: sqlx::types::Json<TransactionRejectReason>\"\n                FROM transactions\n                WHERE\n                    starts_with(hash, $5)\n                    AND $2 < index\n                    AND index < $1\n                ORDER BY\n                    (CASE WHEN $3 THEN index END) ASC,\n                    (CASE WHEN NOT $3 THEN index END) DESC\n                LIMIT $4\n            ) ORDER BY index DESC",
+  "query": "SELECT * FROM (\n                SELECT\n                    index,\n                    block_height,\n                    hash,\n                    ccd_cost,\n                    energy_cost,\n                    sender_index,\n                    type as \"tx_type: DbTransactionType\",\n                    type_account as \"type_account: AccountTransactionType\",\n                    type_credential_deployment as \"type_credential_deployment: CredentialDeploymentTransactionType\",\n                    type_update as \"type_update: UpdateTransactionType\",\n                    success,\n                    events as \"events: sqlx::types::Json<Vec<Event>>\",\n                    reject as \"reject: sqlx::types::Json<TransactionRejectReason>\"\n                FROM transactions t\n                WHERE\n                    index IN (\n                        SELECT transaction_index\n                        FROM affected_accounts\n                        WHERE account_index = $1\n                    )\n                    AND index > $3\n                    AND index < $2\n                ORDER BY\n                    (CASE WHEN $4 THEN index END) ASC,\n                    (CASE WHEN NOT $4 THEN index END) DESC\n                LIMIT $5\n            ) ORDER BY index DESC\n            ",
   "describe": {
     "columns": [
       {
@@ -77,7 +77,9 @@
                 "UpdateCredentials",
                 "RegisterData",
                 "ConfigureBaker",
-                "ConfigureDelegation"
+                "ConfigureDelegation",
+                "TokenHolder",
+                "TokenGovernance"
               ]
             }
           }
@@ -129,7 +131,8 @@
                 "MinBlockTimeUpdate",
                 "BlockEnergyLimitUpdate",
                 "FinalizationCommitteeParametersUpdate",
-                "ValidatorScoreParametersUpdate"
+                "ValidatorScoreParametersUpdate",
+                "CreatePltUpdate"
               ]
             }
           }
@@ -155,9 +158,9 @@
       "Left": [
         "Int8",
         "Int8",
-        "Bool",
         "Int8",
-        "Text"
+        "Bool",
+        "Int8"
       ]
     },
     "nullable": [
@@ -176,5 +179,5 @@
       true
     ]
   },
-  "hash": "304442438b1d40dc2696739d521176516cc24f195dc36f0dc4e8645df9728680"
+  "hash": "e410826d9bbb9699c1b4ed0b341b5e81453ee613df5c012fb6ce584d5d0ced5d"
 }

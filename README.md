@@ -8,9 +8,9 @@
 
 It consists of two main parts:
 
-- **[backend-rust/](./backend-rust/README.md)**  
+- **[backend/](./backend/README.md)**
   Backend built in Rust. It reads data directly from a blockchain node via gRPC, ingests it into a [PostgreSQL database](https://www.postgresql.org/), then serves it to any consumer from a [GraphQL](https://graphql.org/) API.
-- **[frontend/](./frontend/README.md)**  
+- **[frontend/](./frontend/README.md)**
   A server-side rendered single page app written in [Vue](https://vuejs.org/) and [TypeScript](https://www.typescriptlang.org/), which consumes data from the [GraphQL](https://graphql.org/) endpoint exposed by the backend.
 
 ## Releasing the docker container images:
@@ -19,7 +19,7 @@ The project contains different [release pipelines](.github/workflows).
 
 #### To release a new `backend` docker container image:
 
-- Create a PR that bumps the backend version in the `backend-rust/Cargo.toml` file and updates the backend `changelog` and merge it e.g. [backend release](https://github.com/Concordium/concordium-scan/pull/536/files).
+- Create a PR that bumps the backend version in the `backend/Cargo.toml` file and updates the backend `changelog` and merge it e.g. [backend release](https://github.com/Concordium/concordium-scan/pull/536/files).
 - Checkout the main branch locally.
 - Tag the branch e.g.:
 ```
