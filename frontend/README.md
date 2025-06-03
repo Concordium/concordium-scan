@@ -11,9 +11,6 @@ The frontend is built on some fundamental technologies:
 - **[TypeScript](https://www.typescriptlang.org/)**
   A typed programming language, which compiles to JavaScript. This acts as an accelerator during development, and prevents most type errors at write-time and compile-time. [More on this in a later section](#typescript).
 
-Note: The front-end relies on the [backend-rust](../backend-rust/README.md) for the GraphQL queries. In the past, the project used the legacy [backend](../backend/README.md) written in [.NET](https://dotnet.microsoft.com/en-us/) instead of the Rust [backend-rust](../backend-rust/README.md). 
-The legacy code remains until we are confident we can remove the legacy code/pipelines.
-
 ## Setup
 
 **Install dependencies:**

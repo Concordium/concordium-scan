@@ -1,1 +1,0 @@
-﻿ALTER TABLE graphql_account_tokens ADD COLUMN index bigint GENERATED ALWAYS AS IDENTITY
