@@ -50,7 +50,6 @@ export const useStableCoinDashboardList = (
 ) => {
 	console.log(symbol, limit, lastNTransactions)
 	const { data, executeQuery, fetching } = useQuery({
-		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: STABLECOIN_DASHBOARD_LIST_QUERY,
 		requestPolicy: 'cache-and-network',
 		variables: { symbol, limit, lastNTransactions },

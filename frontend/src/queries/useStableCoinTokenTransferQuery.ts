@@ -40,7 +40,6 @@ export const useStableCoinTokenTransferQuery = (
 	days: Ref<number>
 ) => {
 	const { data, executeQuery, fetching } = useQuery({
-		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: STABLECOIN_TOKEN_TRANSFER,
 		requestPolicy: 'cache-and-network',
 		variables: { symbol, days },

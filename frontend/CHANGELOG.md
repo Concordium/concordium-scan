@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Removed
+
+- Remove the temporary maintenance banner.
+
+### Changed
+
+- Move remaining queries to use the new `rust-backend` API.
+  - `useSearchQuery`
+  - `usePassiveDelegationPoolRewardMetrics`
+  - `useBakerTransactionsQuery`
+  - `useBakerRewardsQuery`
+  - `useBakerDelegatorsQuery`
+  - `useAccountsMetricsQuery`
+  - `useAccountRewardMetricsQuery`
+  - `useAccountQuery`
+  - `useAccountsListQuery`
+  - `useAccountsUpdatedSubscription`
+  - `useBlockSubscription`
+
+- Move account statement export to use `rust-backend` API.
+
 ## [1.17.15] - 2025-06-29
 
 ### Added
@@ -16,7 +39,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - Generate the graphQL types from the schema of the new Rust backend.
-- The `NodeLink` component requires a `node-id` and `node-name` as input now so that the component can be used with the `NodeStatus` type as well as the `PeerReference` type. 
+- The `NodeLink` component requires a `node-id` and `node-name` as input now so that the component can be used with the `NodeStatus` type as well as the `PeerReference` type.
 - Use the correct `PassiveDelegationSummary` type instead of the `DelegationSummary` type in the `PassiveDelegation` component.
 - Handle the case that the types `selfSuspended`, `inactiveSuspended`, or `primedForSuspension` can be `undefined` in `BakerSuspension` component.
 - Remove the `CisUpdateOperatorEvent` component as only token events are displayed and the `CisUpdateOperatorEvent` is not associated to any token id.
@@ -24,7 +47,6 @@ All notable changes to this project will be documented in this file.
 - Rename `TokenEvent` to `Cis2Event`, `ContractsEdge` to `ContractEdge`, and `BakerTransactionRelation` to `InterimTransaction` to align with the new schema.
 - The `lastCumulativeAccountsCreated`, `lastCumulativeTransactionCount`, and `sumRewardAmount` are optional types now and set to 0 if not presen in reward metrics.
 - Extend the type `updateTransactionTypes` with the missing cases `VALIDATOR_SCORE_PARAMETERS_UPDATE`, `GAS_REWARDS_CPV_2_UPDATE`, `MINT_DISTRIBUTION_CPV_1_UPDATE`, `UPDATE_LEVEL_1_KEYS`, and `UPDATE_LEVEL_2_KEYS`.
-
 
 ## [1.7.13] - 2025-04-14
 

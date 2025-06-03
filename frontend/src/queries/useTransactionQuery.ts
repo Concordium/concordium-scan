@@ -662,7 +662,6 @@ export const useTransactionQuery = ({
 	const identifier = id?.value ? { id: id.value } : { hash: hash?.value }
 
 	const { data, fetching, error } = useQuery({
-		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query,
 		requestPolicy: 'cache-first',
 		variables: {
