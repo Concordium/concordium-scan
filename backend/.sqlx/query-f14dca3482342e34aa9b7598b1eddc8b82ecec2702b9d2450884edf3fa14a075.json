@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH \n                account_info AS (\n                        SELECT index AS account_index, amount AS current_balance\n                        FROM accounts\n                        WHERE canonical_address = $1\n                )\n                INSERT INTO account_statements (\n                    account_index,\n                    entry_type,\n                    amount,\n                    block_height,\n                    transaction_id,\n                    account_balance,\n                    slot_time\n                )\n                SELECT\n                    account_index,\n                    $2,\n                    $3,\n                    $4,\n                    $5,\n                    current_balance,\n                    (select slot_time from blocks where height = $4)\n                FROM account_info",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bytea",
+        {
+          "Custom": {
+            "name": "account_statement_entry_type",
+            "kind": {
+              "Enum": [
+                "TransferIn",
+                "TransferOut",
+                "AmountDecrypted",
+                "AmountEncrypted",
+                "TransactionFee",
+                "FinalizationReward",
+                "FoundationReward",
+                "BakerReward",
+                "TransactionFeeReward"
+              ]
+            }
+          }
+        },
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f14dca3482342e34aa9b7598b1eddc8b82ecec2702b9d2450884edf3fa14a075"
+}

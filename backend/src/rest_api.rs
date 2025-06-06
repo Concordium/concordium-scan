@@ -121,19 +121,14 @@ impl Service {
         let mut rows = sqlx::query_as!(
             ExportAccountStatementEntry,
             r#"SELECT
-                blocks.slot_time as timestamp,
-                account_statements.amount,
-                account_statements.account_balance,
-                entry_type as "entry_type: AccountStatementEntryType"
-            FROM accounts
-                JOIN account_statements
-                    ON accounts.index = account_statements.account_index
-                JOIN blocks
-                    ON blocks.height = account_statements.block_height
+                slot_time as timestamp,
+                amount,
+                account_balance,
+                "entry_type" as "entry_type: AccountStatementEntryType"
+            FROM account_statements
             WHERE
-                accounts.address = $1
-                AND slot_time >= $2
-                AND slot_time <= $3
+                account_index = (select index from accounts where address = $1)
+                AND slot_time between $2 and $3
             ORDER BY slot_time DESC"#,
             params.account_address.to_string(),
             from,

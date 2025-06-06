@@ -96,27 +96,30 @@ impl PreparedAccountStatement {
         transaction_index: Option<i64>,
     ) -> anyhow::Result<()> {
         sqlx::query!(
-            "WITH account_info AS (
-            SELECT index AS account_index, amount AS current_balance
-            FROM accounts
-            WHERE canonical_address = $1
-        )
-        INSERT INTO account_statements (
-            account_index,
-            entry_type,
-            amount,
-            block_height,
-            transaction_id,
-            account_balance
-        )
-        SELECT
-            account_index,
-            $2,
-            $3,
-            $4,
-            $5,
-            current_balance
-        FROM account_info",
+            "WITH 
+                account_info AS (
+                        SELECT index AS account_index, amount AS current_balance
+                        FROM accounts
+                        WHERE canonical_address = $1
+                )
+                INSERT INTO account_statements (
+                    account_index,
+                    entry_type,
+                    amount,
+                    block_height,
+                    transaction_id,
+                    account_balance,
+                    slot_time
+                )
+                SELECT
+                    account_index,
+                    $2,
+                    $3,
+                    $4,
+                    $5,
+                    current_balance,
+                    (select slot_time from blocks where height = $4)
+                FROM account_info",
             self.canonical_address.0.as_slice(),
             self.transaction_type as AccountStatementEntryType,
             self.amount,

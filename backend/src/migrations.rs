@@ -252,6 +252,8 @@ pub enum SchemaVersion {
     IndexAccountRewards,
     #[display("0035: PLT account transaction types are added")]
     UpdateAccountTransactionTypes,
+    #[display("0036: Added index and slot time for the account statements table")]
+    IndexAndSlotTimeColumnAddedAccountStatements,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -260,7 +262,7 @@ impl SchemaVersion {
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
         SchemaVersion::IndexPartialContractsSearch;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::UpdateAccountTransactionTypes;
+    const LATEST: SchemaVersion = SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -315,6 +317,7 @@ impl SchemaVersion {
             SchemaVersion::IndexPartialContractsSearch => false,
             SchemaVersion::IndexAccountRewards => false,
             SchemaVersion::UpdateAccountTransactionTypes => false,
+            SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => false
         }
     }
 
@@ -360,6 +363,7 @@ impl SchemaVersion {
             SchemaVersion::IndexPartialContractsSearch => false,
             SchemaVersion::IndexAccountRewards => false,
             SchemaVersion::UpdateAccountTransactionTypes => false,
+            SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => false
         }
     }
 
@@ -586,8 +590,16 @@ impl SchemaVersion {
                     )))
                     .await?;
                 SchemaVersion::UpdateAccountTransactionTypes
+            },
+            SchemaVersion::UpdateAccountTransactionTypes => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0036_index_and_slot_time_column_added_account_statements.sql"
+                    )))
+                    .await?;
+                SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements
             }
-            SchemaVersion::UpdateAccountTransactionTypes => unimplemented!(
+            SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
