@@ -317,7 +317,7 @@ impl SchemaVersion {
             SchemaVersion::IndexPartialContractsSearch => false,
             SchemaVersion::IndexAccountRewards => false,
             SchemaVersion::UpdateAccountTransactionTypes => false,
-            SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => false
+            SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => false,
         }
     }
 
@@ -363,7 +363,7 @@ impl SchemaVersion {
             SchemaVersion::IndexPartialContractsSearch => false,
             SchemaVersion::IndexAccountRewards => false,
             SchemaVersion::UpdateAccountTransactionTypes => false,
-            SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => false
+            SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => false,
         }
     }
 
@@ -590,11 +590,12 @@ impl SchemaVersion {
                     )))
                     .await?;
                 SchemaVersion::UpdateAccountTransactionTypes
-            },
+            }
             SchemaVersion::UpdateAccountTransactionTypes => {
                 tx.as_mut()
                     .execute(sqlx::raw_sql(include_str!(
-                        "./migrations/m0036_index_and_slot_time_column_added_account_statements.sql"
+                        "./migrations/m0036_index_and_slot_time_column_added_account_statements.\
+                         sql"
                     )))
                     .await?;
                 SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements
