@@ -33,7 +33,7 @@ END $$;
 
 
 -- Add index for efficient lookup of account_statements by slot_time descending order
-CREATE INDEX idx_account_statements_covering_slot_time_desc ON account_statements(account_index, slot_time desc)
+CREATE INDEX account_statements_covering_slot_time_desc ON account_statements(account_index, slot_time desc)
 INCLUDE (amount, account_balance, entry_type, slot_time);
 
 -- Ensure the slot_time column is set to NOT NULL after populating it
