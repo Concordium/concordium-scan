@@ -127,7 +127,7 @@ impl Service {
                 "entry_type" as "entry_type: AccountStatementEntryType"
             FROM account_statements
             WHERE
-                account_index = (select index from accounts where address = $1)
+                account_index = (SELECT index FROM accounts WHERE address = $1)
                 AND slot_time between $2 and $3
             ORDER BY slot_time DESC"#,
             params.account_address.to_string(),
