@@ -118,7 +118,7 @@ impl PreparedAccountStatement {
                     $4,
                     $5,
                     current_balance,
-                    (select slot_time from blocks where height = $4)
+                    (SELECT slot_time FROM blocks WHERE height = $4)
                 FROM account_info",
             self.canonical_address.0.as_slice(),
             self.transaction_type as AccountStatementEntryType,
