@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [2.0.6] - 2025-06-06
 
+Database schema version: 36
+
 - Added slot_time to account statements table and covering index for searching account statements effectively
 
 ## [2.0.5] - 2025-05-30
