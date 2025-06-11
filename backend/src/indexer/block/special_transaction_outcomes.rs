@@ -655,7 +655,11 @@ impl RestakeEarnings {
         )
         .fetch_one(tx.as_mut())
         .await?;
-        if let Some(restake) = account_row.delegated_restake_earnings {
+
+
+        let restake: bool = account_row.delegated_restake_earnings;
+
+        if restake{
             let bakers_expected_affected_range = if self.protocol_version > ProtocolVersion::P6 {
                 1..=1
             } else {
@@ -676,7 +680,7 @@ impl RestakeEarnings {
                 .await?
                 .ensure_affected_rows_in_range(bakers_expected_affected_range)?;
             }
-        } else {
+        }else {
             // When delegated_restake_earnings is None the account is not delegating, so it
             // might be baking.
             sqlx::query!(
