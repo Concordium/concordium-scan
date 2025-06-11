@@ -217,7 +217,7 @@ pub struct MintDistributionV1ChainUpdatePayload {
 pub struct CreatePltUpdate {
     /// The token symbol.
     #[graphql(skip)]
-    pub token_symbol:              protocol_level_tokens::TokenId,
+    pub token_id:                  protocol_level_tokens::TokenId,
     /// The hash that identifies the token module implementation.
     #[graphql(skip)]
     pub token_module:              protocol_level_tokens::TokenModuleRef,
@@ -419,7 +419,7 @@ impl From<UpdatePayload> for ChainUpdatePayload {
                 })
             }
             UpdatePayload::CreatePlt(update) => ChainUpdatePayload::CreatePlt(CreatePltUpdate {
-                token_symbol:              update.token_symbol,
+                token_id:                  update.token_id,
                 token_module:              update.token_module,
                 governance_account:        update.governance_account.into(),
                 decimals:                  update.decimals,

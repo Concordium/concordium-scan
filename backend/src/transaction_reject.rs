@@ -931,7 +931,7 @@ impl PreparedTransactionRejectReason {
             RejectReason::TokenModule(token_module_reject_reason) => {
                 TransactionRejectReason::TokenModuleReject(TokenModuleReject {
                     token_id:   token_module_reject_reason.token_id.clone().into(),
-                    event_type: token_module_reject_reason.event_type.clone().into(),
+                    event_type: token_module_reject_reason.reason_type.clone().into(),
                     details:    token_module_reject_reason
                         .details
                         .map(|details| {

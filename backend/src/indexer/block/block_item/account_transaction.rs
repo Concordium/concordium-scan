@@ -21,8 +21,7 @@ use concordium_rust_sdk::{
     v2,
 };
 use plt_events::{
-    PreparedTokenGovernanceEvent, PreparedTokenGovernanceEvents, PreparedTokenHolderEvent,
-    PreparedTokenHolderEvents,
+    PreparedTokenGovernanceEvents, PreparedTokenHolderEvent, PreparedTokenHolderEvents,
 };
 
 mod baker_events;
@@ -361,7 +360,7 @@ impl PreparedEvent {
             } => PreparedEvent::TokenGovernanceEvents(PreparedTokenGovernanceEvents {
                 events: events
                     .iter()
-                    .map(PreparedTokenGovernanceEvent::prepare)
+                    .map(PreparedTokenHolderEvent::prepare)
                     .collect::<anyhow::Result<Vec<_>>>()?,
             }),
         };
