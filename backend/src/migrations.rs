@@ -255,7 +255,9 @@ pub enum SchemaVersion {
     UpdateAccountTransactionTypes,
     #[display("0036: Added index and slot time for the account statements table")]
     IndexAndSlotTimeColumnAddedAccountStatements,
-    #[display("0037: Accounts restake earnings update null values to false and add not null constraint")]
+    #[display(
+        "0037: Accounts restake earnings update null values to false and add not null constraint"
+    )]
     AccountsDelegatedEarningsNullToFalseAndNotNullConstraint,
 }
 impl SchemaVersion {
@@ -265,7 +267,8 @@ impl SchemaVersion {
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
         SchemaVersion::IndexPartialContractsSearch;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::AccountsDelegatedEarningsNullToFalseAndNotNullConstraint;
+    const LATEST: SchemaVersion =
+        SchemaVersion::AccountsDelegatedEarningsNullToFalseAndNotNullConstraint;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
