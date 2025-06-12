@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.7] - 2025-06-12
+
+Database schema version: 37
+
+- Added fix for delegators summary - Accounts table 'delegated_restake_earnings' is a boolean field that was set to NULL in the DB. Added migrations for this column to default to false, if delegated_restake_earnings was NULL previously. Also added the NOT NULL constraint to 'delegated_restake_earnings'.
+
 ## [2.0.6] - 2025-06-06
 
 Database schema version: 36
