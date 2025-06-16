@@ -3194,7 +3194,7 @@ impl<'a> BakerPool<'a> {
                     delegated_restake_earnings as restake_earnings,
                     delegated_stake as staked_amount
                 FROM accounts
-                WHERE delegated_target_baker_id = $7
+                WHERE delegated_target_baker_id = $7 and delegated_restake_earnings IS NOT NULL
                     AND (
                         (delegated_stake > $2
                             AND delegated_stake < $1
