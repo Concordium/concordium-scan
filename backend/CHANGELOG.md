@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.7] - 2025-06-16
+
+- Added fix for delegators summary query - Delegator summary is now populated by values where the delegated restake earnings is NOT NULL
+
 ## [2.0.6] - 2025-06-06
 
 Database schema version: 36
