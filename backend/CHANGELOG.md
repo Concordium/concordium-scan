@@ -2,7 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Fixed
+
+- Fix errors in migration 0024 when running against PostgreSQL `17.5`.
+
 ## [2.0.7] - 2025-06-16
+
+### Fixed
 
 - Added fix for delegators summary query - Delegator summary is now populated by values where the delegated restake earnings is NOT NULL
 
@@ -10,18 +18,27 @@ All notable changes to this project will be documented in this file.
 
 Database schema version: 36
 
+### Fixed
+
 - Added slot_time to account statements table and covering index for searching account statements effectively
 
 ## [2.0.5] - 2025-05-30
+
+### Fixed
 
 - fix docker file to use mock data for plt dashboard
 
 ## [2.0.4] - 2025-05-29
 
 Database schema version: 35
+
+### Added
+
 - Plt specific transaction events are now indexed and available in the API.
 
 ## [2.0.3] - 2025-05-21
+
+### Fixed
 
 - Fix query performance issue when getting account rewards for accounts with large number of account statements to better use the index.
 
