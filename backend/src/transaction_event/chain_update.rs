@@ -414,7 +414,7 @@ impl From<UpdatePayload> for ChainUpdatePayload {
             }
             UpdatePayload::CreatePlt(update) => ChainUpdatePayload::CreatePlt(CreatePltUpdate {
                 token_id:                  update.token_id.clone().into(),
-                token_module:              update.token_module.clone().into(),
+                token_module:              update.token_module.into(),
                 governance_account:        update.governance_account.into(),
                 decimals:                  update.decimals,
                 initialization_parameters: update.initialization_parameters.to_string(),

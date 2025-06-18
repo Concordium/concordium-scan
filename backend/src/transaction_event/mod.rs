@@ -621,11 +621,7 @@ pub fn events_from_summary(
                     .token_id
                     .clone()
                     .into(),
-                token_module:              token_creation_details
-                    .create_plt
-                    .token_module
-                    .clone()
-                    .into(),
+                token_module:              token_creation_details.create_plt.token_module.into(),
                 governance_account:        token_creation_details
                     .create_plt
                     .governance_account
@@ -647,7 +643,7 @@ pub fn events_from_summary(
                         ) => protocol_level_tokens::TokenEventDetails::Mint(
                             protocol_level_tokens::MintEvent {
                                 target: mint_event.target.clone().into(),
-                                amount: mint_event.amount.clone().into(),
+                                amount: mint_event.amount.into(),
                             },
                         ),
                         concordium_rust_sdk::protocol_level_tokens::TokenEventDetails::Module(
@@ -665,7 +661,7 @@ pub fn events_from_summary(
                             protocol_level_tokens::TokenTransferEvent {
                                 from:   token_transfer_event.from.clone().into(),
                                 to:     token_transfer_event.to.clone().into(),
-                                amount: token_transfer_event.amount.clone().into(),
+                                amount: token_transfer_event.amount.into(),
                                 memo:   token_transfer_event.memo.clone().map(Into::into),
                             },
                         ),
@@ -674,7 +670,7 @@ pub fn events_from_summary(
                         ) => protocol_level_tokens::TokenEventDetails::Burn(
                             protocol_level_tokens::BurnEvent {
                                 target: token_supply_update_event.target.clone().into(),
-                                amount: token_supply_update_event.amount.clone().into(),
+                                amount: token_supply_update_event.amount.into(),
                             },
                         ),
                     },
