@@ -3,7 +3,10 @@ use crate::{
     decoded_text::DecodedText,
     graphql_api::{ApiResult, InternalError},
     scalar_types::{BigInteger, Byte, DateTime, UnsignedLong},
-    transaction_event::transfers::TimestampedAmount,
+    transaction_event::{
+        chain_update::CreatePltUpdate, protocol_level_tokens::CreatePlt,
+        transfers::TimestampedAmount,
+    },
 };
 use anyhow::Context;
 use async_graphql::{ComplexObject, Object, SimpleObject, Union};
@@ -69,10 +72,10 @@ pub enum Event {
     // Misc
     DataRegistered(DataRegistered),
     ChainUpdateEnqueued(chain_update::ChainUpdateEnqueued),
-
     // Plt
     TokenHolder(protocol_level_tokens::TokenHolderEvent),
     TokenGovernance(protocol_level_tokens::TokenGovernanceEvent),
+    TokenCreationDetails(protocol_level_tokens::TokenCreationDetails),
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -610,6 +613,90 @@ pub fn events_from_summary(
                 .context("Failed to parse effective time")?,
                 payload:        details.payload.into(),
             })]
+        }
+        BlockItemSummaryDetails::TokenCreationDetails(token_creation_details) => {
+            let create_plt = CreatePlt {
+                token_id:                  token_creation_details
+                    .create_plt
+                    .token_id
+                    .clone()
+                    .into(),
+                token_module:              token_creation_details
+                    .create_plt
+                    .token_module
+                    .clone()
+                    .into(),
+                governance_account:        token_creation_details
+                    .create_plt
+                    .governance_account
+                    .into(),
+                decimals:                  token_creation_details.create_plt.decimals,
+                initialization_parameters: token_creation_details
+                    .create_plt
+                    .initialization_parameters
+                    .to_string(),
+            };
+            let events = token_creation_details
+                .events
+                .iter()
+                .map(|event| protocol_level_tokens::TokenEvent {
+                    token_id: event.token_id.clone().into(),
+                    event:    match &event.event {
+                        concordium_rust_sdk::protocol_level_tokens::TokenEventDetails::Mint(
+                            mint_event,
+                        ) => protocol_level_tokens::TokenEventDetails::Mint(
+                            protocol_level_tokens::MintEvent {
+                                target: mint_event.target.clone().into(),
+                                amount: mint_event.amount.clone().into(),
+                            },
+                        ),
+                        concordium_rust_sdk::protocol_level_tokens::TokenEventDetails::Module(
+                            token_module_event,
+                        ) => protocol_level_tokens::TokenEventDetails::Module(
+                            protocol_level_tokens::TokenModuleEvent {
+                                event_type: token_module_event.event_type.as_ref().to_string(),
+                                details:    serde_json::to_value(&token_module_event.details)
+                                    .unwrap_or_default(),
+                            },
+                        ),
+                        concordium_rust_sdk::protocol_level_tokens::TokenEventDetails::Transfer(
+                            token_transfer_event,
+                        ) => protocol_level_tokens::TokenEventDetails::Transfer(
+                            protocol_level_tokens::TokenTransferEvent {
+                                from:   token_transfer_event.from.clone().into(),
+                                to:     token_transfer_event.to.clone().into(),
+                                amount: token_transfer_event.amount.clone().into(),
+                                memo:   token_transfer_event.memo.clone().map(Into::into),
+                            },
+                        ),
+                        concordium_rust_sdk::protocol_level_tokens::TokenEventDetails::Burn(
+                            token_supply_update_event,
+                        ) => protocol_level_tokens::TokenEventDetails::Burn(
+                            protocol_level_tokens::BurnEvent {
+                                target: token_supply_update_event.target.clone().into(),
+                                amount: token_supply_update_event.amount.clone().into(),
+                            },
+                        ),
+                    },
+                })
+                .collect::<Vec<_>>();
+
+            vec![
+                Event::ChainUpdateEnqueued(chain_update::ChainUpdateEnqueued {
+                    effective_time: block_time,
+                    payload:        chain_update::ChainUpdatePayload::CreatePlt(CreatePltUpdate {
+                        token_id:                  create_plt.token_id.clone(),
+                        token_module:              create_plt.token_module.clone(),
+                        governance_account:        create_plt.governance_account.clone(),
+                        decimals:                  create_plt.decimals,
+                        initialization_parameters: create_plt.initialization_parameters.clone(),
+                    }),
+                }),
+                Event::TokenCreationDetails(protocol_level_tokens::TokenCreationDetails {
+                    create_plt,
+                    events,
+                }),
+            ]
         }
     };
     Ok(events)

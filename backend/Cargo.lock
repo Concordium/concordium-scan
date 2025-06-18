@@ -892,11 +892,10 @@ dependencies = [
 
 [[package]]
 name = "concordium-rust-sdk"
-version = "6.0.0"
+version = "7.0.0-alpha"
 dependencies = [
  "aes-gcm",
  "anyhow",
- "base64ct",
  "chrono",
  "concordium-smart-contract-engine",
  "concordium_base",
@@ -997,7 +996,7 @@ dependencies = [
 
 [[package]]
 name = "concordium_base"
-version = "7.0.0"
+version = "8.0.0-alpha"
 dependencies = [
  "aes",
  "anyhow",
@@ -1045,7 +1044,7 @@ dependencies = [
 
 [[package]]
 name = "concordium_base_derive"
-version = "1.0.0"
+version = "1.1.0-alpha"
 dependencies = [
  "convert_case 0.8.0",
  "darling",

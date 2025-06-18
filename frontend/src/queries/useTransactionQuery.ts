@@ -383,6 +383,98 @@ __typename
 	delegatorId
 	accountAddress {asString}
 }
+... on TokenHolderEvent {
+    tokenId
+    event {
+        ... on TokenModuleEvent {
+            eventType
+            details
+        }
+        ... on TokenTransferEvent {
+            memo {
+                bytes
+            }
+            amount {
+                value
+                decimals
+            }
+            to {
+                address
+                coinInfo
+            }
+            from {
+                address
+                coinInfo
+            }
+        }
+        ... on MintEvent {
+            amount {
+                value
+                decimals
+            }
+            target {
+                address
+                coinInfo
+            }
+        }
+        ... on BurnEvent {
+            amount {
+                value
+                decimals
+            }
+            target {
+                address
+                coinInfo
+            }
+        }
+    }
+}
+... on TokenGovernanceEvent {
+    tokenId
+    event {
+        ... on TokenModuleEvent {
+            eventType
+            details
+        }
+        ... on TokenTransferEvent {
+            memo {
+                bytes
+            }
+            amount {
+                value
+                decimals
+            }
+            to {
+                address
+                coinInfo
+            }
+            from {
+                address
+                coinInfo
+            }
+        }
+        ... on MintEvent {
+            amount {
+                value
+                decimals
+            }
+            target {
+                address
+                coinInfo
+            }
+        }
+        ... on BurnEvent {
+            amount {
+                value
+                decimals
+            }
+            target {
+                address
+                coinInfo
+            }
+        }
+    }
+}
 `
 
 const rejectionFragment = `
@@ -519,7 +611,7 @@ reason {
   ... on TokenModuleReject {
 		__typename
 		tokenId
-        eventType
+        reasonType
         details
 
   }

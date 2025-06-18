@@ -932,6 +932,12 @@ export type BlockStatistics = {
   finalizationTime?: Maybe<Scalars['Float']>;
 };
 
+export type BurnEvent = {
+  __typename?: 'BurnEvent';
+  amount: TokenAmount;
+  target: TokenHolder;
+};
+
 export type ChainParametersV1 = {
   __typename?: 'ChainParametersV1';
   rewardPeriodLength: Scalars['UnsignedLong'];
@@ -1197,6 +1203,24 @@ export type CooldownParametersChainUpdatePayload = {
   poolOwnerCooldown: Scalars['UnsignedLong'];
 };
 
+export type CreatePlt = {
+  __typename?: 'CreatePlt';
+  /**
+   * The number of decimal places used in the representation of amounts of
+   * this token. This determines the smallest representable fraction of the
+   * token.
+   */
+  decimals: Scalars['Int'];
+  /** The address of the account that will govern the token. */
+  governanceAccount: AccountAddress;
+  /** The initialization parameters of the token, encoded in CBOR. */
+  initializationParameters: Scalars['String'];
+  /** The symbol of the token. */
+  tokenId: Scalars['String'];
+  /** A SHA256 hash that identifies the token module implementation. */
+  tokenModule: Scalars['String'];
+};
+
 export type CreatePltUpdate = {
   __typename?: 'CreatePltUpdate';
   /**
@@ -1207,6 +1231,12 @@ export type CreatePltUpdate = {
   decimals: Scalars['Int'];
   /** The address of the account that will govern the token. */
   governanceAccount: AccountAddress;
+  /** The initialization parameters of the token, encoded in CBOR. */
+  initializationParameters: Scalars['String'];
+  /** The token symbol. */
+  tokenId: Scalars['String'];
+  /** The hash that identifies the token module implementation. */
+  tokenModule: Scalars['String'];
 };
 
 export type CredentialDeployed = {
@@ -1383,7 +1413,7 @@ export type EuroPerEnergyChainUpdatePayload = {
   exchangeRate: Ratio;
 };
 
-export type Event = AccountCreated | AmountAddedByDecryption | BakerAdded | BakerDelegationRemoved | BakerKeysUpdated | BakerRemoved | BakerResumed | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerSetMetadataUrl | BakerSetOpenStatus | BakerSetRestakeEarnings | BakerSetTransactionFeeCommission | BakerStakeDecreased | BakerStakeIncreased | BakerSuspended | ChainUpdateEnqueued | ContractCall | ContractInitialized | ContractInterrupted | ContractModuleDeployed | ContractResumed | ContractUpdated | ContractUpgraded | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | DelegationAdded | DelegationRemoved | DelegationSetDelegationTarget | DelegationSetRestakeEarnings | DelegationStakeDecreased | DelegationStakeIncreased | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TokenGovernanceEvent | TokenHolderEvent | TransferMemo | Transferred | TransferredWithSchedule;
+export type Event = AccountCreated | AmountAddedByDecryption | BakerAdded | BakerDelegationRemoved | BakerKeysUpdated | BakerRemoved | BakerResumed | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerSetMetadataUrl | BakerSetOpenStatus | BakerSetRestakeEarnings | BakerSetTransactionFeeCommission | BakerStakeDecreased | BakerStakeIncreased | BakerSuspended | ChainUpdateEnqueued | ContractCall | ContractInitialized | ContractInterrupted | ContractModuleDeployed | ContractResumed | ContractUpdated | ContractUpgraded | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | DelegationAdded | DelegationRemoved | DelegationSetDelegationTarget | DelegationSetRestakeEarnings | DelegationStakeDecreased | DelegationStakeIncreased | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TokenCreationDetails | TokenGovernanceEvent | TokenHolderEvent | TransferMemo | Transferred | TransferredWithSchedule;
 
 export type EventConnection = {
   __typename?: 'EventConnection';
@@ -1653,6 +1683,11 @@ export type LinkedContractsCollectionSegment = {
   totalCount: Scalars['Int'];
 };
 
+export type Memo = {
+  __typename?: 'Memo';
+  bytes: Scalars['String'];
+};
+
 export type Metadata = {
   __typename?: 'Metadata';
   iconUrl: Scalars['String'];
@@ -1687,6 +1722,12 @@ export type MintDistributionV1ChainUpdatePayload = {
   __typename?: 'MintDistributionV1ChainUpdatePayload';
   bakingReward: Scalars['Decimal'];
   finalizationReward: Scalars['Decimal'];
+};
+
+export type MintEvent = {
+  __typename?: 'MintEvent';
+  amount: TokenAmount;
+  target: TokenHolder;
 };
 
 export type MintSpecialEvent = {
@@ -2896,6 +2937,12 @@ export type TokenTokenEventsArgs = {
   take?: InputMaybe<Scalars['Int']>;
 };
 
+export type TokenAmount = {
+  __typename?: 'TokenAmount';
+  decimals: Scalars['Int'];
+  value: Scalars['String'];
+};
+
 export type TokenConnection = {
   __typename?: 'TokenConnection';
   /** A list of edges. */
@@ -2904,6 +2951,12 @@ export type TokenConnection = {
   nodes: Array<Token>;
   /** Information to aid in pagination. */
   pageInfo: PageInfo;
+};
+
+export type TokenCreationDetails = {
+  __typename?: 'TokenCreationDetails';
+  createPlt: CreatePlt;
+  events: Array<TokenEvent>;
 };
 
 /** An edge in a connection. */
@@ -2915,6 +2968,15 @@ export type TokenEdge = {
   node: Token;
 };
 
+/** Common event struct for both Holder and Governance events. */
+export type TokenEvent = {
+  __typename?: 'TokenEvent';
+  event: TokenEventDetails;
+  tokenId: Scalars['String'];
+};
+
+export type TokenEventDetails = BurnEvent | MintEvent | TokenModuleEvent | TokenTransferEvent;
+
 /** A segment of a collection. */
 export type TokenEventsCollectionSegment = {
   __typename?: 'TokenEventsCollectionSegment';
@@ -2925,28 +2987,46 @@ export type TokenEventsCollectionSegment = {
   totalCount: Scalars['Int'];
 };
 
+/** Named struct for TokenGovernanceEvent. */
 export type TokenGovernanceEvent = {
   __typename?: 'TokenGovernanceEvent';
-  details: Scalars['JSON'];
-  eventType: Scalars['String'];
+  event: TokenEventDetails;
   tokenId: Scalars['String'];
 };
 
+export type TokenHolder = {
+  __typename?: 'TokenHolder';
+  address: Scalars['String'];
+  coinInfo?: Maybe<Scalars['String']>;
+};
+
+/** Named struct for TokenHolderEvent. */
 export type TokenHolderEvent = {
   __typename?: 'TokenHolderEvent';
+  event: TokenEventDetails;
+  tokenId: Scalars['String'];
+};
+
+export type TokenModuleEvent = {
+  __typename?: 'TokenModuleEvent';
   details: Scalars['JSON'];
   eventType: Scalars['String'];
-  tokenId: Scalars['String'];
 };
 
 export type TokenModuleReject = {
   __typename?: 'TokenModuleReject';
-  /** The details of the event produced, in the raw byte encoded form. */
-  details?: Maybe<Scalars['JSON']>;
-  /** The type of event produced. */
-  eventType: Scalars['String'];
+  details: Scalars['JSON'];
+  reasonType: Scalars['String'];
   /** The unique symbol of the token, which produced this event. */
   tokenId: Scalars['String'];
+};
+
+export type TokenTransferEvent = {
+  __typename?: 'TokenTransferEvent';
+  amount: TokenAmount;
+  from: TokenHolder;
+  memo?: Maybe<Memo>;
+  to: TokenHolder;
 };
 
 /** A segment of a collection. */
