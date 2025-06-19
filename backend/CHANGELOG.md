@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - Fix errors in migration 0024 when running against PostgreSQL `17.5`.
+- Fix for delegators paging - previously the sub queries for start cursor and end cursor did not have the IS NOT NULL check, so technically the start and end cursor could be beyond the list for filtered delegators
 
 ## [2.0.7] - 2025-06-16
 
