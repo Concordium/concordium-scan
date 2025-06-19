@@ -7,7 +7,7 @@
 -- `m0018-payday-stake-information.sql`.
 -- Now `geometric_mean` will ignore the individual NULL items instead of the entire mean becoming
 -- NULL when just one item was NULL.
-CREATE OR REPLACE FUNCTION geometric_mean_accum(accum FLOAT8[], item FLOAT8) RETURNS FLOAT8[] AS $$
+CREATE OR REPLACE FUNCTION public.geometric_mean_accum(accum FLOAT8[], item FLOAT8) RETURNS FLOAT8[] AS $$
 BEGIN
     RETURN CASE
       WHEN item IS NULL THEN
@@ -27,7 +27,7 @@ $$ LANGUAGE plpgsql;
 -- Modify finalizer function for the aggregate function `geometric_mean` first defined in
 -- `m0018-payday-stake-information.sql`.
 -- Now `geometric_mean` will return NULL for the empty set instead of failing due to division by zero.
-CREATE OR REPLACE FUNCTION geometric_mean_finalize(accum FLOAT8[]) RETURNS FLOAT8 AS $$
+CREATE OR REPLACE FUNCTION public.geometric_mean_finalize(accum FLOAT8[]) RETURNS FLOAT8 AS $$
 BEGIN
     RETURN EXP(accum[1] / NULLIF(accum[2], 0));
 END;
@@ -44,26 +44,26 @@ WITH
             ((EXTRACT(''epoch'' from ''1 year''::INTERVAL) * 1000)
                 / (epoch_duration * reward_period_length)
             )::FLOAT8 AS paydays_per_year
-        FROM current_chain_parameters
+        FROM public.current_chain_parameters
         WHERE id = true
     )
 SELECT
     payday_baker_pool_stakes.baker AS id,
-    geometric_mean(1 + apy(
+    public.geometric_mean(1 + public.apy(
         (payday_total_transaction_rewards
           + payday_total_baking_rewards
           + payday_total_finalization_rewards)::FLOAT8,
         (baker_stake + delegators_stake)::FLOAT8,
         paydays_per_year
     )) - 1 AS total_apy,
-    geometric_mean(1 + apy(
+    public.geometric_mean(1 + public.apy(
         (payday_delegators_transaction_rewards
           + payday_delegators_baking_rewards
           + payday_delegators_finalization_rewards)::FLOAT8,
         NULLIF(delegators_stake, 0)::FLOAT8,
         paydays_per_year
         )) - 1 AS delegators_apy,
-    geometric_mean(1 + apy(
+    public.geometric_mean(1 + public.apy(
         (payday_total_transaction_rewards
            - payday_delegators_transaction_rewards
            + payday_total_baking_rewards
@@ -73,14 +73,14 @@ SELECT
         baker_stake::FLOAT8,
         paydays_per_year
     )) - 1 AS baker_apy
-FROM payday_baker_pool_stakes
-    JOIN blocks ON blocks.height = payday_baker_pool_stakes.payday_block
-    JOIN bakers_payday_pool_rewards
+FROM public.payday_baker_pool_stakes
+    JOIN public.blocks ON blocks.height = payday_baker_pool_stakes.payday_block
+    JOIN public.bakers_payday_pool_rewards
         ON blocks.height = bakers_payday_pool_rewards.payday_block_height
         AND pool_owner_for_primary_key = payday_baker_pool_stakes.baker
     JOIN chain_parameter ON chain_parameter.id = true
 WHERE
-    blocks.slot_time > (SELECT slot_time FROM blocks ORDER BY height DESC LIMIT 1) - $1
+    blocks.slot_time > (SELECT slot_time FROM public.blocks ORDER BY height DESC LIMIT 1) - $1
 GROUP BY payday_baker_pool_stakes.baker;
 ' LANGUAGE SQL;
 
