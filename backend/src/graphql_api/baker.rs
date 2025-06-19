@@ -3258,7 +3258,7 @@ impl<'a> BakerPool<'a> {
                         delegated_stake AS start_stake
                     FROM accounts
                     WHERE
-                        delegated_target_baker_id = $1
+                        delegated_target_baker_id = $1 AND delegated_restake_earnings IS NOT NULL
                     ORDER BY
                         delegated_stake DESC,
                         index DESC
@@ -3270,7 +3270,7 @@ impl<'a> BakerPool<'a> {
                         delegated_stake AS end_stake
                     FROM accounts
                     WHERE
-                        delegated_target_baker_id = $1
+                        delegated_target_baker_id = $1 AND delegated_restake_earnings IS NOT NULL
                     ORDER BY
                         delegated_stake ASC,
                         index ASC
