@@ -9,7 +9,11 @@
 use crate::{
     graphql_api::AccountStatementEntryType,
     indexer::{
-        block_preprocessor::BlockData, db::update_account_balance::PreparedUpdateAccountBalance,
+        block::block_item::account_transaction::plt_events::{
+            PreparedTokenEvent, PreparedTokenEvents,
+        },
+        block_preprocessor::BlockData,
+        db::update_account_balance::PreparedUpdateAccountBalance,
         statistics::Statistics,
     },
 };
@@ -19,9 +23,6 @@ use concordium_rust_sdk::{
     id::types::AccountAddress,
     types::{AccountTransactionDetails, AccountTransactionEffects, ProtocolVersion},
     v2,
-};
-use plt_events::{
-    PreparedTokenGovernanceEvents, PreparedTokenHolderEvent, PreparedTokenHolderEvents,
 };
 
 mod baker_events;
@@ -148,9 +149,9 @@ enum PreparedEvent {
     NoOperation,
 
     /// Events related to token holders AccountTransactionEffects.
-    TokenHolderEvents(plt_events::PreparedTokenHolderEvents),
+    TokenHolderEvents(plt_events::PreparedTokenEvents),
     /// Events related to token governance AccountTransactionEffects.
-    TokenGovernanceEvents(plt_events::PreparedTokenGovernanceEvents),
+    TokenGovernanceEvents(plt_events::PreparedTokenEvents),
 }
 impl PreparedEvent {
     async fn prepare(
@@ -349,18 +350,18 @@ impl PreparedEvent {
             ),
             AccountTransactionEffects::TokenHolder {
                 events,
-            } => PreparedEvent::TokenHolderEvents(PreparedTokenHolderEvents {
+            } => PreparedEvent::TokenHolderEvents(PreparedTokenEvents {
                 events: events
                     .iter()
-                    .map(PreparedTokenHolderEvent::prepare)
+                    .map(PreparedTokenEvent::prepare)
                     .collect::<anyhow::Result<Vec<_>>>()?,
             }),
             AccountTransactionEffects::TokenGovernance {
                 events,
-            } => PreparedEvent::TokenGovernanceEvents(PreparedTokenGovernanceEvents {
+            } => PreparedEvent::TokenGovernanceEvents(PreparedTokenEvents {
                 events: events
                     .iter()
-                    .map(PreparedTokenHolderEvent::prepare)
+                    .map(PreparedTokenEvent::prepare)
                     .collect::<anyhow::Result<Vec<_>>>()?,
             }),
         };

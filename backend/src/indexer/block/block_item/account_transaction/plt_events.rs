@@ -9,17 +9,11 @@ use concordium_rust_sdk::protocol_level_tokens::{self, TokenEventDetails};
 /// always used directly.
 #[derive(Debug)]
 #[allow(dead_code)] // This type is needed for interface compatibility, even if not always used.
-pub struct PreparedTokenHolderEvents {
-    pub events: Vec<PreparedTokenHolderEvent>,
+pub struct PreparedTokenEvents {
+    pub events: Vec<PreparedTokenEvent>,
 }
 
-#[derive(Debug)]
-#[allow(dead_code)] // This type is needed for interface compatibility, even if not always used.
-pub struct PreparedTokenGovernanceEvents {
-    pub events: Vec<PreparedTokenHolderEvent>,
-}
-
-/// Represents a single token holder event, prepared for further processing.
+/// Represents a single token event, prepared for further processing.
 /// Fields may not always be accessed, but are kept for completeness and
 /// possible future use.
 #[derive(Debug)]
@@ -43,20 +37,14 @@ impl TokenEvent {
 /// interface.
 #[derive(Debug)]
 #[allow(dead_code)] // This type is needed for interface compatibility, even if not always used.
-pub struct PreparedTokenHolderEvent {
+pub struct PreparedTokenEvent {
     pub event: TokenEvent,
 }
 
-#[derive(Debug)]
-#[allow(dead_code)] // This type is needed for interface compatibility, even if not always used.
-pub struct PreparedTokenGovernanceEvent {
-    pub event: TokenEvent,
-}
-
-impl PreparedTokenHolderEvent {
+impl PreparedTokenEvent {
     /// Converts a protocol-level token holder event into a prepared wrapper.
     pub fn prepare(event: &protocol_level_tokens::TokenEvent) -> anyhow::Result<Self> {
-        Ok(PreparedTokenHolderEvent {
+        Ok(PreparedTokenEvent {
             event: TokenEvent::prepare(event)?,
         })
     }

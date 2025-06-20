@@ -84,7 +84,7 @@ pub struct TokenAmount {
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
 pub struct Memo {
-    pub bytes: String, // Hex or base64 string
+    pub bytes: String,
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
@@ -113,7 +113,7 @@ impl From<concordium_rust_sdk::protocol_level_tokens::TokenHolder> for TokenHold
     fn from(holder: concordium_rust_sdk::protocol_level_tokens::TokenHolder) -> Self {
         match holder {
             concordium_rust_sdk::protocol_level_tokens::TokenHolder::HolderAccount(acc) => Self {
-                address:   hex::encode(acc.address.0), // or use base58 if preferred
+                address:   acc.address.to_string(),
                 coin_info: acc.coin_info.map(|c| format!("{:?}", c)),
             },
         }

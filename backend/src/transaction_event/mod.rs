@@ -615,6 +615,7 @@ pub fn events_from_summary(
             })]
         }
         BlockItemSummaryDetails::TokenCreationDetails(token_creation_details) => {
+            let effective_time: u64 = 0;
             let create_plt = CreatePlt {
                 token_id:                  token_creation_details
                     .create_plt
@@ -635,9 +636,8 @@ pub fn events_from_summary(
             let events = token_creation_details
                 .events
                 .iter()
-                .map(|event| protocol_level_tokens::TokenEvent {
-                    token_id: event.token_id.clone().into(),
-                    event:    match &event.event {
+                .map(|event| {
+                    let event_details = match &event.event {
                         concordium_rust_sdk::protocol_level_tokens::TokenEventDetails::Mint(
                             mint_event,
                         ) => protocol_level_tokens::TokenEventDetails::Mint(
@@ -673,13 +673,19 @@ pub fn events_from_summary(
                                 amount: token_supply_update_event.amount.into(),
                             },
                         ),
-                    },
+                    };
+
+                    protocol_level_tokens::TokenEvent {
+                        token_id: event.token_id.clone().into(),
+                        event:    event_details,
+                    }
                 })
                 .collect::<Vec<_>>();
 
             vec![
                 Event::ChainUpdateEnqueued(chain_update::ChainUpdateEnqueued {
-                    effective_time: block_time,
+                    effective_time: DateTime::from_timestamp(effective_time.try_into()?, 0)
+                        .context("Failed to parse effective time")?,
                     payload:        chain_update::ChainUpdatePayload::CreatePlt(CreatePltUpdate {
                         token_id:                  create_plt.token_id.clone(),
                         token_module:              create_plt.token_module.clone(),
