@@ -24,7 +24,7 @@
 		<span>
 			Burned {{ event.event.amount.value }} <b>{{ event.tokenId }}</b>
 
-			To
+			From
 			<AccountLink :address="event.event.target.address" />
 		</span>
 	</span>
