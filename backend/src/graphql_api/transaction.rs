@@ -105,9 +105,9 @@ impl QueryTransactions {
                     .fetch_one(pool)
                     .await?;
             connection.has_next_page =
-                result.min_id.map_or(false, |db_min| db_min < page_min.node.index);
+                result.min_id.is_some_and(|db_min| db_min < page_min.node.index);
             connection.has_previous_page =
-                result.max_id.map_or(false, |db_max| db_max > page_max.node.index);
+                result.max_id.is_some_and(|db_max| db_max > page_max.node.index);
         }
         Ok(connection)
     }

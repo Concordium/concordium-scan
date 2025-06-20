@@ -1,89 +1,10 @@
 <template>
 	<span>
 		<!-- Transaction is rejected because of Insufficent balance -->
-		<span v-if="reason.eventType === 'tokenBalanceInsufficient'">
-			<Tooltip :text="reason.eventType" text-class="text-theme-body">
+		<span v-if="reason.reasonType === 'tokenBalanceInsufficient'">
+			<Tooltip :text="reason.reasonType" text-class="text-theme-body">
 				<span class="px-2">
-					Token holder transaction rejected due to insufficient balance.
-				</span>
-				<br />
-
-				<span class="px-2">
-					Required balance:
-					<b>
-						{{
-							(
-								Number(
-									reason.details.requiredBalance['@@TAGGED@@'][1][1][
-										'$serde_json::private::Number'
-									]
-								) /
-								Math.pow(
-									10,
-									Math.abs(
-										Number(
-											reason.details.requiredBalance['@@TAGGED@@'][1][0][
-												'$serde_json::private::Number'
-											]
-										)
-									)
-								)
-							).toFixed(
-								Math.abs(
-									Number(
-										reason.details.requiredBalance['@@TAGGED@@'][1][0][
-											'$serde_json::private::Number'
-										]
-									)
-								)
-							)
-						}}
-						{{ reason.tokenId }}
-					</b>
-				</span>
-				<br />
-
-				<span class="px-2">
-					Available balance:
-					<b>
-						{{
-							(
-								Number(
-									reason.details.availableBalance['@@TAGGED@@'][1][1][
-										'$serde_json::private::Number'
-									]
-								) /
-								Math.pow(
-									10,
-									Math.abs(
-										Number(
-											reason.details.availableBalance['@@TAGGED@@'][1][0][
-												'$serde_json::private::Number'
-											]
-										)
-									)
-								)
-							).toFixed(
-								Math.abs(
-									Number(
-										reason.details.availableBalance['@@TAGGED@@'][1][0][
-											'$serde_json::private::Number'
-										]
-									)
-								)
-							)
-						}}
-						{{ reason.tokenId }}
-					</b>
-				</span>
-				<br />
-			</Tooltip>
-		</span>
-
-		<span v-if="reason.eventType == 'deserializationFailure'">
-			<Tooltip :text="reason.eventType" text-class="text-theme-body">
-				<span class="px-2">
-					Token holder transaction rejected because of deserialization failure.
+					Transaction rejected because of insufficent balance.
 				</span>
 				<br />
 				<span class="px-2">
@@ -91,7 +12,136 @@
 				</span>
 				<br />
 				<span class="px-2">
-					Details: <b> {{ reason.details }} </b>
+					Available balance :
+					<b> {{ reason.details[reason.reasonType].available_balance }} </b>
+				</span>
+				<br />
+				<span class="px-2">
+					Required balance :
+					<b> {{ reason.details[reason.reasonType].required_balance }} </b>
+				</span>
+			</Tooltip>
+		</span>
+
+		<span v-if="reason.reasonType == 'deserializationFailure'">
+			<Tooltip :text="reason.reasonType" text-class="text-theme-body">
+				<span class="px-2">
+					Transaction rejected because of deserialization failure.
+				</span>
+				<br />
+				<span class="px-2">
+					Token Id <b> {{ reason.tokenId }} </b>
+				</span>
+				<br />
+				<span class="px-2">
+					Details: <b> {{ reason.details[reason.reasonType].cause }} </b>
+				</span>
+			</Tooltip>
+		</span>
+		<span v-if="reason.reasonType == 'addressNotFound'">
+			<Tooltip :text="reason.reasonType" text-class="text-theme-body">
+				<span class="px-2">
+					Transaction rejected because of address is not found.
+				</span>
+				<br />
+				<span class="px-2">
+					Token Id <b> {{ reason.tokenId }} </b>
+				</span>
+				<br />
+				<span class="px-2">
+					Details: <b> {{ reason.details[reason.reasonType].cause }} </b>
+				</span>
+			</Tooltip>
+		</span>
+		<span v-if="reason.reasonType == 'unsupportedOperation'">
+			<Tooltip :text="reason.reasonType" text-class="text-theme-body">
+				<span class="px-2">
+					Transaction rejected because operation is not supported.
+				</span>
+				<br />
+				<span class="px-2">
+					Token Id <b> {{ reason.tokenId }} </b>
+				</span>
+				<br />
+				<span class="px-2">
+					Operation Type :
+					<b> {{ reason.details[reason.reasonType].operation_type }} </b>
+				</span>
+				<br />
+				<span class="px-2">
+					Details: <b> {{ reason.details[reason.reasonType].reason }} </b>
+				</span>
+			</Tooltip>
+		</span>
+		<span v-if="reason.reasonType == 'operationNotPermitted'">
+			<Tooltip :text="reason.reasonType" text-class="text-theme-body">
+				<span class="px-2">
+					Transaction rejected because operation is not permitted.
+				</span>
+				<br />
+				<span class="px-2">
+					Token Id : <b> {{ reason.tokenId }} </b>
+				</span>
+				<br />
+				<span class="px-2">
+					Token Holder :
+					<b>
+						{{
+							reason.details[reason.reasonType].address.holderAccount.address
+						}}
+					</b>
+				</span>
+				<br />
+
+				<span class="px-2">
+					Coin Info :
+					<b>
+						{{
+							reason.details[reason.reasonType].address.holderAccount.coinInfo
+						}}
+					</b>
+				</span>
+				<br />
+
+				<span class="px-2">
+					Details: <b> {{ reason.details[reason.reasonType].reason }} </b>
+				</span>
+			</Tooltip>
+		</span>
+		<span v-if="reason.reasonType == 'mintWouldOverflow'">
+			<Tooltip :text="reason.reasonType" text-class="text-theme-body">
+				<span class="px-2">
+					Transaction rejected because mint would overflow.
+				</span>
+				<br />
+				<span class="px-2">
+					Token Id <b> {{ reason.tokenId }} </b>
+				</span>
+				<br />
+				<span class="px-2">
+					Requested amount :
+					<b> {{ reason.details[reason.reasonType].requested_amount }} </b>
+				</span>
+				<br />
+				<span class="px-2">
+					Current supply :
+					<b> {{ reason.details[reason.reasonType].current_supply }} </b>
+				</span>
+				<br />
+				<span class="px-2">
+					Max representable ammount :
+					<b>
+						{{ reason.details[reason.reasonType].max_representable_amount }}
+					</b>
+				</span>
+			</Tooltip>
+		</span>
+		<span v-if="reason.reasonType == 'unknow'">
+			<Tooltip :text="reason.reasonType" text-class="text-theme-body">
+				<span class="px-2"> Transaction rejected due to unknown reason. </span>
+				<br />
+				<span class="px-2">
+					Token Id <b> {{ reason?.tokenId }} </b>
 				</span>
 			</Tooltip>
 		</span>

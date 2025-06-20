@@ -839,6 +839,11 @@ type BlockStatistics {
 }
 
 
+type BurnEvent {
+	target: TokenHolder!
+	amount: TokenAmount!
+}
+
 scalar Byte
 
 type ChainParametersV1 {
@@ -1060,7 +1065,28 @@ type CooldownParametersChainUpdatePayload {
 	delegatorCooldown: UnsignedLong!
 }
 
+type CreatePlt {
+	"The symbol of the token."
+	tokenId: String!
+	"A SHA256 hash that identifies the token module implementation."
+	tokenModule: String!
+	"The address of the account that will govern the token."
+	governanceAccount: AccountAddress!
+	"""
+	The number of decimal places used in the representation of amounts of
+	this token. This determines the smallest representable fraction of the
+	token.
+	"""
+	decimals: Int!
+	"The initialization parameters of the token, encoded in CBOR."
+	initializationParameters: String!
+}
+
 type CreatePltUpdate {
+	"The token symbol."
+	tokenId: String!
+	"The hash that identifies the token module implementation."
+	tokenModule: String!
 	"The address of the account that will govern the token."
 	governanceAccount: AccountAddress!
 	"""
@@ -1069,6 +1095,8 @@ type CreatePltUpdate {
 	the token. This can be at most 255.
 	"""
 	decimals: Int!
+	"The initialization parameters of the token, encoded in CBOR."
+	initializationParameters: String!
 }
 
 type CredentialDeployed {
@@ -1226,7 +1254,7 @@ type EuroPerEnergyChainUpdatePayload {
 	exchangeRate: Ratio!
 }
 
-union Event = Transferred | TransferMemo | TransferredWithSchedule | EncryptedAmountsRemoved | AmountAddedByDecryption | EncryptedSelfAmountAdded | NewEncryptedAmount | AccountCreated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | BakerSetOpenStatus | BakerSetMetadataURL | BakerSetTransactionFeeCommission | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerDelegationRemoved | BakerSuspended | BakerResumed | ContractInitialized | ContractModuleDeployed | ContractUpdated | ContractCall | ContractInterrupted | ContractResumed | ContractUpgraded | DelegationAdded | DelegationRemoved | DelegationStakeIncreased | DelegationStakeDecreased | DelegationSetRestakeEarnings | DelegationSetDelegationTarget | DataRegistered | ChainUpdateEnqueued | TokenHolderEvent | TokenGovernanceEvent
+union Event = Transferred | TransferMemo | TransferredWithSchedule | EncryptedAmountsRemoved | AmountAddedByDecryption | EncryptedSelfAmountAdded | NewEncryptedAmount | AccountCreated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | BakerSetOpenStatus | BakerSetMetadataURL | BakerSetTransactionFeeCommission | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerDelegationRemoved | BakerSuspended | BakerResumed | ContractInitialized | ContractModuleDeployed | ContractUpdated | ContractCall | ContractInterrupted | ContractResumed | ContractUpgraded | DelegationAdded | DelegationRemoved | DelegationStakeIncreased | DelegationStakeDecreased | DelegationSetRestakeEarnings | DelegationSetDelegationTarget | DataRegistered | ChainUpdateEnqueued | TokenHolderEvent | TokenGovernanceEvent | TokenCreationDetails
 
 type EventConnection {
 	"Information to aid in pagination."
@@ -1456,6 +1484,10 @@ type LinkedContractsCollectionSegment {
 
 scalar Long
 
+type Memo {
+	bytes: String!
+}
+
 type Metadata {
 	iconUrl: String!
 }
@@ -1485,6 +1517,11 @@ type MintDistributionChainUpdatePayload {
 type MintDistributionV1ChainUpdatePayload {
 	bakingReward: Decimal!
 	finalizationReward: Decimal!
+}
+
+type MintEvent {
+	target: TokenHolder!
+	amount: TokenAmount!
 }
 
 type MintSpecialEvent {
@@ -2434,6 +2471,11 @@ type Token {
 	tokenEvents(skip: Int, take: Int): TokenEventsCollectionSegment!
 }
 
+type TokenAmount {
+	value: String!
+	decimals: Int!
+}
+
 type TokenConnection {
 	"Information to aid in pagination."
 	pageInfo: PageInfo!
@@ -2441,6 +2483,11 @@ type TokenConnection {
 	edges: [TokenEdge!]!
 	"A list of nodes."
 	nodes: [Token!]!
+}
+
+type TokenCreationDetails {
+	createPlt: CreatePlt!
+	events: [TokenEvent!]!
 }
 
 "An edge in a connection."
@@ -2451,6 +2498,14 @@ type TokenEdge {
 	cursor: String!
 }
 
+"Common event struct for both Holder and Governance events."
+type TokenEvent {
+	tokenId: String!
+	event: TokenEventDetails!
+}
+
+union TokenEventDetails = TokenModuleEvent | TokenTransferEvent | MintEvent | BurnEvent
+
 "A segment of a collection."
 type TokenEventsCollectionSegment {
 	"Information to aid in pagination."
@@ -2460,14 +2515,24 @@ type TokenEventsCollectionSegment {
 	totalCount: Int!
 }
 
+"Named struct for TokenGovernanceEvent."
 type TokenGovernanceEvent {
 	tokenId: String!
-	eventType: String!
-	details: JSON!
+	event: TokenEventDetails!
 }
 
+type TokenHolder {
+	address: String!
+	coinInfo: String
+}
+
+"Named struct for TokenHolderEvent."
 type TokenHolderEvent {
 	tokenId: String!
+	event: TokenEventDetails!
+}
+
+type TokenModuleEvent {
 	eventType: String!
 	details: JSON!
 }
@@ -2475,10 +2540,15 @@ type TokenHolderEvent {
 type TokenModuleReject {
 	"The unique symbol of the token, which produced this event."
 	tokenId: String!
-	"The type of event produced."
-	eventType: String!
-	"The details of the event produced, in the raw byte encoded form."
-	details: JSON
+	reasonType: String!
+	details: JSON!
+}
+
+type TokenTransferEvent {
+	from: TokenHolder!
+	to: TokenHolder!
+	amount: TokenAmount!
+	memo: Memo
 }
 
 "A segment of a collection."

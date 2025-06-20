@@ -4,11 +4,13 @@ use crate::{
 };
 use anyhow::Context;
 use async_graphql::{Enum, SimpleObject, Union};
-use concordium_rust_sdk::base::{
-    contracts_common::schema::{VersionedModuleSchema, VersionedSchemaError},
-    smart_contracts::ReceiveName,
+use concordium_rust_sdk::{
+    base::{
+        contracts_common::schema::{VersionedModuleSchema, VersionedSchemaError},
+        smart_contracts::ReceiveName,
+    },
+    protocol_level_tokens::TokenModuleRejectReason,
 };
-use serde::ser::Error as SerdeError;
 
 #[derive(Union, Clone, serde::Serialize, serde::Deserialize)]
 pub enum TransactionRejectReason {
@@ -574,15 +576,14 @@ pub struct PoolClosed {
 pub struct NonExistentTokenId {
     token_id: String,
 }
-
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct TokenModuleReject {
     /// The unique symbol of the token, which produced this event.
-    pub token_id:   String,
+    pub token_id:    String,
     /// The type of event produced.
-    pub event_type: String,
+    pub reason_type: String,
     /// The details of the event produced, in the raw byte encoded form.
-    pub details:    Option<serde_json::Value>,
+    pub details:     serde_json::Value,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
@@ -930,19 +931,19 @@ impl PreparedTransactionRejectReason {
             }),
             RejectReason::TokenModule(token_module_reject_reason) => {
                 TransactionRejectReason::TokenModuleReject(TokenModuleReject {
-                    token_id:   token_module_reject_reason.token_id.clone().into(),
-                    event_type: token_module_reject_reason.event_type.clone().into(),
-                    details:    token_module_reject_reason
-                        .details
-                        .map(|details| {
-                            let cbor_value =
-                                ciborium::from_reader::<ciborium::Value, _>(details.as_ref())
-                                    .map_err(|e| {
-                                        SerdeError::custom(format!("CBOR decode error: {}", e))
-                                    })?;
-                            serde_json::to_value(cbor_value)
-                        })
-                        .transpose()?,
+                    token_id:    token_module_reject_reason.token_id.clone().into(),
+                    reason_type: token_module_reject_reason.clone().reason_type.into(),
+                    details:     match TokenModuleRejectReason::decode_reject_reason(
+                        &token_module_reject_reason,
+                    ) {
+                        Ok(details) => serde_json::to_value(details)?,
+                        Err(err) => {
+                            return Err(anyhow::anyhow!(
+                                "Failed to decode token module reject reason: {}",
+                                err
+                            ))
+                        }
+                    },
                 })
             }
 

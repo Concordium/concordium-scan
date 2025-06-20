@@ -163,9 +163,8 @@ impl SearchResult {
                 })?;
 
             connection.has_previous_page =
-                result.db_max_index.map_or(false, |db_max| db_max > page_max);
-            connection.has_next_page =
-                result.db_min_index.map_or(false, |db_min| db_min < page_min);
+                result.db_max_index.is_some_and(|db_max| db_max > page_max);
+            connection.has_next_page = result.db_min_index.is_some_and(|db_min| db_min < page_min);
         }
 
         Ok(connection)
@@ -434,9 +433,9 @@ impl SearchResult {
             .await?;
 
             connection.has_previous_page =
-                result.max_height.map_or(false, |db_max| db_max > page_max_height.node.height);
+                result.max_height.is_some_and(|db_max| db_max > page_max_height.node.height);
             connection.has_next_page =
-                result.min_height.map_or(false, |db_min| db_min < page_min_height.node.height);
+                result.min_height.is_some_and(|db_min| db_min < page_min_height.node.height);
         }
         Ok(connection)
     }
@@ -513,9 +512,9 @@ impl SearchResult {
                     .fetch_one(pool)
                     .await?;
             connection.has_next_page =
-                result.min_id.map_or(false, |db_min| db_min < page_min.node.index);
+                result.min_id.is_some_and(|db_min| db_min < page_min.node.index);
             connection.has_previous_page =
-                result.max_id.map_or(false, |db_max| db_max > page_max.node.index);
+                result.max_id.is_some_and(|db_max| db_max > page_max.node.index);
         }
         Ok(connection)
     }
@@ -593,9 +592,9 @@ impl SearchResult {
             .await?;
 
             connection.has_previous_page =
-                result.max_index.map_or(false, |db_max| db_max > page_max.node.index);
+                result.max_index.is_some_and(|db_max| db_max > page_max.node.index);
             connection.has_next_page =
-                result.min_index.map_or(false, |db_min| db_min < page_min.node.index);
+                result.min_index.is_some_and(|db_min| db_min < page_min.node.index);
         }
         Ok(connection)
     }
@@ -696,9 +695,9 @@ impl SearchResult {
             .await?;
 
             connection.has_previous_page =
-                result.min_id.map_or(false, |db_min| db_min < page_min_id.node.index);
+                result.min_id.is_some_and(|db_min| db_min < page_min_id.node.index);
             connection.has_next_page =
-                result.max_id.map_or(false, |db_max| db_max > page_max_id.node.index);
+                result.max_id.is_some_and(|db_max| db_max > page_max_id.node.index);
         }
         Ok(connection)
     }

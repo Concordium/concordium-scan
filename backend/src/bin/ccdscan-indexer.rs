@@ -99,10 +99,7 @@ async fn main() -> anyhow::Result<()> {
         .into_iter()
         .map(|mut endpoint| {
             // Enable TLS when using HTTPS
-            if endpoint
-                .uri()
-                .scheme()
-                .map_or(false, |x| x == &concordium_rust_sdk::v2::Scheme::HTTPS)
+            if endpoint.uri().scheme().is_some_and(|x| x == &concordium_rust_sdk::v2::Scheme::HTTPS)
             {
                 endpoint = endpoint
                     .tls_config(tonic::transport::ClientTlsConfig::new())
