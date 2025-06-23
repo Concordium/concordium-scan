@@ -1,4 +1,4 @@
-ARG build_image=rust:1.83-bookworm
+ARG build_image=rust:1.85-bookworm
 ARG base_image=debian:bookworm-slim
 ARG target_binary
 FROM ${build_image} AS build
