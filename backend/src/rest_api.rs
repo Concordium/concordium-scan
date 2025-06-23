@@ -118,10 +118,6 @@ impl Service {
             .from_time
             .unwrap_or_else(|| to - TimeDelta::days(account_statements_export_max_days));
         if to - from > TimeDelta::days(account_statements_export_max_days) {
-            error!(
-                "Time range selected for Account Statement Export was > max days configured: {}",
-                account_statements_export_max_days
-            );
             return Err(ApiError::ExceedsMaxAllowedDaysForAccountStatementExport(
                 account_statements_export_max_days,
             ));
