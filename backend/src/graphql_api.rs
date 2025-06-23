@@ -92,6 +92,9 @@ pub struct ApiServiceConfig {
         default_value = "100"
     )]
     account_schedule_connection_limit: u64,
+    /// specified max days allowed for account statements export.
+    #[arg(long, env = "CCDSCAN_API_EXPORT_STATEMENTS_MAX_DAYS", default_value_t = 32)]
+    pub export_statement_max_days: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_BAKER_CONNECTION_LIMIT", default_value = "100")]
     baker_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_CONTRACT_CONNECTION_LIMIT", default_value = "100")]

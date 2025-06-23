@@ -17,6 +17,7 @@ use reqwest::StatusCode;
 use sqlx::PgPool;
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
+use tracing::error;
 
 /// Service providing the router for the REST API.
 #[derive(Debug)]
@@ -37,7 +38,6 @@ struct RouterState {
 }
 
 /// The maximum number days to cover in the exported account statements.
-const EXPORT_MAX_DAYS: i64 = 31;
 
 impl Service {
     pub fn new(pool: PgPool, config: Arc<ApiServiceConfig>, registry: &mut Registry) -> Self {
@@ -114,10 +114,21 @@ impl Service {
         State(state): State<RouterState>,
     ) -> ApiResult<(AppendHeaders<[(HeaderName, String); 2]>, String)> {
         let to = params.to_time.unwrap_or_else(Utc::now);
-        let from = params.from_time.unwrap_or_else(|| to - TimeDelta::days(EXPORT_MAX_DAYS));
-        if to - from > TimeDelta::days(EXPORT_MAX_DAYS) {
-            return Err(ApiError::ExceedsMaxAllowed);
+        let account_statements_export_max_days =
+            i64::try_from(state.config.export_statement_max_days).unwrap_or(32);
+        let from = params
+            .from_time
+            .unwrap_or_else(|| to - TimeDelta::days(account_statements_export_max_days));
+        if to - from > TimeDelta::days(account_statements_export_max_days) {
+            error!(
+                "Time range selected for Account Statement Export was > max days configured: {}",
+                account_statements_export_max_days
+            );
+            return Err(ApiError::ExceedsMaxAllowedDaysForAccountStatementExport(
+                account_statements_export_max_days,
+            ));
         }
+
         let mut rows = sqlx::query_as!(
             ExportAccountStatementEntry,
             r#"SELECT
@@ -216,8 +227,8 @@ enum Unit {
 enum ApiError {
     #[error("Information was not found.")]
     NotFound,
-    #[error("Chosen time span exceeds max allowed days: '{EXPORT_MAX_DAYS}'")]
-    ExceedsMaxAllowed,
+    #[error("Chosen time span exceeds max allowed days for account statement export: {0}")]
+    ExceedsMaxAllowedDaysForAccountStatementExport(i64),
     #[error("Internal error (FailedDatabaseQuery): {0}")]
     FailedDatabaseQuery(Arc<sqlx::Error>),
     #[error("Invalid integer: {0}")]
@@ -232,7 +243,7 @@ type ApiResult<A> = Result<A, ApiError>;
 impl IntoResponse for ApiError {
     fn into_response(self) -> axum::response::Response {
         let status = match self {
-            ApiError::ExceedsMaxAllowed => StatusCode::BAD_REQUEST,
+            ApiError::ExceedsMaxAllowedDaysForAccountStatementExport(_) => StatusCode::BAD_REQUEST,
             ApiError::FailedDatabaseQuery(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ApiError::InvalidInt(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ApiError::NotFound => StatusCode::NOT_FOUND,
