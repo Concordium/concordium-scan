@@ -935,9 +935,9 @@ impl Account {
             .fetch_one(pool)
             .await?;
             connection.has_previous_page =
-                bounds.first_cursor.map_or(false, |db_first| Cursor::from(db_first) < first.cursor);
+                bounds.first_cursor.is_some_and(|db_first| Cursor::from(db_first) < first.cursor);
             connection.has_next_page =
-                bounds.last_cursor.map_or(false, |db_last| Cursor::from(db_last) > last.cursor);
+                bounds.last_cursor.is_some_and(|db_last| Cursor::from(db_last) > last.cursor);
         }
         Ok(connection)
     }
@@ -1035,9 +1035,8 @@ impl Account {
             .await?;
 
             connection.has_previous_page =
-                result.max_index.map_or(false, |db_max| db_max > page_max_id);
-            connection.has_next_page =
-                result.min_index.map_or(false, |db_min| db_min < page_min_id);
+                result.max_index.is_some_and(|db_max| db_max > page_max_id);
+            connection.has_next_page = result.min_index.is_some_and(|db_min| db_min < page_min_id);
         }
         Ok(connection)
     }
@@ -1128,9 +1127,8 @@ impl Account {
             .fetch_one(pool)
             .await?;
 
-            connection.has_previous_page =
-                result.max_id.map_or(false, |db_max| db_max > page_max_id);
-            connection.has_next_page = result.min_id.map_or(false, |db_min| db_min < page_min_id);
+            connection.has_previous_page = result.max_id.is_some_and(|db_max| db_max > page_max_id);
+            connection.has_next_page = result.min_id.is_some_and(|db_min| db_min < page_min_id);
         }
         Ok(connection)
     }
@@ -1223,9 +1221,8 @@ impl Account {
             .fetch_one(pool)
             .await?;
 
-            connection.has_previous_page =
-                result.max_id.map_or(false, |db_max| db_max > page_max_id);
-            connection.has_next_page = result.min_id.map_or(false, |db_min| db_min < page_min_id);
+            connection.has_previous_page = result.max_id.is_some_and(|db_max| db_max > page_max_id);
+            connection.has_next_page = result.min_id.is_some_and(|db_min| db_min < page_min_id);
         }
         Ok(connection)
     }

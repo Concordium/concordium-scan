@@ -83,7 +83,6 @@ impl BlockProcessor {
         .fetch_one(db_connection.as_mut())
         .await
         .context("Failed to query data for save context")?;
-
         let starting_context = BlockProcessingContext {
             last_finalized_hash:               last_finalized_block.hash,
             last_block_slot_time:              last_block.slot_time,

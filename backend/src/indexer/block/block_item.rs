@@ -29,6 +29,7 @@ use concordium_rust_sdk::{
 
 mod account_creation;
 mod account_transaction;
+mod plt_token_creation;
 
 /// Prepared block item (transaction), ready to be inserted in the database
 #[derive(Debug)]
@@ -106,7 +107,14 @@ impl PreparedBlockItem {
                     let update_type = UpdateTransactionType::from(details.update_type());
                     (DbTransactionType::Update, None, None, Some(update_type))
                 }
+                BlockItemSummaryDetails::TokenCreationDetails(_token_creation_details) => (
+                    DbTransactionType::Update,
+                    None,
+                    None,
+                    Some(UpdateTransactionType::CreatePltUpdate),
+                ),
             };
+
         let success = item_summary.is_success();
         let (events, reject) = if success {
             let events = serde_json::to_value(transaction_event::events_from_summary(
@@ -258,6 +266,8 @@ enum PreparedBlockItemEvent {
     AccountTransaction(Box<account_transaction::PreparedAccountTransaction>),
     /// Chain update transaction event.
     ChainUpdate,
+    /// Token creation transaction event
+    TokenCreation(plt_token_creation::PreparedTokenCreationDetails),
 }
 
 impl PreparedBlockItemEvent {
@@ -287,6 +297,13 @@ impl PreparedBlockItemEvent {
                 )))
             }
             BlockItemSummaryDetails::Update(_) => Ok(PreparedBlockItemEvent::ChainUpdate),
+            BlockItemSummaryDetails::TokenCreationDetails(token_creation_details) => {
+                Ok(PreparedBlockItemEvent::TokenCreation(
+                    plt_token_creation::PreparedTokenCreationDetails::prepare(
+                        token_creation_details,
+                    )?,
+                ))
+            }
         }
     }
 
@@ -303,6 +320,7 @@ impl PreparedBlockItemEvent {
                 account_transaction_event.save(tx, transaction_index).await
             }
             PreparedBlockItemEvent::ChainUpdate => Ok(()),
+            PreparedBlockItemEvent::TokenCreation(event) => event.save(tx, transaction_index),
         }
     }
 }
