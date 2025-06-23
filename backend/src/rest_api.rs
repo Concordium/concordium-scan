@@ -37,8 +37,6 @@ struct RouterState {
     config: Arc<ApiServiceConfig>,
 }
 
-/// The maximum number days to cover in the exported account statements.
-
 impl Service {
     pub fn new(pool: PgPool, config: Arc<ApiServiceConfig>, registry: &mut Registry) -> Self {
         Self {
