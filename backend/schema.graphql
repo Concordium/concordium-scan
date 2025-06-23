@@ -2522,7 +2522,7 @@ type TokenGovernanceEvent {
 }
 
 type TokenHolder {
-	address: String!
+	address: AccountAddress!
 	coinInfo: String
 }
 
@@ -2540,7 +2540,9 @@ type TokenModuleEvent {
 type TokenModuleReject {
 	"The unique symbol of the token, which produced this event."
 	tokenId: String!
+	"The type of event produced."
 	reasonType: String!
+	"The details of the event produced, in the raw byte encoded form."
 	details: JSON!
 }
 

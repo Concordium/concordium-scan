@@ -2996,7 +2996,7 @@ export type TokenGovernanceEvent = {
 
 export type TokenHolder = {
   __typename?: 'TokenHolder';
-  address: Scalars['String'];
+  address: AccountAddress;
   coinInfo?: Maybe<Scalars['String']>;
 };
 
@@ -3015,7 +3015,9 @@ export type TokenModuleEvent = {
 
 export type TokenModuleReject = {
   __typename?: 'TokenModuleReject';
+  /** The details of the event produced, in the raw byte encoded form. */
   details: Scalars['JSON'];
+  /** The type of event produced. */
   reasonType: Scalars['String'];
   /** The unique symbol of the token, which produced this event. */
   tokenId: Scalars['String'];
