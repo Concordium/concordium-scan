@@ -4,11 +4,11 @@
 			Transferred {{ event.event.amount.value }} <b>{{ event.tokenId }}</b>
 			From
 
-			<AccountLink :address="event.event.from.address" />
+			<AccountLink :address="event.event.from.address.asString" />
 		</span>
 		<span>
 			To
-			<AccountLink :address="event.event.to.address" />
+			<AccountLink :address="event.event.to.address.asString" />
 		</span>
 	</span>
 
@@ -17,7 +17,7 @@
 			Minted {{ event.event.amount.value }} <b>{{ event.tokenId }}</b>
 
 			To
-			<AccountLink :address="event.event.target.address" />
+			<AccountLink :address="event.event.target.address.asString" />
 		</span>
 	</span>
 	<span v-else-if="event.event.__typename === 'BurnEvent'">
@@ -25,7 +25,7 @@
 			Burned {{ event.event.amount.value }} <b>{{ event.tokenId }}</b>
 
 			From
-			<AccountLink :address="event.event.target.address" />
+			<AccountLink :address="event.event.target.address.asString" />
 		</span>
 	</span>
 	<span v-else-if="event.event.__typename === 'TokenModuleEvent'">
