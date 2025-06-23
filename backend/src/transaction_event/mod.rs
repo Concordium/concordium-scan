@@ -3,10 +3,7 @@ use crate::{
     decoded_text::DecodedText,
     graphql_api::{ApiResult, InternalError},
     scalar_types::{BigInteger, Byte, DateTime, UnsignedLong},
-    transaction_event::{
-        chain_update::CreatePltUpdate, protocol_level_tokens::CreatePlt,
-        transfers::TimestampedAmount,
-    },
+    transaction_event::{protocol_level_tokens::CreatePlt, transfers::TimestampedAmount},
 };
 use anyhow::Context;
 use async_graphql::{ComplexObject, Object, SimpleObject, Union};
@@ -615,7 +612,6 @@ pub fn events_from_summary(
             })]
         }
         BlockItemSummaryDetails::TokenCreationDetails(token_creation_details) => {
-            let effective_time: u64 = 0;
             let create_plt = CreatePlt {
                 token_id:                  token_creation_details
                     .create_plt
@@ -682,23 +678,10 @@ pub fn events_from_summary(
                 })
                 .collect::<Vec<_>>();
 
-            vec![
-                Event::ChainUpdateEnqueued(chain_update::ChainUpdateEnqueued {
-                    effective_time: DateTime::from_timestamp(effective_time.try_into()?, 0)
-                        .context("Failed to parse effective time")?,
-                    payload:        chain_update::ChainUpdatePayload::CreatePlt(CreatePltUpdate {
-                        token_id:                  create_plt.token_id.clone(),
-                        token_module:              create_plt.token_module.clone(),
-                        governance_account:        create_plt.governance_account.clone(),
-                        decimals:                  create_plt.decimals,
-                        initialization_parameters: create_plt.initialization_parameters.clone(),
-                    }),
-                }),
-                Event::TokenCreationDetails(protocol_level_tokens::TokenCreationDetails {
-                    create_plt,
-                    events,
-                }),
-            ]
+            vec![Event::TokenCreationDetails(protocol_level_tokens::TokenCreationDetails {
+                create_plt,
+                events,
+            })]
         }
     };
     Ok(events)

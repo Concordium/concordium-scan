@@ -72,13 +72,13 @@ pub struct TokenModuleEvent {
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
 pub struct TokenHolder {
-    pub address:   String,         // Base58 or hex string representation
-    pub coin_info: Option<String>, // e.g. "CCD"
+    pub address:   AccountAddress,
+    pub coin_info: Option<String>,
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
 pub struct TokenAmount {
-    pub value:    String, // Use string to avoid JS number issues
+    pub value:    String,
     pub decimals: u8,
 }
 
@@ -113,7 +113,7 @@ impl From<concordium_rust_sdk::protocol_level_tokens::TokenHolder> for TokenHold
     fn from(holder: concordium_rust_sdk::protocol_level_tokens::TokenHolder) -> Self {
         match holder {
             concordium_rust_sdk::protocol_level_tokens::TokenHolder::HolderAccount(acc) => Self {
-                address:   acc.address.to_string(),
+                address:   acc.address.into(),
                 coin_info: acc.coin_info.map(|c| format!("{:?}", c)),
             },
         }
