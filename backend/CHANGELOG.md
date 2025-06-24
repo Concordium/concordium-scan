@@ -4,9 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-### Fixed
-
 ## [2.0.10] - 2025-06-24
+
+### Added
 
 - Plt TokenHolder and TokenGovernance Events are now indexed and available in the API.
 
