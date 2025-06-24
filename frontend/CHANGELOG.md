@@ -25,6 +25,10 @@ All notable changes to this project will be documented in this file.
 
 - Move account statement export to use `rust-backend` API.
 
+## [1.17.16] - 2025-06-24
+### Changed
+- Plt TokenHolder and TokenGovernance events are now properly displayed in the Transaction table.
+
 ## [1.17.15] - 2025-06-29
 
 ### Added
