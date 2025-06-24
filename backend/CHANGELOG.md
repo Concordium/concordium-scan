@@ -4,8 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-### Fixed
+## [2.0.10] - 2025-06-24
 
+### Added
+
+- Plt TokenHolder and TokenGovernance Events are now indexed and available in the API.
 
 ## [2.0.9] - 2025-06-23
 
@@ -108,6 +111,7 @@ Database schema version: 33
 ## [0.1.50] - 2025-04-28
 
 Modifying search key on the following tables to all be using `text_pattern_ops` because it is faster when using prefix searches only
+
 - `accounts`
 - `blocks`
 - `tokens`
@@ -128,7 +132,7 @@ Modifying search key on the following tables to all be using `text_pattern_ops` 
 
 - Optimise `Account::transactions` performance
 - Fix potential issue on `accountMetrics` which occurred when a blocks containing account creation occurred on the exact same time as the borders of the buckets slots
-- Fix query performance issues on `accountMetrics` when dataset becomes too large 
+- Fix query performance issues on `accountMetrics` when dataset becomes too large
 - Fix account statements performance issues where conditions was being used without indexes
 - Fix account statements where when querying an address using the complete address and not the canonical address
 - Fix account statements using DESC ordering per default instead of ASC
@@ -265,7 +269,7 @@ Database schema version: 17
 - Add database migration 17 adding a table tracking reward metrics.
 - Add database migration 16 adding a table tracking commission rates for passive delegation and adding an index to retrieve passive delegators efficiently from the accounts table.
 - Add query `PassiveDelegation::delegators`, `PassiveDelegation::delegatorCount`,
-`PassiveDelegation::commissionRates`, `PassiveDelegation::delegatedStake` and `PassiveDelegation::delegatedStakePercentage`.
+  `PassiveDelegation::commissionRates`, `PassiveDelegation::delegatedStake` and `PassiveDelegation::delegatedStakePercentage`.
 - Add `Query::rewardMetrics` and `Query::rewardMetricsForAccount` which returns metrics on the total rewards and those for a given account respectively.
 
 ### Fixed
