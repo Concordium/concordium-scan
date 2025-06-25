@@ -407,7 +407,7 @@ __typename
             from {
                 address{
                 	asString
-                }                
+                }
 				coinInfo
             }
         }
@@ -455,7 +455,7 @@ __typename
             to {
                 address{
                 	asString
-                }    
+                }
 	            coinInfo
             }
             from {
