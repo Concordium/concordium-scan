@@ -49,11 +49,15 @@
 </template>
 
 <script setup lang="ts">
-import type { TokenHolderEvent, TokenGovernanceEvent } from '~/types/generated'
+import type {
+	TokenHolderEvent,
+	TokenGovernanceEvent,
+	TokenEvent,
+} from '~/types/generated'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 
 type Props = {
-	event: TokenHolderEvent | TokenGovernanceEvent
+	event: TokenHolderEvent | TokenGovernanceEvent | TokenEvent
 }
 
 defineProps<Props>()
