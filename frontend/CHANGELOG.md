@@ -25,7 +25,8 @@ All notable changes to this project will be documented in this file.
 
 - Move account statement export to use `rust-backend` API.
 
-## [1.7.17] - 2025-07-01
+## [1.7.17] - 2025-06-25
+
 ### Fixed
 
 - Fix the bug where plt transactions were not displayed properly in the transaction list page.
