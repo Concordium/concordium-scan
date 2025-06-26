@@ -23,6 +23,7 @@ use prometheus_client::{
 };
 use tokio::{time::Instant, try_join};
 use tracing::{debug, error, info};
+use std::collections::HashMap;
 
 /// State tracked during block preprocessing, this also holds the implementation
 /// of [`Indexer`](concordium_rust_sdk::indexer::Indexer). Since several
@@ -207,7 +208,7 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
                     RewardsOverview::V1 {
                         total_staked_capital,
                         ..
-                    } => *total_staked_capital,
+                    } => (*total_staked_capital, HashMap::new()),
                 };
                 Ok((tokenomics_info, total_staked_capital))
             };
@@ -235,7 +236,7 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
             let (
                 (block_info, certificates),
                 chain_parameters,
-                (tokenomics_info, total_staked_capital),
+                (tokenomics_info, (total_staked_capital, validator_stakes)),
                 events,
                 items,
                 special_events,
@@ -259,6 +260,7 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
                 total_staked_capital,
                 special_events,
                 certificates,
+                validator_stakes,
             };
 
             let prepared_block = PreparedBlock::prepare(&mut client, &data)
@@ -294,21 +296,31 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
 pub async fn compute_total_stake_capital(
     client: &mut v2::Client,
     block_height: v2::BlockIdentifier,
-) -> v2::QueryResult<Amount> {
+) -> v2::QueryResult<(Amount, HashMap<i64, u64>)> {
     let mut total_staked_capital = Amount::zero();
     let mut bakers = client.get_baker_list(block_height).await?.response;
+    let mut validator_stakes: HashMap<i64, u64> = HashMap::new();
     while let Some(baker_id) = bakers.try_next().await? {
         let account_info = client
             .get_account_info(&v2::AccountIdentifier::Index(baker_id.id), block_height)
             .await?
             .response;
-        total_staked_capital += account_info
+
+        let account_stake = account_info
             .account_stake
             .context("Expected baker to have account stake information")
             .map_err(v2::RPCError::ParseError)?
             .staked_amount();
+
+        total_staked_capital += account_stake;
+
+        let baker_index = i64::try_from(baker_id.id.index)
+            .map_err(|e| v2::RPCError::ParseError(anyhow::anyhow!("Failed to convert baker index: {}", e)))?;
+        let micro_ccd = account_stake.micro_ccd();
+        validator_stakes.insert(baker_index, micro_ccd);
     }
-    Ok(total_staked_capital)
+
+    Ok((total_staked_capital, validator_stakes))
 }
 
 /// Raw block information fetched from a Concordium Node.
@@ -323,4 +335,6 @@ pub struct BlockData {
     pub special_events:       Vec<SpecialTransactionOutcome>,
     /// Certificates included in the block.
     pub certificates:         BlockCertificates,
+    // validators current staking information
+    pub validator_stakes:     HashMap<i64, u64>,
 }

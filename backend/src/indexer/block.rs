@@ -1,6 +1,6 @@
 //! This module contains the block information computed during the concurrent
 //! preprocessing and the logic for how to do the sequential processing.
-
+use std::collections::HashMap;
 use crate::indexer::{
     block_preprocessor::BlockData, block_processor::BlockProcessingContext, statistics::Statistics,
 };
@@ -46,6 +46,8 @@ pub struct PreparedBlock {
     /// Optional data migration for when this is the first block after a
     /// protocol update.
     protocol_update_migration:    Option<ProtocolUpdateMigration>,
+    /// Validator staking information to be updated in the database
+    validator_stake_updates:      HashMap<i64, u64>, 
 }
 
 impl PreparedBlock {
@@ -83,6 +85,9 @@ impl PreparedBlock {
             ProtocolUpdateMigration::prepare(node_client, data)
                 .await
                 .context("Failed to prepare for data migation caused by protocol update")?;
+
+        let validator_stake_updates = data.validator_stakes.clone(); 
+
         Ok(Self {
             hash,
             height,
@@ -96,6 +101,7 @@ impl PreparedBlock {
             baker_unmark_suspended,
             statistics,
             protocol_update_migration,
+            validator_stake_updates,
         })
     }
 
@@ -264,7 +270,21 @@ impl PreparedBlock {
             })?;
         }
         self.statistics.save(tx).await?;
-        self.special_transaction_outcomes.save(tx).await?;
+        //self.special_transaction_outcomes.save(tx).await?;
+
+        // process validator staked amounts
+        for (validator_id, stake) in &self.validator_stake_updates {
+            sqlx::query(
+                "UPDATE BAKERS
+                SET staked = $2
+                WHERE id = $1"
+            )
+            .bind(validator_id)
+            .bind(*stake as i64)
+            .execute(tx.as_mut())
+            .await?;
+        }
+
         self.baker_unmark_suspended.save(tx).await?;
         Ok(())
     }
