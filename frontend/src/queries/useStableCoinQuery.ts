@@ -14,14 +14,14 @@ export type Stablecoin = {
 }
 
 export type StablecoinResponse = {
-	stablecoins: Stablecoin[]
+	liveStablecoins: Stablecoin[]
 	address?: string
 	percentage?: number
 }
 
 const STABLECOIN_QUERY = gql`
 	query {
-		stablecoins {
+		liveStablecoins {
 			totalSupply
 			circulatingSupply
 			decimal
@@ -29,6 +29,7 @@ const STABLECOIN_QUERY = gql`
 			symbol
 			valueInDollar
 			totalUniqueHolders
+			issuer
 		}
 	}
 `
@@ -38,6 +39,5 @@ export const useStableCoinsQuery = () => {
 		query: STABLECOIN_QUERY,
 		requestPolicy: 'cache-and-network',
 	})
-
 	return { data }
 }

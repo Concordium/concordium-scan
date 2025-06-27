@@ -1,13 +1,16 @@
+use crate::address::AccountAddress;
+use anyhow::Context as AnyhowContext;
 use async_graphql::{Context, Object, SimpleObject};
 use chrono::{Duration, TimeZone, Utc};
+use clap::Parser;
+use concordium_rust_sdk::v2::{self, BlockIdentifier};
+use futures::StreamExt;
 use serde::Deserialize;
 use std::{
     collections::{HashMap, HashSet},
     fs::File,
     io::BufReader,
 };
-
-use crate::address::AccountAddress;
 
 pub type DateTime = chrono::DateTime<chrono::Utc>;
 
@@ -166,6 +169,16 @@ impl StableCoin {
     }
 }
 
+#[derive(Parser)]
+struct App {
+    #[arg(
+        long = "node",
+        env = "CCDSCAN_INDEXER_GRPC_ENDPOINTS",
+        default_value = "http://localhost:20000"
+    )]
+    endpoint: v2::Endpoint,
+}
+
 #[derive(Default)]
 pub(crate) struct QueryStableCoins;
 
@@ -272,7 +285,6 @@ impl QueryStableCoins {
             Self::load_transactions(),
         );
         let coin = stablecoins.iter_mut().find(|coin: &&mut StableCoin| coin.symbol == symbol)?;
-
         coin.holdings = coin.top_holders(limit, min_quantity);
         coin.transactions = coin.last_n_transactions(last_n_transactions);
         Some(coin.clone())
@@ -424,5 +436,47 @@ impl QueryStableCoins {
                 .collect(),
         );
         txn_summary
+    }
+
+    async fn live_stablecoins(&self, _ctx: &Context<'_>) -> anyhow::Result<Vec<StableCoin>> {
+        let app = App::parse();
+        let mut client = v2::Client::new(app.endpoint).await.context("Failed to create client")?;
+
+        let mut response = client
+            .get_token_list(&BlockIdentifier::LastFinal)
+            .await
+            .context("Failed to get token list")
+            .unwrap();
+        let mut coins: Vec<StableCoin> = vec![];
+
+        while let Some(token_id) = response.response.next().await.transpose().unwrap() {
+            let token_info =
+                client.get_token_info(token_id.clone(), BlockIdentifier::LastFinal).await.unwrap();
+
+            let token_state = token_info.response.token_state;
+            let token_module_state = token_state.decode_module_state().unwrap();
+            let name = token_module_state.name;
+
+            let total_supply = token_state.total_supply.to_string().parse::<f64>().unwrap() as i64;
+
+            let circulating_supply = total_supply; // Assumed same for now
+
+            coins.push(StableCoin {
+                name,
+                symbol: String::from(token_id),
+                total_supply,
+                circulating_supply,
+                decimal: token_state.decimals,
+                value_in_dollar: 1.0, // Placeholder value
+                total_unique_holders: None,
+                transfers: None,
+                holdings: None,
+                metadata: None,
+                issuer: token_state.issuer.to_string(),
+                transactions: None,
+            });
+        }
+
+        Ok(coins)
     }
 }
