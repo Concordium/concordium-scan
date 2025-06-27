@@ -140,7 +140,7 @@ Use `--help` for more information.",
 #[display("Migration {version}:{description}")]
 struct Migration {
     /// Version number for the database schema.
-    version:     i64,
+    version: i64,
     /// Short description of the point of the migration.
     description: String,
     /// Whether the migration does a breaking change to the database schema.
@@ -152,7 +152,7 @@ struct Migration {
 impl From<SchemaVersion> for Migration {
     fn from(value: SchemaVersion) -> Self {
         Migration {
-            version:     value.as_i64(),
+            version: value.as_i64(),
             description: value.to_string(),
             destructive: value.is_destructive(),
         }
@@ -254,6 +254,8 @@ pub enum SchemaVersion {
     UpdateAccountTransactionTypes,
     #[display("0036: Added index and slot time for the account statements table")]
     IndexAndSlotTimeColumnAddedAccountStatements,
+    #[display("0037: Plt Table ")]
+    PltTable,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -262,7 +264,7 @@ impl SchemaVersion {
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
         SchemaVersion::IndexPartialContractsSearch;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements;
+    const LATEST: SchemaVersion = SchemaVersion::PltTable;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -271,7 +273,9 @@ impl SchemaVersion {
     }
 
     /// Convert to the integer representation used as version in the database.
-    fn as_i64(self) -> i64 { self as i64 }
+    fn as_i64(self) -> i64 {
+        self as i64
+    }
 
     /// Whether introducing the database schema version is destructive, meaning
     /// not backwards compatible.
@@ -318,6 +322,7 @@ impl SchemaVersion {
             SchemaVersion::IndexAccountRewards => false,
             SchemaVersion::UpdateAccountTransactionTypes => false,
             SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => false,
+            SchemaVersion::PltTable => false,
         }
     }
 
@@ -364,6 +369,7 @@ impl SchemaVersion {
             SchemaVersion::IndexAccountRewards => false,
             SchemaVersion::UpdateAccountTransactionTypes => false,
             SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => false,
+            SchemaVersion::PltTable => false,
         }
     }
 
@@ -599,8 +605,16 @@ impl SchemaVersion {
                     )))
                     .await?;
                 SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements
+            },
+            SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0037_plt.sql"
+                    )))
+                    .await?;
+                SchemaVersion::PltTable
             }
-            SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => unimplemented!(
+            SchemaVersion::PltTable => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),

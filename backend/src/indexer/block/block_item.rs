@@ -38,37 +38,37 @@ pub struct PreparedBlockItem {
     pub block_item_hash: String,
     /// Cost for the account signing the block item (in microCCD), always 0 for
     /// update and credential deployments.
-    ccd_cost:            i64,
+    ccd_cost: i64,
     /// Energy cost of the execution of the block item.
-    energy_cost:         i64,
+    energy_cost: i64,
     /// Absolute height of the block.
-    pub block_height:    i64,
+    pub block_height: i64,
     /// Base58check representation of the account address which signed the
     /// block, none for update and credential deployments.
-    sender:              Option<String>,
+    sender: Option<String>,
     /// Whether the block item is an account transaction, update or credential
     /// deployment.
-    transaction_type:    DbTransactionType,
+    transaction_type: DbTransactionType,
     /// The type of account transaction, is none if not an account transaction
     /// or if the account transaction got rejected due to deserialization
     /// failing.
-    account_type:        Option<AccountTransactionType>,
+    account_type: Option<AccountTransactionType>,
     /// The type of credential deployment transaction, is none if not a
     /// credential deployment transaction.
-    credential_type:     Option<CredentialDeploymentTransactionType>,
+    credential_type: Option<CredentialDeploymentTransactionType>,
     /// The type of update transaction, is none if not an update transaction.
-    update_type:         Option<UpdateTransactionType>,
+    update_type: Option<UpdateTransactionType>,
     /// Whether the block item was successful i.e. not rejected.
-    success:             bool,
+    success: bool,
     /// Events of the block item. Is none for rejected block items.
-    events:              Option<serde_json::Value>,
+    events: Option<serde_json::Value>,
     /// Reject reason the block item. Is none for successful block items.
-    reject:              Option<PreparedTransactionRejectReason>,
+    reject: Option<PreparedTransactionRejectReason>,
     /// All affected accounts for this transaction. Each entry is the binary
     /// representation of an account address.
-    affected_accounts:   Vec<Vec<u8>>,
+    affected_accounts: Vec<Vec<u8>>,
     /// Block item events prepared for inserting into the database.
-    prepared_event:      PreparedBlockItemEvent,
+    prepared_event: PreparedBlockItemEvent,
 }
 
 impl PreparedBlockItem {
@@ -222,31 +222,32 @@ impl PreparedBlockItem {
         .fetch_one(tx.as_mut())
         .await
         .context("Failed inserting into transactions")?;
+        println!("Transaction {:?}", self);
         // Note that this does not include account creation. We handle that when saving
         // the account creation event.
-        sqlx::query!(
-            "INSERT INTO affected_accounts (transaction_index, account_index)
-            SELECT $1, index FROM accounts WHERE canonical_address = ANY($2)",
-            tx_idx,
-            &self.affected_accounts,
-        )
-        .execute(tx.as_mut())
-        .await?
-        .ensure_affected_rows(self.affected_accounts.len().try_into()?)
-        .context("Failed insert into affected_accounts")?;
+        // sqlx::query!(
+        //     "INSERT INTO affected_accounts (transaction_index, account_index)
+        //     SELECT $1, index FROM accounts WHERE canonical_address = ANY($2)",
+        //     tx_idx,
+        //     &self.affected_accounts,
+        // )
+        // .execute(tx.as_mut())
+        // .await?
+        // .ensure_affected_rows(self.affected_accounts.len().try_into()?)
+        // .context("Failed insert into affected_accounts")?;
 
-        // We also need to keep track of the number of transactions on the accounts
-        // table.
-        sqlx::query!(
-            "UPDATE accounts
-            SET num_txs = num_txs + 1
-            WHERE canonical_address = ANY($1)",
-            &self.affected_accounts,
-        )
-        .execute(tx.as_mut())
-        .await?
-        .ensure_affected_rows(self.affected_accounts.len().try_into()?)
-        .context("Failed incrementing num_txs for account")?;
+        // // We also need to keep track of the number of transactions on the accounts
+        // // table.
+        // sqlx::query!(
+        //     "UPDATE accounts
+        //     SET num_txs = num_txs + 1
+        //     WHERE canonical_address = ANY($1)",
+        //     &self.affected_accounts,
+        // )
+        // .execute(tx.as_mut())
+        // .await?
+        // .ensure_affected_rows(self.affected_accounts.len().try_into()?)
+        // .context("Failed incrementing num_txs for account")?;
         self.prepared_event.save(tx, tx_idx).await.with_context(|| {
             format!(
                 "Failed processing block item event from {:?} transaction",
@@ -320,7 +321,7 @@ impl PreparedBlockItemEvent {
                 account_transaction_event.save(tx, transaction_index).await
             }
             PreparedBlockItemEvent::ChainUpdate => Ok(()),
-            PreparedBlockItemEvent::TokenCreation(event) => event.save(tx, transaction_index),
+            PreparedBlockItemEvent::TokenCreation(event) => event.save(tx, transaction_index).await,
         }
     }
 }

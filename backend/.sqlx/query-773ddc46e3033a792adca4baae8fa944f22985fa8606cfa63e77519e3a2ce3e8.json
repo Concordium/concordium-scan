@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO plt_events (id, transaction_index, event_type, token_module_type, token_id, token_event) VALUES (\n                        (SELECT COALESCE(MAX(id) + 1, 0) FROM plt_events),\n                        $1,\n                        'TokenModule',\n                        'AddAllowList',\n                        $2,\n                        $3\n                    )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "773ddc46e3033a792adca4baae8fa944f22985fa8606cfa63e77519e3a2ce3e8"
+}

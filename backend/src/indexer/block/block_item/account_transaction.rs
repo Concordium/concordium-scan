@@ -37,7 +37,7 @@ mod transfer_events;
 pub struct PreparedAccountTransaction {
     /// Update the balance of the sender account with the cost (transaction
     /// fee).
-    fee:   PreparedUpdateAccountBalance,
+    fee: PreparedUpdateAccountBalance,
     /// Updates based on the events of the account transaction.
     event: PreparedEventEnvelope,
 }
@@ -76,7 +76,7 @@ impl PreparedAccountTransaction {
         tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
-        self.fee.save(tx, Some(transaction_index)).await?;
+        // self.fee.save(tx, Some(transaction_index)).await?;
         self.event.save(tx, transaction_index).await
     }
 }
@@ -90,7 +90,7 @@ impl PreparedAccountTransaction {
 #[derive(Debug)]
 struct PreparedEventEnvelope {
     metadata: EventMetadata,
-    event:    PreparedEvent,
+    event: PreparedEvent,
 }
 
 impl PreparedEventEnvelope {
@@ -240,12 +240,12 @@ impl PreparedEvent {
 
                 let event = if update.increased {
                     concordium_rust_sdk::types::BakerEvent::BakerStakeIncreased {
-                        baker_id:  update.baker_id,
+                        baker_id: update.baker_id,
                         new_stake: update.new_stake,
                     }
                 } else {
                     concordium_rust_sdk::types::BakerEvent::BakerStakeDecreased {
-                        baker_id:  update.baker_id,
+                        baker_id: update.baker_id,
                         new_stake: update.new_stake,
                     }
                 };
@@ -261,7 +261,7 @@ impl PreparedEvent {
             } => {
                 let events = vec![baker_events::PreparedBakerEvent::prepare(
                     &concordium_rust_sdk::types::BakerEvent::BakerRestakeEarningsUpdated {
-                        baker_id:         *baker_id,
+                        baker_id: *baker_id,
                         restake_earnings: *restake_earnings,
                     },
                     statistics,
@@ -411,9 +411,15 @@ impl PreparedEvent {
                 .save(tx, tx_idx)
                 .await
                 .context("Failed processing block item event with rejected event"),
-            PreparedEvent::TokenHolderEvents(_event) => Ok(()),
+            PreparedEvent::TokenHolderEvents(event) => event
+                .save(tx, tx_idx)
+                .await
+                .context("Failed processing block item event with token holder events"),
 
-            PreparedEvent::TokenGovernanceEvents(_event) => Ok(()),
+            PreparedEvent::TokenGovernanceEvents(event) => event
+                .save(tx, tx_idx)
+                .await
+                .context("Failed processing block item event with token governance events"),
             PreparedEvent::NoOperation => Ok(()),
         }
     }
