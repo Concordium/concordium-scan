@@ -17,7 +17,7 @@
 				:begin-at-zero="true"
 				:type="chartType"
 				:show-sign="showSign"
-				:label-clickable="true"
+				:label-clickable="false"
 			/>
 		</ClientOnly>
 	</MetricCard>
@@ -41,12 +41,16 @@ const props = defineProps<{
 
 // Computed Properties
 const chartLabels = computed(() => {
-	const coins = props.stableCoinsData?.stablecoins?.slice(0, 10) ?? []
+	const coins = [...(props.stableCoinsData?.liveStablecoins ?? [])]
+		.sort((a, b) => (b.totalSupply ?? 0) - (a.totalSupply ?? 0))
+		.slice(0, 10)
 	return coins.map(item => item.symbol ?? '')
 })
 
 const chartData = computed(() => {
-	const coins = props.stableCoinsData?.stablecoins?.slice(0, 10) ?? []
+	const coins = [...(props.stableCoinsData?.liveStablecoins ?? [])]
+		.sort((a, b) => (b.totalSupply ?? 0) - (a.totalSupply ?? 0))
+		.slice(0, 10)
 	return coins.map(item =>
 		props.chartType === 'supply'
 			? item.totalSupply ?? null

@@ -3,8 +3,8 @@
 		<DistributionChartBar
 			:stable-coins-data="stableCoinsData"
 			chart-type="supply"
-			show-sign="$"
-			:label-clickable="true"
+			show-sign=""
+			:label-clickable="false"
 		>
 			<template #title> Protocol Token Supply </template>
 		</DistributionChartBar>

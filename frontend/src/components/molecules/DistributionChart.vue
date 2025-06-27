@@ -15,7 +15,7 @@
 				:labels="chartLabels"
 				:background-colors="baseColors"
 				:hover-background-colors="hoverColors"
-				:label-clickable="true"
+				:label-clickable="false"
 			/>
 		</ClientOnly>
 	</MetricCard>
@@ -64,12 +64,15 @@ const props = defineProps<{
 
 // Computed Properties
 const chartLabels = computed(() => {
-	const coins = props.stableCoinsData?.slice(0, 10) ?? []
+	const coins = (props.stableCoinsData ? [...props.stableCoinsData] : [])
+		.sort((a, b) => (b.totalSupply ?? 0) - (a.totalSupply ?? 0))
+		.slice(0, 10)
 	return coins.map(item => item.symbol ?? 'undefined')
 })
-
 const chartData = computed<number[]>(() => {
-	const coins = props.stableCoinsData?.slice(0, 10) ?? []
+	const coins = (props.stableCoinsData ? [...props.stableCoinsData] : [])
+		.sort((a, b) => (b.totalSupply ?? 0) - (a.totalSupply ?? 0))
+		.slice(0, 10)
 	return coins.map(item => {
 		const value = Number(item.supplyPercentage)
 		return isNaN(value) ? 0 : value

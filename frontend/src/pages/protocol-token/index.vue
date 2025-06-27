@@ -16,16 +16,9 @@
 						:is-loading="false"
 					>
 						<template #title>Total Market Cap</template>
-						<template #value
-							><p class="font-bold text-2xl mt-2">
-								{{
-									'$' +
-									numberFormatter(
-										overviewData?.stablecoinOverview?.totalMarketcap
-									)
-								}}
-							</p></template
-						>
+						<template #value>
+							<p class="font-bold text-2xl mt-2">0</p>
+						</template>
 					</KeyValueChartCard>
 				</CarouselSlide>
 				<CarouselSlide class="w-full lg:h-full">
@@ -35,11 +28,9 @@
 						:is-loading="false"
 					>
 						<template #title>Unique Holders</template>
-						<template #value
-							><p class="font-bold text-2xl mt-2">
-								{{ overviewData?.stablecoinOverview?.numberOfUniqueHolders }}
-							</p></template
-						>
+						<template #value>
+							<p class="font-bold text-2xl mt-2">0</p>
+						</template>
 					</KeyValueChartCard>
 				</CarouselSlide>
 				<CarouselSlide class="w-full lg:h-full">
@@ -49,11 +40,9 @@
 						:is-loading="false"
 					>
 						<template #title># of Txs (24h)</template>
-						<template #value
-							><p class="font-bold text-2xl mt-2">
-								{{ overviewData?.stablecoinOverview?.noOfTxnLast24H }}
-							</p></template
-						>
+						<template #value>
+							<p class="font-bold text-2xl mt-2">0</p>
+						</template>
 					</KeyValueChartCard>
 				</CarouselSlide>
 				<CarouselSlide class="w-full lg:h-full">
@@ -63,34 +52,27 @@
 						:is-loading="false"
 					>
 						<template #title>Total Values Transfer (24h)</template>
-						<template #value
-							><p class="font-bold text-2xl mt-2">
-								{{
-									'$' +
-									numberFormatter(
-										overviewData?.stablecoinOverview?.valuesTransferredLast24H
-									)
-								}}
-							</p></template
-						>
+						<template #value>
+							<p class="font-bold text-2xl mt-2">0</p>
+						</template>
 					</KeyValueChartCard>
 				</CarouselSlide>
 			</FtbCarousel>
 			<header class="flex justify-between items-center mb-4">
 				<h1 class="text-xl">Supply & Holders</h1>
 			</header>
-			<FtbCarousel non-carousel-classes="grid-cols-3">
+			<FtbCarousel non-carousel-classes="grid-cols-2">
 				<CarouselSlide class="w-full lg:h-full">
 					<StableCoinSupplyBarChart :stable-coins-data="stableCoinsData" />
 				</CarouselSlide>
 				<CarouselSlide class="w-full lg:h-full">
 					<StableCoinDistributionChart :stable-coins-data="stableCoinsData" />
 				</CarouselSlide>
-				<CarouselSlide class="w-full lg:h-full">
+				<!-- <CarouselSlide class="w-full lg:h-full">
 					<HolderByStableCoin :stable-coins-data="stableCoinsData" />
-				</CarouselSlide>
+				</CarouselSlide> -->
 			</FtbCarousel>
-			<header class="flex justify-between items-center mb-4">
+			<!-- <header class="flex justify-between items-center mb-4">
 				<h1 class="text-xl">Transactions</h1>
 			</header>
 			<Table>
@@ -141,28 +123,20 @@
 						<TableTd>{{ coin.value?.toFixed(2) }} </TableTd>
 					</TableRow>
 				</TableBody>
-			</Table>
+			</Table> -->
 		</div>
 	</div>
 </template>
 <script lang="ts" setup>
-import { numberFormatter } from '~/utils/format'
-import { useStablecoinOverviewQuery } from '~/queries/useStablecoinOverviewQuery'
 import { useStableCoinsQuery } from '~/queries/useStableCoinQuery'
-import { useStableCoinLatestTransactionsQuery } from '~/queries/useStableCoinLatestTransactionsQuery'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 import CarouselSlide from '~/components/molecules/CarouselSlide.vue'
 import StableCoinDistributionChart from '~/components/molecules/ChartCards/StableCoinDistributionChart.vue'
 import StableCoinSupplyBarChart from '~/components/molecules/ChartCards/StableCoinSupplyBarChart.vue'
-import HolderByStableCoin from '~/components/molecules/ChartCards/HolderByStableCoin.vue'
 
 definePageMeta({
 	middleware: 'plt-features-guard',
 })
 
 const { data: stableCoinsData } = useStableCoinsQuery()
-
-const { data: latestTransactionsData } = useStableCoinLatestTransactionsQuery(5)
-
-const { data: overviewData } = useStablecoinOverviewQuery()
 </script>
