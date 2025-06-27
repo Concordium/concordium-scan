@@ -924,12 +924,12 @@ impl PreparedTransactionRejectReason {
             RejectReason::PoolClosed => TransactionRejectReason::PoolClosed(PoolClosed {
                 dummy: true,
             }),
-            RejectReason::NonExistentTokenId {
-                token_id,
-            } => TransactionRejectReason::NonExistentTokenId(NonExistentTokenId {
-                token_id: token_id.clone().into(),
-            }),
-            RejectReason::TokenModule(token_module_reject_reason) => {
+            RejectReason::NonExistentTokenId(token_id) => {
+                TransactionRejectReason::NonExistentTokenId(NonExistentTokenId {
+                    token_id: token_id.clone().into(),
+                })
+            }
+            RejectReason::TokenHolderTransactionFailed(token_module_reject_reason) => {
                 TransactionRejectReason::TokenModuleReject(TokenModuleReject {
                     token_id:    token_module_reject_reason.token_id.clone().into(),
                     reason_type: token_module_reject_reason.clone().reason_type.into(),
@@ -946,10 +946,24 @@ impl PreparedTransactionRejectReason {
                     },
                 })
             }
-
-            RejectReason::UnauthorizedTokenGovernance {
-                token_id,
-            } => {
+            RejectReason::TokenGovernanceTransactionFailed(token_module_reject_reason) => {
+                TransactionRejectReason::TokenModuleReject(TokenModuleReject {
+                    token_id:    token_module_reject_reason.token_id.clone().into(),
+                    reason_type: token_module_reject_reason.clone().reason_type.into(),
+                    details:     match TokenModuleRejectReason::decode_reject_reason(
+                        &token_module_reject_reason,
+                    ) {
+                        Ok(details) => serde_json::to_value(details)?,
+                        Err(err) => {
+                            return Err(anyhow::anyhow!(
+                                "Failed to decode token module reject reason: {}",
+                                err
+                            ))
+                        }
+                    },
+                })
+            }
+            RejectReason::UnauthorizedTokenGovernance(token_id) => {
                 TransactionRejectReason::UnauthorizedTokenGovernance(UnauthorizedTokenGovernance {
                     token_id: token_id.clone().into(),
                 })

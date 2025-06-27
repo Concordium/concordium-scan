@@ -2523,7 +2523,6 @@ type TokenGovernanceEvent {
 
 type TokenHolder {
 	address: AccountAddress!
-	coinInfo: String
 }
 
 "Named struct for TokenHolderEvent."
