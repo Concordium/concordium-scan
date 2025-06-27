@@ -655,6 +655,10 @@ impl RestakeEarnings {
         )
         .fetch_one(tx.as_mut())
         .await?;
+
+
+        /// ROB - TODO - i believe none of this needs to happen now because we take the pool info directly from the node and save it in block.rs
+        /* 
         if let Some(restake) = account_row.delegated_restake_earnings {
             let bakers_expected_affected_range = if self.protocol_version > ProtocolVersion::P6 {
                 1..=1
@@ -693,6 +697,8 @@ impl RestakeEarnings {
             // An account might still earn rewards after stopping validation or delegation.
             .ensure_affected_rows_in_range(0..=1)?;
         }
+        */
+
         Ok(())
     }
 }
