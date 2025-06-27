@@ -317,8 +317,7 @@ enum AccountTransactionType {
 	REGISTER_DATA
 	CONFIGURE_BAKER
 	CONFIGURE_DELEGATION
-	TOKEN_HOLDER
-	TOKEN_GOVERNANCE
+	TOKEN_UPDATE
 }
 
 "A segment of a collection."
@@ -1070,8 +1069,6 @@ type CreatePlt {
 	tokenId: String!
 	"A SHA256 hash that identifies the token module implementation."
 	tokenModule: String!
-	"The address of the account that will govern the token."
-	governanceAccount: AccountAddress!
 	"""
 	The number of decimal places used in the representation of amounts of
 	this token. This determines the smallest representable fraction of the
@@ -1087,8 +1084,6 @@ type CreatePltUpdate {
 	tokenId: String!
 	"The hash that identifies the token module implementation."
 	tokenModule: String!
-	"The address of the account that will govern the token."
-	governanceAccount: AccountAddress!
 	"""
 	The number of decimal places used in the representation of amounts of
 	this token. This determines the smallest representable fraction of
@@ -1254,7 +1249,7 @@ type EuroPerEnergyChainUpdatePayload {
 	exchangeRate: Ratio!
 }
 
-union Event = Transferred | TransferMemo | TransferredWithSchedule | EncryptedAmountsRemoved | AmountAddedByDecryption | EncryptedSelfAmountAdded | NewEncryptedAmount | AccountCreated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | BakerSetOpenStatus | BakerSetMetadataURL | BakerSetTransactionFeeCommission | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerDelegationRemoved | BakerSuspended | BakerResumed | ContractInitialized | ContractModuleDeployed | ContractUpdated | ContractCall | ContractInterrupted | ContractResumed | ContractUpgraded | DelegationAdded | DelegationRemoved | DelegationStakeIncreased | DelegationStakeDecreased | DelegationSetRestakeEarnings | DelegationSetDelegationTarget | DataRegistered | ChainUpdateEnqueued | TokenHolderEvent | TokenGovernanceEvent | TokenCreationDetails
+union Event = Transferred | TransferMemo | TransferredWithSchedule | EncryptedAmountsRemoved | AmountAddedByDecryption | EncryptedSelfAmountAdded | NewEncryptedAmount | AccountCreated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | BakerSetOpenStatus | BakerSetMetadataURL | BakerSetTransactionFeeCommission | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerDelegationRemoved | BakerSuspended | BakerResumed | ContractInitialized | ContractModuleDeployed | ContractUpdated | ContractCall | ContractInterrupted | ContractResumed | ContractUpgraded | DelegationAdded | DelegationRemoved | DelegationStakeIncreased | DelegationStakeDecreased | DelegationSetRestakeEarnings | DelegationSetDelegationTarget | DataRegistered | ChainUpdateEnqueued | TokenUpdate | TokenCreationDetails
 
 type EventConnection {
 	"Information to aid in pagination."
@@ -2487,7 +2482,7 @@ type TokenConnection {
 
 type TokenCreationDetails {
 	createPlt: CreatePlt!
-	events: [TokenEvent!]!
+	events: [TokenUpdate!]!
 }
 
 "An edge in a connection."
@@ -2496,12 +2491,6 @@ type TokenEdge {
 	node: Token!
 	"A cursor for use in pagination"
 	cursor: String!
-}
-
-"Common event struct for both Holder and Governance events."
-type TokenEvent {
-	tokenId: String!
-	event: TokenEventDetails!
 }
 
 union TokenEventDetails = TokenModuleEvent | TokenTransferEvent | MintEvent | BurnEvent
@@ -2515,20 +2504,8 @@ type TokenEventsCollectionSegment {
 	totalCount: Int!
 }
 
-"Named struct for TokenGovernanceEvent."
-type TokenGovernanceEvent {
-	tokenId: String!
-	event: TokenEventDetails!
-}
-
 type TokenHolder {
 	address: AccountAddress!
-}
-
-"Named struct for TokenHolderEvent."
-type TokenHolderEvent {
-	tokenId: String!
-	event: TokenEventDetails!
 }
 
 type TokenModuleEvent {
@@ -2550,6 +2527,12 @@ type TokenTransferEvent {
 	to: TokenHolder!
 	amount: TokenAmount!
 	memo: Memo
+}
+
+"Common event struct for both Holder and Governance events."
+type TokenUpdate {
+	tokenId: String!
+	event: TokenEventDetails!
 }
 
 "A segment of a collection."

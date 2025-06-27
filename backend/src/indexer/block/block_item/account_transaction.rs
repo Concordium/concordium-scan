@@ -149,9 +149,7 @@ enum PreparedEvent {
     NoOperation,
 
     /// Events related to token holders AccountTransactionEffects.
-    TokenHolderEvents(plt_events::PreparedTokenEvents),
-    /// Events related to token governance AccountTransactionEffects.
-    TokenGovernanceEvents(plt_events::PreparedTokenEvents),
+    TokenUpdateEvents(plt_events::PreparedTokenEvents),
 }
 impl PreparedEvent {
     async fn prepare(
@@ -348,22 +346,15 @@ impl PreparedEvent {
                         .collect::<anyhow::Result<Vec<_>>>()?,
                 },
             ),
-            AccountTransactionEffects::TokenHolder {
+            AccountTransactionEffects::TokenUpdate {
                 events,
-            } => PreparedEvent::TokenHolderEvents(PreparedTokenEvents {
+            } => PreparedEvent::TokenUpdateEvents(PreparedTokenEvents {
                 events: events
                     .iter()
                     .map(PreparedTokenEvent::prepare)
                     .collect::<anyhow::Result<Vec<_>>>()?,
             }),
-            AccountTransactionEffects::TokenGovernance {
-                events,
-            } => PreparedEvent::TokenGovernanceEvents(PreparedTokenEvents {
-                events: events
-                    .iter()
-                    .map(PreparedTokenEvent::prepare)
-                    .collect::<anyhow::Result<Vec<_>>>()?,
-            }),
+          
         };
         Ok(prepared_event)
     }
@@ -411,9 +402,7 @@ impl PreparedEvent {
                 .save(tx, tx_idx)
                 .await
                 .context("Failed processing block item event with rejected event"),
-            PreparedEvent::TokenHolderEvents(_event) => Ok(()),
-
-            PreparedEvent::TokenGovernanceEvents(_event) => Ok(()),
+            PreparedEvent::TokenUpdateEvents(_event) => Ok(()),
             PreparedEvent::NoOperation => Ok(()),
         }
     }

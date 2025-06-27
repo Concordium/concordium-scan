@@ -1,13 +1,13 @@
 use anyhow::Ok;
 use concordium_rust_sdk::types::{CreatePlt, TokenCreationDetails};
 
-use crate::transaction_event::protocol_level_tokens::TokenEvent;
+use crate::transaction_event::protocol_level_tokens::TokenUpdate;
 
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct PreparedTokenCreationDetails {
     pub create_plt: CreatePlt,       // The PLT creation identifier
-    pub events:     Vec<TokenEvent>, // List of prepared token governance events
+    pub events:     Vec<TokenUpdate>, // List of prepared token governance events
 }
 
 impl PreparedTokenCreationDetails {
@@ -19,7 +19,7 @@ impl PreparedTokenCreationDetails {
             events:     details
                 .events
                 .iter()
-                .map(TokenEvent::prepare)
+                .map(TokenUpdate::prepare)
                 .collect::<anyhow::Result<Vec<_>>>()?,
         })
     }

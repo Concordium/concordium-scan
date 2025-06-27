@@ -178,8 +178,7 @@
 				/>
 				<TokenEvents
 					v-else-if="
-						event.__typename === 'TokenHolderEvent' ||
-						event.__typename === 'TokenGovernanceEvent'
+						event.__typename === 'TokenUpdate'
 					"
 					:event="event"
 				/>
