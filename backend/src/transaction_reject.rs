@@ -70,7 +70,7 @@ pub enum TransactionRejectReason {
     PoolWouldBecomeOverDelegated(PoolWouldBecomeOverDelegated),
     PoolClosed(PoolClosed),
     NonExistentTokenId(NonExistentTokenId),
-    TokenModuleReject(TokenModuleReject),
+    TokenTransactionFailed(TokenModuleReject),
     UnauthorizedTokenGovernance(UnauthorizedTokenGovernance),
 }
 
@@ -930,7 +930,7 @@ impl PreparedTransactionRejectReason {
                 })
             }
             RejectReason::TokenHolderTransactionFailed(token_module_reject_reason) => {
-                TransactionRejectReason::TokenModuleReject(TokenModuleReject {
+                TransactionRejectReason::TokenTransactionFailed(TokenModuleReject {
                     token_id:    token_module_reject_reason.token_id.clone().into(),
                     reason_type: token_module_reject_reason.clone().reason_type.into(),
                     details:     match TokenModuleRejectReason::decode_reject_reason(
@@ -939,7 +939,7 @@ impl PreparedTransactionRejectReason {
                         Ok(details) => serde_json::to_value(details)?,
                         Err(err) => {
                             return Err(anyhow::anyhow!(
-                                "Failed to decode token module reject reason: {}",
+                                "Failed to decode token transaction failed: {}",
                                 err
                             ))
                         }
@@ -947,7 +947,7 @@ impl PreparedTransactionRejectReason {
                 })
             }
             RejectReason::TokenGovernanceTransactionFailed(token_module_reject_reason) => {
-                TransactionRejectReason::TokenModuleReject(TokenModuleReject {
+                TransactionRejectReason::TokenTransactionFailed(TokenModuleReject {
                     token_id:    token_module_reject_reason.token_id.clone().into(),
                     reason_type: token_module_reject_reason.clone().reason_type.into(),
                     details:     match TokenModuleRejectReason::decode_reject_reason(
@@ -956,7 +956,7 @@ impl PreparedTransactionRejectReason {
                         Ok(details) => serde_json::to_value(details)?,
                         Err(err) => {
                             return Err(anyhow::anyhow!(
-                                "Failed to decode token module reject reason: {}",
+                                "Failed to decode token transaction failed: {}",
                                 err
                             ))
                         }
