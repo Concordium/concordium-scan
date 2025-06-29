@@ -70,7 +70,7 @@ pub enum TransactionRejectReason {
     PoolWouldBecomeOverDelegated(PoolWouldBecomeOverDelegated),
     PoolClosed(PoolClosed),
     NonExistentTokenId(NonExistentTokenId),
-    TokenTransactionFailed(TokenModuleReject),
+    TokenUpdateTransactionFailed(TokenModuleReject),
     UnauthorizedTokenGovernance(UnauthorizedTokenGovernance),
 }
 
@@ -930,7 +930,7 @@ impl PreparedTransactionRejectReason {
                 })
             }
             RejectReason::TokenHolderTransactionFailed(token_module_reject_reason) => {
-                TransactionRejectReason::TokenTransactionFailed(TokenModuleReject {
+                TransactionRejectReason::TokenUpdateTransactionFailed(TokenModuleReject {
                     token_id:    token_module_reject_reason.token_id.clone().into(),
                     reason_type: token_module_reject_reason.clone().reason_type.into(),
                     details:     match TokenModuleRejectReason::decode_reject_reason(
@@ -947,7 +947,7 @@ impl PreparedTransactionRejectReason {
                 })
             }
             RejectReason::TokenGovernanceTransactionFailed(token_module_reject_reason) => {
-                TransactionRejectReason::TokenTransactionFailed(TokenModuleReject {
+                TransactionRejectReason::TokenUpdateTransactionFailed(TokenModuleReject {
                     token_id:    token_module_reject_reason.token_id.clone().into(),
                     reason_type: token_module_reject_reason.clone().reason_type.into(),
                     details:     match TokenModuleRejectReason::decode_reject_reason(
