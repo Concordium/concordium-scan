@@ -2997,7 +2997,6 @@ export type TokenGovernanceEvent = {
 export type TokenHolder = {
   __typename?: 'TokenHolder';
   address: AccountAddress;
-  coinInfo?: Maybe<Scalars['String']>;
 };
 
 /** Named struct for TokenHolderEvent. */

@@ -177,7 +177,7 @@ impl From<concordium_rust_sdk::types::UpdateType> for UpdateTransactionType {
             UpdateType::UpdateValidatorScoreParameters => {
                 UpdateTransactionType::ValidatorScoreParametersUpdate
             }
-            UpdateType::CreatePlt => UpdateTransactionType::CreatePltUpdate,
+            UpdateType::UpdateCreatePLT => UpdateTransactionType::CreatePltUpdate,
         }
     }
 }
