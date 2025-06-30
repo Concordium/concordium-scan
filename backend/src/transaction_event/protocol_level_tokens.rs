@@ -72,8 +72,7 @@ pub struct TokenModuleEvent {
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
 pub struct TokenHolder {
-    pub address:   AccountAddress,
-    pub coin_info: Option<String>,
+    pub address: AccountAddress,
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
@@ -112,9 +111,10 @@ pub struct BurnEvent {
 impl From<concordium_rust_sdk::protocol_level_tokens::TokenHolder> for TokenHolder {
     fn from(holder: concordium_rust_sdk::protocol_level_tokens::TokenHolder) -> Self {
         match holder {
-            concordium_rust_sdk::protocol_level_tokens::TokenHolder::HolderAccount(acc) => Self {
-                address:   acc.address.into(),
-                coin_info: acc.coin_info.map(|c| format!("{:?}", c)),
+            concordium_rust_sdk::protocol_level_tokens::TokenHolder::Account {
+                address,
+            } => Self {
+                address: address.into(),
             },
         }
     }

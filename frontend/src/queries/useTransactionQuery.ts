@@ -402,13 +402,11 @@ __typename
                 address{
                 	asString
                 }
-                coinInfo
             }
             from {
                 address{
                 	asString
                 }
-				coinInfo
             }
         }
         ... on MintEvent {
@@ -420,7 +418,6 @@ __typename
                 address{
                 	asString
                 }
-                coinInfo
             }
         }
         ... on BurnEvent {
@@ -432,7 +429,6 @@ __typename
                 address{
                 	asString
                 }
-                coinInfo
             }
         }
     }
@@ -456,13 +452,11 @@ __typename
                 address{
                 	asString
                 }
-	            coinInfo
             }
             from {
                 address{
                 	asString
                 }
-                coinInfo
             }
         }
         ... on MintEvent {
@@ -474,7 +468,6 @@ __typename
                 address{
                 	asString
                 }
-                coinInfo
             }
         }
         ... on BurnEvent {
@@ -486,7 +479,6 @@ __typename
                 address{
                 	asString
                 }
-                coinInfo
             }
         }
     }
@@ -510,13 +502,11 @@ __typename
             }
             ... on TokenTransferEvent {
                 from {
-                    coinInfo
                     address {
                         asString
                     }
                 }
                 to {
-                    coinInfo
                     address {
                         asString
                     }
@@ -531,7 +521,6 @@ __typename
             }
             ... on MintEvent {
                 target {
-                    coinInfo
                     address {
                         asString
                     }
@@ -543,7 +532,6 @@ __typename
             }
             ... on BurnEvent {
                 target {
-                    coinInfo
                     address {
                         asString
                     }
