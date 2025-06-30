@@ -8,6 +8,7 @@ use futures::StreamExt;
 use serde::Deserialize;
 use std::{
     collections::{HashMap, HashSet},
+    env,
     fs::File,
     io::BufReader,
 };
@@ -171,11 +172,7 @@ impl StableCoin {
 
 #[derive(Parser)]
 struct App {
-    #[arg(
-        long = "node",
-        env = "CCDSCAN_INDEXER_GRPC_ENDPOINTS",
-        default_value = "http://localhost:20000"
-    )]
+    #[arg(long = "node", env = "CCDSCAN_INDEXER_GRPC_ENDPOINTS", required = true)]
     endpoint: v2::Endpoint,
 }
 
@@ -439,6 +436,12 @@ impl QueryStableCoins {
     }
 
     async fn live_stablecoins(&self, _ctx: &Context<'_>) -> anyhow::Result<Vec<StableCoin>> {
+        let endpoint_env = env::var("CCDSCAN_INDEXER_GRPC_ENDPOINTS");
+        if endpoint_env.is_err() {
+            return Err(anyhow::anyhow!(
+                "Stablecoin data is not available. Only available in Devnet"
+            ));
+        }
         let app = App::parse();
         let mut client = v2::Client::new(app.endpoint).await.context("Failed to create client")?;
 
