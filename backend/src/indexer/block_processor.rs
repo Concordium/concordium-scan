@@ -17,7 +17,7 @@ use prometheus_client::{
     registry::Registry,
 };
 use sqlx::{postgres::PgConnectOptions, Connection as _, PgConnection};
-use std::{time::Duration};
+use std::time::Duration;
 use tokio::time::Instant;
 use tracing::info;
 
