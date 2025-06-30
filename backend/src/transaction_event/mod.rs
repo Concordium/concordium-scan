@@ -115,12 +115,12 @@ pub fn events_from_summary(
                 data,
             } => {
                 vec![Event::ContractInitialized(smart_contracts::ContractInitialized {
-                    input_parameter: data.parameter.map(|x| x.as_ref().to_vec()),
-                    module_ref: data.origin_ref.to_string(),
-                    contract_address: data.address.into(),
-                    amount: data.amount.micro_ccd().into(),
-                    init_name: data.init_name.to_string(),
-                    version: data.contract_version.into(),
+                    input_parameter:   data.parameter.map(|x| x.as_ref().to_vec()),
+                    module_ref:        data.origin_ref.to_string(),
+                    contract_address:  data.address.into(),
+                    amount:            data.amount.micro_ccd().into(),
+                    init_name:         data.init_name.to_string(),
+                    version:           data.contract_version.into(),
                     contract_logs_raw: data.events.iter().map(|e| e.as_ref().to_vec()).collect(),
                 })]
             }
@@ -134,12 +134,12 @@ pub fn events_from_summary(
                         ContractTraceElement::Updated {
                             data,
                         } => Ok(Event::ContractUpdated(smart_contracts::ContractUpdated {
-                            contract_address: data.address.into(),
-                            instigator: data.instigator.into(),
-                            amount: data.amount.micro_ccd().into(),
-                            receive_name: data.receive_name.to_string(),
-                            version: data.contract_version.into(),
-                            input_parameter: data.message.as_ref().to_vec(),
+                            contract_address:  data.address.into(),
+                            instigator:        data.instigator.into(),
+                            amount:            data.amount.micro_ccd().into(),
+                            receive_name:      data.receive_name.to_string(),
+                            version:           data.contract_version.into(),
+                            input_parameter:   data.message.as_ref().to_vec(),
                             contract_logs_raw: data
                                 .events
                                 .iter()
@@ -152,14 +152,14 @@ pub fn events_from_summary(
                             to,
                         } => Ok(Event::Transferred(transfers::Transferred {
                             amount: amount.micro_ccd().into(),
-                            from: ScalarAddress::ContractAddress(from.into()),
-                            to: to.into(),
+                            from:   ScalarAddress::ContractAddress(from.into()),
+                            to:     to.into(),
                         })),
                         ContractTraceElement::Interrupted {
                             address,
                             events,
                         } => Ok(Event::ContractInterrupted(smart_contracts::ContractInterrupted {
-                            contract_address: address.into(),
+                            contract_address:  address.into(),
                             contract_logs_raw: events.iter().map(|e| e.as_ref().to_vec()).collect(),
                         })),
                         ContractTraceElement::Resumed {
@@ -175,8 +175,8 @@ pub fn events_from_summary(
                             to,
                         } => Ok(Event::ContractUpgraded(smart_contracts::ContractUpgraded {
                             contract_address: address.into(),
-                            from: from.to_string(),
-                            to: to.to_string(),
+                            from:             from.to_string(),
+                            to:               to.to_string(),
                         })),
                     })
                     .collect::<anyhow::Result<Vec<_>>>()?
@@ -187,8 +187,8 @@ pub fn events_from_summary(
             } => {
                 vec![Event::Transferred(transfers::Transferred {
                     amount: amount.micro_ccd().into(),
-                    from: ScalarAddress::AccountAddress(details.sender.into()),
-                    to: to.into(),
+                    from:   ScalarAddress::AccountAddress(details.sender.into()),
+                    to:     to.into(),
                 })]
             }
             AccountTransactionEffects::AccountTransferWithMemo {
@@ -199,8 +199,8 @@ pub fn events_from_summary(
                 vec![
                     Event::Transferred(transfers::Transferred {
                         amount: amount.micro_ccd().into(),
-                        from: ScalarAddress::AccountAddress(details.sender.into()),
-                        to: to.into(),
+                        from:   ScalarAddress::AccountAddress(details.sender.into()),
+                        to:     to.into(),
                     }),
                     Event::TransferMemo(memo.into()),
                 ]
@@ -209,12 +209,12 @@ pub fn events_from_summary(
                 data,
             } => {
                 vec![Event::BakerAdded(baker::BakerAdded {
-                    staked_amount: data.stake.micro_ccd().into(),
+                    staked_amount:    data.stake.micro_ccd().into(),
                     restake_earnings: data.restake_earnings,
-                    baker_id: data.keys_event.baker_id.id.index.try_into()?,
-                    sign_key: serde_json::to_string(&data.keys_event.sign_key)?,
-                    election_key: serde_json::to_string(&data.keys_event.election_key)?,
-                    aggregation_key: serde_json::to_string(&data.keys_event.aggregation_key)?,
+                    baker_id:         data.keys_event.baker_id.id.index.try_into()?,
+                    sign_key:         serde_json::to_string(&data.keys_event.sign_key)?,
+                    election_key:     serde_json::to_string(&data.keys_event.election_key)?,
+                    aggregation_key:  serde_json::to_string(&data.keys_event.aggregation_key)?,
                 })]
             }
             AccountTransactionEffects::BakerRemoved {
@@ -230,12 +230,12 @@ pub fn events_from_summary(
                 if let Some(data) = data {
                     if data.increased {
                         vec![Event::BakerStakeIncreased(baker::BakerStakeIncreased {
-                            baker_id: data.baker_id.id.index.try_into()?,
+                            baker_id:          data.baker_id.id.index.try_into()?,
                             new_staked_amount: data.new_stake.micro_ccd().into(),
                         })]
                     } else {
                         vec![Event::BakerStakeDecreased(baker::BakerStakeDecreased {
-                            baker_id: data.baker_id.id.index.try_into()?,
+                            baker_id:          data.baker_id.id.index.try_into()?,
                             new_staked_amount: data.new_stake.micro_ccd().into(),
                         })]
                     }
@@ -256,9 +256,9 @@ pub fn events_from_summary(
                 data,
             } => {
                 vec![Event::BakerKeysUpdated(baker::BakerKeysUpdated {
-                    baker_id: data.baker_id.id.index.try_into()?,
-                    sign_key: serde_json::to_string(&data.sign_key)?,
-                    election_key: serde_json::to_string(&data.election_key)?,
+                    baker_id:        data.baker_id.id.index.try_into()?,
+                    sign_key:        serde_json::to_string(&data.sign_key)?,
+                    election_key:    serde_json::to_string(&data.election_key)?,
                     aggregation_key: serde_json::to_string(&data.aggregation_key)?,
                 })]
             }
@@ -286,9 +286,9 @@ pub fn events_from_summary(
                 data,
             } => {
                 vec![Event::EncryptedSelfAmountAdded(transfers::EncryptedSelfAmountAdded {
-                    account_address: data.account.into(),
+                    account_address:      data.account.into(),
                     new_encrypted_amount: serde_json::to_string(&data.new_amount)?,
-                    amount: data.amount.micro_ccd().into(),
+                    amount:               data.amount.micro_ccd().into(),
                 })]
             }
             AccountTransactionEffects::TransferredToPublic {
@@ -298,7 +298,7 @@ pub fn events_from_summary(
                 vec![
                     Event::EncryptedAmountsRemoved((*removed).try_into()?),
                     Event::AmountAddedByDecryption(transfers::AmountAddedByDecryption {
-                        amount: amount.micro_ccd().into(),
+                        amount:          amount.micro_ccd().into(),
                         account_address: details.sender.into(),
                     }),
                 ]
@@ -309,13 +309,13 @@ pub fn events_from_summary(
             } => {
                 vec![Event::TransferredWithSchedule(transfers::TransferredWithSchedule {
                     from_account_address: details.sender.into(),
-                    to_account_address: to.into(),
-                    amounts_schedule: amount
+                    to_account_address:   to.into(),
+                    amounts_schedule:     amount
                         .iter()
                         .map(|(timestamp, amount)| {
                             Ok::<TimestampedAmount, anyhow::Error>(TimestampedAmount {
                                 timestamp: (*timestamp).try_into()?,
-                                amount: UnsignedLong(amount.micro_ccd()),
+                                amount:    UnsignedLong(amount.micro_ccd()),
                             })
                         })
                         .collect::<Result<Vec<TimestampedAmount>, _>>()?,
@@ -329,13 +329,13 @@ pub fn events_from_summary(
                 vec![
                     Event::TransferredWithSchedule(transfers::TransferredWithSchedule {
                         from_account_address: details.sender.into(),
-                        to_account_address: to.into(),
-                        amounts_schedule: amount
+                        to_account_address:   to.into(),
+                        amounts_schedule:     amount
                             .iter()
                             .map(|(timestamp, amount)| {
                                 Ok::<TimestampedAmount, anyhow::Error>(TimestampedAmount {
                                     timestamp: (*timestamp).try_into()?,
-                                    amount: UnsignedLong(amount.micro_ccd()),
+                                    amount:    UnsignedLong(amount.micro_ccd()),
                                 })
                             })
                             .collect::<Result<Vec<TimestampedAmount>, _>>()?,
@@ -356,13 +356,16 @@ pub fn events_from_summary(
                 new_threshold,
             } => {
                 vec![Event::CredentialsUpdated(credentials::CredentialsUpdated {
-                    account_address: details.sender.into(),
-                    new_cred_ids: new_cred_ids.into_iter().map(|cred| cred.to_string()).collect(),
+                    account_address:  details.sender.into(),
+                    new_cred_ids:     new_cred_ids
+                        .into_iter()
+                        .map(|cred| cred.to_string())
+                        .collect(),
                     removed_cred_ids: removed_cred_ids
                         .into_iter()
                         .map(|cred| cred.to_string())
                         .collect(),
-                    new_threshold: Byte(u8::from(new_threshold)),
+                    new_threshold:    Byte(u8::from(new_threshold)),
                 })]
             }
             AccountTransactionEffects::DataRegistered {
@@ -382,12 +385,12 @@ pub fn events_from_summary(
                         BakerEvent::BakerAdded {
                             data,
                         } => Ok(Event::BakerAdded(baker::BakerAdded {
-                            staked_amount: data.stake.micro_ccd().into(),
+                            staked_amount:    data.stake.micro_ccd().into(),
                             restake_earnings: data.restake_earnings,
-                            baker_id: data.keys_event.baker_id.id.index.try_into()?,
-                            sign_key: serde_json::to_string(&data.keys_event.sign_key)?,
-                            election_key: serde_json::to_string(&data.keys_event.election_key)?,
-                            aggregation_key: serde_json::to_string(
+                            baker_id:         data.keys_event.baker_id.id.index.try_into()?,
+                            sign_key:         serde_json::to_string(&data.keys_event.sign_key)?,
+                            election_key:     serde_json::to_string(&data.keys_event.election_key)?,
+                            aggregation_key:  serde_json::to_string(
                                 &data.keys_event.aggregation_key,
                             )?,
                         })),
@@ -400,14 +403,14 @@ pub fn events_from_summary(
                             baker_id,
                             new_stake,
                         } => Ok(Event::BakerStakeIncreased(baker::BakerStakeIncreased {
-                            baker_id: baker_id.id.index.try_into()?,
+                            baker_id:          baker_id.id.index.try_into()?,
                             new_staked_amount: new_stake.micro_ccd().into(),
                         })),
                         BakerEvent::BakerStakeDecreased {
                             baker_id,
                             new_stake,
                         } => Ok(Event::BakerStakeDecreased(baker::BakerStakeDecreased {
-                            baker_id: baker_id.id.index.try_into()?,
+                            baker_id:          baker_id.id.index.try_into()?,
                             new_staked_amount: new_stake.micro_ccd().into(),
                         })),
                         BakerEvent::BakerRestakeEarningsUpdated {
@@ -420,34 +423,34 @@ pub fn events_from_summary(
                         BakerEvent::BakerKeysUpdated {
                             data,
                         } => Ok(Event::BakerKeysUpdated(baker::BakerKeysUpdated {
-                            baker_id: data.baker_id.id.index.try_into()?,
-                            sign_key: serde_json::to_string(&data.sign_key)?,
-                            election_key: serde_json::to_string(&data.election_key)?,
+                            baker_id:        data.baker_id.id.index.try_into()?,
+                            sign_key:        serde_json::to_string(&data.sign_key)?,
+                            election_key:    serde_json::to_string(&data.election_key)?,
                             aggregation_key: serde_json::to_string(&data.aggregation_key)?,
                         })),
                         BakerEvent::BakerSetOpenStatus {
                             baker_id,
                             open_status,
                         } => Ok(Event::BakerSetOpenStatus(baker::BakerSetOpenStatus {
-                            baker_id: baker_id.id.index.try_into()?,
+                            baker_id:        baker_id.id.index.try_into()?,
                             account_address: details.sender.into(),
-                            open_status: open_status.into(),
+                            open_status:     open_status.into(),
                         })),
                         BakerEvent::BakerSetMetadataURL {
                             baker_id,
                             metadata_url,
                         } => Ok(Event::BakerSetMetadataURL(baker::BakerSetMetadataURL {
-                            baker_id: baker_id.id.index.try_into()?,
+                            baker_id:        baker_id.id.index.try_into()?,
                             account_address: details.sender.into(),
-                            metadata_url: metadata_url.into(),
+                            metadata_url:    metadata_url.into(),
                         })),
                         BakerEvent::BakerSetTransactionFeeCommission {
                             baker_id,
                             transaction_fee_commission,
                         } => Ok(Event::BakerSetTransactionFeeCommission(
                             baker::BakerSetTransactionFeeCommission {
-                                baker_id: baker_id.id.index.try_into()?,
-                                account_address: details.sender.into(),
+                                baker_id:                   baker_id.id.index.try_into()?,
+                                account_address:            details.sender.into(),
                                 transaction_fee_commission: transaction_fee_commission.into(),
                             },
                         )),
@@ -456,8 +459,8 @@ pub fn events_from_summary(
                             baking_reward_commission,
                         } => Ok(Event::BakerSetBakingRewardCommission(
                             baker::BakerSetBakingRewardCommission {
-                                baker_id: baker_id.id.index.try_into()?,
-                                account_address: details.sender.into(),
+                                baker_id:                 baker_id.id.index.try_into()?,
+                                account_address:          details.sender.into(),
                                 baking_reward_commission: baking_reward_commission.into(),
                             },
                         )),
@@ -475,19 +478,19 @@ pub fn events_from_summary(
                         BakerEvent::DelegationRemoved {
                             delegator_id,
                         } => Ok(Event::BakerDelegationRemoved(baker::BakerDelegationRemoved {
-                            delegator_id: delegator_id.id.index.try_into()?,
+                            delegator_id:    delegator_id.id.index.try_into()?,
                             account_address: details.sender.into(),
                         })),
                         BakerEvent::BakerSuspended {
                             baker_id,
                         } => Ok(Event::BakerSuspended(baker::BakerSuspended {
-                            baker_id: baker_id.id.index.try_into()?,
+                            baker_id:        baker_id.id.index.try_into()?,
                             account_address: details.sender.into(),
                         })),
                         BakerEvent::BakerResumed {
                             baker_id,
                         } => Ok(Event::BakerResumed(baker::BakerResumed {
-                            baker_id: baker_id.id.index.try_into()?,
+                            baker_id:        baker_id.id.index.try_into()?,
                             account_address: details.sender.into(),
                         })),
                     }
@@ -504,8 +507,8 @@ pub fn events_from_summary(
                             new_stake,
                         } => Ok(Event::DelegationStakeIncreased(
                             delegation::DelegationStakeIncreased {
-                                delegator_id: delegator_id.id.index.try_into()?,
-                                account_address: details.sender.into(),
+                                delegator_id:      delegator_id.id.index.try_into()?,
+                                account_address:   details.sender.into(),
                                 new_staked_amount: new_stake.micro_ccd().into(),
                             },
                         )),
@@ -514,8 +517,8 @@ pub fn events_from_summary(
                             new_stake,
                         } => Ok(Event::DelegationStakeDecreased(
                             delegation::DelegationStakeDecreased {
-                                delegator_id: delegator_id.id.index.try_into()?,
-                                account_address: details.sender.into(),
+                                delegator_id:      delegator_id.id.index.try_into()?,
+                                account_address:   details.sender.into(),
                                 new_staked_amount: new_stake.micro_ccd().into(),
                             },
                         )),
@@ -534,21 +537,21 @@ pub fn events_from_summary(
                             delegation_target,
                         } => Ok(Event::DelegationSetDelegationTarget(
                             delegation::DelegationSetDelegationTarget {
-                                delegator_id: delegator_id.id.index.try_into()?,
-                                account_address: details.sender.into(),
+                                delegator_id:      delegator_id.id.index.try_into()?,
+                                account_address:   details.sender.into(),
                                 delegation_target: delegation_target.try_into()?,
                             },
                         )),
                         DelegationEvent::DelegationAdded {
                             delegator_id,
                         } => Ok(Event::DelegationAdded(delegation::DelegationAdded {
-                            delegator_id: delegator_id.id.index.try_into()?,
+                            delegator_id:    delegator_id.id.index.try_into()?,
                             account_address: details.sender.into(),
                         })),
                         DelegationEvent::DelegationRemoved {
                             delegator_id,
                         } => Ok(Event::DelegationRemoved(delegation::DelegationRemoved {
-                            delegator_id: delegator_id.id.index.try_into()?,
+                            delegator_id:    delegator_id.id.index.try_into()?,
                             account_address: details.sender.into(),
                         })),
                         DelegationEvent::BakerRemoved {
@@ -566,7 +569,7 @@ pub fn events_from_summary(
                 .map(|event| {
                     Ok(Event::TokenUpdate(protocol_level_tokens::TokenUpdate {
                         token_id: event.token_id.clone().into(),
-                        event: event.event.clone().into(),
+                        event:    event.event.clone().into(),
                     }))
                 })
                 .collect::<anyhow::Result<Vec<_>>>()?,
@@ -574,7 +577,7 @@ pub fn events_from_summary(
         BlockItemSummaryDetails::AccountCreation(details) => {
             vec![
                 Event::CredentialDeployed(credentials::CredentialDeployed {
-                    reg_id: details.reg_id.to_string(),
+                    reg_id:          details.reg_id.to_string(),
                     account_address: details.address.into(),
                 }),
                 Event::AccountCreated(credentials::AccountCreated {
@@ -592,14 +595,18 @@ pub fn events_from_summary(
                     DateTime::from_timestamp(effective_time.try_into()?, 0)
                 }
                 .context("Failed to parse effective time")?,
-                payload: details.payload.into(),
+                payload:        details.payload.into(),
             })]
         }
         BlockItemSummaryDetails::TokenCreationDetails(token_creation_details) => {
             let create_plt = CreatePlt {
-                token_id: token_creation_details.create_plt.token_id.clone().into(),
-                token_module: token_creation_details.create_plt.token_module.into(),
-                decimals: token_creation_details.create_plt.decimals,
+                token_id:                  token_creation_details
+                    .create_plt
+                    .token_id
+                    .clone()
+                    .into(),
+                token_module:              token_creation_details.create_plt.token_module.into(),
+                decimals:                  token_creation_details.create_plt.decimals,
                 initialization_parameters: token_creation_details
                     .create_plt
                     .initialization_parameters
@@ -623,7 +630,7 @@ pub fn events_from_summary(
                         ) => protocol_level_tokens::TokenEventDetails::Module(
                             protocol_level_tokens::TokenModuleEvent {
                                 event_type: token_module_event.event_type.as_ref().to_string(),
-                                details: serde_json::to_value(&token_module_event.details)
+                                details:    serde_json::to_value(&token_module_event.details)
                                     .unwrap_or_default(),
                             },
                         ),
@@ -631,10 +638,10 @@ pub fn events_from_summary(
                             token_transfer_event,
                         ) => protocol_level_tokens::TokenEventDetails::Transfer(
                             protocol_level_tokens::TokenTransferEvent {
-                                from: token_transfer_event.from.clone().into(),
-                                to: token_transfer_event.to.clone().into(),
+                                from:   token_transfer_event.from.clone().into(),
+                                to:     token_transfer_event.to.clone().into(),
                                 amount: token_transfer_event.amount.into(),
-                                memo: token_transfer_event.memo.clone().map(Into::into),
+                                memo:   token_transfer_event.memo.clone().map(Into::into),
                             },
                         ),
                         concordium_rust_sdk::protocol_level_tokens::TokenEventDetails::Burn(
@@ -649,7 +656,7 @@ pub fn events_from_summary(
 
                     protocol_level_tokens::TokenUpdate {
                         token_id: event.token_id.clone().into(),
-                        event: event_details,
+                        event:    event_details,
                     }
                 })
                 .collect::<Vec<_>>();
@@ -666,69 +673,55 @@ pub fn events_from_summary(
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct CisTransferEvent {
     pub raw_token_id: cis2::TokenId,
-    pub amount: cis2::TokenAmount,
-    pub from: Address,
-    pub to: Address,
+    pub amount:       cis2::TokenAmount,
+    pub from:         Address,
+    pub to:           Address,
 }
 #[Object]
 impl CisTransferEvent {
-    async fn to_address(&self) -> ScalarAddress {
-        self.to.into()
-    }
+    async fn to_address(&self) -> ScalarAddress { self.to.into() }
 
-    async fn from_address(&self) -> ScalarAddress {
-        self.from.into()
-    }
+    async fn from_address(&self) -> ScalarAddress { self.from.into() }
 
     async fn token_amount(&self) -> crate::scalar_types::BigInteger {
         BigInteger::from(BigDecimal::from_biguint(self.amount.0.clone(), 0))
     }
 
-    async fn token_id(&self) -> crate::scalar_types::TokenId {
-        self.raw_token_id.clone().into()
-    }
+    async fn token_id(&self) -> crate::scalar_types::TokenId { self.raw_token_id.clone().into() }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct CisMintEvent {
     pub raw_token_id: cis2::TokenId,
-    pub amount: cis2::TokenAmount,
-    pub owner: Address,
+    pub amount:       cis2::TokenAmount,
+    pub owner:        Address,
 }
 #[Object]
 impl CisMintEvent {
-    async fn to_address(&self) -> ScalarAddress {
-        self.owner.into()
-    }
+    async fn to_address(&self) -> ScalarAddress { self.owner.into() }
 
     async fn token_amount(&self) -> crate::scalar_types::BigInteger {
         BigInteger::from(BigDecimal::from_biguint(self.amount.0.clone(), 0))
     }
 
-    async fn token_id(&self) -> crate::scalar_types::TokenId {
-        self.raw_token_id.clone().into()
-    }
+    async fn token_id(&self) -> crate::scalar_types::TokenId { self.raw_token_id.clone().into() }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct CisBurnEvent {
     pub raw_token_id: cis2::TokenId,
-    pub amount: cis2::TokenAmount,
-    pub owner: Address,
+    pub amount:       cis2::TokenAmount,
+    pub owner:        Address,
 }
 #[Object]
 impl CisBurnEvent {
-    async fn from_address(&self) -> ScalarAddress {
-        self.owner.into()
-    }
+    async fn from_address(&self) -> ScalarAddress { self.owner.into() }
 
     async fn token_amount(&self) -> crate::scalar_types::BigInteger {
         BigInteger::from(BigDecimal::from_biguint(self.amount.0.clone(), 0))
     }
 
-    async fn token_id(&self) -> crate::scalar_types::TokenId {
-        self.raw_token_id.clone().into()
-    }
+    async fn token_id(&self) -> crate::scalar_types::TokenId { self.raw_token_id.clone().into() }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -738,17 +731,13 @@ pub struct CisTokenMetadataEvent {
 }
 #[Object]
 impl CisTokenMetadataEvent {
-    async fn metadata_url(&self) -> String {
-        self.metadata_url.url().to_string()
-    }
+    async fn metadata_url(&self) -> String { self.metadata_url.url().to_string() }
 
     async fn hash_hex(&self) -> Option<String> {
         self.metadata_url.hash().map(|hash| hash.to_string())
     }
 
-    async fn token_id(&self) -> crate::scalar_types::TokenId {
-        self.raw_token_id.clone().into()
-    }
+    async fn token_id(&self) -> crate::scalar_types::TokenId { self.raw_token_id.clone().into() }
 }
 
 #[derive(Debug, SimpleObject, serde::Serialize, serde::Deserialize)]

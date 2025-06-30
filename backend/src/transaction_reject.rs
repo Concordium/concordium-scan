@@ -70,7 +70,7 @@ pub enum TransactionRejectReason {
     PoolWouldBecomeOverDelegated(PoolWouldBecomeOverDelegated),
     PoolClosed(PoolClosed),
     NonExistentTokenId(NonExistentTokenId),
-    TokenModuleReject(TokenModuleReject),
+    TokenUpdateTransactionFailed(TokenModuleReject),
     UnauthorizedTokenGovernance(UnauthorizedTokenGovernance),
 }
 
@@ -92,12 +92,12 @@ pub struct ModuleHashAlreadyExists {
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct InvalidInitMethod {
     module_ref: String,
-    init_name: String,
+    init_name:  String,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct InvalidReceiveMethod {
-    module_ref: String,
+    module_ref:   String,
     receive_name: String,
 }
 
@@ -129,7 +129,7 @@ pub struct RuntimeFailure {
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct AmountTooLarge {
     address: Address,
-    amount: Amount,
+    amount:  Amount,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
@@ -161,21 +161,21 @@ pub struct RejectedInit {
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct RejectedReceive {
     /// Reject reason code produced by the smart contract instance.
-    reject_reason: i32,
+    reject_reason:          i32,
     /// Address of the smart contract instance which rejected the update.
-    contract_address: ContractAddress,
+    contract_address:       ContractAddress,
     /// The name of the entry point called in the smart contract instance (in
     /// ReceiveName format '<contract_name>.<entrypoint>').
-    receive_name: String,
+    receive_name:           String,
     /// The HEX representation of the message provided for the smart contract
     /// instance as parameter.
-    message_as_hex: String,
+    message_as_hex:         String,
     /// The JSON representation of the message provided for the smart contract
     /// instance as parameter. Decoded using the smart contract module
     /// schema if present otherwise undefined. Failing to parse the message
     /// will result in this being undefined and `message_parsing_status`
     /// representing the error.
-    message: Option<String>,
+    message:                Option<String>,
     /// The status of parsing `message` into its JSON representation using the
     /// smart contract module schema.
     message_parsing_status: InstanceMessageParsingStatus,
@@ -579,11 +579,11 @@ pub struct NonExistentTokenId {
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct TokenModuleReject {
     /// The unique symbol of the token, which produced this event.
-    pub token_id: String,
+    pub token_id:    String,
     /// The type of event produced.
     pub reason_type: String,
     /// The details of the event produced, in the raw byte encoded form.
-    pub details: serde_json::Value,
+    pub details:     serde_json::Value,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
@@ -647,12 +647,12 @@ impl PreparedTransactionRejectReason {
                 contents,
             } => TransactionRejectReason::InvalidInitMethod(InvalidInitMethod {
                 module_ref: contents.0.to_string(),
-                init_name: contents.1.to_string(),
+                init_name:  contents.1.to_string(),
             }),
             RejectReason::InvalidReceiveMethod {
                 contents,
             } => TransactionRejectReason::InvalidReceiveMethod(InvalidReceiveMethod {
-                module_ref: contents.0.to_string(),
+                module_ref:   contents.0.to_string(),
                 receive_name: contents.1.to_string(),
             }),
             RejectReason::InvalidModuleReference {
@@ -674,7 +674,7 @@ impl PreparedTransactionRejectReason {
                 contents,
             } => TransactionRejectReason::AmountTooLarge(AmountTooLarge {
                 address: contents.0.into(),
-                amount: contents.1.micro_ccd().into(),
+                amount:  contents.1.micro_ccd().into(),
             }),
             RejectReason::SerializationFailure => {
                 TransactionRejectReason::SerializationFailure(SerializationFailure {
@@ -930,16 +930,16 @@ impl PreparedTransactionRejectReason {
                 })
             }
             RejectReason::TokenUpdateTransactionFailed(token_module_reject_reason) => {
-                TransactionRejectReason::TokenModuleReject(TokenModuleReject {
-                    token_id: token_module_reject_reason.token_id.clone().into(),
+                TransactionRejectReason::TokenUpdateTransactionFailed(TokenModuleReject {
+                    token_id:    token_module_reject_reason.token_id.clone().into(),
                     reason_type: token_module_reject_reason.clone().reason_type.into(),
-                    details: match TokenModuleRejectReason::decode_reject_reason(
+                    details:     match TokenModuleRejectReason::decode_reject_reason(
                         &token_module_reject_reason,
                     ) {
                         Ok(details) => serde_json::to_value(details)?,
                         Err(err) => {
                             return Err(anyhow::anyhow!(
-                                "Failed to decode token module reject reason: {}",
+                                "Failed to decode token transaction failed: {}",
                                 err
                             ))
                         }
@@ -970,10 +970,10 @@ impl PreparedTransactionRejectReason {
 /// using the smart contract module schema before insertion.
 #[derive(Debug)]
 pub struct PreparedRejectedReceive {
-    reject_reason: i32,
+    reject_reason:    i32,
     contract_address: ContractAddress,
-    receive_name: String,
-    message_as_hex: String,
+    receive_name:     String,
+    message_as_hex:   String,
 }
 
 impl PreparedRejectedReceive {

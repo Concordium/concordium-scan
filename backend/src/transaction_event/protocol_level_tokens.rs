@@ -33,12 +33,6 @@ pub struct TokenUpdate {
     pub event:    TokenEventDetails,
 }
 
-
-
-
-
-
-
 #[derive(Union, Serialize, Deserialize, Clone, Debug)]
 pub enum TokenEventDetails {
     Module(TokenModuleEvent),
@@ -169,4 +163,3 @@ impl TokenUpdate {
         })
     }
 }
-

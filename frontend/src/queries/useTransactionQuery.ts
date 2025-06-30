@@ -284,10 +284,10 @@ __typename
 			energyLimit
 		}
 		...	on CreatePltUpdate{
-			decimals
-			governanceAccount {
-			asString
-			}
+            tokenId
+            tokenModule
+            decimals
+            initializationParameters
 		}
 
 	}
@@ -383,57 +383,7 @@ __typename
 	delegatorId
 	accountAddress {asString}
 }
-... on TokenHolderEvent {
-    tokenId
-    event {
-        ... on TokenModuleEvent {
-            eventType
-            details
-        }
-        ... on TokenTransferEvent {
-            memo {
-                bytes
-            }
-            amount {
-                value
-                decimals
-            }
-            to {
-                address{
-                	asString
-                }
-            }
-            from {
-                address{
-                	asString
-                }
-            }
-        }
-        ... on MintEvent {
-            amount {
-                value
-                decimals
-            }
-            target {
-                address{
-                	asString
-                }
-            }
-        }
-        ... on BurnEvent {
-            amount {
-                value
-                decimals
-            }
-            target {
-                address{
-                	asString
-                }
-            }
-        }
-    }
-}
-... on TokenGovernanceEvent {
+... on TokenUpdate {
     tokenId
     event {
         ... on TokenModuleEvent {
@@ -489,9 +439,6 @@ __typename
         tokenModule
         decimals
         initializationParameters
-        governanceAccount {
-            asString
-        }
     }
     events {
         tokenId

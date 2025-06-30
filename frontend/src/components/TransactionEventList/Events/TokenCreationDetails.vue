@@ -1,12 +1,14 @@
 <template>
 	<span>
 		<span class="text-theme">
-			Issue protocol level token {{ event.createPlt.tokenId }} with governance
-			account
-			<AccountLink :address="event.createPlt.governanceAccount.asString" />
+			Issue protocol level token {{ event.createPlt.tokenId }}
 		</span>
 		<br />
-		<span v-for="eventItem in event.events" :key="eventItem.__typename">
+		<span
+			v-for="eventItem in event.events"
+			:key="eventItem.__typename"
+			class="text-theme"
+		>
 			<TokenEvents :event="eventItem" />
 		</span>
 	</span>
@@ -14,7 +16,7 @@
 
 <script setup lang="ts">
 import type { TokenCreationDetails } from '~/types/generated'
-import AccountLink from '~/components/molecules/AccountLink.vue'
+import TokenEvents from '~/components/TransactionEventList/Events/TokenEvents.vue'
 type Props = {
 	event: TokenCreationDetails
 }

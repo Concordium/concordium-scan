@@ -6,7 +6,7 @@ use crate::transaction_event::protocol_level_tokens::TokenUpdate;
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct PreparedTokenCreationDetails {
-    pub create_plt: CreatePlt,       // The PLT creation identifier
+    pub create_plt: CreatePlt,        // The PLT creation identifier
     pub events:     Vec<TokenUpdate>, // List of prepared token governance events
 }
 

@@ -49,7 +49,8 @@
 				</span>
 				<br />
 				<span class="px-2">
-					Details: <b> {{ reason.details[reason.reasonType].cause }} </b>
+					Address:
+					<b> {{ reason.details[reason.reasonType].address.address }} </b>
 				</span>
 			</Tooltip>
 		</span>
@@ -86,9 +87,7 @@
 				<span class="px-2">
 					Token Holder :
 					<b>
-						{{
-							reason.details[reason.reasonType].address.holderAccount.address
-						}}
+						{{ reason.details[reason.reasonType].address.address }}
 					</b>
 				</span>
 				<br />
@@ -96,9 +95,7 @@
 				<span class="px-2">
 					Coin Info :
 					<b>
-						{{
-							reason.details[reason.reasonType].address.holderAccount.coinInfo
-						}}
+						{{ reason.details[reason.reasonType].address.coinInfo }}
 					</b>
 				</span>
 				<br />

@@ -28,8 +28,7 @@ const translations = {
 		SIMPLE_TRANSFER_WITH_MEMO: 'Simple transfer with memo',
 		ENCRYPTED_TRANSFER_WITH_MEMO: 'Encrypted transfer with memo',
 		TRANSFER_WITH_SCHEDULE_WITH_MEMO: 'Transfer with schedule and memo',
-		TOKEN_HOLDER: 'Token holder',
-		TOKEN_GOVERNANCE: 'Token governance',
+		TOKEN_UPDATE: 'Token update',
 		UNKNOWN: 'Unknown account transaction',
 	} as Record<AccountTransactionType | 'UNKNOWN', string>,
 	credentialDeploymentTypes: {

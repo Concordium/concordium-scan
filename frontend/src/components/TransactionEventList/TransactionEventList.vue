@@ -177,9 +177,7 @@
 					:event="event"
 				/>
 				<TokenEvents
-					v-else-if="
-						event.__typename === 'TokenUpdate'
-					"
+					v-else-if="event.__typename === 'TokenUpdate'"
 					:event="event"
 				/>
 

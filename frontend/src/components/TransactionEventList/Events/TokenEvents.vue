@@ -39,25 +39,18 @@
 		<span>
 			Address:
 			<AccountLink
-				:address="
-					event.event.details[event.event.eventType].target.holderAccount
-						.address
-				"
+				:address="event.event.details[event.event.eventType].target.address"
 			/>
 		</span>
 	</span>
 </template>
 
 <script setup lang="ts">
-import type {
-	TokenHolderEvent,
-	TokenGovernanceEvent,
-	TokenEvent,
-} from '~/types/generated'
+import type { TokenUpdate } from '~/types/generated'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 
 type Props = {
-	event: TokenHolderEvent | TokenGovernanceEvent | TokenEvent
+	event: TokenUpdate
 }
 
 defineProps<Props>()

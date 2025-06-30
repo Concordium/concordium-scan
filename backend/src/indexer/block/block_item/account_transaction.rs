@@ -354,7 +354,6 @@ impl PreparedEvent {
                     .map(PreparedTokenEvent::prepare)
                     .collect::<anyhow::Result<Vec<_>>>()?,
             }),
-          
         };
         Ok(prepared_event)
     }
