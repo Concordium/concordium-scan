@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [2.0.11] - 2025-07-01
+
 ### Fixed
 
 - Fix for db connections issue where new connections are created during failed block processing, and old connections are not closed and cleaned up effectively
