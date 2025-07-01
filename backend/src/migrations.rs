@@ -254,6 +254,11 @@ pub enum SchemaVersion {
     UpdateAccountTransactionTypes,
     #[display("0036: Added index and slot time for the account statements table")]
     IndexAndSlotTimeColumnAddedAccountStatements,
+    #[display(
+        "0037: Baker APY Materialized table definitions updated to make sure we have max cap \
+         applied to paydays"
+    )]
+    BakerApyCalculationsMaxCapPayDays,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -262,7 +267,7 @@ impl SchemaVersion {
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
         SchemaVersion::IndexPartialContractsSearch;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements;
+    const LATEST: SchemaVersion = SchemaVersion::BakerApyCalculationsMaxCapPayDays;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -318,6 +323,7 @@ impl SchemaVersion {
             SchemaVersion::IndexAccountRewards => false,
             SchemaVersion::UpdateAccountTransactionTypes => false,
             SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => false,
+            SchemaVersion::BakerApyCalculationsMaxCapPayDays => false,
         }
     }
 
@@ -364,6 +370,7 @@ impl SchemaVersion {
             SchemaVersion::IndexAccountRewards => false,
             SchemaVersion::UpdateAccountTransactionTypes => false,
             SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => false,
+            SchemaVersion::BakerApyCalculationsMaxCapPayDays => false,
         }
     }
 
@@ -600,7 +607,15 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements
             }
-            SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => unimplemented!(
+            SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0037_bakers_apy_function_cap_max_paydays.sql"
+                    )))
+                    .await?;
+                SchemaVersion::BakerApyCalculationsMaxCapPayDays
+            }
+            SchemaVersion::BakerApyCalculationsMaxCapPayDays => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),

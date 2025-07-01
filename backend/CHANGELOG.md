@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+Database schema version: 37
+
+- contains database migrations to change the Bakers APY query calculations to have a max pay day of: 8760.0 (hours per year).
+for higher environments this will always be 365.25, but stagenet is much faster and to prevent overflow this migration cap was added.
+
 ## [2.0.11] - 2025-07-01
 
 ### Fixed
