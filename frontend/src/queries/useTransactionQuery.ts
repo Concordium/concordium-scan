@@ -287,7 +287,7 @@ __typename
 			tokenId
 			tokenModule
 			decimals
-            initializationParameters
+    	initializationParameters
 		}
 
 	}
