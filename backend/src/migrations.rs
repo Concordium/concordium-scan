@@ -256,7 +256,8 @@ pub enum SchemaVersion {
     #[display("0036: Added index and slot time for the account statements table")]
     IndexAndSlotTimeColumnAddedAccountStatements,
     #[display(
-        "0037: Update account_transaction_type to add TokenUpdate, and remove TokenHolder, TokenGovernance"
+        "0037: Update account_transaction_type to add TokenUpdate, and remove TokenHolder, \
+         TokenGovernance"
     )]
     UpdateTransactionTypeAddTokenUpdate,
 }
