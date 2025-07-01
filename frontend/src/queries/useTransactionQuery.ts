@@ -284,10 +284,10 @@ __typename
 			energyLimit
 		}
 		...	on CreatePltUpdate{
-            tokenId
-            tokenModule
-            decimals
-            initializationParameters
+					tokenId
+					tokenModule
+					decimals
+					initializationParameters
 		}
 
 	}

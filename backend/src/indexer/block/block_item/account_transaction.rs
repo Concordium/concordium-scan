@@ -148,7 +148,7 @@ enum PreparedEvent {
     /// No changes in the database was caused by this event.
     NoOperation,
 
-    /// Events related to token holders AccountTransactionEffects.
+    /// Events related to token update AccountTransactionEffects.
     TokenUpdateEvents(plt_events::PreparedTokenEvents),
 }
 impl PreparedEvent {

@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## Changed
+- New account_transaction_type enum values added `TokenUpdate` , Removed `TokenHolder` and `TokenGovernance`
+- TokenHolder and TokenGovernance events are now merged into `TokenUpdate` event.
+
 ## [2.0.10] - 2025-06-24
 
 ### Added
