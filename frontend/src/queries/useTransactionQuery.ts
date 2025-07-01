@@ -283,11 +283,11 @@ __typename
 		... on BlockEnergyLimitUpdate {
 			energyLimit
 		}
-		...	on CreatePltUpdate{
-					tokenId
-					tokenModule
-					decimals
-					initializationParameters
+		...	on CreatePltUpdate {
+			tokenId
+			tokenModule
+			decimals
+            initializationParameters
 		}
 
 	}
