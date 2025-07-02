@@ -929,7 +929,7 @@ impl PreparedTransactionRejectReason {
                     token_id: token_id.clone().into(),
                 })
             }
-            RejectReason::TokenHolderTransactionFailed(token_module_reject_reason) => {
+            RejectReason::TokenUpdateTransactionFailed(token_module_reject_reason) => {
                 TransactionRejectReason::TokenUpdateTransactionFailed(TokenModuleReject {
                     token_id:    token_module_reject_reason.token_id.clone().into(),
                     reason_type: token_module_reject_reason.clone().reason_type.into(),
@@ -944,28 +944,6 @@ impl PreparedTransactionRejectReason {
                             ))
                         }
                     },
-                })
-            }
-            RejectReason::TokenGovernanceTransactionFailed(token_module_reject_reason) => {
-                TransactionRejectReason::TokenUpdateTransactionFailed(TokenModuleReject {
-                    token_id:    token_module_reject_reason.token_id.clone().into(),
-                    reason_type: token_module_reject_reason.clone().reason_type.into(),
-                    details:     match TokenModuleRejectReason::decode_reject_reason(
-                        &token_module_reject_reason,
-                    ) {
-                        Ok(details) => serde_json::to_value(details)?,
-                        Err(err) => {
-                            return Err(anyhow::anyhow!(
-                                "Failed to decode token transaction failed: {}",
-                                err
-                            ))
-                        }
-                    },
-                })
-            }
-            RejectReason::UnauthorizedTokenGovernance(token_id) => {
-                TransactionRejectReason::UnauthorizedTokenGovernance(UnauthorizedTokenGovernance {
-                    token_id: token_id.clone().into(),
                 })
             }
         };
