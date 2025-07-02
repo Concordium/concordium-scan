@@ -458,6 +458,11 @@ impl QueryStableCoins {
 
             let token_state = token_info.response.token_state;
             let token_module_state = token_state.decode_module_state().unwrap();
+            let issuer = serde_json::to_value(&token_module_state.governance_account).unwrap()
+                ["address"]
+                .as_str()
+                .unwrap_or("")
+                .to_string();
             let name = token_module_state.name;
 
             let total_supply = token_state.total_supply.to_string().parse::<f64>().unwrap() as i64;
@@ -475,7 +480,7 @@ impl QueryStableCoins {
                 transfers: None,
                 holdings: None,
                 metadata: None,
-                issuer: token_state.issuer.to_string(),
+                issuer,
                 transactions: None,
             });
         }
