@@ -216,8 +216,6 @@ pub struct CreatePltUpdate {
     pub token_id:                  String,
     /// The hash that identifies the token module implementation.
     pub token_module:              String,
-    /// The address of the account that will govern the token.
-    pub governance_account:        AccountAddress,
     /// The number of decimal places used in the representation of amounts of
     /// this token. This determines the smallest representable fraction of
     /// the token. This can be at most 255.
@@ -415,7 +413,6 @@ impl From<UpdatePayload> for ChainUpdatePayload {
             UpdatePayload::CreatePlt(update) => ChainUpdatePayload::CreatePlt(CreatePltUpdate {
                 token_id:                  update.token_id.clone().into(),
                 token_module:              update.token_module.into(),
-                governance_account:        update.governance_account.into(),
                 decimals:                  update.decimals,
                 initialization_parameters: update.initialization_parameters.to_string(),
             }),
