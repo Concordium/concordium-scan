@@ -25,6 +25,12 @@ All notable changes to this project will be documented in this file.
 
 - Move account statement export to use `rust-backend` API.
 
+## [1.7.19] - 2025-07-03
+
+### Removed
+
+- Remove overview section from stablecoin dashboard.
+
 ## [1.7.18] - 2025-07-03
 
 ### Changed
