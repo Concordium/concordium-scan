@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [2.0.13] - 2025-07-03
+
+### Changed
+
+Database schema version: 38
+
+- Baker APY query db migration to change the function to prevent overflow FLOAT8
+
 ## [2.0.12] - 2025-07-03
 
 ### Changed
