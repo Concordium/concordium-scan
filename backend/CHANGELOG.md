@@ -4,10 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [2.0.12] - 2025-07-03
+
 ### Changed
 
 - New account_transaction_type enum values added `TokenUpdate`, Removed `TokenHolder` and `TokenGovernance`
 - TokenHolder and TokenGovernance events are now merged into `TokenUpdate` event.
+- The ccdscan-api now connects to the grpc node to fetch token list and details (This will be removed later).
 
 ## [2.0.11] - 2025-07-01
 
