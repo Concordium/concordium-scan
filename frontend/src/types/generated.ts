@@ -357,8 +357,7 @@ export enum AccountTransactionType {
   RemoveBaker = 'REMOVE_BAKER',
   SimpleTransfer = 'SIMPLE_TRANSFER',
   SimpleTransferWithMemo = 'SIMPLE_TRANSFER_WITH_MEMO',
-  TokenGovernance = 'TOKEN_GOVERNANCE',
-  TokenHolder = 'TOKEN_HOLDER',
+  TokenUpdate = 'TOKEN_UPDATE',
   TransferToEncrypted = 'TRANSFER_TO_ENCRYPTED',
   TransferToPublic = 'TRANSFER_TO_PUBLIC',
   TransferWithSchedule = 'TRANSFER_WITH_SCHEDULE',
@@ -1211,8 +1210,6 @@ export type CreatePlt = {
    * token.
    */
   decimals: Scalars['Int'];
-  /** The address of the account that will govern the token. */
-  governanceAccount: AccountAddress;
   /** The initialization parameters of the token, encoded in CBOR. */
   initializationParameters: Scalars['String'];
   /** The symbol of the token. */
@@ -1229,8 +1226,6 @@ export type CreatePltUpdate = {
    * the token. This can be at most 255.
    */
   decimals: Scalars['Int'];
-  /** The address of the account that will govern the token. */
-  governanceAccount: AccountAddress;
   /** The initialization parameters of the token, encoded in CBOR. */
   initializationParameters: Scalars['String'];
   /** The token symbol. */
@@ -1413,7 +1408,7 @@ export type EuroPerEnergyChainUpdatePayload = {
   exchangeRate: Ratio;
 };
 
-export type Event = AccountCreated | AmountAddedByDecryption | BakerAdded | BakerDelegationRemoved | BakerKeysUpdated | BakerRemoved | BakerResumed | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerSetMetadataUrl | BakerSetOpenStatus | BakerSetRestakeEarnings | BakerSetTransactionFeeCommission | BakerStakeDecreased | BakerStakeIncreased | BakerSuspended | ChainUpdateEnqueued | ContractCall | ContractInitialized | ContractInterrupted | ContractModuleDeployed | ContractResumed | ContractUpdated | ContractUpgraded | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | DelegationAdded | DelegationRemoved | DelegationSetDelegationTarget | DelegationSetRestakeEarnings | DelegationStakeDecreased | DelegationStakeIncreased | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TokenCreationDetails | TokenGovernanceEvent | TokenHolderEvent | TransferMemo | Transferred | TransferredWithSchedule;
+export type Event = AccountCreated | AmountAddedByDecryption | BakerAdded | BakerDelegationRemoved | BakerKeysUpdated | BakerRemoved | BakerResumed | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerSetMetadataUrl | BakerSetOpenStatus | BakerSetRestakeEarnings | BakerSetTransactionFeeCommission | BakerStakeDecreased | BakerStakeIncreased | BakerSuspended | ChainUpdateEnqueued | ContractCall | ContractInitialized | ContractInterrupted | ContractModuleDeployed | ContractResumed | ContractUpdated | ContractUpgraded | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | DelegationAdded | DelegationRemoved | DelegationSetDelegationTarget | DelegationSetRestakeEarnings | DelegationStakeDecreased | DelegationStakeIncreased | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TokenCreationDetails | TokenUpdate | TransferMemo | Transferred | TransferredWithSchedule;
 
 export type EventConnection = {
   __typename?: 'EventConnection';
@@ -2956,7 +2951,7 @@ export type TokenConnection = {
 export type TokenCreationDetails = {
   __typename?: 'TokenCreationDetails';
   createPlt: CreatePlt;
-  events: Array<TokenEvent>;
+  events: Array<TokenUpdate>;
 };
 
 /** An edge in a connection. */
@@ -2966,13 +2961,6 @@ export type TokenEdge = {
   cursor: Scalars['String'];
   /** The item at the end of the edge */
   node: Token;
-};
-
-/** Common event struct for both Holder and Governance events. */
-export type TokenEvent = {
-  __typename?: 'TokenEvent';
-  event: TokenEventDetails;
-  tokenId: Scalars['String'];
 };
 
 export type TokenEventDetails = BurnEvent | MintEvent | TokenModuleEvent | TokenTransferEvent;
@@ -2987,24 +2975,9 @@ export type TokenEventsCollectionSegment = {
   totalCount: Scalars['Int'];
 };
 
-/** Named struct for TokenGovernanceEvent. */
-export type TokenGovernanceEvent = {
-  __typename?: 'TokenGovernanceEvent';
-  event: TokenEventDetails;
-  tokenId: Scalars['String'];
-};
-
 export type TokenHolder = {
   __typename?: 'TokenHolder';
   address: AccountAddress;
-  coinInfo?: Maybe<Scalars['String']>;
-};
-
-/** Named struct for TokenHolderEvent. */
-export type TokenHolderEvent = {
-  __typename?: 'TokenHolderEvent';
-  event: TokenEventDetails;
-  tokenId: Scalars['String'];
 };
 
 export type TokenModuleEvent = {
@@ -3029,6 +3002,13 @@ export type TokenTransferEvent = {
   from: TokenHolder;
   memo?: Maybe<Memo>;
   to: TokenHolder;
+};
+
+/** Common event struct for both Holder and Governance events. */
+export type TokenUpdate = {
+  __typename?: 'TokenUpdate';
+  event: TokenEventDetails;
+  tokenId: Scalars['String'];
 };
 
 /** A segment of a collection. */

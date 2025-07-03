@@ -70,8 +70,7 @@ pub enum Event {
     DataRegistered(DataRegistered),
     ChainUpdateEnqueued(chain_update::ChainUpdateEnqueued),
     // Plt
-    TokenHolder(protocol_level_tokens::TokenHolderEvent),
-    TokenGovernance(protocol_level_tokens::TokenGovernanceEvent),
+    TokenUpdate(protocol_level_tokens::TokenUpdate),
     TokenCreationDetails(protocol_level_tokens::TokenCreationDetails),
 }
 
@@ -563,24 +562,12 @@ pub fn events_from_summary(
                     })
                     .collect::<anyhow::Result<Vec<_>>>()?
             }
-            AccountTransactionEffects::TokenHolder {
+            AccountTransactionEffects::TokenUpdate {
                 events,
             } => events
                 .iter()
                 .map(|event| {
-                    Ok(Event::TokenHolder(protocol_level_tokens::TokenHolderEvent {
-                        token_id: event.token_id.clone().into(),
-                        event:    event.event.clone().into(),
-                    }))
-                })
-                .collect::<anyhow::Result<Vec<_>>>()?,
-
-            AccountTransactionEffects::TokenGovernance {
-                events,
-            } => events
-                .iter()
-                .map(|event| {
-                    Ok(Event::TokenGovernance(protocol_level_tokens::TokenGovernanceEvent {
+                    Ok(Event::TokenUpdate(protocol_level_tokens::TokenUpdate {
                         token_id: event.token_id.clone().into(),
                         event:    event.event.clone().into(),
                     }))
@@ -619,10 +606,6 @@ pub fn events_from_summary(
                     .clone()
                     .into(),
                 token_module:              token_creation_details.create_plt.token_module.into(),
-                governance_account:        token_creation_details
-                    .create_plt
-                    .governance_account
-                    .into(),
                 decimals:                  token_creation_details.create_plt.decimals,
                 initialization_parameters: token_creation_details
                     .create_plt
@@ -671,7 +654,7 @@ pub fn events_from_summary(
                         ),
                     };
 
-                    protocol_level_tokens::TokenEvent {
+                    protocol_level_tokens::TokenUpdate {
                         token_id: event.token_id.clone().into(),
                         event:    event_details,
                     }

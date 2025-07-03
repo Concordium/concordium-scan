@@ -283,11 +283,11 @@ __typename
 		... on BlockEnergyLimitUpdate {
 			energyLimit
 		}
-		...	on CreatePltUpdate{
+		...	on CreatePltUpdate {
+			tokenId
+			tokenModule
 			decimals
-			governanceAccount {
-			asString
-			}
+    	initializationParameters
 		}
 
 	}
@@ -383,7 +383,7 @@ __typename
 	delegatorId
 	accountAddress {asString}
 }
-... on TokenHolderEvent {
+... on TokenUpdate {
     tokenId
     event {
         ... on TokenModuleEvent {
@@ -402,13 +402,11 @@ __typename
                 address{
                 	asString
                 }
-                coinInfo
             }
             from {
                 address{
                 	asString
                 }
-				coinInfo
             }
         }
         ... on MintEvent {
@@ -420,7 +418,6 @@ __typename
                 address{
                 	asString
                 }
-                coinInfo
             }
         }
         ... on BurnEvent {
@@ -432,61 +429,6 @@ __typename
                 address{
                 	asString
                 }
-                coinInfo
-            }
-        }
-    }
-}
-... on TokenGovernanceEvent {
-    tokenId
-    event {
-        ... on TokenModuleEvent {
-            eventType
-            details
-        }
-        ... on TokenTransferEvent {
-            memo {
-                bytes
-            }
-            amount {
-                value
-                decimals
-            }
-            to {
-                address{
-                	asString
-                }
-	            coinInfo
-            }
-            from {
-                address{
-                	asString
-                }
-                coinInfo
-            }
-        }
-        ... on MintEvent {
-            amount {
-                value
-                decimals
-            }
-            target {
-                address{
-                	asString
-                }
-                coinInfo
-            }
-        }
-        ... on BurnEvent {
-            amount {
-                value
-                decimals
-            }
-            target {
-                address{
-                	asString
-                }
-                coinInfo
             }
         }
     }
@@ -497,9 +439,6 @@ __typename
         tokenModule
         decimals
         initializationParameters
-        governanceAccount {
-            asString
-        }
     }
     events {
         tokenId
@@ -510,13 +449,11 @@ __typename
             }
             ... on TokenTransferEvent {
                 from {
-                    coinInfo
                     address {
                         asString
                     }
                 }
                 to {
-                    coinInfo
                     address {
                         asString
                     }
@@ -531,7 +468,6 @@ __typename
             }
             ... on MintEvent {
                 target {
-                    coinInfo
                     address {
                         asString
                     }
@@ -543,7 +479,6 @@ __typename
             }
             ... on BurnEvent {
                 target {
-                    coinInfo
                     address {
                         asString
                     }
