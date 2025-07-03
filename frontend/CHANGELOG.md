@@ -25,6 +25,12 @@ All notable changes to this project will be documented in this file.
 
 - Move account statement export to use `rust-backend` API.
 
+## [1.7.18] - 2025-07-03
+
+### Changed
+
+- Stable coin dashboard now displays plt list and plt supply analytics.
+
 ## [1.7.17] - 2025-06-25
 
 ### Fixed
