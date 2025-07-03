@@ -5,7 +5,7 @@
 			<div
 				class="flex flex-row justify-center lg:place-content-end mb-4 lg:mb-0"
 			></div>
-			<header class="flex justify-between items-center mb-4">
+			<!-- <header class="flex justify-between items-center mb-4">
 				<h1 class="text-xl">Overview</h1>
 			</header>
 			<FtbCarousel non-carousel-classes="grid-cols-4">
@@ -57,7 +57,7 @@
 						</template>
 					</KeyValueChartCard>
 				</CarouselSlide>
-			</FtbCarousel>
+			</FtbCarousel> -->
 			<header class="flex justify-between items-center mb-4">
 				<h1 class="text-xl">Supply & Holders</h1>
 			</header>
