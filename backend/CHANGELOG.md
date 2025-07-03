@@ -4,15 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-## [2.0.12] - 2025-07-03
+## [2.0.13] - 2025-07-03
 
 ### Changed
 
 Database schema version: 38
 
+- Baker APY query db migration to change the function to prevent overflow FLOAT8
+
+## [2.0.12] - 2025-07-03
+
+### Changed
+
 - New account_transaction_type enum values added `TokenUpdate`, Removed `TokenHolder` and `TokenGovernance`
 - TokenHolder and TokenGovernance events are now merged into `TokenUpdate` event.
-- Baker APY query db migration to change the function to prevent overflow FLOAT8
 - The ccdscan-api now connects to the grpc node to fetch token list and details (This will be removed later).
 
 ## [2.0.11] - 2025-07-01
