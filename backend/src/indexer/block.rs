@@ -1,6 +1,6 @@
 //! This module contains the block information computed during the concurrent
 //! preprocessing and the logic for how to do the sequential processing.
-
+use std::collections::HashMap;
 use crate::indexer::{
     block_preprocessor::BlockData, block_processor::BlockProcessingContext, statistics::Statistics,
 };
@@ -16,6 +16,12 @@ use special_transaction_outcomes::{
 pub mod block_item;
 pub mod protocol_update_migration;
 pub mod special_transaction_outcomes;
+
+#[derive(Clone)]
+pub struct ValidatorStakingInformation {
+    pub stake_amount: u64,
+    pub pool_total_staked_amount: u64,
+}
 
 /// Preprocessed block which is ready to be saved in the database.
 pub struct PreparedBlock {
@@ -46,6 +52,9 @@ pub struct PreparedBlock {
     /// Optional data migration for when this is the first block after a
     /// protocol update.
     protocol_update_migration:    Option<ProtocolUpdateMigration>,
+    /// Validator staking information to be updated in the database
+    //validator_stake_updates:      HashMap<i64, u64>, 
+    validator_stake_updates:      HashMap<i64, ValidatorStakingInformation>, 
 }
 
 impl PreparedBlock {
@@ -83,6 +92,9 @@ impl PreparedBlock {
             ProtocolUpdateMigration::prepare(node_client, data)
                 .await
                 .context("Failed to prepare for data migation caused by protocol update")?;
+
+        let validator_stake_updates: HashMap<i64, ValidatorStakingInformation> = data.validator_stakes.clone();
+
         Ok(Self {
             hash,
             height,
@@ -96,6 +108,7 @@ impl PreparedBlock {
             baker_unmark_suspended,
             statistics,
             protocol_update_migration,
+            validator_stake_updates,
         })
     }
 
@@ -265,6 +278,21 @@ impl PreparedBlock {
         }
         self.statistics.save(tx).await?;
         self.special_transaction_outcomes.save(tx).await?;
+
+        // process validator updates for staked amount and pool total staked amount
+        for (validator_id, validator_staking_information) in &self.validator_stake_updates {
+            sqlx::query(
+                "UPDATE BAKERS
+                SET staked = $2, pool_total_staked = $3
+                WHERE id = $1"
+            )
+            .bind(validator_id)
+            .bind(validator_staking_information.stake_amount as i64)
+            .bind(validator_staking_information.pool_total_staked_amount as i64)
+            .execute(tx.as_mut())
+            .await?;
+        }
+
         self.baker_unmark_suspended.save(tx).await?;
         Ok(())
     }

@@ -31,7 +31,7 @@ pub async fn save_genesis_data(
         RewardsOverview::V0 {
             ..
         } => {
-            let total_staked_capital =
+            let (total_staked_capital, _) =
                 compute_total_stake_capital(&mut client, genesis_height).await?;
             i64::try_from(total_staked_capital.micro_ccd())?
         }
