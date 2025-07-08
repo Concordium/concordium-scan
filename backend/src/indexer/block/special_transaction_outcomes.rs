@@ -641,7 +641,7 @@ impl RestakeEarnings {
     async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         // Update the account if delegated_restake_earnings is set and is true, meaning
         // the account is delegating.
-        let account_row = sqlx::query!(
+        sqlx::query!(
             "UPDATE accounts
                 SET
                     delegated_stake = CASE
@@ -655,49 +655,6 @@ impl RestakeEarnings {
         )
         .fetch_one(tx.as_mut())
         .await?;
-
-
-        /// ROB - TODO - i believe none of this needs to happen now because we take the pool info directly from the node and save it in block.rs
-        /* 
-        if let Some(restake) = account_row.delegated_restake_earnings {
-            let bakers_expected_affected_range = if self.protocol_version > ProtocolVersion::P6 {
-                1..=1
-            } else {
-                0..=1
-            };
-            // Account is delegating.
-            if let (true, Some(pool)) = (restake, account_row.delegated_target_baker_id) {
-                // If restake is enabled and the target is a validator pool (not the passive
-                // pool) and we update the pool stake.
-                sqlx::query!(
-                    "UPDATE bakers
-                         SET pool_total_staked = pool_total_staked + $2
-                         WHERE id = $1",
-                    pool,
-                    self.amount,
-                )
-                .execute(tx.as_mut())
-                .await?
-                .ensure_affected_rows_in_range(bakers_expected_affected_range)?;
-            }
-        } else {
-            // When delegated_restake_earnings is None the account is not delegating, so it
-            // might be baking.
-            sqlx::query!(
-                "UPDATE bakers
-                    SET
-                        staked = staked + $2,
-                        pool_total_staked = pool_total_staked + $2
-                WHERE id = $1 AND restake_earnings",
-                account_row.index,
-                self.amount
-            )
-            .execute(tx.as_mut())
-            .await?
-            // An account might still earn rewards after stopping validation or delegation.
-            .ensure_affected_rows_in_range(0..=1)?;
-        }
-        */
 
         Ok(())
     }

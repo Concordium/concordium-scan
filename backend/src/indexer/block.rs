@@ -1,6 +1,5 @@
 //! This module contains the block information computed during the concurrent
 //! preprocessing and the logic for how to do the sequential processing.
-use std::collections::HashMap;
 use crate::indexer::{
     block_preprocessor::BlockData, block_processor::BlockProcessingContext, statistics::Statistics,
 };
@@ -13,13 +12,15 @@ use special_transaction_outcomes::{
     validator_suspension::PreparedUnmarkPrimedForSuspension, PreparedSpecialTransactionOutcomes,
 };
 
+use tracing::debug;
+
 pub mod block_item;
 pub mod protocol_update_migration;
 pub mod special_transaction_outcomes;
 
 #[derive(Clone)]
 pub struct ValidatorStakingInformation {
-    pub stake_amount: u64,
+    pub stake_amount:             u64,
     pub pool_total_staked_amount: u64,
 }
 
@@ -36,8 +37,8 @@ pub struct PreparedBlock {
     baker_id:                     Option<i64>,
     /// Total amount of CCD in existence at the time of this block.
     total_amount:                 i64,
-    /// Total staked CCD at the time of this block.
-    total_staked:                 i64,
+    /// All pools total staked CCD at the time of this block.
+    all_pool_total_capital:       i64,
     /// Block hash of the last finalized block.
     block_last_finalized:         String,
     /// Preprocessed block items, ready to be saved in the database.
@@ -53,8 +54,7 @@ pub struct PreparedBlock {
     /// protocol update.
     protocol_update_migration:    Option<ProtocolUpdateMigration>,
     /// Validator staking information to be updated in the database
-    //validator_stake_updates:      HashMap<i64, u64>, 
-    validator_stake_updates:      HashMap<i64, ValidatorStakingInformation>, 
+    validator_stake_updates:      Vec<(i64, ValidatorStakingInformation)>,
 }
 
 impl PreparedBlock {
@@ -71,7 +71,7 @@ impl PreparedBlock {
         let mut statistics = Statistics::new(height, slot_time);
         let total_amount =
             i64::try_from(data.tokenomics_info.common_reward_data().total_amount.micro_ccd())?;
-        let total_staked = i64::try_from(data.total_staked_capital.micro_ccd())?;
+        let all_pool_total_capital = i64::try_from(data.all_pool_total_capital.micro_ccd())?;
         let mut prepared_block_items = Vec::new();
         for (item_summary, item) in data.events.iter().zip(data.items.iter()) {
             prepared_block_items.push(
@@ -93,7 +93,8 @@ impl PreparedBlock {
                 .await
                 .context("Failed to prepare for data migation caused by protocol update")?;
 
-        let validator_stake_updates: HashMap<i64, ValidatorStakingInformation> = data.validator_stakes.clone();
+        let validator_stake_updates: Vec<(i64, ValidatorStakingInformation)> =
+            data.validator_stakes.clone();
 
         Ok(Self {
             hash,
@@ -101,7 +102,7 @@ impl PreparedBlock {
             slot_time,
             baker_id,
             total_amount,
-            total_staked,
+            all_pool_total_capital,
             block_last_finalized,
             prepared_block_items,
             special_transaction_outcomes,
@@ -136,7 +137,7 @@ impl PreparedBlock {
             slot_times.push(block.slot_time);
             baker_ids.push(block.baker_id);
             total_amounts.push(block.total_amount);
-            total_staked.push(block.total_staked);
+            total_staked.push(block.all_pool_total_capital);
             block_times.push(
                 block
                     .slot_time
@@ -279,16 +280,36 @@ impl PreparedBlock {
         self.statistics.save(tx).await?;
         self.special_transaction_outcomes.save(tx).await?;
 
-        // process validator updates for staked amount and pool total staked amount
-        for (validator_id, validator_staking_information) in &self.validator_stake_updates {
+        // gather vectors for the update query
+        let validator_updates_length = self.validator_stake_updates.len();
+        if validator_updates_length > 0 {
+            let mut ids = Vec::with_capacity(validator_updates_length);
+            let mut staked = Vec::with_capacity(validator_updates_length);
+            let mut pool_staked = Vec::with_capacity(validator_updates_length);
+
+            for (validator_id, validator_staking_info) in &self.validator_stake_updates {
+                ids.push(*validator_id);
+                staked.push(validator_staking_info.stake_amount as i64);
+                pool_staked.push(validator_staking_info.pool_total_staked_amount as i64);
+            }
+
+            debug!(
+                "Updating bakers table staked and pool_total_staked now. ids: {:?} - staked: \
+                 {:?}, pool_staked: {:?}",
+                ids, staked, pool_staked,
+            );
+
             sqlx::query(
-                "UPDATE BAKERS
-                SET staked = $2, pool_total_staked = $3
-                WHERE id = $1"
+        r#"
+                UPDATE BAKERS
+                SET staked = u.staked, pool_total_staked = u.pool_total_staked
+                FROM UNNEST($1::BIGINT[], $2::BIGINT[], $3::BIGINT[]) AS u(id, staked, pool_total_staked)
+                WHERE BAKERS.id = u.id
+            "#
             )
-            .bind(validator_id)
-            .bind(validator_staking_information.stake_amount as i64)
-            .bind(validator_staking_information.pool_total_staked_amount as i64)
+            .bind(&ids)
+            .bind(&staked)
+            .bind(&pool_staked)
             .execute(tx.as_mut())
             .await?;
         }

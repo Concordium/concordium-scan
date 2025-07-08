@@ -1,7 +1,7 @@
 //! Function and types for populating the database with initial information
 //! found in the genesis block.
 
-use super::block_preprocessor::compute_total_stake_capital;
+use super::block_preprocessor::compute_validator_staking_information;
 use crate::transaction_event::baker::BakerPoolOpenStatus;
 use anyhow::Context;
 use concordium_rust_sdk::{
@@ -32,13 +32,16 @@ pub async fn save_genesis_data(
             ..
         } => {
             let (total_staked_capital, _) =
-                compute_total_stake_capital(&mut client, genesis_height).await?;
+                compute_validator_staking_information(&mut client, genesis_height).await?;
             i64::try_from(total_staked_capital.micro_ccd())?
         }
         RewardsOverview::V1 {
-            total_staked_capital,
             ..
-        } => i64::try_from(total_staked_capital.micro_ccd())?,
+        } => {
+            let (total_staked_capital, _) =
+                compute_validator_staking_information(&mut client, genesis_height).await?;
+            i64::try_from(total_staked_capital.micro_ccd())?
+        }
     };
     let total_amount =
         i64::try_from(genesis_tokenomics.common_reward_data().total_amount.micro_ccd())?;
