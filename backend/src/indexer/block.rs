@@ -299,17 +299,16 @@ impl PreparedBlock {
                 ids, staked, pool_staked,
             );
 
-            sqlx::query(
-        r#"
-                UPDATE BAKERS
+            sqlx::query!(
+                "UPDATE BAKERS
                 SET staked = u.staked, pool_total_staked = u.pool_total_staked
-                FROM UNNEST($1::BIGINT[], $2::BIGINT[], $3::BIGINT[]) AS u(id, staked, pool_total_staked)
-                WHERE BAKERS.id = u.id
-            "#
+                FROM UNNEST($1::BIGINT[], $2::BIGINT[], $3::BIGINT[]) AS u(id, staked, \
+                 pool_total_staked)
+                WHERE BAKERS.id = u.id",
+                &ids,
+                &staked,
+                &pool_staked
             )
-            .bind(&ids)
-            .bind(&staked)
-            .bind(&pool_staked)
             .execute(tx.as_mut())
             .await?;
         }
