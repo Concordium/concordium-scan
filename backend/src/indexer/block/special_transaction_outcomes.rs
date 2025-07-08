@@ -589,10 +589,7 @@ impl AccountReceivedReward {
                 block_height,
                 transaction_type,
             )?,
-            update_stake:           RestakeEarnings::prepare(
-                account_address,
-                amount,
-            ),
+            update_stake:           RestakeEarnings::prepare(account_address, amount),
         })
     }
 
@@ -613,10 +610,7 @@ struct RestakeEarnings {
 }
 
 impl RestakeEarnings {
-    fn prepare(
-        account_address: &AccountAddress,
-        amount: i64,
-    ) -> Self {
+    fn prepare(account_address: &AccountAddress, amount: i64) -> Self {
         Self {
             canonical_account_address: account_address.get_canonical_address(),
             amount,
