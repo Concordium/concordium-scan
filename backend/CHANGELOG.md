@@ -6,7 +6,46 @@ All notable changes to this project will be documented in this file.
 
 - Fix P3->P4 protocol update migration to allow for bakers pending removal to be absent from the bakers table.
 
+## [2.0.13] - 2025-07-03
+
+### Changed
+
+Database schema version: 38
+
+- Baker APY query db migration to change the function to prevent overflow FLOAT8
+
+## [2.0.12] - 2025-07-03
+
+### Changed
+
+- New account_transaction_type enum values added `TokenUpdate`, Removed `TokenHolder` and `TokenGovernance`
+- TokenHolder and TokenGovernance events are now merged into `TokenUpdate` event.
+- The ccdscan-api now connects to the grpc node to fetch token list and details (This will be removed later).
+
+## [2.0.11] - 2025-07-01
+
+### Fixed
+
+- Fix for db connections issue where new connections are created during failed block processing, and old connections are not closed and cleaned up effectively
+
+## [2.0.10] - 2025-06-24
+
+### Added
+
+- Plt TokenHolder and TokenGovernance Events are now indexed and available in the API.
+
+## [2.0.9] - 2025-06-23
+
+- Added configurable environment variable in the code for Account Statements Export for the max allowed days: 'CCDSCAN_API_EXPORT_STATEMENTS_MAX_DAYS' which defaults currently to 32 for all environments.
+
+## [2.0.8] - 2025-06-20
+
+- Fix errors in migration 0024 when running against PostgreSQL `17.5`.
+- Fix for delegators paging - previously the sub queries for start cursor and end cursor did not have the IS NOT NULL check, so technically the start and end cursor could be beyond the list for filtered delegators
+
 ## [2.0.7] - 2025-06-16
+
+### Fixed
 
 - Added fix for delegators summary query - Delegator summary is now populated by values where the delegated restake earnings is NOT NULL
 
@@ -14,18 +53,27 @@ All notable changes to this project will be documented in this file.
 
 Database schema version: 36
 
+### Fixed
+
 - Added slot_time to account statements table and covering index for searching account statements effectively
 
 ## [2.0.5] - 2025-05-30
+
+### Fixed
 
 - fix docker file to use mock data for plt dashboard
 
 ## [2.0.4] - 2025-05-29
 
 Database schema version: 35
+
+### Added
+
 - Plt specific transaction events are now indexed and available in the API.
 
 ## [2.0.3] - 2025-05-21
+
+### Fixed
 
 - Fix query performance issue when getting account rewards for accounts with large number of account statements to better use the index.
 
@@ -87,6 +135,7 @@ Database schema version: 33
 ## [0.1.50] - 2025-04-28
 
 Modifying search key on the following tables to all be using `text_pattern_ops` because it is faster when using prefix searches only
+
 - `accounts`
 - `blocks`
 - `tokens`
@@ -107,7 +156,7 @@ Modifying search key on the following tables to all be using `text_pattern_ops` 
 
 - Optimise `Account::transactions` performance
 - Fix potential issue on `accountMetrics` which occurred when a blocks containing account creation occurred on the exact same time as the borders of the buckets slots
-- Fix query performance issues on `accountMetrics` when dataset becomes too large 
+- Fix query performance issues on `accountMetrics` when dataset becomes too large
 - Fix account statements performance issues where conditions was being used without indexes
 - Fix account statements where when querying an address using the complete address and not the canonical address
 - Fix account statements using DESC ordering per default instead of ASC
@@ -244,7 +293,7 @@ Database schema version: 17
 - Add database migration 17 adding a table tracking reward metrics.
 - Add database migration 16 adding a table tracking commission rates for passive delegation and adding an index to retrieve passive delegators efficiently from the accounts table.
 - Add query `PassiveDelegation::delegators`, `PassiveDelegation::delegatorCount`,
-`PassiveDelegation::commissionRates`, `PassiveDelegation::delegatedStake` and `PassiveDelegation::delegatedStakePercentage`.
+  `PassiveDelegation::commissionRates`, `PassiveDelegation::delegatedStake` and `PassiveDelegation::delegatedStakePercentage`.
 - Add `Query::rewardMetrics` and `Query::rewardMetricsForAccount` which returns metrics on the total rewards and those for a given account respectively.
 
 ### Fixed

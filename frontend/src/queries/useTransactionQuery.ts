@@ -283,11 +283,11 @@ __typename
 		... on BlockEnergyLimitUpdate {
 			energyLimit
 		}
-		...	on CreatePltUpdate{
+		...	on CreatePltUpdate {
+			tokenId
+			tokenModule
 			decimals
-			governanceAccount {
-			asString
-			}
+    	initializationParameters
 		}
 
 	}
@@ -382,6 +382,114 @@ __typename
 ... on DelegationRemoved {
 	delegatorId
 	accountAddress {asString}
+}
+... on TokenUpdate {
+    tokenId
+    event {
+        ... on TokenModuleEvent {
+            eventType
+            details
+        }
+        ... on TokenTransferEvent {
+            memo {
+                bytes
+            }
+            amount {
+                value
+                decimals
+            }
+            to {
+                address{
+                	asString
+                }
+            }
+            from {
+                address{
+                	asString
+                }
+            }
+        }
+        ... on MintEvent {
+            amount {
+                value
+                decimals
+            }
+            target {
+                address{
+                	asString
+                }
+            }
+        }
+        ... on BurnEvent {
+            amount {
+                value
+                decimals
+            }
+            target {
+                address{
+                	asString
+                }
+            }
+        }
+    }
+}
+... on TokenCreationDetails {
+    createPlt {
+        tokenId
+        tokenModule
+        decimals
+        initializationParameters
+    }
+    events {
+        tokenId
+        event {
+            ... on TokenModuleEvent {
+                eventType
+                details
+            }
+            ... on TokenTransferEvent {
+                from {
+                    address {
+                        asString
+                    }
+                }
+                to {
+                    address {
+                        asString
+                    }
+                }
+                amount {
+                    value
+                    decimals
+                }
+                memo {
+                    bytes
+                }
+            }
+            ... on MintEvent {
+                target {
+                    address {
+                        asString
+                    }
+                }
+                amount {
+                    value
+                    decimals
+                }
+            }
+            ... on BurnEvent {
+                target {
+                    address {
+                        asString
+                    }
+                }
+                amount {
+                    value
+                    decimals
+                }
+            }
+        }
+    }
 }
 `
 
@@ -519,7 +627,7 @@ reason {
   ... on TokenModuleReject {
 		__typename
 		tokenId
-        eventType
+        reasonType
         details
 
   }

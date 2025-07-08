@@ -2892,9 +2892,8 @@ impl Baker {
             .fetch_one(pool)
             .await?;
 
-            connection.has_previous_page =
-                result.max_id.map_or(false, |db_max| db_max > page_max_id);
-            connection.has_next_page = result.min_id.map_or(false, |db_min| db_min < page_min_id);
+            connection.has_previous_page = result.max_id.is_some_and(|db_max| db_max > page_max_id);
+            connection.has_next_page = result.min_id.is_some_and(|db_min| db_min < page_min_id);
         }
 
         Ok(connection)
@@ -3152,9 +3151,9 @@ impl<'a> BakerPool<'a> {
             .await?;
 
             connection.has_previous_page =
-                result.max_index.map_or(false, |db_max| db_max > edge_max_index.node.block_height);
+                result.max_index.is_some_and(|db_max| db_max > edge_max_index.node.block_height);
             connection.has_next_page =
-                result.min_index.map_or(false, |db_min| db_min < edge_min_index.node.block_height);
+                result.min_index.is_some_and(|db_min| db_min < edge_min_index.node.block_height);
         }
 
         Ok(connection)
@@ -3258,7 +3257,7 @@ impl<'a> BakerPool<'a> {
                         delegated_stake AS start_stake
                     FROM accounts
                     WHERE
-                        delegated_target_baker_id = $1
+                        delegated_target_baker_id = $1 AND delegated_restake_earnings IS NOT NULL
                     ORDER BY
                         delegated_stake DESC,
                         index DESC
@@ -3270,7 +3269,7 @@ impl<'a> BakerPool<'a> {
                         delegated_stake AS end_stake
                     FROM accounts
                     WHERE
-                        delegated_target_baker_id = $1
+                        delegated_target_baker_id = $1 AND delegated_restake_earnings IS NOT NULL
                     ORDER BY
                         delegated_stake ASC,
                         index ASC

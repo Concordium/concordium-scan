@@ -176,6 +176,16 @@
 					v-else-if="event.__typename === 'DelegationRemoved'"
 					:event="event"
 				/>
+				<TokenEvents
+					v-else-if="event.__typename === 'TokenUpdate'"
+					:event="event"
+				/>
+
+				<TokenCreationDetails
+					v-else-if="event.__typename === 'TokenCreationDetails'"
+					:event="event"
+				/>
+
 				<span v-else>Transaction event: {{ event.__typename }}</span>
 			</li>
 		</ul>
@@ -223,6 +233,8 @@ import DelegationStakeDecreased from '~/components/TransactionEventList/Events/D
 import DelegationSetRestakeEarnings from '~/components/TransactionEventList/Events/DelegationSetRestakeEarnings.vue'
 import DelegationSetDelegationTarget from '~/components/TransactionEventList/Events/DelegationSetDelegationTarget.vue'
 import DelegationAdded from '~/components/TransactionEventList/Events/DelegationAdded.vue'
+import TokenEvents from '~/components/TransactionEventList/Events/TokenEvents.vue'
+import TokenCreationDetails from '~/components/TransactionEventList/Events/TokenCreationDetails.vue'
 import DelegationRemoved from '~/components/TransactionEventList/Events/DelegationRemoved.vue'
 import { PAGE_SIZE } from '~/composables/usePagination'
 import type { PaginationTarget } from '~/composables/usePagination'

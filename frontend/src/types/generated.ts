@@ -357,8 +357,7 @@ export enum AccountTransactionType {
   RemoveBaker = 'REMOVE_BAKER',
   SimpleTransfer = 'SIMPLE_TRANSFER',
   SimpleTransferWithMemo = 'SIMPLE_TRANSFER_WITH_MEMO',
-  TokenGovernance = 'TOKEN_GOVERNANCE',
-  TokenHolder = 'TOKEN_HOLDER',
+  TokenUpdate = 'TOKEN_UPDATE',
   TransferToEncrypted = 'TRANSFER_TO_ENCRYPTED',
   TransferToPublic = 'TRANSFER_TO_PUBLIC',
   TransferWithSchedule = 'TRANSFER_WITH_SCHEDULE',
@@ -932,6 +931,12 @@ export type BlockStatistics = {
   finalizationTime?: Maybe<Scalars['Float']>;
 };
 
+export type BurnEvent = {
+  __typename?: 'BurnEvent';
+  amount: TokenAmount;
+  target: TokenHolder;
+};
+
 export type ChainParametersV1 = {
   __typename?: 'ChainParametersV1';
   rewardPeriodLength: Scalars['UnsignedLong'];
@@ -1197,6 +1202,22 @@ export type CooldownParametersChainUpdatePayload = {
   poolOwnerCooldown: Scalars['UnsignedLong'];
 };
 
+export type CreatePlt = {
+  __typename?: 'CreatePlt';
+  /**
+   * The number of decimal places used in the representation of amounts of
+   * this token. This determines the smallest representable fraction of the
+   * token.
+   */
+  decimals: Scalars['Int'];
+  /** The initialization parameters of the token, encoded in CBOR. */
+  initializationParameters: Scalars['String'];
+  /** The symbol of the token. */
+  tokenId: Scalars['String'];
+  /** A SHA256 hash that identifies the token module implementation. */
+  tokenModule: Scalars['String'];
+};
+
 export type CreatePltUpdate = {
   __typename?: 'CreatePltUpdate';
   /**
@@ -1205,8 +1226,12 @@ export type CreatePltUpdate = {
    * the token. This can be at most 255.
    */
   decimals: Scalars['Int'];
-  /** The address of the account that will govern the token. */
-  governanceAccount: AccountAddress;
+  /** The initialization parameters of the token, encoded in CBOR. */
+  initializationParameters: Scalars['String'];
+  /** The token symbol. */
+  tokenId: Scalars['String'];
+  /** The hash that identifies the token module implementation. */
+  tokenModule: Scalars['String'];
 };
 
 export type CredentialDeployed = {
@@ -1383,7 +1408,7 @@ export type EuroPerEnergyChainUpdatePayload = {
   exchangeRate: Ratio;
 };
 
-export type Event = AccountCreated | AmountAddedByDecryption | BakerAdded | BakerDelegationRemoved | BakerKeysUpdated | BakerRemoved | BakerResumed | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerSetMetadataUrl | BakerSetOpenStatus | BakerSetRestakeEarnings | BakerSetTransactionFeeCommission | BakerStakeDecreased | BakerStakeIncreased | BakerSuspended | ChainUpdateEnqueued | ContractCall | ContractInitialized | ContractInterrupted | ContractModuleDeployed | ContractResumed | ContractUpdated | ContractUpgraded | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | DelegationAdded | DelegationRemoved | DelegationSetDelegationTarget | DelegationSetRestakeEarnings | DelegationStakeDecreased | DelegationStakeIncreased | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TokenGovernanceEvent | TokenHolderEvent | TransferMemo | Transferred | TransferredWithSchedule;
+export type Event = AccountCreated | AmountAddedByDecryption | BakerAdded | BakerDelegationRemoved | BakerKeysUpdated | BakerRemoved | BakerResumed | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerSetMetadataUrl | BakerSetOpenStatus | BakerSetRestakeEarnings | BakerSetTransactionFeeCommission | BakerStakeDecreased | BakerStakeIncreased | BakerSuspended | ChainUpdateEnqueued | ContractCall | ContractInitialized | ContractInterrupted | ContractModuleDeployed | ContractResumed | ContractUpdated | ContractUpgraded | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | DelegationAdded | DelegationRemoved | DelegationSetDelegationTarget | DelegationSetRestakeEarnings | DelegationStakeDecreased | DelegationStakeIncreased | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TokenCreationDetails | TokenUpdate | TransferMemo | Transferred | TransferredWithSchedule;
 
 export type EventConnection = {
   __typename?: 'EventConnection';
@@ -1653,6 +1678,11 @@ export type LinkedContractsCollectionSegment = {
   totalCount: Scalars['Int'];
 };
 
+export type Memo = {
+  __typename?: 'Memo';
+  bytes: Scalars['String'];
+};
+
 export type Metadata = {
   __typename?: 'Metadata';
   iconUrl: Scalars['String'];
@@ -1687,6 +1717,12 @@ export type MintDistributionV1ChainUpdatePayload = {
   __typename?: 'MintDistributionV1ChainUpdatePayload';
   bakingReward: Scalars['Decimal'];
   finalizationReward: Scalars['Decimal'];
+};
+
+export type MintEvent = {
+  __typename?: 'MintEvent';
+  amount: TokenAmount;
+  target: TokenHolder;
 };
 
 export type MintSpecialEvent = {
@@ -2896,6 +2932,12 @@ export type TokenTokenEventsArgs = {
   take?: InputMaybe<Scalars['Int']>;
 };
 
+export type TokenAmount = {
+  __typename?: 'TokenAmount';
+  decimals: Scalars['Int'];
+  value: Scalars['String'];
+};
+
 export type TokenConnection = {
   __typename?: 'TokenConnection';
   /** A list of edges. */
@@ -2904,6 +2946,12 @@ export type TokenConnection = {
   nodes: Array<Token>;
   /** Information to aid in pagination. */
   pageInfo: PageInfo;
+};
+
+export type TokenCreationDetails = {
+  __typename?: 'TokenCreationDetails';
+  createPlt: CreatePlt;
+  events: Array<TokenUpdate>;
 };
 
 /** An edge in a connection. */
@@ -2915,6 +2963,8 @@ export type TokenEdge = {
   node: Token;
 };
 
+export type TokenEventDetails = BurnEvent | MintEvent | TokenModuleEvent | TokenTransferEvent;
+
 /** A segment of a collection. */
 export type TokenEventsCollectionSegment = {
   __typename?: 'TokenEventsCollectionSegment';
@@ -2925,27 +2975,39 @@ export type TokenEventsCollectionSegment = {
   totalCount: Scalars['Int'];
 };
 
-export type TokenGovernanceEvent = {
-  __typename?: 'TokenGovernanceEvent';
-  details: Scalars['JSON'];
-  eventType: Scalars['String'];
-  tokenId: Scalars['String'];
+export type TokenHolder = {
+  __typename?: 'TokenHolder';
+  address: AccountAddress;
 };
 
-export type TokenHolderEvent = {
-  __typename?: 'TokenHolderEvent';
+export type TokenModuleEvent = {
+  __typename?: 'TokenModuleEvent';
   details: Scalars['JSON'];
   eventType: Scalars['String'];
-  tokenId: Scalars['String'];
 };
 
 export type TokenModuleReject = {
   __typename?: 'TokenModuleReject';
   /** The details of the event produced, in the raw byte encoded form. */
-  details?: Maybe<Scalars['JSON']>;
+  details: Scalars['JSON'];
   /** The type of event produced. */
-  eventType: Scalars['String'];
+  reasonType: Scalars['String'];
   /** The unique symbol of the token, which produced this event. */
+  tokenId: Scalars['String'];
+};
+
+export type TokenTransferEvent = {
+  __typename?: 'TokenTransferEvent';
+  amount: TokenAmount;
+  from: TokenHolder;
+  memo?: Maybe<Memo>;
+  to: TokenHolder;
+};
+
+/** Common event struct for both Holder and Governance events. */
+export type TokenUpdate = {
+  __typename?: 'TokenUpdate';
+  event: TokenEventDetails;
   tokenId: Scalars['String'];
 };
 

@@ -27,6 +27,10 @@ impl fmt::Display for AccountAddress {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{}", self.as_string) }
 }
 
+impl fmt::Debug for AccountAddress {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{}", self.as_string) }
+}
+
 pub type ContractIndex = UnsignedLong; // TODO check format.
 
 #[derive(Debug, SimpleObject, serde::Serialize, serde::Deserialize, Clone, Copy)]

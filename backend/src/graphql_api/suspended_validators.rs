@@ -78,9 +78,9 @@ impl SuspendedValidators {
             .await?;
 
             connection.has_next_page =
-                result.max_index.map_or(false, |db_max| db_max > edge_max_index.node.id);
+                result.max_index.is_some_and(|db_max| db_max > edge_max_index.node.id);
             connection.has_previous_page =
-                result.min_index.map_or(false, |db_min| db_min < edge_min_index.node.id);
+                result.min_index.is_some_and(|db_min| db_min < edge_min_index.node.id);
         }
 
         Ok(connection)
@@ -147,9 +147,9 @@ impl SuspendedValidators {
             .await?;
 
             connection.has_next_page =
-                result.max_index.map_or(false, |db_max| db_max > edge_max_index.node.id);
+                result.max_index.is_some_and(|db_max| db_max > edge_max_index.node.id);
             connection.has_previous_page =
-                result.min_index.map_or(false, |db_min| db_min < edge_min_index.node.id);
+                result.min_index.is_some_and(|db_min| db_min < edge_min_index.node.id);
         }
 
         Ok(connection)

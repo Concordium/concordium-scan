@@ -9,7 +9,11 @@
 use crate::{
     graphql_api::AccountStatementEntryType,
     indexer::{
-        block_preprocessor::BlockData, db::update_account_balance::PreparedUpdateAccountBalance,
+        block::block_item::account_transaction::plt_events::{
+            PreparedTokenEvent, PreparedTokenEvents,
+        },
+        block_preprocessor::BlockData,
+        db::update_account_balance::PreparedUpdateAccountBalance,
         statistics::Statistics,
     },
 };
@@ -19,10 +23,6 @@ use concordium_rust_sdk::{
     id::types::AccountAddress,
     types::{AccountTransactionDetails, AccountTransactionEffects, ProtocolVersion},
     v2,
-};
-use plt_events::{
-    PreparedTokenGovernanceEvent, PreparedTokenGovernanceEvents, PreparedTokenHolderEvent,
-    PreparedTokenHolderEvents,
 };
 
 mod baker_events;
@@ -148,10 +148,8 @@ enum PreparedEvent {
     /// No changes in the database was caused by this event.
     NoOperation,
 
-    /// Events related to token holders AccountTransactionEffects.
-    TokenHolderEvents(plt_events::PreparedTokenHolderEvents),
-    /// Events related to token governance AccountTransactionEffects.
-    TokenGovernanceEvents(plt_events::PreparedTokenGovernanceEvents),
+    /// Events related to token update AccountTransactionEffects.
+    TokenUpdateEvents(plt_events::PreparedTokenEvents),
 }
 impl PreparedEvent {
     async fn prepare(
@@ -348,20 +346,12 @@ impl PreparedEvent {
                         .collect::<anyhow::Result<Vec<_>>>()?,
                 },
             ),
-            AccountTransactionEffects::TokenHolder {
+            AccountTransactionEffects::TokenUpdate {
                 events,
-            } => PreparedEvent::TokenHolderEvents(PreparedTokenHolderEvents {
+            } => PreparedEvent::TokenUpdateEvents(PreparedTokenEvents {
                 events: events
                     .iter()
-                    .map(PreparedTokenHolderEvent::prepare)
-                    .collect::<anyhow::Result<Vec<_>>>()?,
-            }),
-            AccountTransactionEffects::TokenGovernance {
-                events,
-            } => PreparedEvent::TokenGovernanceEvents(PreparedTokenGovernanceEvents {
-                events: events
-                    .iter()
-                    .map(PreparedTokenGovernanceEvent::prepare)
+                    .map(PreparedTokenEvent::prepare)
                     .collect::<anyhow::Result<Vec<_>>>()?,
             }),
         };
@@ -411,9 +401,7 @@ impl PreparedEvent {
                 .save(tx, tx_idx)
                 .await
                 .context("Failed processing block item event with rejected event"),
-            PreparedEvent::TokenHolderEvents(_event) => Ok(()),
-
-            PreparedEvent::TokenGovernanceEvents(_event) => Ok(()),
+            PreparedEvent::TokenUpdateEvents(_event) => Ok(()),
             PreparedEvent::NoOperation => Ok(()),
         }
     }
