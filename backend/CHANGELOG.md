@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [2.0.14] - 2025-07-08
+
+### Changed
+
+- Staked amounts fix: now updated through querying the node
+
 ## [2.0.13] - 2025-07-03
 
 ### Changed
