@@ -9,7 +9,7 @@ use anyhow::Context;
 use concordium_rust_sdk::{
     base::contracts_common::CanonicalAccountAddress,
     id::types::AccountAddress,
-    types::{queries::BlockInfo, AbsoluteBlockHeight, ProtocolVersion, SpecialTransactionOutcome},
+    types::{queries::BlockInfo, AbsoluteBlockHeight, SpecialTransactionOutcome},
     v2,
 };
 
@@ -424,7 +424,6 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                             amount.micro_ccd.try_into()?,
                             block_info.block_height,
                             AccountStatementEntryType::BakerReward,
-                            block_info.protocol_version,
                             statistics,
                         )
                     })
@@ -441,7 +440,6 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                     mint_platform_development_charge.micro_ccd.try_into()?,
                     block_info.block_height,
                     AccountStatementEntryType::FoundationReward,
-                    block_info.protocol_version,
                     statistics,
                 )?];
                 Self::Rewards(rewards)
@@ -458,7 +456,6 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                             amount.micro_ccd.try_into()?,
                             block_info.block_height,
                             AccountStatementEntryType::FinalizationReward,
-                            block_info.protocol_version,
                             statistics,
                         )
                     })
@@ -477,7 +474,6 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                     foundation_charge.micro_ccd.try_into()?,
                     block_info.block_height,
                     AccountStatementEntryType::FoundationReward,
-                    block_info.protocol_version,
                     statistics,
                 )?,
                 AccountReceivedReward::prepare(
@@ -485,7 +481,6 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                     baker_reward.micro_ccd.try_into()?,
                     block_info.block_height,
                     AccountStatementEntryType::BakerReward,
-                    block_info.protocol_version,
                     statistics,
                 )?,
             ]),
@@ -497,7 +492,6 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 development_charge.micro_ccd.try_into()?,
                 block_info.block_height,
                 AccountStatementEntryType::FoundationReward,
-                block_info.protocol_version,
                 statistics,
             )?]),
             SpecialTransactionOutcome::PaydayAccountReward {
@@ -511,7 +505,6 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                     transaction_fees.micro_ccd.try_into()?,
                     block_info.block_height,
                     AccountStatementEntryType::TransactionFeeReward,
-                    block_info.protocol_version,
                     statistics,
                 )?,
                 AccountReceivedReward::prepare(
@@ -519,7 +512,6 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                     baker_reward.micro_ccd.try_into()?,
                     block_info.block_height,
                     AccountStatementEntryType::BakerReward,
-                    block_info.protocol_version,
                     statistics,
                 )?,
                 AccountReceivedReward::prepare(
@@ -527,7 +519,6 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                     finalization_reward.micro_ccd.try_into()?,
                     block_info.block_height,
                     AccountStatementEntryType::FinalizationReward,
-                    block_info.protocol_version,
                     statistics,
                 )?,
             ]),
@@ -588,7 +579,6 @@ impl AccountReceivedReward {
         amount: i64,
         block_height: AbsoluteBlockHeight,
         transaction_type: AccountStatementEntryType,
-        protocol_version: ProtocolVersion,
         statistics: &mut Statistics,
     ) -> anyhow::Result<Self> {
         statistics.reward_stats.increment(account_address.get_canonical_address(), amount);
@@ -602,7 +592,6 @@ impl AccountReceivedReward {
             update_stake:           RestakeEarnings::prepare(
                 account_address,
                 amount,
-                protocol_version,
             ),
         })
     }
@@ -621,20 +610,16 @@ struct RestakeEarnings {
     canonical_account_address: CanonicalAccountAddress,
     /// Amount of CCD received as reward.
     amount:                    i64,
-    /// Protocol version belonging to the block being processed
-    protocol_version:          ProtocolVersion,
 }
 
 impl RestakeEarnings {
     fn prepare(
         account_address: &AccountAddress,
         amount: i64,
-        protocol_version: ProtocolVersion,
     ) -> Self {
         Self {
             canonical_account_address: account_address.get_canonical_address(),
             amount,
-            protocol_version,
         }
     }
 
