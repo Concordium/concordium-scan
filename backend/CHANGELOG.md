@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+- Fix P3->P4 protocol update migration to allow for bakers pending removal to be absent from the bakers table.
+
 ## [2.0.7] - 2025-06-16
 
 - Added fix for delegators summary query - Delegator summary is now populated by values where the delegated restake earnings is NOT NULL
