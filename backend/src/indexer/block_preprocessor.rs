@@ -196,26 +196,11 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
 
             let get_tokenomics_info = async move {
                 let tokenomics_info = client3.get_tokenomics_info(fbi.height).await?.response;
-                let computed_validator_staking_details = match &tokenomics_info {
-                    RewardsOverview::V0 {
-                        ..
-                    } => {
-                        compute_validator_staking_information(
-                            &mut client3,
-                            v2::BlockIdentifier::AbsoluteHeight(fbi.height),
-                        )
-                        .await?
-                    }
-                    RewardsOverview::V1 {
-                        ..
-                    } => {
-                        compute_validator_staking_information(
-                            &mut client3,
-                            v2::BlockIdentifier::AbsoluteHeight(fbi.height),
-                        )
-                        .await?
-                    }
-                };
+                let computed_validator_staking_details = compute_validator_staking_information(
+                    &mut client3,
+                    v2::BlockIdentifier::AbsoluteHeight(fbi.height),
+                )
+                .await?;
                 Ok((tokenomics_info, computed_validator_staking_details))
             };
 
@@ -242,7 +227,7 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
             let (
                 (block_info, certificates),
                 chain_parameters,
-                (tokenomics_info, (all_pool_total_capital, validator_stakes)),
+                (tokenomics_info, (total_staked, validator_stakes)),
                 events,
                 items,
                 special_events,
@@ -263,7 +248,7 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
                 items,
                 chain_parameters: chain_parameters.response,
                 tokenomics_info,
-                all_pool_total_capital,
+                total_staked,
                 special_events,
                 certificates,
                 validator_stakes,
@@ -296,14 +281,16 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
     }
 }
 
-/// Compute the total stake capital by summing all the stake of the bakers.
-/// This is only needed for older blocks, which does not provide this
-/// information as part of the tokenomics info query.
+/// compute validator staking information such as the validators stake and the
+/// total staked in their pool by getting pool info. pool info did not exist
+/// prior to protocol version 4, in this case the account info is used to get
+/// the stake for the validator and the total pool for the validator prior to
+/// protocol version 4 will be set to their account stake.
 pub async fn compute_validator_staking_information(
     client: &mut v2::Client,
     block_height: v2::BlockIdentifier,
 ) -> v2::QueryResult<(Amount, Vec<(i64, ValidatorStakingInformation)>)> {
-    let mut all_pool_total_capital = Amount::zero();
+    let mut total_staked = Amount::zero();
     let mut bakers = client.get_baker_list(block_height).await?.response;
     let mut validator_staking_info_vector: Vec<(i64, ValidatorStakingInformation)> = Vec::new();
 
@@ -321,15 +308,15 @@ pub async fn compute_validator_staking_information(
 
                 // total stake of the pool for this baker (baker_equity_capital +
                 // delegated_capital)
-                let total_stake_for_this_baker = validator_stake + delegated_capital;
+                let total_stake_for_this_validator = validator_stake + delegated_capital;
 
                 debug!(
                     "Computing validator staking information for validator id: {} - validator \
-                     stake: {}, delegated stake: {}, total stake: {}, total pool: {}",
+                     stake: {}, delegated stake: {}, total stake: {}, all pools: {}",
                     baker_id,
                     validator_stake,
                     delegated_capital,
-                    total_stake_for_this_baker,
+                    total_stake_for_this_validator,
                     baker_pool_info.response.all_pool_total_capital
                 );
 
@@ -337,7 +324,7 @@ pub async fn compute_validator_staking_information(
                 let validator_staking_info: ValidatorStakingInformation =
                     ValidatorStakingInformation {
                         stake_amount:             validator_stake.micro_ccd,
-                        pool_total_staked_amount: total_stake_for_this_baker.micro_ccd,
+                        pool_total_staked_amount: total_stake_for_this_validator.micro_ccd,
                     };
 
                 // Get the baker index, so that we can map this to the staking information in
@@ -354,12 +341,13 @@ pub async fn compute_validator_staking_information(
 
                 // baker pool info has the all pool total capital, so we just take what we find
                 // and set it here to be returned
-                all_pool_total_capital = baker_pool_info.response.all_pool_total_capital;
+                total_staked = baker_pool_info.response.all_pool_total_capital;
             }
         } else {
-            // When the Pool information is not found (could be due to earlier protocol
-            // version) - the account info can be used to get the staked amount
-            // for the validator
+            // Before protocol version 4, pool information and delegation did not exist. In
+            // this scenario we can take the staked amount for the baker from the call to
+            // get account info and the pool_total_staked_amount will be set to this same
+            // value.
             debug!(
                 "Pool info not found, getting account info for this validator: {}, at block \
                  height: {}",
@@ -388,25 +376,25 @@ pub async fn compute_validator_staking_information(
 
             validator_staking_info_vector.push((baker_index, validator_staking_info));
 
-            all_pool_total_capital += validator_stake;
+            total_staked += validator_stake;
         }
     }
 
-    Ok((all_pool_total_capital, validator_staking_info_vector))
+    Ok((total_staked, validator_staking_info_vector))
 }
 
 /// Raw block information fetched from a Concordium Node.
 pub struct BlockData {
-    pub finalized_block_info:   v2::FinalizedBlockInfo,
-    pub block_info:             BlockInfo,
-    pub events:                 Vec<BlockItemSummary>,
-    pub items:                  Vec<BlockItem<EncodedPayload>>,
-    pub chain_parameters:       v2::ChainParameters,
-    pub tokenomics_info:        RewardsOverview,
-    pub all_pool_total_capital: Amount,
-    pub special_events:         Vec<SpecialTransactionOutcome>,
+    pub finalized_block_info: v2::FinalizedBlockInfo,
+    pub block_info:           BlockInfo,
+    pub events:               Vec<BlockItemSummary>,
+    pub items:                Vec<BlockItem<EncodedPayload>>,
+    pub chain_parameters:     v2::ChainParameters,
+    pub tokenomics_info:      RewardsOverview,
+    pub total_staked:         Amount,
+    pub special_events:       Vec<SpecialTransactionOutcome>,
     /// Certificates included in the block.
-    pub certificates:           BlockCertificates,
+    pub certificates:         BlockCertificates,
     // validators current staking information
-    pub validator_stakes:       Vec<(i64, ValidatorStakingInformation)>,
+    pub validator_stakes:     Vec<(i64, ValidatorStakingInformation)>,
 }

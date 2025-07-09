@@ -11,16 +11,19 @@ use protocol_update_migration::ProtocolUpdateMigration;
 use special_transaction_outcomes::{
     validator_suspension::PreparedUnmarkPrimedForSuspension, PreparedSpecialTransactionOutcomes,
 };
-
 use tracing::debug;
 
 pub mod block_item;
 pub mod protocol_update_migration;
 pub mod special_transaction_outcomes;
 
+/// Represents a Validators staking information
 #[derive(Clone)]
 pub struct ValidatorStakingInformation {
+    /// The validators staked amount
     pub stake_amount:             u64,
+    /// The total staked for the validator pool (includes validator stake and
+    /// delegated stake)
     pub pool_total_staked_amount: u64,
 }
 
@@ -37,8 +40,8 @@ pub struct PreparedBlock {
     baker_id:                     Option<i64>,
     /// Total amount of CCD in existence at the time of this block.
     total_amount:                 i64,
-    /// All pools total staked CCD at the time of this block.
-    all_pool_total_capital:       i64,
+    /// Total staked CCD including delegation at the time of this block.
+    total_staked:                 i64,
     /// Block hash of the last finalized block.
     block_last_finalized:         String,
     /// Preprocessed block items, ready to be saved in the database.
@@ -71,7 +74,7 @@ impl PreparedBlock {
         let mut statistics = Statistics::new(height, slot_time);
         let total_amount =
             i64::try_from(data.tokenomics_info.common_reward_data().total_amount.micro_ccd())?;
-        let all_pool_total_capital = i64::try_from(data.all_pool_total_capital.micro_ccd())?;
+        let total_staked = i64::try_from(data.total_staked.micro_ccd())?;
         let mut prepared_block_items = Vec::new();
         for (item_summary, item) in data.events.iter().zip(data.items.iter()) {
             prepared_block_items.push(
@@ -102,7 +105,7 @@ impl PreparedBlock {
             slot_time,
             baker_id,
             total_amount,
-            all_pool_total_capital,
+            total_staked,
             block_last_finalized,
             prepared_block_items,
             special_transaction_outcomes,
@@ -137,7 +140,7 @@ impl PreparedBlock {
             slot_times.push(block.slot_time);
             baker_ids.push(block.baker_id);
             total_amounts.push(block.total_amount);
-            total_staked.push(block.all_pool_total_capital);
+            total_staked.push(block.total_staked);
             block_times.push(
                 block
                     .slot_time
