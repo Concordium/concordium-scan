@@ -227,7 +227,7 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
             let (
                 (block_info, certificates),
                 chain_parameters,
-                (tokenomics_info, (total_staked, validator_stakes)),
+                (tokenomics_info, (total_staked, validator_staking_information)),
                 events,
                 items,
                 special_events,
@@ -251,7 +251,7 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
                 total_staked,
                 special_events,
                 certificates,
-                validator_stakes,
+                validator_staking_information,
             };
 
             let prepared_block = PreparedBlock::prepare(&mut client, &data)
@@ -289,10 +289,13 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
 pub async fn compute_validator_staking_information(
     client: &mut v2::Client,
     block_height: v2::BlockIdentifier,
-) -> v2::QueryResult<(Amount, Vec<(i64, ValidatorStakingInformation)>)> {
+) -> v2::QueryResult<(Amount, ValidatorStakingInformation)> {
     let mut total_staked = Amount::zero();
     let mut bakers = client.get_baker_list(block_height).await?.response;
-    let mut validator_staking_info_vector: Vec<(i64, ValidatorStakingInformation)> = Vec::new();
+
+    let mut validator_ids = Vec::new();
+    let mut validator_staked_amounts = Vec::new();
+    let mut validator_pool_staked = Vec::new();
 
     while let Some(baker_id) = bakers.try_next().await? {
         // Try to get the pool info for a given Baker
@@ -301,14 +304,16 @@ pub async fn compute_validator_staking_information(
                 &baker_pool_info.response.active_baker_pool_status
             {
                 // stake for the baker
-                let validator_stake = active_baker_pool_status.baker_equity_capital;
+                let validator_stake: i64 =
+                    active_baker_pool_status.baker_equity_capital.micro_ccd as i64;
 
                 // delegated amount
-                let delegated_capital = active_baker_pool_status.delegated_capital;
+                let delegated_capital: i64 =
+                    active_baker_pool_status.delegated_capital.micro_ccd as i64;
 
                 // total stake of the pool for this baker (baker_equity_capital +
                 // delegated_capital)
-                let total_stake_for_this_validator = validator_stake + delegated_capital;
+                let total_stake_for_this_validator: i64 = validator_stake + delegated_capital;
 
                 debug!(
                     "Computing validator staking information for validator id: {} - validator \
@@ -320,15 +325,6 @@ pub async fn compute_validator_staking_information(
                     baker_pool_info.response.all_pool_total_capital
                 );
 
-                // Build Staked Info object for validator for use later
-                let validator_staking_info: ValidatorStakingInformation =
-                    ValidatorStakingInformation {
-                        stake_amount:             validator_stake.micro_ccd,
-                        pool_total_staked_amount: total_stake_for_this_validator.micro_ccd,
-                    };
-
-                // Get the baker index, so that we can map this to the staking information in
-                // our hashmap
                 let baker_index = i64::try_from(baker_id.id.index).map_err(|e| {
                     v2::RPCError::ParseError(anyhow::anyhow!(
                         "Failed to convert baker index: {}",
@@ -336,11 +332,11 @@ pub async fn compute_validator_staking_information(
                     ))
                 })?;
 
-                // add validator staking structure into the vector
-                validator_staking_info_vector.push((baker_index, validator_staking_info));
+                // push the information for this baker into their corresponding vectors
+                validator_ids.push(baker_index);
+                validator_staked_amounts.push(validator_stake);
+                validator_pool_staked.push(total_stake_for_this_validator);
 
-                // baker pool info has the all pool total capital, so we just take what we find
-                // and set it here to be returned
                 total_staked = baker_pool_info.response.all_pool_total_capital;
             }
         } else {
@@ -369,32 +365,35 @@ pub async fn compute_validator_staking_information(
                 v2::RPCError::ParseError(anyhow::anyhow!("Failed to convert baker index: {}", e))
             })?;
 
-            let validator_staking_info: ValidatorStakingInformation = ValidatorStakingInformation {
-                stake_amount:             validator_stake.micro_ccd,
-                pool_total_staked_amount: validator_stake.micro_ccd,
-            };
-
-            validator_staking_info_vector.push((baker_index, validator_staking_info));
+            validator_ids.push(baker_index);
+            validator_staked_amounts.push(validator_stake.micro_ccd as i64);
+            validator_pool_staked.push(validator_stake.micro_ccd as i64);
 
             total_staked += validator_stake;
         }
     }
 
-    Ok((total_staked, validator_staking_info_vector))
+    let validators_staking_information: ValidatorStakingInformation = ValidatorStakingInformation {
+        ids: validator_ids,
+        staked_amounts: validator_staked_amounts,
+        pool_total_staked_amounts: validator_pool_staked,
+    };
+
+    Ok((total_staked, validators_staking_information))
 }
 
 /// Raw block information fetched from a Concordium Node.
 pub struct BlockData {
     pub finalized_block_info: v2::FinalizedBlockInfo,
-    pub block_info:           BlockInfo,
-    pub events:               Vec<BlockItemSummary>,
-    pub items:                Vec<BlockItem<EncodedPayload>>,
-    pub chain_parameters:     v2::ChainParameters,
-    pub tokenomics_info:      RewardsOverview,
-    pub total_staked:         Amount,
-    pub special_events:       Vec<SpecialTransactionOutcome>,
+    pub block_info: BlockInfo,
+    pub events: Vec<BlockItemSummary>,
+    pub items: Vec<BlockItem<EncodedPayload>>,
+    pub chain_parameters: v2::ChainParameters,
+    pub tokenomics_info: RewardsOverview,
+    pub total_staked: Amount,
+    pub special_events: Vec<SpecialTransactionOutcome>,
     /// Certificates included in the block.
-    pub certificates:         BlockCertificates,
+    pub certificates: BlockCertificates,
     // validators current staking information
-    pub validator_stakes:     Vec<(i64, ValidatorStakingInformation)>,
+    pub validator_staking_information: ValidatorStakingInformation,
 }

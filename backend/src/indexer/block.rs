@@ -20,44 +20,45 @@ pub mod special_transaction_outcomes;
 /// Represents a Validators staking information
 #[derive(Clone)]
 pub struct ValidatorStakingInformation {
-    /// The validators staked amount
-    pub stake_amount:             u64,
-    /// The total staked for the validator pool (includes validator stake and
-    /// delegated stake)
-    pub pool_total_staked_amount: u64,
+    /// The validator ids
+    pub ids: Vec<i64>,
+    /// The validators staked amounts
+    pub staked_amounts: Vec<i64>,
+    // The total pool stake for each validator
+    pub pool_total_staked_amounts: Vec<i64>,
 }
 
 /// Preprocessed block which is ready to be saved in the database.
 pub struct PreparedBlock {
     /// Hash of the block.
-    pub hash:                     String,
+    pub hash: String,
     /// Absolute height of the block.
-    pub height:                   i64,
+    pub height: i64,
     /// Block slot time (UTC).
-    slot_time:                    DateTime<Utc>,
+    slot_time: DateTime<Utc>,
     /// Id of the validator which constructed the block. Is only None for the
     /// genesis block.
-    baker_id:                     Option<i64>,
+    baker_id: Option<i64>,
     /// Total amount of CCD in existence at the time of this block.
-    total_amount:                 i64,
+    total_amount: i64,
     /// Total staked CCD including delegation at the time of this block.
-    total_staked:                 i64,
+    total_staked: i64,
     /// Block hash of the last finalized block.
-    block_last_finalized:         String,
+    block_last_finalized: String,
     /// Preprocessed block items, ready to be saved in the database.
-    prepared_block_items:         Vec<PreparedBlockItem>,
+    prepared_block_items: Vec<PreparedBlockItem>,
     /// Preprocessed block special items, ready to be saved in the database.
     special_transaction_outcomes: PreparedSpecialTransactionOutcomes,
     /// Unmark the baker and signers of the Quorum Certificate from being primed
     /// for suspension.
-    baker_unmark_suspended:       PreparedUnmarkPrimedForSuspension,
+    baker_unmark_suspended: PreparedUnmarkPrimedForSuspension,
     /// Statistics gathered about frequency of events
-    statistics:                   Statistics,
+    statistics: Statistics,
     /// Optional data migration for when this is the first block after a
     /// protocol update.
-    protocol_update_migration:    Option<ProtocolUpdateMigration>,
+    protocol_update_migration: Option<ProtocolUpdateMigration>,
     /// Validator staking information to be updated in the database
-    validator_stake_updates:      Vec<(i64, ValidatorStakingInformation)>,
+    validator_staking_information: ValidatorStakingInformation,
 }
 
 impl PreparedBlock {
@@ -96,8 +97,8 @@ impl PreparedBlock {
                 .await
                 .context("Failed to prepare for data migation caused by protocol update")?;
 
-        let validator_stake_updates: Vec<(i64, ValidatorStakingInformation)> =
-            data.validator_stakes.clone();
+        let validator_staking_information: ValidatorStakingInformation =
+            data.validator_staking_information.clone();
 
         Ok(Self {
             hash,
@@ -112,7 +113,7 @@ impl PreparedBlock {
             baker_unmark_suspended,
             statistics,
             protocol_update_migration,
-            validator_stake_updates,
+            validator_staking_information,
         })
     }
 
@@ -284,22 +285,15 @@ impl PreparedBlock {
         self.special_transaction_outcomes.save(tx).await?;
 
         // gather vectors for the update query
-        let validator_updates_length = self.validator_stake_updates.len();
-        if validator_updates_length > 0 {
-            let mut ids = Vec::with_capacity(validator_updates_length);
-            let mut staked = Vec::with_capacity(validator_updates_length);
-            let mut pool_staked = Vec::with_capacity(validator_updates_length);
+        let ids = &self.validator_staking_information.ids;
+        let staked_amounts = &self.validator_staking_information.staked_amounts;
+        let pool_staked_amounts = &self.validator_staking_information.pool_total_staked_amounts;
 
-            for (validator_id, validator_staking_info) in &self.validator_stake_updates {
-                ids.push(*validator_id);
-                staked.push(validator_staking_info.stake_amount as i64);
-                pool_staked.push(validator_staking_info.pool_total_staked_amount as i64);
-            }
-
+        if !ids.is_empty() {
             debug!(
                 "Updating bakers table staked and pool_total_staked now. ids: {:?} - staked: \
                  {:?}, pool_staked: {:?}",
-                ids, staked, pool_staked,
+                ids, staked_amounts, pool_staked_amounts,
             );
 
             sqlx::query!(
@@ -308,9 +302,9 @@ impl PreparedBlock {
                 FROM UNNEST($1::BIGINT[], $2::BIGINT[], $3::BIGINT[]) AS u(id, staked, \
                  pool_total_staked)
                 WHERE BAKERS.id = u.id",
-                &ids,
-                &staked,
-                &pool_staked
+                ids,
+                staked_amounts,
+                pool_staked_amounts
             )
             .execute(tx.as_mut())
             .await?;

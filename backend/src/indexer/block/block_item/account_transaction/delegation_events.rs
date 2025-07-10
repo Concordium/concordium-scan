@@ -137,23 +137,7 @@ impl PreparedAccountDelegationEvent {
                 account_id,
                 staked,
             } => {
-                // Update total stake of the pool first  (if not the passive pool).
-                // Note that `DelegationEvent::Added` event is always accommodated by a
-                // `DelegationEvent::StakeIncrease` event, in this case the current
-                // `delegated_stake` will be zero.
-                sqlx::query!(
-                    "UPDATE bakers
-                     SET pool_total_staked = pool_total_staked + $1 - accounts.delegated_stake
-                     FROM accounts
-                     WHERE bakers.id = accounts.delegated_target_baker_id AND accounts.index = $2",
-                    staked,
-                    account_id
-                )
-                .execute(tx.as_mut())
-                .await?
-                .ensure_affected_rows_in_range(0..=1) // Targeting the passive pool would result in no affected rows.
-                .context("Failed update baker pool stake")?;
-                // Then the stake of the delegator.
+                // Update the stake of the delegator.
                 sqlx::query!(
                     "UPDATE accounts SET delegated_stake = $1 WHERE index = $2",
                     staked,
@@ -183,15 +167,14 @@ impl PreparedAccountDelegationEvent {
             PreparedAccountDelegationEvent::Removed {
                 account_id,
             } => {
-                // Update the total pool stake when removed.
+                // Update the pool_delegator_count when delegator is removed
                 // Note that `DelegationEvent::Added` event is always accommodated by a
                 // `DelegationEvent::StakeIncrease` event and
                 // `DelegationEvent::SetDelegationTarget` event, meaning we don't have to handle
                 // updating the pool state here.
                 sqlx::query!(
                         "UPDATE bakers
-                         SET pool_total_staked = pool_total_staked - accounts.delegated_stake,
-                             pool_delegator_count = pool_delegator_count - 1
+                         SET pool_delegator_count = pool_delegator_count - 1
                          FROM accounts
                          WHERE bakers.id = accounts.delegated_target_baker_id
                              AND accounts.index = $1",
@@ -260,12 +243,11 @@ impl PreparedAccountDelegationEvent {
                 .await?
                 .ensure_affected_rows_in_range(0..=1) // Affected rows will be 0 for the passive pool
                 .context("Failed update pool stake removing delegator")?;
-                // Update total pool stake and delegator count for new target.
+                // Update the delegator count for new target.
                 if let Some(target) = target_id {
                     sqlx::query!(
                         "UPDATE bakers
-                         SET pool_total_staked = pool_total_staked + accounts.delegated_stake,
-                             pool_delegator_count = pool_delegator_count + 1
+                         SET pool_delegator_count = pool_delegator_count + 1
                          FROM accounts
                          WHERE
                              -- Only consider delegators which are not removed,

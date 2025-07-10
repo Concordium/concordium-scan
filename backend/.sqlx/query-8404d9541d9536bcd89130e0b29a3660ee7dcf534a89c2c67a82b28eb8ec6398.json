@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE bakers\n                         SET pool_delegator_count = pool_delegator_count - 1\n                         FROM accounts\n                         WHERE bakers.id = accounts.delegated_target_baker_id\n                             AND accounts.index = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8404d9541d9536bcd89130e0b29a3660ee7dcf534a89c2c67a82b28eb8ec6398"
+}

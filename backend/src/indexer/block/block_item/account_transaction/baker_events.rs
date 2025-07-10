@@ -11,6 +11,7 @@ use crate::{
 };
 use anyhow::Context;
 use concordium_rust_sdk::types::{self as sdk_types, PartsPerHundredThousands, ProtocolVersion};
+use tracing::debug;
 
 /// Represents the event of a baker being removed, resulting in the delegators
 /// targeting the pool are moved to the passive pool.
@@ -289,35 +290,19 @@ impl PreparedBakerEvent {
                 baker_id,
                 staked,
             } => {
-                sqlx::query!(
-                    "UPDATE bakers
-                        SET pool_total_staked = pool_total_staked + $2 - staked,
-                            staked = $2
-                    WHERE id = $1",
-                    baker_id,
-                    staked,
-                )
-                .execute(tx.as_mut())
-                .await?
-                .ensure_affected_rows_in_range(bakers_expected_affected_range)
-                .context("Failed increasing validator stake")?;
+                debug!(
+                    "Stake increase event for baker: {:?}, staked amount: {:?}",
+                    baker_id, staked
+                );
             }
             PreparedBakerEvent::StakeDecrease {
                 baker_id,
                 staked,
             } => {
-                sqlx::query!(
-                    "UPDATE bakers
-                        SET pool_total_staked = pool_total_staked + $2 - staked,
-                            staked = $2
-                    WHERE id = $1",
-                    baker_id,
-                    staked,
-                )
-                .execute(tx.as_mut())
-                .await?
-                .ensure_affected_rows_in_range(bakers_expected_affected_range)
-                .context("Failed decreasing validator stake")?;
+                debug!(
+                    "Stake Decrease event for baker: {:?}, staked amount: {:?}",
+                    baker_id, staked
+                );
             }
             PreparedBakerEvent::SetRestakeEarnings {
                 baker_id,
@@ -350,8 +335,7 @@ impl PreparedBakerEvent {
                 if let Some(move_operation) = move_delegators {
                     sqlx::query!(
                         "UPDATE bakers
-                         SET pool_total_staked = bakers.staked,
-                             pool_delegator_count = 0
+                         SET pool_delegator_count = 0
                          WHERE id = $1",
                         baker_id
                     )
@@ -421,11 +405,10 @@ impl PreparedBakerEvent {
             PreparedBakerEvent::RemoveDelegation {
                 delegator_id,
             } => {
-                // Update total pool stake of old pool (if not the passive pool).
+                // Update pool_delegator_count when we have a Removed Delegation event
                 sqlx::query!(
                     "UPDATE bakers
-                     SET pool_total_staked = pool_total_staked - accounts.delegated_stake,
-                         pool_delegator_count = pool_delegator_count - 1
+                     SET pool_delegator_count = pool_delegator_count - 1
                      FROM accounts
                      WHERE bakers.id = accounts.delegated_target_baker_id AND accounts.index = $1",
                     delegator_id
