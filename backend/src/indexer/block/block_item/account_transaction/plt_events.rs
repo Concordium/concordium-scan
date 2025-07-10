@@ -2,7 +2,8 @@
 //! TokenGovernance). These types are used to prepare and (optionally) persist
 //! token events during block processing.
 
-use concordium_rust_sdk::protocol_level_tokens::{self, TokenEventDetails};
+use concordium_rust_sdk::protocol_level_tokens::{self};
+use crate::transaction_event::protocol_level_tokens::TokenUpdate;
 
 /// Collection of prepared token holder events.
 /// This struct is required by the event processing interface, even if not
@@ -13,23 +14,17 @@ pub struct PreparedTokenEvents {
     pub events: Vec<PreparedTokenEvent>,
 }
 
-/// Represents a single token event, prepared for further processing.
-/// Fields may not always be accessed, but are kept for completeness and
-/// possible future use.
-#[derive(Debug)]
-#[allow(dead_code)] // Fields are kept for completeness, even if not always used.
-pub struct TokenEvent {
-    pub token_id: String,
-    pub event:    TokenEventDetails,
-}
-
-impl TokenEvent {
-    /// Converts a protocol-level token holder event into a prepared event.
-    pub fn prepare(event: &protocol_level_tokens::TokenEvent) -> anyhow::Result<Self> {
-        Ok(TokenEvent {
-            token_id: event.token_id.clone().into(),
-            event:    event.event.clone(),
-        })
+impl PreparedTokenEvents {
+    pub async fn save(
+        &self,
+        tx: &mut sqlx::PgTransaction<'_>,
+        transaction_index: i64,
+    ) -> anyhow::Result<()> {
+        println!("Saving {} token holder events", self.events.len());
+        for event in &self.events {
+            event.save(tx, transaction_index).await?;
+        }
+        Ok(())
     }
 }
 
@@ -38,14 +33,24 @@ impl TokenEvent {
 #[derive(Debug)]
 #[allow(dead_code)] // This type is needed for interface compatibility, even if not always used.
 pub struct PreparedTokenEvent {
-    pub event: TokenEvent,
+    pub event: TokenUpdate,
 }
 
 impl PreparedTokenEvent {
     /// Converts a protocol-level token holder event into a prepared wrapper.
     pub fn prepare(event: &protocol_level_tokens::TokenEvent) -> anyhow::Result<Self> {
         Ok(PreparedTokenEvent {
-            event: TokenEvent::prepare(event)?,
+            event: TokenUpdate::prepare(event)?,
         })
+    }
+
+        /// Saves the prepared token event to the database.
+    pub async fn save(
+        &self,
+        tx: &mut sqlx::PgTransaction<'_>,
+        transaction_index: i64,
+    ) -> anyhow::Result<()> {
+        self.event.save(tx, transaction_index).await?;
+        Ok(())
     }
 }

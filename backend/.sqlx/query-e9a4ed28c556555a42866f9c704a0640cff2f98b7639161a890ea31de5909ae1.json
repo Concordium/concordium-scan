@@ -1,0 +1,92 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT \n                id,\n                transaction_index,\n                token_index,\n                event_type as \"event_type: TokenUpdateEventType\",\n                token_module_type as \"token_module_type: TokenUpdateModuleType\",\n                target_index,\n                to_index,\n                from_index,\n                token_event as \"token_event: sqlx::types::Json<serde_json::Value>\"\n            FROM plt_events",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "transaction_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "token_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "event_type: TokenUpdateEventType",
+        "type_info": {
+          "Custom": {
+            "name": "event_type",
+            "kind": {
+              "Enum": [
+                "Mint",
+                "Burn",
+                "Transfer",
+                "TokenModule"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "token_module_type: TokenUpdateModuleType",
+        "type_info": {
+          "Custom": {
+            "name": "token_module_type",
+            "kind": {
+              "Enum": [
+                "AddAllowList",
+                "RemoveAllowList",
+                "AddDenyList",
+                "RemoveDenyList"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "target_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "to_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "from_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "token_event: sqlx::types::Json<serde_json::Value>",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "e9a4ed28c556555a42866f9c704a0640cff2f98b7639161a890ea31de5909ae1"
+}

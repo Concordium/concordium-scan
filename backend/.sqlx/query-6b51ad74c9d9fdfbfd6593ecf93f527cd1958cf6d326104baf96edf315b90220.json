@@ -1,0 +1,78 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Inputs:\n-- $1::interval - total period (e.g., '7 days')\n-- $2::interval - bucket width (e.g., '6 hours')\n-- $3::text     - optional token_id (NULL means include all tokens)\n\nSELECT\n    bucket_time.bucket_start AS \"bucket_time!\",\n\n    -- Event counts\n    COALESCE(before_bucket.cumulative_event_count, 0) AS \"start_cumulative_event_count!\",\n    COALESCE(after_bucket.cumulative_event_count, 0) AS \"end_cumulative_event_count!\",\n    COALESCE(after_bucket.cumulative_event_count, 0) - COALESCE(before_bucket.cumulative_event_count, 0) AS \"delta_event_count!\",\n\n    -- Total supply\n    COALESCE(supply_start.total_supply, 0) AS \"start_total_supply!\",\n    COALESCE(supply_end.total_supply, 0) AS \"end_total_supply!\",\n    COALESCE(supply_end.total_supply, 0) - COALESCE(supply_start.total_supply, 0) AS \"delta_total_supply!\",\n\n    -- Unique holders\n    COALESCE(holders_start.total_unique_holders, 0) AS \"start_total_unique_holders!\",\n    COALESCE(holders_end.total_unique_holders, 0) AS \"end_total_unique_holders!\",\n    COALESCE(holders_end.total_unique_holders, 0) - COALESCE(holders_start.total_unique_holders, 0) AS \"delta_unique_holders!\"\n\nFROM date_bin_series(\n    $2::interval,\n    now() - $1::interval,\n    now()\n) AS bucket_time\n\n-- Event count before bucket start\nLEFT JOIN LATERAL (\n    SELECT COUNT(*) AS cumulative_event_count\n    FROM plt_events e\n    JOIN plt_tokens pt ON pt.index = e.token_index\n    JOIN transactions tx ON e.transaction_index = tx.index\n    JOIN blocks b ON tx.block_height = b.height\n    WHERE b.slot_time < bucket_time.bucket_start\n      AND ($3::TEXT IS NULL OR pt.token_id = $3::TEXT)\n\n) before_bucket ON true\n\n-- Event count before bucket end\nLEFT JOIN LATERAL (\n    SELECT COUNT(*) AS cumulative_event_count\n    FROM plt_events e\n    JOIN plt_tokens pt ON pt.index = e.token_index\n    JOIN transactions tx ON e.transaction_index = tx.index\n    JOIN blocks b ON tx.block_height = b.height\n    WHERE b.slot_time < bucket_time.bucket_start + $2::interval\n      AND ($3::TEXT IS NULL OR pt.token_id = $3::TEXT)\n\n) after_bucket ON true\n\n-- Total supply before bucket start\nLEFT JOIN LATERAL (\n    SELECT SUM(pt.total_minted - pt.total_burned)  AS total_supply\n    FROM plt_tokens pt\n    JOIN transactions tx ON pt.transaction_index = tx.index\n    JOIN blocks b ON tx.block_height = b.height\n    WHERE b.slot_time < bucket_time.bucket_start\n      AND ($3::TEXT IS NULL OR pt.token_id = $3::TEXT)\n\n) supply_start ON true\n\n-- Total supply before bucket end\nLEFT JOIN LATERAL (\n    SELECT SUM(pt.total_minted - pt.total_burned) AS total_supply\n    FROM plt_tokens pt\n    JOIN transactions tx ON pt.transaction_index = tx.index\n    JOIN blocks b ON tx.block_height = b.height\n    WHERE b.slot_time < bucket_time.bucket_start + $2::interval\n      AND ($3::TEXT IS NULL OR pt.token_id = $3::TEXT)\n\n) supply_end ON true\n\n-- Unique holders before bucket start\nLEFT JOIN LATERAL (\n    SELECT COUNT(DISTINCT paa.account_index) AS total_unique_holders\n    FROM plt_accounts paa\n    JOIN plt_tokens pt ON paa.token_index = pt.index\n    JOIN transactions tx ON pt.transaction_index = tx.index\n    JOIN blocks b ON tx.block_height = b.height\n    WHERE b.slot_time < bucket_time.bucket_start\n      AND paa.amount > 0\n      AND ($3::TEXT IS NULL OR pt.token_id = $3::TEXT)\n\n) holders_start ON true\n\n-- Unique holders before bucket end\nLEFT JOIN LATERAL (\n    SELECT COUNT(DISTINCT paa.account_index) AS total_unique_holders\n    FROM plt_accounts paa\n    JOIN plt_tokens pt ON paa.token_index = pt.index\n    JOIN transactions tx ON pt.transaction_index = tx.index\n    JOIN blocks b ON tx.block_height = b.height\n    WHERE b.slot_time < bucket_time.bucket_start + $2::interval\n      AND paa.amount > 0\n      AND ($3::TEXT IS NULL OR pt.token_id = $3::TEXT)\n\n) holders_end ON true\n\nORDER BY bucket_time.bucket_start;\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "bucket_time!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 1,
+        "name": "start_cumulative_event_count!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "end_cumulative_event_count!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "delta_event_count!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "start_total_supply!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "end_total_supply!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "delta_total_supply!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "start_total_unique_holders!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "end_total_unique_holders!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "delta_unique_holders!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Interval",
+        "Interval",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "6b51ad74c9d9fdfbfd6593ecf93f527cd1958cf6d326104baf96edf315b90220"
+}

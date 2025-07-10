@@ -12,8 +12,8 @@
 
 <script lang="ts" setup>
 import { ref, watchEffect, defineProps } from 'vue'
-import type { StablecoinResponse } from '~/queries/useStableCoinQuery'
 import DistributionChart from '../DistributionChart.vue'
+import type { Plttoken } from '~/types/generated'
 
 type StableCoin = {
 	totalSupply?: number
@@ -23,7 +23,7 @@ type StableCoin = {
 }
 
 type Props = {
-	stableCoinsData?: StablecoinResponse
+	stableCoinsData?: Plttoken[]
 	isLoading?: boolean
 }
 
@@ -32,7 +32,7 @@ const props = defineProps<Props>()
 const delayedSupplyPercentage = ref<StableCoin[]>([])
 
 watchEffect(() => {
-	const stablecoins = props.stableCoinsData?.stablecoins || []
+	const stablecoins = props.stableCoinsData || []
 
 	if (stablecoins.length === 0) {
 		delayedSupplyPercentage.value = []
@@ -41,15 +41,16 @@ watchEffect(() => {
 
 	setTimeout(() => {
 		const totalSupplySum = stablecoins.reduce(
-			(sum, coin) => sum + (coin.totalSupply || 0),
+			(sum, coin) => sum + ((coin.totalSupply ?? 0) || 0),
 			0
 		)
+		
 
 		delayedSupplyPercentage.value = stablecoins.map(coin => ({
-			symbol: coin.symbol,
+			symbol: coin.tokenId || '',
 			supplyPercentage:
 				totalSupplySum > 0
-					? ((coin.totalSupply! / totalSupplySum) * 100).toFixed(2)
+					? (((coin.totalSupply ?? 0)  / totalSupplySum) * 100).toString()
 					: '0',
 		}))
 	}, 1000)

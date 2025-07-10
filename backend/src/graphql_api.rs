@@ -19,6 +19,8 @@ mod suspended_validators;
 mod token;
 mod transaction;
 mod transaction_metrics;
+mod plt;
+mod plt_event_metrics;
 
 use crate::{
     connection::ConnectionQuery,
@@ -161,6 +163,12 @@ pub struct ApiServiceConfig {
     token_holder_addresses_collection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_TOKEN_EVENTS_COLLECTION_LIMIT", default_value = "100")]
     token_events_collection_limit: u64,
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_PLT_TOKEN_EVENTS_COLLECTION_LIMIT",
+        default_value = "100"
+    )]
+    plt_token_events_collection_limit: u64,
 }
 
 #[derive(MergedObject, Default)]
@@ -182,6 +190,10 @@ pub struct Query(
     reward_metrics::QueryRewardMetrics,
     block_metrics::QueryBlockMetrics,
     transaction_metrics::QueryTransactionMetrics,
+    plt::QueryPLTEvent,
+    plt::QueryPLT,
+    plt::QueryPLTAccountAmount,
+    plt_event_metrics::QueryPltEventMetrics
 );
 
 pub struct Service {

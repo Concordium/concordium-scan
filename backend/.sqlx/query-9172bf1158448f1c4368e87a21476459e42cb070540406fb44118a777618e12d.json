@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    UPDATE plt_tokens\n                    SET total_minted = total_minted + $1\n                    WHERE token_id = $2\n                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Numeric",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9172bf1158448f1c4368e87a21476459e42cb070540406fb44118a777618e12d"
+}

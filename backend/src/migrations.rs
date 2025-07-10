@@ -260,6 +260,8 @@ pub enum SchemaVersion {
          TokenGovernance"
     )]
     UpdateTransactionTypeAddTokenUpdate,
+    #[display("0038: Create PLT token and event tables")]
+    CreatePltTokenAndEventTables,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -268,7 +270,7 @@ impl SchemaVersion {
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
         SchemaVersion::IndexPartialContractsSearch;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::UpdateTransactionTypeAddTokenUpdate;
+    const LATEST: SchemaVersion = SchemaVersion::CreatePltTokenAndEventTables;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -325,6 +327,7 @@ impl SchemaVersion {
             SchemaVersion::UpdateAccountTransactionTypes => false,
             SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => false,
             SchemaVersion::UpdateTransactionTypeAddTokenUpdate => false,
+            SchemaVersion::CreatePltTokenAndEventTables => false,
         }
     }
 
@@ -372,6 +375,7 @@ impl SchemaVersion {
             SchemaVersion::UpdateAccountTransactionTypes => false,
             SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => false,
             SchemaVersion::UpdateTransactionTypeAddTokenUpdate => false,
+            SchemaVersion::CreatePltTokenAndEventTables => false,
         }
     }
 
@@ -611,8 +615,16 @@ impl SchemaVersion {
             SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => {
                 m0037_update_transaction_type_add_tokenupdate::run(&mut tx, endpoints).await?
             }
+            SchemaVersion::UpdateTransactionTypeAddTokenUpdate => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0038_plt.sql"
+                    )))
+                    .await?;
+                SchemaVersion::CreatePltTokenAndEventTables
+            }
 
-            SchemaVersion::UpdateTransactionTypeAddTokenUpdate => unimplemented!(
+            SchemaVersion::CreatePltTokenAndEventTables => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
