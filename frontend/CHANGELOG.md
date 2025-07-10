@@ -24,6 +24,7 @@ All notable changes to this project will be documented in this file.
   - `useBlockSubscription`
 
 - Move account statement export to use `rust-backend` API.
+- Update ccd scan copyright to 2025
 
 ## [1.7.19] - 2025-07-03
 
