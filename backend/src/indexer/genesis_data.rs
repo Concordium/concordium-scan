@@ -1,11 +1,11 @@
 //! Function and types for populating the database with initial information
 //! found in the genesis block.
 
-use super::block_preprocessor::compute_total_stake_capital;
+use super::block_preprocessor::compute_validator_staking_information;
 use crate::transaction_event::baker::BakerPoolOpenStatus;
 use anyhow::Context;
 use concordium_rust_sdk::{
-    types::{AccountStakingInfo, PartsPerHundredThousands, RewardsOverview},
+    types::{AccountStakingInfo, PartsPerHundredThousands},
     v2,
 };
 use futures::{StreamExt, TryStreamExt};
@@ -27,19 +27,11 @@ pub async fn save_genesis_data(
     let block_hash = genesis_block_info.block_hash.to_string();
     let slot_time = genesis_block_info.block_slot_time;
     let genesis_tokenomics = client.get_tokenomics_info(genesis_height).await?.response;
-    let total_staked = match genesis_tokenomics {
-        RewardsOverview::V0 {
-            ..
-        } => {
-            let total_staked_capital =
-                compute_total_stake_capital(&mut client, genesis_height).await?;
-            i64::try_from(total_staked_capital.micro_ccd())?
-        }
-        RewardsOverview::V1 {
-            total_staked_capital,
-            ..
-        } => i64::try_from(total_staked_capital.micro_ccd())?,
-    };
+
+    let (total_staked_capital, _) =
+        compute_validator_staking_information(&mut client, genesis_height).await?;
+    let total_staked = i64::try_from(total_staked_capital.micro_ccd())?;
+
     let total_amount =
         i64::try_from(genesis_tokenomics.common_reward_data().total_amount.micro_ccd())?;
     sqlx::query!(
