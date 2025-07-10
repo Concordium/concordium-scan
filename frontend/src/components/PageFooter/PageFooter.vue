@@ -72,7 +72,7 @@
 			</div>
 		</div>
 		<div class="footer-rights w-full text-sm">
-			CCDScan © 2023 All rights reserved
+			CCDScan © 2025 All rights reserved
 		</div>
 	</footer>
 </template>
