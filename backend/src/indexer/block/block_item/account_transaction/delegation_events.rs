@@ -228,7 +228,6 @@ impl PreparedAccountDelegationEvent {
                 sqlx::query!(
                     "UPDATE bakers
                      SET
-                         pool_total_staked = pool_total_staked - accounts.delegated_stake,
                          pool_delegator_count = pool_delegator_count - 1
                      FROM accounts
                      WHERE

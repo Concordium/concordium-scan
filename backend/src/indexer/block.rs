@@ -17,7 +17,7 @@ pub mod block_item;
 pub mod protocol_update_migration;
 pub mod special_transaction_outcomes;
 
-/// Represents a Validators staking information
+/// Represents the latest staking information for all validators
 #[derive(Clone)]
 pub struct ValidatorStakingInformation {
     /// The validator ids
