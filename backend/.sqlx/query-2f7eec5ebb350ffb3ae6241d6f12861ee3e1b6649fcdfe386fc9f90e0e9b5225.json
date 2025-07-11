@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO plt_tokens (\n                index,\n                token_id,\n                transaction_index,\n                name,\n                decimal,\n                issuer_index,\n                issuer,\n                module_reference,\n                metadata,\n                initial_supply\n            ) VALUES (\n                (SELECT COALESCE(MAX(index) + 1, 0) FROM plt_tokens),\n                $1,\n                $2,\n                $3,\n                $4,\n                (SELECT index FROM accounts WHERE address = $5),\n                $6,\n                $7,\n                $8,\n                $9\n                              )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Text",
+        "Int4",
+        "Text",
+        "Text",
+        "Bpchar",
+        "Jsonb",
+        "Numeric"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2f7eec5ebb350ffb3ae6241d6f12861ee3e1b6649fcdfe386fc9f90e0e9b5225"
+}

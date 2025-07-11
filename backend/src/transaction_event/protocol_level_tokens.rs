@@ -1,10 +1,30 @@
-use async_graphql::{SimpleObject, Union};
+use async_graphql::{Enum, SimpleObject, Union};
+use bigdecimal::BigDecimal;
 use concordium_rust_sdk::base::protocol_level_tokens;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::address::AccountAddress;
 
-#[derive(SimpleObject, Serialize, Deserialize, Clone)]
+#[derive(Debug, Enum, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "event_type")]
+pub enum TokenUpdateEventType {
+    Mint,
+    Burn,
+    Transfer,
+    TokenModule,
+}
+
+#[derive(Debug, Enum, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "token_module_type")]
+#[allow(clippy::enum_variant_names)] // This is required because the types are used in a GraphQL schema.
+pub enum TokenUpdateModuleType {
+    AddAllowList,
+    RemoveAllowList,
+    AddDenyList,
+    RemoveDenyList,
+}
+
+#[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
 pub struct CreatePlt {
     /// The symbol of the token.
     pub token_id:                  String,
@@ -15,7 +35,87 @@ pub struct CreatePlt {
     /// token.
     pub decimals:                  u8,
     /// The initialization parameters of the token, encoded in CBOR.
-    pub initialization_parameters: String,
+    pub initialization_parameters: serde_json::Value,
+}
+
+#[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
+pub struct MetadataUrl {
+    pub url: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct CreatePLTInitializationParameters {
+    pub name:               String,
+    pub metadata:           MetadataUrl,
+    pub allow_list:         Option<bool>,
+    pub deny_list:          Option<bool>,
+    pub mintable:           Option<bool>,
+    pub burnable:           Option<bool>,
+    pub initial_supply:     Option<protocol_level_tokens::TokenAmount>,
+    pub governance_account: Option<AccountAddress>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct InitializationParameters {
+    /// The name of the token
+    pub name:               String,
+    // /// A URL pointing to the token metadata
+    pub metadata:           MetadataUrl,
+    /// Whether the token supports an allow list. default is `false`.
+    pub allow_list:         Option<bool>,
+    /// Whether the token supports a deny list.
+    pub deny_list:          Option<bool>,
+    /// Whether the token is mintable.
+    pub mintable:           Option<bool>,
+    /// Whether the token is burnable.
+    pub burnable:           Option<bool>,
+    pub initial_supply:     Option<CborTokenAmount>,
+    #[serde(deserialize_with = "deserialize_governance_account")]
+    pub governance_account: Option<AccountAddress>,
+}
+
+fn deserialize_governance_account<'de, D>(
+    deserializer: D,
+) -> Result<Option<AccountAddress>, D::Error>
+where
+    D: Deserializer<'de>, {
+    use serde::de::Error;
+    use std::collections::HashMap;
+    // The CBOR structure is: tag(40307) -> map(1) -> { 3: bytes(32) }
+    let map: HashMap<u8, Vec<u8>> = Deserialize::deserialize(deserializer)?;
+
+    if let Some(address_bytes) = map.get(&3) {
+        if address_bytes.len() == 32 {
+            let mut bytes_array = [0u8; 32];
+            bytes_array.copy_from_slice(address_bytes);
+
+            let account_address = concordium_rust_sdk::common::types::AccountAddress(bytes_array);
+
+            Ok(Some(AccountAddress::from(account_address)))
+        } else {
+            Err(D::Error::custom(format!(
+                "Expected 32 bytes for account address, got {}",
+                address_bytes.len()
+            )))
+        }
+    } else {
+        Err(D::Error::custom("Expected key 3 in governance account map"))
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct CborTokenAmount(pub i8, pub u64);
+
+impl From<CborTokenAmount> for protocol_level_tokens::TokenAmount {
+    fn from(cbor: CborTokenAmount) -> Self {
+        if cbor.0 > 0 {
+            panic!("Expected negative exponent for decimal fraction");
+        }
+        let decimals = cbor.0.unsigned_abs();
+        let value = cbor.1;
+        protocol_level_tokens::TokenAmount::from_raw(value, decimals)
+    }
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone)]
@@ -34,6 +134,7 @@ pub struct TokenUpdate {
 }
 
 #[derive(Union, Serialize, Deserialize, Clone, Debug)]
+#[serde(tag = "type")]
 pub enum TokenEventDetails {
     Module(TokenModuleEvent),
     Transfer(TokenTransferEvent),
@@ -161,5 +262,199 @@ impl TokenUpdate {
             token_id: event.token_id.clone().into(),
             event:    event.event.clone().into(),
         })
+    }
+
+    pub async fn save(
+        &self,
+        tx: &mut sqlx::PgTransaction<'_>,
+        transaction_index: i64,
+    ) -> anyhow::Result<()> {
+        let mut plt_amount_change: BigDecimal = BigDecimal::from(0u64);
+        let event_type: TokenUpdateEventType;
+        let mut token_module_type: Option<TokenUpdateModuleType> = None;
+        let token_id = self.token_id.clone();
+        let token_event: serde_json::Value =
+            serde_json::to_value(self.event.clone()).unwrap_or(serde_json::Value::Null);
+        let mut target: String = String::new();
+        let mut to: String = String::new();
+        let mut from: String = String::new();
+
+        match &self.event {
+            TokenEventDetails::Module(e) => {
+                event_type = TokenUpdateEventType::TokenModule;
+                token_module_type = match e.event_type.as_str() {
+                    "addAllowList" => Some(TokenUpdateModuleType::AddAllowList),
+                    "removeAllowList" => Some(TokenUpdateModuleType::RemoveAllowList),
+                    "addDenyList" => Some(TokenUpdateModuleType::AddDenyList),
+                    "removeDenyList" => Some(TokenUpdateModuleType::RemoveDenyList),
+                    _ => None,
+                };
+            }
+            TokenEventDetails::Transfer(e) => {
+                event_type = TokenUpdateEventType::Transfer;
+                to = e.to.address.to_string();
+                from = e.from.address.to_string();
+                plt_amount_change =
+                    BigDecimal::from(e.amount.value.parse::<f64>().unwrap_or(0.0) as u64);
+            }
+
+            TokenEventDetails::Mint(e) => {
+                event_type = TokenUpdateEventType::Mint;
+
+                plt_amount_change =
+                    BigDecimal::from(e.amount.value.clone().parse::<f64>().unwrap_or(0.0) as u64);
+                target = e.target.address.to_string();
+            }
+            TokenEventDetails::Burn(e) => {
+                event_type = TokenUpdateEventType::Burn;
+                target = e.target.address.to_string();
+
+                plt_amount_change =
+                    BigDecimal::from(e.amount.value.clone().parse::<f64>().unwrap_or(0.0) as u64);
+            }
+        };
+        sqlx::query!(
+            "
+            INSERT INTO plt_events (
+                id,
+                transaction_index,
+                event_type,
+                token_module_type,
+                token_index,
+                token_event,
+                target_index,
+                to_index,
+                from_index
+            )
+            VALUES (
+                (SELECT COALESCE(MAX(id) + 1, 0) FROM plt_events),
+                $1,
+                 $2,
+                 $3,
+                (SELECT index FROM plt_tokens WHERE token_id = $4),
+                $5,
+                (SELECT index FROM accounts WHERE address = $6),
+                (SELECT index FROM accounts WHERE address = $7),
+                (SELECT index FROM accounts WHERE address = $8)
+                )
+            ",
+            transaction_index,
+            event_type as TokenUpdateEventType,
+            token_module_type as Option<TokenUpdateModuleType>,
+            token_id,
+            token_event,
+            target,
+            to,
+            from
+        )
+        .execute(tx.as_mut())
+        .await?;
+
+        match event_type {
+            TokenUpdateEventType::Mint => {
+                sqlx::query!(
+                    "
+                    UPDATE plt_tokens
+                    SET total_minted = total_minted + $1
+                    WHERE token_id = $2
+                    ",
+                    plt_amount_change,
+                    token_id
+                )
+                .execute(tx.as_mut())
+                .await?;
+
+                sqlx::query!(
+                    "
+                    INSERT INTO plt_accounts (account_index, token_index, amount, decimal)
+                    VALUES (
+                        (SELECT index FROM accounts WHERE address = $1),
+                        (SELECT index FROM plt_tokens WHERE token_id = $2),
+                        $3,
+                        (SELECT decimal FROM plt_tokens WHERE token_id = $2)
+                    )
+                    ON CONFLICT (account_index, token_index) DO UPDATE
+                    SET amount = plt_accounts.amount + $3
+                    ",
+                    target,
+                    token_id,
+                    plt_amount_change
+                )
+                .execute(tx.as_mut())
+                .await?;
+            }
+            TokenUpdateEventType::Burn => {
+                sqlx::query!(
+                    "
+                    UPDATE plt_tokens
+                    SET total_burned = total_burned + $1
+                    WHERE token_id = $2
+                    ",
+                    plt_amount_change,
+                    token_id
+                )
+                .execute(tx.as_mut())
+                .await?;
+                sqlx::query!(
+                    "
+                    INSERT INTO plt_accounts (account_index, token_index, amount, decimal)
+                    VALUES (
+                        (SELECT index FROM accounts WHERE address = $1),
+                        (SELECT index FROM plt_tokens WHERE token_id = $2),
+                        $3,
+                        (SELECT decimal FROM plt_tokens WHERE token_id = $2)
+                    )
+                    ON CONFLICT (account_index, token_index) DO UPDATE
+                    SET amount = plt_accounts.amount + $3
+                    ",
+                    target,
+                    token_id,
+                    &(-plt_amount_change.clone())
+                )
+                .execute(tx.as_mut())
+                .await?;
+            }
+            TokenUpdateEventType::Transfer => {
+                sqlx::query!(
+                    "
+                    INSERT INTO plt_accounts (account_index, token_index, amount, decimal)
+                    VALUES (
+                        (SELECT index FROM accounts WHERE address = $1),
+                        (SELECT index FROM plt_tokens WHERE token_id = $2),
+                        $3,
+                        (SELECT decimal FROM plt_tokens WHERE token_id = $2)
+                    )
+                    ON CONFLICT (account_index, token_index) DO UPDATE
+                    SET amount = plt_accounts.amount + $3
+                    ",
+                    from,
+                    token_id,
+                    &(-plt_amount_change.clone())
+                )
+                .execute(tx.as_mut())
+                .await?;
+
+                sqlx::query!(
+                    "
+                    INSERT INTO plt_accounts (account_index, token_index, amount, decimal)
+                    VALUES (
+                        (SELECT index FROM accounts WHERE address = $1),
+                        (SELECT index FROM plt_tokens WHERE token_id = $2),
+                        $3,
+                        (SELECT decimal FROM plt_tokens WHERE token_id = $2)
+                    )
+                    ON CONFLICT (account_index, token_index) DO UPDATE
+                    SET amount = plt_accounts.amount + $3
+                    ",
+                    to,
+                    token_id,
+                    &plt_amount_change
+                )
+                .execute(tx.as_mut())
+                .await?;
+            }
+            TokenUpdateEventType::TokenModule => {}
+        }
+        Ok(())
     }
 }

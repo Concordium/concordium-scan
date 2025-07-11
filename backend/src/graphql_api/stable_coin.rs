@@ -1,14 +1,9 @@
-use super::{ApiResult, InternalError};
-use crate::{address::AccountAddress, graphql_api::ApiError};
+use crate::address::AccountAddress;
 use async_graphql::{Context, Object, SimpleObject};
 use chrono::{Duration, TimeZone, Utc};
-use clap::Parser;
-use concordium_rust_sdk::v2::{self, BlockIdentifier};
-use futures::StreamExt;
 use serde::Deserialize;
 use std::{
     collections::{HashMap, HashSet},
-    env,
     fs::File,
     io::BufReader,
 };
@@ -168,12 +163,6 @@ impl StableCoin {
         let last_n = last_n_transactions.unwrap_or(20);
         Some(transactions.into_iter().take(last_n).collect())
     }
-}
-
-#[derive(Parser)]
-struct App {
-    #[arg(long = "node", env = "CCDSCAN_API_GRPC_ENDPOINTS", required = true)]
-    endpoint: v2::Endpoint,
 }
 
 #[derive(Default)]
@@ -433,81 +422,5 @@ impl QueryStableCoins {
                 .collect(),
         );
         txn_summary
-    }
-
-    async fn live_stablecoins(&self, _ctx: &Context<'_>) -> ApiResult<Vec<StableCoin>> {
-        let endpoint_env = env::var("CCDSCAN_API_GRPC_ENDPOINTS");
-        let endpoint: v2::Endpoint = endpoint_env
-            .map_err(|_| {
-                ApiError::Unavailable(
-                    "Stablecoin data is not available. Only available in Devnet".to_string(),
-                )
-            })?
-            .parse()
-            .map_err(|e| {
-                InternalError::InternalError(format!(
-                    "Failed parsing the node endpoint from env CCDSCAN_API_GRPC_ENDPOINTS: {}",
-                    e
-                ))
-            })?;
-        let mut client = v2::Client::new(endpoint)
-            .await
-            .map_err(|e| InternalError::InternalError(format!("Failed to create client: {}", e)))?;
-        let mut response =
-            client.get_token_list(&BlockIdentifier::LastFinal).await.map_err(|e| {
-                InternalError::InternalError(format!("Failed to get token list: {}", e))
-            })?;
-        let mut coins: Vec<StableCoin> = vec![];
-
-        while let Some(token_id) =
-            response.response.next().await.transpose().map_err(|e| {
-                InternalError::InternalError(format!("Failed to get next token: {}", e))
-            })?
-        {
-            let token_info =
-                client.get_token_info(token_id.clone(), BlockIdentifier::LastFinal).await.map_err(
-                    |e| InternalError::InternalError(format!("Failed to get token info: {}", e)),
-                )?;
-
-            let response = token_info.response;
-            let token_state = response.token_state;
-            let token_module_state = token_state.decode_module_state().map_err(|e| {
-                InternalError::InternalError(format!("Failed to decode module state: {}", e))
-            })?;
-            let issuer =
-                serde_json::to_value(&token_module_state.governance_account).map_err(|e| {
-                    InternalError::InternalError(format!(
-                        "Failed to serialize governance account: {}",
-                        e
-                    ))
-                })?["address"]
-                    .as_str()
-                    .unwrap_or("")
-                    .to_string();
-            let name = token_module_state.name;
-
-            let total_supply = token_state.total_supply.to_string().parse::<f64>().map_err(|e| {
-                InternalError::InternalError(format!("Failed to parse total supply: {}", e))
-            })? as i64;
-
-            let circulating_supply = total_supply; // Assumed same for now
-
-            coins.push(StableCoin {
-                name,
-                symbol: String::from(token_id),
-                total_supply,
-                circulating_supply,
-                decimal: token_state.decimals,
-                value_in_dollar: 1.0, // Placeholder value
-                total_unique_holders: None,
-                transfers: None,
-                holdings: None,
-                metadata: None,
-                issuer,
-                transactions: None,
-            });
-        }
-
-        Ok(coins)
     }
 }
