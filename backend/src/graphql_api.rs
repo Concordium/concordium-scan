@@ -12,6 +12,7 @@ mod contract;
 mod module_reference_event;
 pub mod node_status;
 mod passive_delegation;
+mod plt;
 mod reward_metrics;
 mod search_result;
 mod stable_coin;
@@ -19,8 +20,6 @@ mod suspended_validators;
 mod token;
 mod transaction;
 mod transaction_metrics;
-mod plt;
-mod plt_event_metrics;
 
 use crate::{
     connection::ConnectionQuery,
@@ -169,7 +168,6 @@ pub struct ApiServiceConfig {
         default_value = "100"
     )]
     plt_token_events_collection_limit: u64,
-    
 }
 
 #[derive(MergedObject, Default)]
@@ -194,7 +192,6 @@ pub struct Query(
     plt::QueryPLTEvent,
     plt::QueryPLT,
     plt::QueryPLTAccountAmount,
-    plt_event_metrics::QueryPltEventMetrics
 );
 
 pub struct Service {

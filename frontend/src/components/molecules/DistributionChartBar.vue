@@ -28,7 +28,7 @@ import MetricCard from '~/components/atoms/MetricCard.vue'
 import { computed, defineProps } from 'vue'
 import ChartBarST from '../Charts/ChartBarST.vue'
 
-import type { Plttoken } from '~/types/generated';
+import type { Plttoken } from '~/types/generated'
 
 // Define Props
 const props = defineProps<{
@@ -49,10 +49,12 @@ const chartData = computed(() => {
 	const coins = props.stableCoinsData?.slice(0, 10) ?? []
 	return coins.map(item =>
 		props.chartType === 'supply'
-			? (item.totalSupply != null && item.decimal != null
+			? item.totalSupply != null && item.decimal != null
 				? item.totalSupply
-				: null)
-			: (item.totalUniqueHolders != null ? item.totalUniqueHolders : null)
+				: null
+			: item.totalUniqueHolders != null
+			? item.totalUniqueHolders
+			: null
 	)
 })
 </script>

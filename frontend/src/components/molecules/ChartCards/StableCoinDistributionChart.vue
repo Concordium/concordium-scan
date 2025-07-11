@@ -44,13 +44,12 @@ watchEffect(() => {
 			(sum, coin) => sum + ((coin.totalSupply ?? 0) || 0),
 			0
 		)
-		
 
 		delayedSupplyPercentage.value = stablecoins.map(coin => ({
 			symbol: coin.tokenId || '',
 			supplyPercentage:
 				totalSupplySum > 0
-					? (((coin.totalSupply ?? 0)  / totalSupplySum) * 100).toString()
+					? (((coin.totalSupply ?? 0) / totalSupplySum) * 100).toString()
 					: '0',
 		}))
 	}, 1000)

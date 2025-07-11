@@ -2,7 +2,6 @@ use crate::{
     address::AccountAddress,
     scalar_types::{DateTime, Decimal, UnsignedInt, UnsignedLong},
     transaction_event::protocol_level_tokens::InitializationParameters,
-
 };
 use async_graphql::{SimpleObject, Union};
 use concordium_rust_sdk::types::{ExchangeRate, UpdatePayload};

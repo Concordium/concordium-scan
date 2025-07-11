@@ -1,8 +1,7 @@
 import { useQuery, gql } from '@urql/vue'
 import type { Plttoken } from '~/types/generated'
 
-import type { QueryVariables } from '~/types/queryVariables';
-
+import type { QueryVariables } from '~/types/queryVariables'
 
 export type PLTTokenQueryResponse = {
 	pltTokens: {
@@ -11,8 +10,8 @@ export type PLTTokenQueryResponse = {
 }
 
 const PLT_TOKEN_QUERY = gql<PLTTokenQueryResponse>`
-	query{
-		pltTokens{
+	query {
+		pltTokens {
 			nodes {
 				name
 				tokenId
@@ -28,8 +27,8 @@ const PLT_TOKEN_QUERY = gql<PLTTokenQueryResponse>`
 				issuer {
 					asString
 				}
-				totalUniqueHolders	
-        	}
+				totalUniqueHolders
+			}
 		}
 	}
 `
@@ -37,7 +36,6 @@ const PLT_TOKEN_QUERY = gql<PLTTokenQueryResponse>`
 function getData(value: PLTTokenQueryResponse | undefined | null): Plttoken[] {
 	return value?.pltTokens?.nodes ?? []
 }
-
 
 export const usePltTokenQuery = (eventsVariables?: QueryVariables) => {
 	const { data, fetching, error } = useQuery({
@@ -62,9 +60,6 @@ export const usePltTokenQuery = (eventsVariables?: QueryVariables) => {
 		data: dataRef,
 		error,
 		componentState,
-		loading: fetching
+		loading: fetching,
 	}
 }
-
-
-

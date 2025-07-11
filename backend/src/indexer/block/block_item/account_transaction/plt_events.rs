@@ -2,8 +2,8 @@
 //! TokenGovernance). These types are used to prepare and (optionally) persist
 //! token events during block processing.
 
-use concordium_rust_sdk::protocol_level_tokens::{self};
 use crate::transaction_event::protocol_level_tokens::TokenUpdate;
+use concordium_rust_sdk::protocol_level_tokens::{self};
 
 /// Collection of prepared token holder events.
 /// This struct is required by the event processing interface, even if not
@@ -20,7 +20,6 @@ impl PreparedTokenEvents {
         tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
-        println!("Saving {} token holder events", self.events.len());
         for event in &self.events {
             event.save(tx, transaction_index).await?;
         }
@@ -44,7 +43,7 @@ impl PreparedTokenEvent {
         })
     }
 
-        /// Saves the prepared token event to the database.
+    /// Saves the prepared token event to the database.
     pub async fn save(
         &self,
         tx: &mut sqlx::PgTransaction<'_>,

@@ -12,7 +12,7 @@ export type PLTEventsQueryResponse = {
 
 const PLT_TOKEN_QUERY = gql<PLTEventsQueryResponse>`
 	query ($after: String, $before: String, $first: Int, $last: Int) {
-		pltEvents(first:$first,last:$last,after:$after,before:$before) {
+		pltEvents(first: $first, last: $last, after: $after, before: $before) {
 			nodes {
 				id
 				transactionIndex

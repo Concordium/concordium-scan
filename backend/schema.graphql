@@ -1935,25 +1935,6 @@ type PendingBakerRemoval {
 	effectiveTime: DateTime!
 }
 
-type PltEventMetrics {
-	lastCumulativeEventCount: Int!
-	eventCount: Int!
-	lastCumulativeTotalSupply: Float!
-	totalSupply: Float!
-	lastCumulativeUniqueHolders: Int!
-	totalUniqueHolders: Int!
-	buckets: PltEventMetricsBuckets!
-}
-
-type PltEventMetricsBuckets {
-	bucketWidth: TimeSpan!
-	x_Time: [DateTime!]!
-	y_LastCumulativeEventCount: [Int!]!
-	y_EventCount: [Int!]!
-	y_TotalSupply: [Float!]!
-	y_TotalUniqueHolders: [Int!]!
-}
-
 type PltaccountAmount {
 	accountAddress: AccountAddress!
 	tokenId: String!
@@ -2120,7 +2101,6 @@ type Query {
 	transferSummary(assetName: String!, days: Int): TransferSummaryResponse!
 	stablecoinOverview: StableCoinOverview!
 	latestTransactions(limit: Int): [LatestTransactionResponse!]
-	liveStablecoins: [StableCoin!]!
 	transaction(id: ID!): Transaction!
 	transactionByTransactionHash(transactionHash: String!): Transaction!
 	transactions(
@@ -2233,7 +2213,6 @@ type Query {
 	): PlttokenConnection!
 	pltAccounts(account: ID!, tokenId: ID!): PltaccountAmount
 	pltAccountsByTokenId(tokenId: ID!): [PltaccountAmount!]!
-	pltEventMetrics(period: MetricsPeriod!, tokenId: ID): PltEventMetrics!
 }
 
 """

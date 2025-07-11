@@ -2221,27 +2221,6 @@ export type PendingBakerRemoval = {
   effectiveTime: Scalars['DateTime'];
 };
 
-export type PltEventMetrics = {
-  __typename?: 'PltEventMetrics';
-  buckets: PltEventMetricsBuckets;
-  eventCount: Scalars['Int'];
-  lastCumulativeEventCount: Scalars['Int'];
-  lastCumulativeTotalSupply: Scalars['Float'];
-  lastCumulativeUniqueHolders: Scalars['Int'];
-  totalSupply: Scalars['Float'];
-  totalUniqueHolders: Scalars['Int'];
-};
-
-export type PltEventMetricsBuckets = {
-  __typename?: 'PltEventMetricsBuckets';
-  bucketWidth: Scalars['TimeSpan'];
-  x_Time: Array<Scalars['DateTime']>;
-  y_EventCount: Array<Scalars['Int']>;
-  y_LastCumulativeEventCount: Array<Scalars['Int']>;
-  y_TotalSupply: Array<Scalars['Float']>;
-  y_TotalUniqueHolders: Array<Scalars['Int']>;
-};
-
 export type PltaccountAmount = {
   __typename?: 'PltaccountAmount';
   accountAddress: AccountAddress;
@@ -2413,7 +2392,6 @@ export type Query = {
   importState: ImportState;
   latestChainParameters: LatestChainParameters;
   latestTransactions?: Maybe<Array<LatestTransactionResponse>>;
-  liveStablecoins: Array<StableCoin>;
   moduleReferenceEvent: ModuleReferenceEvent;
   nodeStatus?: Maybe<NodeStatus>;
   nodeStatuses: NodeStatusConnection;
@@ -2423,7 +2401,6 @@ export type Query = {
   pltAccountsByTokenId: Array<PltaccountAmount>;
   pltEvent: Pltevent;
   pltEventByTransactionIndex: Pltevent;
-  pltEventMetrics: PltEventMetrics;
   pltEvents: PlteventConnection;
   pltEventsByTokenId: PlteventConnection;
   pltToken: Plttoken;
@@ -2579,12 +2556,6 @@ export type QueryPltEventArgs = {
 
 export type QueryPltEventByTransactionIndexArgs = {
   transactionIndex: Scalars['ID'];
-};
-
-
-export type QueryPltEventMetricsArgs = {
-  period: MetricsPeriod;
-  tokenId?: InputMaybe<Scalars['ID']>;
 };
 
 

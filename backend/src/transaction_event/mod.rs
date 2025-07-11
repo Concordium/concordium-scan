@@ -3,7 +3,12 @@ use crate::{
     decoded_text::DecodedText,
     graphql_api::{ApiResult, InternalError},
     scalar_types::{BigInteger, Byte, DateTime, UnsignedLong},
-    transaction_event::{protocol_level_tokens::{CreatePlt,InitializationParameters,CreatePLTInitializationParameters}, transfers::TimestampedAmount},
+    transaction_event::{
+        protocol_level_tokens::{
+            CreatePLTInitializationParameters, CreatePlt, InitializationParameters,
+        },
+        transfers::TimestampedAmount,
+    },
 };
 use anyhow::Context;
 use async_graphql::{ComplexObject, Object, SimpleObject, Union};
@@ -599,29 +604,33 @@ pub fn events_from_summary(
             })]
         }
         BlockItemSummaryDetails::TokenCreationDetails(token_creation_details) => {
-            println!("Token creation details: {:?}", token_creation_details);
-         let initialization_parameters_temp: InitializationParameters =
+            let initialization_parameters_temp: InitializationParameters =
                 ciborium::de::from_reader::<InitializationParameters, _>(
                     token_creation_details.create_plt.initialization_parameters.as_ref(),
                 )
                 .map_err(|e| {
                     anyhow::anyhow!("Failed to decode initialization parameters: {}", e)
                 })?;
-        println!(
-                    "Initialization parameters temp : {:?}",
-                    initialization_parameters_temp
-                );
+
             let initialization_parameters =
                 serde_json::to_value(CreatePLTInitializationParameters {
-                    name:           initialization_parameters_temp.name,
-                    metadata:       initialization_parameters_temp.metadata,
-                    allow_list:     Some(
+                    name:               initialization_parameters_temp.name,
+                    metadata:           initialization_parameters_temp.metadata,
+                    allow_list:         Some(
                         initialization_parameters_temp.allow_list.unwrap_or(false),
                     ),
-                    deny_list:      Some(initialization_parameters_temp.deny_list.unwrap_or(false)),
-                    mintable:       Some(initialization_parameters_temp.mintable.unwrap_or(false)),
-                    burnable:       Some(initialization_parameters_temp.burnable.unwrap_or(false)),
-                    initial_supply: initialization_parameters_temp.initial_supply.map(|v| v.into()),
+                    deny_list:          Some(
+                        initialization_parameters_temp.deny_list.unwrap_or(false),
+                    ),
+                    mintable:           Some(
+                        initialization_parameters_temp.mintable.unwrap_or(false),
+                    ),
+                    burnable:           Some(
+                        initialization_parameters_temp.burnable.unwrap_or(false),
+                    ),
+                    initial_supply:     initialization_parameters_temp
+                        .initial_supply
+                        .map(|v| v.into()),
                     governance_account: initialization_parameters_temp.governance_account,
                 })?;
             let create_plt = CreatePlt {

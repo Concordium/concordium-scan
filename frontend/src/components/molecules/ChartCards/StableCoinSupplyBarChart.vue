@@ -19,6 +19,5 @@ type Props = {
 	isLoading?: boolean
 }
 
-
 defineProps<Props>()
 </script>

@@ -20,7 +20,7 @@ pub type TransactionIndex = i64;
 pub type AccountIndex = i64;
 pub type MetadataUrl = String;
 pub type PltIndex = i64;
-pub type TokenIndex= i64;
+pub type TokenIndex = i64;
 
 /// The UnsignedLong scalar type represents a unsigned 64-bit numeric
 /// non-fractional value greater than or equal to 0.
