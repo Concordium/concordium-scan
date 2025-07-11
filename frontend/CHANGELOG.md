@@ -24,6 +24,19 @@ All notable changes to this project will be documented in this file.
   - `useBlockSubscription`
 
 - Move account statement export to use `rust-backend` API.
+- Update ccd scan copyright to 2025
+
+## [1.7.19] - 2025-07-03
+
+### Removed
+
+- Remove overview section from stablecoin dashboard.
+
+## [1.7.18] - 2025-07-03
+
+### Changed
+
+- Stable coin dashboard now displays plt list and plt supply analytics.
 
 ## [1.7.17] - 2025-06-25
 

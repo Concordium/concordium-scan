@@ -2120,6 +2120,7 @@ type Query {
 	transferSummary(assetName: String!, days: Int): TransferSummaryResponse!
 	stablecoinOverview: StableCoinOverview!
 	latestTransactions(limit: Int): [LatestTransactionResponse!]
+	liveStablecoins: [StableCoin!]!
 	transaction(id: ID!): Transaction!
 	transactionByTransactionHash(transactionHash: String!): Transaction!
 	transactions(

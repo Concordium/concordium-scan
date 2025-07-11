@@ -1,6 +1,5 @@
 //! This module contains the block information computed during the concurrent
 //! preprocessing and the logic for how to do the sequential processing.
-
 use crate::indexer::{
     block_preprocessor::BlockData, block_processor::BlockProcessingContext, statistics::Statistics,
 };
@@ -12,40 +11,54 @@ use protocol_update_migration::ProtocolUpdateMigration;
 use special_transaction_outcomes::{
     validator_suspension::PreparedUnmarkPrimedForSuspension, PreparedSpecialTransactionOutcomes,
 };
+use tracing::debug;
 
 pub mod block_item;
 pub mod protocol_update_migration;
 pub mod special_transaction_outcomes;
 
+/// Represents the latest staking information for all validators
+#[derive(Clone)]
+pub struct ValidatorStakingInformation {
+    /// The validator ids
+    pub ids: Vec<i64>,
+    /// The validators staked amounts
+    pub staked_amounts: Vec<i64>,
+    // The total pool stake for each validator
+    pub pool_total_staked_amounts: Vec<i64>,
+}
+
 /// Preprocessed block which is ready to be saved in the database.
 pub struct PreparedBlock {
     /// Hash of the block.
-    pub hash:                     String,
+    pub hash: String,
     /// Absolute height of the block.
-    pub height:                   i64,
+    pub height: i64,
     /// Block slot time (UTC).
-    slot_time:                    DateTime<Utc>,
+    slot_time: DateTime<Utc>,
     /// Id of the validator which constructed the block. Is only None for the
     /// genesis block.
-    baker_id:                     Option<i64>,
+    baker_id: Option<i64>,
     /// Total amount of CCD in existence at the time of this block.
-    total_amount:                 i64,
-    /// Total staked CCD at the time of this block.
-    total_staked:                 i64,
+    total_amount: i64,
+    /// Total staked CCD including delegation at the time of this block.
+    total_staked: i64,
     /// Block hash of the last finalized block.
-    block_last_finalized:         String,
+    block_last_finalized: String,
     /// Preprocessed block items, ready to be saved in the database.
-    prepared_block_items:         Vec<PreparedBlockItem>,
+    prepared_block_items: Vec<PreparedBlockItem>,
     /// Preprocessed block special items, ready to be saved in the database.
     special_transaction_outcomes: PreparedSpecialTransactionOutcomes,
     /// Unmark the baker and signers of the Quorum Certificate from being primed
     /// for suspension.
-    baker_unmark_suspended:       PreparedUnmarkPrimedForSuspension,
+    baker_unmark_suspended: PreparedUnmarkPrimedForSuspension,
     /// Statistics gathered about frequency of events
-    statistics:                   Statistics,
+    statistics: Statistics,
     /// Optional data migration for when this is the first block after a
     /// protocol update.
-    protocol_update_migration:    Option<ProtocolUpdateMigration>,
+    protocol_update_migration: Option<ProtocolUpdateMigration>,
+    /// Validator staking information to be updated in the database
+    validator_staking_information: ValidatorStakingInformation,
 }
 
 impl PreparedBlock {
@@ -62,7 +75,7 @@ impl PreparedBlock {
         let mut statistics = Statistics::new(height, slot_time);
         let total_amount =
             i64::try_from(data.tokenomics_info.common_reward_data().total_amount.micro_ccd())?;
-        let total_staked = i64::try_from(data.total_staked_capital.micro_ccd())?;
+        let total_staked = i64::try_from(data.total_staked.micro_ccd())?;
         let mut prepared_block_items = Vec::new();
         for (item_summary, item) in data.events.iter().zip(data.items.iter()) {
             prepared_block_items.push(
@@ -83,6 +96,10 @@ impl PreparedBlock {
             ProtocolUpdateMigration::prepare(node_client, data)
                 .await
                 .context("Failed to prepare for data migation caused by protocol update")?;
+
+        let validator_staking_information: ValidatorStakingInformation =
+            data.validator_staking_information.clone();
+
         Ok(Self {
             hash,
             height,
@@ -96,6 +113,7 @@ impl PreparedBlock {
             baker_unmark_suspended,
             statistics,
             protocol_update_migration,
+            validator_staking_information,
         })
     }
 
@@ -265,6 +283,33 @@ impl PreparedBlock {
         }
         self.statistics.save(tx).await?;
         self.special_transaction_outcomes.save(tx).await?;
+
+        // gather vectors for the update query
+        let ids = &self.validator_staking_information.ids;
+        let staked_amounts = &self.validator_staking_information.staked_amounts;
+        let pool_staked_amounts = &self.validator_staking_information.pool_total_staked_amounts;
+
+        if !ids.is_empty() {
+            debug!(
+                "Updating bakers table staked and pool_total_staked now. ids: {:?} - staked: \
+                 {:?}, pool_staked: {:?}",
+                ids, staked_amounts, pool_staked_amounts,
+            );
+
+            sqlx::query!(
+                "UPDATE BAKERS
+                SET staked = u.staked, pool_total_staked = u.pool_total_staked
+                FROM UNNEST($1::BIGINT[], $2::BIGINT[], $3::BIGINT[]) AS u(id, staked, \
+                 pool_total_staked)
+                WHERE BAKERS.id = u.id",
+                ids,
+                staked_amounts,
+                pool_staked_amounts
+            )
+            .execute(tx.as_mut())
+            .await?;
+        }
+
         self.baker_unmark_suspended.save(tx).await?;
         Ok(())
     }

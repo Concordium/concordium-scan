@@ -141,7 +141,7 @@ Use `--help` for more information.",
 #[display("Migration {version}:{description}")]
 struct Migration {
     /// Version number for the database schema.
-    version:     i64,
+    version: i64,
     /// Short description of the point of the migration.
     description: String,
     /// Whether the migration does a breaking change to the database schema.
@@ -153,7 +153,7 @@ struct Migration {
 impl From<SchemaVersion> for Migration {
     fn from(value: SchemaVersion) -> Self {
         Migration {
-            version:     value.as_i64(),
+            version: value.as_i64(),
             description: value.to_string(),
             destructive: value.is_destructive(),
         }
@@ -260,7 +260,9 @@ pub enum SchemaVersion {
          TokenGovernance"
     )]
     UpdateTransactionTypeAddTokenUpdate,
-    #[display("0038: Create PLT token and event tables")]
+    #[display("0038: Baker APY query update, protect against overflow")]
+    BakerApyQueryUpdateProtectAgainstOverflow,
+    #[display("0039: Create PLT token and event tables")]
     CreatePltTokenAndEventTables,
 }
 impl SchemaVersion {
@@ -279,7 +281,9 @@ impl SchemaVersion {
     }
 
     /// Convert to the integer representation used as version in the database.
-    fn as_i64(self) -> i64 { self as i64 }
+    fn as_i64(self) -> i64 {
+        self as i64
+    }
 
     /// Whether introducing the database schema version is destructive, meaning
     /// not backwards compatible.
@@ -327,6 +331,7 @@ impl SchemaVersion {
             SchemaVersion::UpdateAccountTransactionTypes => false,
             SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => false,
             SchemaVersion::UpdateTransactionTypeAddTokenUpdate => false,
+            SchemaVersion::BakerApyQueryUpdateProtectAgainstOverflow => false,
             SchemaVersion::CreatePltTokenAndEventTables => false,
         }
     }
@@ -375,6 +380,7 @@ impl SchemaVersion {
             SchemaVersion::UpdateAccountTransactionTypes => false,
             SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => false,
             SchemaVersion::UpdateTransactionTypeAddTokenUpdate => false,
+            SchemaVersion::BakerApyQueryUpdateProtectAgainstOverflow => false,
             SchemaVersion::CreatePltTokenAndEventTables => false,
         }
     }
@@ -615,11 +621,18 @@ impl SchemaVersion {
             SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => {
                 m0037_update_transaction_type_add_tokenupdate::run(&mut tx, endpoints).await?
             }
+
             SchemaVersion::UpdateTransactionTypeAddTokenUpdate => {
                 tx.as_mut()
                     .execute(sqlx::raw_sql(include_str!(
-                        "./migrations/m0038_plt.sql"
+                        "./migrations/m0038_bakers_apy_function_prevent_overflow.sql"
                     )))
+                    .await?;
+                SchemaVersion::BakerApyQueryUpdateProtectAgainstOverflow
+            }
+            SchemaVersion::BakerApyQueryUpdateProtectAgainstOverflow => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!("./migrations/m0039_plt.sql")))
                     .await?;
                 SchemaVersion::CreatePltTokenAndEventTables
             }

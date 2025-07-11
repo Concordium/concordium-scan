@@ -102,17 +102,18 @@
 						</TableTd>
 						<TableTd>
 							<span class="text-theme-interactive font-semibold">
-								{{ event.eventType }}
+								{{ event.eventType =='TOKEN_MODULE'? event.tokenModuleType:event.eventType }}
 							</span>
 						</TableTd>
 
 						<TableTd>
-							<a :href="`/protocol-token/${event.tokenId}`" target="_blank"
+							<!-- <a :href="`/protocol-token/${event.tokenId}`" target="_blank"
 								class="font-normal text-md text-theme-interactive flex flex-row items-center">
-								<!-- <img :src="" class="rounded-full w-6 h-6 mr-2"
-									alt="Token Icon" loading="lazy" decoding="async" /> -->
+								<img :src="" class="rounded-full w-6 h-6 mr-2"
+									alt="Token Icon" loading="lazy" decoding="async" />
+							
+							</a> -->
 								{{ event.tokenName }}
-							</a>
 						</TableTd>
 						<TableTd>
 							<AccountLink :address="event.from?.asString" />

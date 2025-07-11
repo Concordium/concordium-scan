@@ -169,6 +169,7 @@ pub struct ApiServiceConfig {
         default_value = "100"
     )]
     plt_token_events_collection_limit: u64,
+    
 }
 
 #[derive(MergedObject, Default)]
@@ -487,6 +488,8 @@ pub enum ApiError {
     InvalidIntString(#[from] std::num::ParseIntError),
     #[error("Parse error: {0}")]
     InvalidContractVersion(#[from] InvalidContractVersionError),
+    #[error("Service unavailable: {0}")]
+    Unavailable(String),
 }
 
 impl From<sqlx::Error> for InternalError {

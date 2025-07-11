@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE BAKERS\n                SET staked = u.staked, pool_total_staked = u.pool_total_staked\n                FROM UNNEST($1::BIGINT[], $2::BIGINT[], $3::BIGINT[]) AS u(id, staked, pool_total_staked)\n                WHERE BAKERS.id = u.id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8Array",
+        "Int8Array",
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "840e126be2358f90b26c7decafb633d300e1b27c09b8bcb83f31160a3da57c5d"
+}

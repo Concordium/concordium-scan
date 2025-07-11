@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE bakers\n                         SET pool_delegator_count = 0\n                         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f61c6e143a3b9fc5c0b7ca3501813a23f9986b4370601f261f196374b725d9ed"
+}

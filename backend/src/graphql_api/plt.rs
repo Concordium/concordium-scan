@@ -54,14 +54,14 @@ impl QueryPLTEvent {
         )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, PLTEvent>> {
-        let config = get_config(ctx)?;
+        // let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
         let query = ConnectionQuery::<DescendingI64>::new(
             first,
             after,
             last,
             before,
-            config.plt_token_events_collection_limit,
+            10u64, // config.plt_token_events_collection_limit Hardcoded for now
             
         )?;
 
