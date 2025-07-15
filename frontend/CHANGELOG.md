@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Added
+- Added `usePltTokenQuery` to fetch details of a specific plt token.
+- Added `usePltEventsQuery` to fetch events related to plt tokens.
+
 ### Removed
 
 - Remove the temporary maintenance banner.
