@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT name,\n            index,\n            token_id,\n            transaction_index,\n            issuer_index,\n            module_reference,\n            metadata as \"metadata: sqlx::types::Json<sqlx::types::JsonValue>\",\n            initial_supply,\n            total_minted,\n            total_burned,\n            decimal\n            FROM plt_tokens WHERE token_id = $1",
+  "query": "SELECT name,\n                    index,\n                    token_id,\n                    transaction_index,\n                    issuer_index,\n                    module_reference,\n                    metadata as \"metadata: sqlx::types::Json<sqlx::types::JsonValue>\",\n                    initial_supply,\n                    total_minted,\n                    total_burned,\n                    decimal\n            FROM plt_tokens WHERE token_id = $1",
   "describe": {
     "columns": [
       {
@@ -65,18 +65,18 @@
       ]
     },
     "nullable": [
-      true,
       false,
       false,
       false,
       false,
+      false,
       true,
       true,
       true,
       true,
       true,
-      true
+      false
     ]
   },
-  "hash": "be3d0f9dd57f49a116791ae592067078dcf7b7866526a3f18c53c2ef91371149"
+  "hash": "27dd438f1dfa9c43e8aef9df621065e9b74e98e8a50bdf77dc0d15c153dc9ba9"
 }

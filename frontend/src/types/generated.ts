@@ -1202,6 +1202,18 @@ export type CooldownParametersChainUpdatePayload = {
   poolOwnerCooldown: Scalars['UnsignedLong'];
 };
 
+export type CreatePltInitializationParameters = {
+  __typename?: 'CreatePLTInitializationParameters';
+  allowList?: Maybe<Scalars['Boolean']>;
+  burnable?: Maybe<Scalars['Boolean']>;
+  denyList?: Maybe<Scalars['Boolean']>;
+  governanceAccount?: Maybe<TokenHolder>;
+  initialSupply?: Maybe<TokenAmount>;
+  metadata: MetadataUrl;
+  mintable?: Maybe<Scalars['Boolean']>;
+  name: Scalars['String'];
+};
+
 export type CreatePlt = {
   __typename?: 'CreatePlt';
   /**
@@ -1211,7 +1223,7 @@ export type CreatePlt = {
    */
   decimals: Scalars['Int'];
   /** The initialization parameters of the token, encoded in CBOR. */
-  initializationParameters: Scalars['JSON'];
+  initializationParameters: CreatePltInitializationParameters;
   /** The symbol of the token. */
   tokenId: Scalars['String'];
   /** A SHA256 hash that identifies the token module implementation. */
@@ -1686,6 +1698,11 @@ export type Memo = {
 export type Metadata = {
   __typename?: 'Metadata';
   iconUrl: Scalars['String'];
+};
+
+export type MetadataUrl = {
+  __typename?: 'MetadataUrl';
+  url: Scalars['String'];
 };
 
 export enum MetricsPeriod {
@@ -2232,10 +2249,7 @@ export type Pltevent = {
   __typename?: 'Pltevent';
   block: Block;
   eventType?: Maybe<TokenUpdateEventType>;
-  from?: Maybe<AccountAddress>;
   id: Scalars['Int'];
-  target?: Maybe<AccountAddress>;
-  to?: Maybe<AccountAddress>;
   tokenEvent: TokenEventDetails;
   tokenId: Scalars['String'];
   tokenModuleType?: Maybe<TokenUpdateModuleType>;

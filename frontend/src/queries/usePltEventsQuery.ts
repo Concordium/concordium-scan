@@ -68,15 +68,6 @@ const PLT_TOKEN_QUERY = gql<PLTEventsQueryResponse>`
 					}
 				}
 				transactionHash
-				target {
-					asString
-				}
-				to {
-					asString
-				}
-				from {
-					asString
-				}
 				block {
 					blockSlotTime
 				}

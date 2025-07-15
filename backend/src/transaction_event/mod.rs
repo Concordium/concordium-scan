@@ -4,9 +4,7 @@ use crate::{
     graphql_api::{ApiResult, InternalError},
     scalar_types::{BigInteger, Byte, DateTime, UnsignedLong},
     transaction_event::{
-        protocol_level_tokens::{
-            CreatePLTInitializationParameters, CreatePlt, InitializationParameters,
-        },
+        protocol_level_tokens::{CreatePlt, InitializationParameters},
         transfers::TimestampedAmount,
     },
 };
@@ -604,40 +602,23 @@ pub fn events_from_summary(
             })]
         }
         BlockItemSummaryDetails::TokenCreationDetails(token_creation_details) => {
-            let initialization_parameters_temp: InitializationParameters =
-                ciborium::de::from_reader::<InitializationParameters, _>(
-                    token_creation_details.create_plt.initialization_parameters.as_ref(),
-                )
-                .map_err(|e| {
-                    anyhow::anyhow!("Failed to decode initialization parameters: {}", e)
-                })?;
+            let initialization_parameters: InitializationParameters = ciborium::de::from_reader::<
+                InitializationParameters,
+                _,
+            >(
+                token_creation_details.create_plt.initialization_parameters.as_ref(),
+            )
+            .map_err(|e| anyhow::anyhow!("Failed to decode initialization parameters: {}", e))?;
 
-            let initialization_parameters =
-                serde_json::to_value(CreatePLTInitializationParameters {
-                    name:               initialization_parameters_temp.name,
-                    metadata:           initialization_parameters_temp.metadata,
-                    allow_list:         Some(
-                        initialization_parameters_temp.allow_list.unwrap_or(false),
-                    ),
-                    deny_list:          Some(
-                        initialization_parameters_temp.deny_list.unwrap_or(false),
-                    ),
-                    mintable:           Some(
-                        initialization_parameters_temp.mintable.unwrap_or(false),
-                    ),
-                    burnable:           Some(
-                        initialization_parameters_temp.burnable.unwrap_or(false),
-                    ),
-                    initial_supply:     initialization_parameters_temp
-                        .initial_supply
-                        .map(|v| v.into()),
-                    governance_account: initialization_parameters_temp.governance_account,
-                })?;
             let create_plt = CreatePlt {
-                token_id: token_creation_details.create_plt.token_id.clone().into(),
-                token_module: token_creation_details.create_plt.token_module.into(),
-                decimals: token_creation_details.create_plt.decimals,
-                initialization_parameters,
+                token_id:                  token_creation_details
+                    .create_plt
+                    .token_id
+                    .clone()
+                    .into(),
+                token_module:              token_creation_details.create_plt.token_module.into(),
+                decimals:                  token_creation_details.create_plt.decimals,
+                initialization_parameters: initialization_parameters.into(),
             };
             let events = token_creation_details
                 .events

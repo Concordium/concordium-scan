@@ -1064,6 +1064,17 @@ type CooldownParametersChainUpdatePayload {
 	delegatorCooldown: UnsignedLong!
 }
 
+type CreatePLTInitializationParameters {
+	name: String!
+	metadata: MetadataUrl!
+	allowList: Boolean
+	denyList: Boolean
+	mintable: Boolean
+	burnable: Boolean
+	initialSupply: TokenAmount
+	governanceAccount: TokenHolder
+}
+
 type CreatePlt {
 	"The symbol of the token."
 	tokenId: String!
@@ -1076,7 +1087,7 @@ type CreatePlt {
 	"""
 	decimals: Int!
 	"The initialization parameters of the token, encoded in CBOR."
-	initializationParameters: JSON!
+	initializationParameters: CreatePLTInitializationParameters!
 }
 
 type CreatePltUpdate {
@@ -1485,6 +1496,10 @@ type Memo {
 
 type Metadata {
 	iconUrl: String!
+}
+
+type MetadataUrl {
+	url: String!
 }
 
 enum MetricsPeriod {
@@ -1947,9 +1962,6 @@ type Pltevent {
 	eventType: TokenUpdateEventType
 	tokenModuleType: TokenUpdateModuleType
 	tokenId: String!
-	target: AccountAddress
-	to: AccountAddress
-	from: AccountAddress
 	tokenEvent: TokenEventDetails!
 	transactionHash: String!
 	block: Block!

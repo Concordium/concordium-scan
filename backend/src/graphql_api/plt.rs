@@ -21,6 +21,7 @@ use super::{
 use futures::TryStreamExt;
 use sqlx::{types::Json, PgPool};
 use std::str::FromStr;
+
 #[derive(Default)]
 pub struct QueryPLTEvent;
 
@@ -50,11 +51,14 @@ impl QueryPLTEvent {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, PLTEvent>> {
-        // let config = get_config(ctx)?;
+        let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
         let query = ConnectionQuery::<DescendingI64>::new(
-            first, after, last, before,
-            10u64, // config.plt_token_events_collection_limit Hardcoded for now
+            first,
+            after,
+            last,
+            before,
+            config.plt_token_events_collection_limit,
         )?;
 
         let mut row_stream = sqlx::query_as!(
@@ -65,9 +69,6 @@ impl QueryPLTEvent {
                 token_index,
                 event_type as "event_type: TokenUpdateEventType",
                 token_module_type as "token_module_type: TokenUpdateModuleType",
-                target_index,
-                to_index,
-                from_index,
                 token_event as "token_event: sqlx::types::Json<serde_json::Value>"
             FROM plt_events 
             WHERE $2 < id AND id < $1
@@ -126,34 +127,26 @@ impl QueryPLTEvent {
             before,
             config.plt_token_events_collection_limit,
         )?;
-        //  find token index by token id then use token_index to query events
-        let token_index: Option<TokenIndex> =
-            sqlx::query!("SELECT index FROM plt_tokens WHERE token_id = $1", token_id.to_string())
-                .fetch_optional(pool)
-                .await?
-                .map(|row| row.index);
-
         let mut row_stream = sqlx::query_as!(
             PLTEvent,
             r#"SELECT 
-                id,
-                transaction_index,
-                token_index,
-                event_type as "event_type: TokenUpdateEventType",
-                token_module_type as "token_module_type: TokenUpdateModuleType",
-                target_index,
-                to_index,
-                from_index,
-                token_event as "token_event: sqlx::types::Json<serde_json::Value>"
-            FROM plt_events 
-            WHERE $2 < id AND id < $1 AND token_index = $3
-            ORDER BY 
-                CASE WHEN $4 THEN id END ASC,
-                CASE WHEN NOT $4 THEN id END DESC
-            LIMIT $5"#,
+                    e.id,
+                    e.transaction_index,
+                    e.token_index,
+                    e.event_type AS "event_type: TokenUpdateEventType",
+                    e.token_module_type AS "token_module_type: TokenUpdateModuleType",
+
+                    e.token_event AS "token_event: sqlx::types::Json<serde_json::Value>"
+                FROM plt_events e
+                JOIN plt_tokens t ON e.token_index = t.index
+                WHERE $2 < e.id AND e.id < $1 AND t.token_id = $3
+                ORDER BY 
+                    (CASE WHEN $4 THEN e.id END) ASC,
+                    (CASE WHEN NOT $4 THEN e.id END) DESC
+                LIMIT $5"#,
             i64::from(query.from),
             i64::from(query.to),
-            token_index,
+            token_id.to_string(),
             query.is_last,
             query.limit,
         )
@@ -167,16 +160,12 @@ impl QueryPLTEvent {
 }
 
 #[derive(Debug, Clone)]
-
 pub struct PLTEvent {
     pub id:                PltIndex,
     pub transaction_index: TransactionIndex,
     pub event_type:        Option<TokenUpdateEventType>,
     pub token_module_type: Option<TokenUpdateModuleType>,
     pub token_index:       TokenIndex,
-    pub target_index:      Option<i64>,
-    pub to_index:          Option<i64>,
-    pub from_index:        Option<i64>,
     pub token_event:       Json<serde_json::Value>,
 }
 
@@ -190,9 +179,6 @@ impl PLTEvent {
                 token_index,
                 event_type as "event_type: TokenUpdateEventType",
                 token_module_type as "token_module_type: TokenUpdateModuleType",
-                target_index,
-                to_index,
-                from_index,
                 token_event as "token_event: sqlx::types::Json<serde_json::Value>"
             FROM plt_events WHERE id = $1"#,
             index
@@ -214,9 +200,6 @@ impl PLTEvent {
                 token_index,
                 event_type as "event_type: TokenUpdateEventType",
                 token_module_type as "token_module_type: TokenUpdateModuleType",
-                target_index,
-                to_index,
-                from_index,
                 token_event as "token_event: sqlx::types::Json<serde_json::Value>"
             FROM plt_events WHERE transaction_index = $1"#,
             transaction_index
@@ -247,36 +230,6 @@ impl PLTEvent {
         Ok(result.token_id)
     }
 
-    async fn target<'a>(&self, ctx: &Context<'a>) -> ApiResult<Option<AccountAddress>> {
-        let Some(target_index) = self.target_index else {
-            return Ok(None);
-        };
-        let result = sqlx::query!("SELECT address FROM accounts WHERE index = $1", target_index)
-            .fetch_one(get_pool(ctx)?)
-            .await?;
-        Ok(Some(result.address.into()))
-    }
-
-    async fn to<'a>(&self, ctx: &Context<'a>) -> ApiResult<Option<AccountAddress>> {
-        let Some(to_index) = self.to_index else {
-            return Ok(None);
-        };
-        let result = sqlx::query!("SELECT address FROM accounts WHERE index = $1", to_index)
-            .fetch_one(get_pool(ctx)?)
-            .await?;
-        Ok(Some(result.address.into()))
-    }
-
-    async fn from<'a>(&self, ctx: &Context<'a>) -> ApiResult<Option<AccountAddress>> {
-        let Some(from_index) = self.from_index else {
-            return Ok(None);
-        };
-        let result = sqlx::query!("SELECT address FROM accounts WHERE index = $1", from_index)
-            .fetch_one(get_pool(ctx)?)
-            .await?;
-        Ok(Some(result.address.into()))
-    }
-
     async fn token_event(&self) -> ApiResult<TokenEventDetails> {
         let details: TokenEventDetails = serde_json::from_value(self.token_event.0.clone())
             .map_err(|e| {
@@ -286,9 +239,8 @@ impl PLTEvent {
     }
 
     async fn transaction_hash<'a>(&self, ctx: &Context<'a>) -> ApiResult<TransactionHash> {
-        let transaction_index = self.transaction_index;
         let result =
-            sqlx::query!("SELECT hash FROM transactions WHERE index = $1", transaction_index)
+            sqlx::query!("SELECT hash FROM transactions WHERE index = $1", self.transaction_index)
                 .fetch_one(get_pool(ctx)?)
                 .await?;
         Ok(result.hash)
@@ -311,7 +263,7 @@ impl PLTEvent {
         let result = sqlx::query!("SELECT name FROM plt_tokens WHERE index = $1", token_index)
             .fetch_one(get_pool(ctx)?)
             .await?;
-        Ok(result.name)
+        Ok(Some(result.name))
     }
 }
 
@@ -417,16 +369,16 @@ impl PLTToken {
         let result = sqlx::query_as!(
             PLTToken,
             r#"SELECT name,
-            index,
-            token_id,
-            transaction_index,
-            issuer_index,
-            module_reference,
-            metadata as "metadata: sqlx::types::Json<sqlx::types::JsonValue>",
-            initial_supply,
-            total_minted,
-            total_burned,
-            decimal
+                    index,
+                    token_id,
+                    transaction_index,
+                    issuer_index,
+                    module_reference,
+                    metadata as "metadata: sqlx::types::Json<sqlx::types::JsonValue>",
+                    initial_supply,
+                    total_minted,
+                    total_burned,
+                    decimal
             FROM plt_tokens WHERE token_id = $1"#,
             token_id.to_string()
         )
@@ -565,7 +517,8 @@ impl PLTAccountAmount {
         let account: Account = Account::query_by_address(pool, account.to_string())
             .await?
             .ok_or(ApiError::NotFound)?;
-        let token: PLTToken = PLTToken::query_by_id(pool, token_id).await?.unwrap();
+        let token: PLTToken =
+            PLTToken::query_by_id(pool, token_id).await?.ok_or(ApiError::NotFound)?;
         let result = sqlx::query_as!(
             PLTAccountAmount,
             r#"SELECT 

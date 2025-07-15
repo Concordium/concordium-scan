@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT \n                id,\n                transaction_index,\n                token_index,\n                event_type as \"event_type: TokenUpdateEventType\",\n                token_module_type as \"token_module_type: TokenUpdateModuleType\",\n                target_index,\n                to_index,\n                from_index,\n                token_event as \"token_event: sqlx::types::Json<serde_json::Value>\"\n            FROM plt_events \n            WHERE $2 < id AND id < $1 AND token_index = $3\n            ORDER BY \n                CASE WHEN $4 THEN id END ASC,\n                CASE WHEN NOT $4 THEN id END DESC\n            LIMIT $5",
+  "query": "SELECT \n                id,\n                transaction_index,\n                token_index,\n                event_type as \"event_type: TokenUpdateEventType\",\n                token_module_type as \"token_module_type: TokenUpdateModuleType\",\n                token_event as \"token_event: sqlx::types::Json<serde_json::Value>\"\n            FROM plt_events WHERE transaction_index = $1",
   "describe": {
     "columns": [
       {
@@ -54,31 +54,12 @@
       },
       {
         "ordinal": 5,
-        "name": "target_index",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 6,
-        "name": "to_index",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 7,
-        "name": "from_index",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 8,
         "name": "token_event: sqlx::types::Json<serde_json::Value>",
         "type_info": "Jsonb"
       }
     ],
     "parameters": {
       "Left": [
-        "Int8",
-        "Int8",
-        "Int8",
-        "Bool",
         "Int8"
       ]
     },
@@ -88,11 +69,8 @@
       false,
       true,
       true,
-      true,
-      true,
-      true,
       false
     ]
   },
-  "hash": "de92ebbbf8f8e82f86f08d785a5ea6ed7b8e8e723eda0849d73a135ce1edad8e"
+  "hash": "b73da89223162e98e88e57309c7c68d75ca54ece9c9989a69221cb05a9701edb"
 }

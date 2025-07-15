@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT \n                id,\n                transaction_index,\n                token_index,\n                event_type as \"event_type: TokenUpdateEventType\",\n                token_module_type as \"token_module_type: TokenUpdateModuleType\",\n                target_index,\n                to_index,\n                from_index,\n                token_event as \"token_event: sqlx::types::Json<serde_json::Value>\"\n            FROM plt_events WHERE transaction_index = $1",
+  "query": "SELECT \n                    e.id,\n                    e.transaction_index,\n                    e.token_index,\n                    e.event_type AS \"event_type: TokenUpdateEventType\",\n                    e.token_module_type AS \"token_module_type: TokenUpdateModuleType\",\n\n                    e.token_event AS \"token_event: sqlx::types::Json<serde_json::Value>\"\n                FROM plt_events e\n                JOIN plt_tokens t ON e.token_index = t.index\n                WHERE $2 < e.id AND e.id < $1 AND t.token_id = $3\n                ORDER BY \n                    (CASE WHEN $4 THEN e.id END) ASC,\n                    (CASE WHEN NOT $4 THEN e.id END) DESC\n                LIMIT $5",
   "describe": {
     "columns": [
       {
@@ -54,27 +54,16 @@
       },
       {
         "ordinal": 5,
-        "name": "target_index",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 6,
-        "name": "to_index",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 7,
-        "name": "from_index",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 8,
         "name": "token_event: sqlx::types::Json<serde_json::Value>",
         "type_info": "Jsonb"
       }
     ],
     "parameters": {
       "Left": [
+        "Int8",
+        "Int8",
+        "Text",
+        "Bool",
         "Int8"
       ]
     },
@@ -84,11 +73,8 @@
       false,
       true,
       true,
-      true,
-      true,
-      true,
       false
     ]
   },
-  "hash": "046d28e0ade8379c8aea705dfab4713600088ff13ea35f481568c4b25f5ef3b7"
+  "hash": "41526ed3440ede56cd977b866d9dc848aac96f5d4eeee5db2767bfcaa6ce3174"
 }

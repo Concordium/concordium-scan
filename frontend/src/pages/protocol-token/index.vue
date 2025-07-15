@@ -125,13 +125,32 @@
 							{{ event.tokenName }}
 						</TableTd>
 						<TableTd>
-							<AccountLink :address="event.from?.asString" />
+							<AccountLink
+								:address="
+									event.tokenEvent.__typename == 'TokenTransferEvent'
+										? event.tokenEvent.from.address.asString
+										: ''
+								"
+							/>
 						</TableTd>
 						<TableTd>
-							<AccountLink :address="event.to?.asString" />
+							<AccountLink
+								:address="
+									event.tokenEvent.__typename == 'TokenTransferEvent'
+										? event.tokenEvent.to.address.asString
+										: ''
+								"
+							/>
 						</TableTd>
 						<TableTd>
-							<AccountLink :address="event.target?.asString" />
+							<AccountLink
+								:address="
+									event.tokenEvent.__typename == 'BurnEvent' ||
+									event.tokenEvent.__typename == 'MintEvent'
+										? event.tokenEvent.target.address.asString
+										: ''
+								"
+							/>
 						</TableTd>
 						<TableTd
 							v-if="
@@ -140,7 +159,12 @@
 								event.tokenEvent.__typename == 'TokenTransferEvent'
 							"
 						>
-							{{ event.tokenEvent.amount.value }}
+							{{
+								(
+									Number(event.tokenEvent.amount.value) /
+									Math.pow(10, event.tokenEvent.amount.decimals)
+								).toFixed(event.tokenEvent.amount.decimals)
+							}}
 						</TableTd>
 					</TableRow>
 				</TableBody>

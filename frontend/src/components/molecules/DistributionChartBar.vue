@@ -50,7 +50,7 @@ const chartData = computed(() => {
 	return coins.map(item =>
 		props.chartType === 'supply'
 			? item.totalSupply != null && item.decimal != null
-				? item.totalSupply
+				? item.totalSupply / Math.pow(10, item.decimal)
 				: null
 			: item.totalUniqueHolders != null
 			? item.totalUniqueHolders

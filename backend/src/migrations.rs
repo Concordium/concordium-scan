@@ -270,7 +270,7 @@ impl SchemaVersion {
     /// Fails at startup if any breaking (destructive) database schema versions
     /// have been introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
-        SchemaVersion::IndexPartialContractsSearch;
+        SchemaVersion::CreatePltTokenAndEventTables;
     /// The latest known version of the schema.
     const LATEST: SchemaVersion = SchemaVersion::CreatePltTokenAndEventTables;
 

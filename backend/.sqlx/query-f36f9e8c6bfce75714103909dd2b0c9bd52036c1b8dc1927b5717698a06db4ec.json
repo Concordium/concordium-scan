@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT \n                id,\n                transaction_index,\n                token_index,\n                event_type as \"event_type: TokenUpdateEventType\",\n                token_module_type as \"token_module_type: TokenUpdateModuleType\",\n                target_index,\n                to_index,\n                from_index,\n                token_event as \"token_event: sqlx::types::Json<serde_json::Value>\"\n            FROM plt_events WHERE id = $1",
+  "query": "SELECT \n                id,\n                transaction_index,\n                token_index,\n                event_type as \"event_type: TokenUpdateEventType\",\n                token_module_type as \"token_module_type: TokenUpdateModuleType\",\n                token_event as \"token_event: sqlx::types::Json<serde_json::Value>\"\n            FROM plt_events \n            WHERE $2 < id AND id < $1\n            ORDER BY \n                CASE WHEN $3 THEN id END ASC,\n                CASE WHEN NOT $3 THEN id END DESC\n            LIMIT $4",
   "describe": {
     "columns": [
       {
@@ -54,27 +54,15 @@
       },
       {
         "ordinal": 5,
-        "name": "target_index",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 6,
-        "name": "to_index",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 7,
-        "name": "from_index",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 8,
         "name": "token_event: sqlx::types::Json<serde_json::Value>",
         "type_info": "Jsonb"
       }
     ],
     "parameters": {
       "Left": [
+        "Int8",
+        "Int8",
+        "Bool",
         "Int8"
       ]
     },
@@ -84,11 +72,8 @@
       false,
       true,
       true,
-      true,
-      true,
-      true,
       false
     ]
   },
-  "hash": "3108434d391d6a6022b5ee041cac61b3957fc49ad1b28ed8a0000991d837fa01"
+  "hash": "f36f9e8c6bfce75714103909dd2b0c9bd52036c1b8dc1927b5717698a06db4ec"
 }

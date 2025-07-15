@@ -15,11 +15,10 @@ CREATE TABLE
         index BIGINT PRIMARY KEY,
         token_id TEXT NOT NULL UNIQUE,
         transaction_index BIGINT NOT NULL REFERENCES transactions,
-        name TEXT,
-        decimal INT,
+        name TEXT NOT NULL,
+        decimal INT NOT NULL,
         -- Index to the associated account index in the `accounts` table.
         issuer_index BIGINT NOT NULL REFERENCES accounts,
-        issuer TEXT NOT NULL,
         -- Module reference of the module.
         module_reference CHAR(64),
         -- Metadata Object
@@ -40,9 +39,6 @@ CREATE TABLE
         event_type event_type,
         token_module_type token_module_type,
         token_index BIGINT NOT NULL REFERENCES plt_tokens,
-        target_index BIGINT  REFERENCES accounts,
-        to_index BIGINT REFERENCES accounts,
-        from_index BIGINT  REFERENCES accounts,
         -- The plt token event. Only `Mint`, `Burn`, `Transfer` and `TokenModule` events can occure in the field
         token_event JSONB NOT NULL
     );
