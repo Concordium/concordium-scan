@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Changed
+- Aligned with Rust SDK version `7.0.0-alpha.3`.
+
 ### Added 
 - Added plt specific tables `plt_events`, `plt_account`, `plt_tokens` 
 - Added query `PltEvents` to fetch events related to plt tokens. 
