@@ -36,10 +36,14 @@
 		<br />
 		<span> Token Id: {{ event.tokenId }} </span>
 		<br />
-		<span>
+		<span
+			v-if="
+				event.event.eventType !== 'pause' && event.event.eventType !== 'unpause'
+			"
+		>
 			Address:
 			<AccountLink
-				:address="event.event.details[event.event.eventType].target.address"
+				:address="event.event.details[event.event.eventType]?.target.address"
 			/>
 		</span>
 	</span>

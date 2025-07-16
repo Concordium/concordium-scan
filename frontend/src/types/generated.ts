@@ -2313,6 +2313,7 @@ export type Query = {
   importState: ImportState;
   latestChainParameters: LatestChainParameters;
   latestTransactions?: Maybe<Array<LatestTransactionResponse>>;
+  liveStablecoins: Array<StableCoin>;
   moduleReferenceEvent: ModuleReferenceEvent;
   nodeStatus?: Maybe<NodeStatus>;
   nodeStatuses: NodeStatusConnection;
