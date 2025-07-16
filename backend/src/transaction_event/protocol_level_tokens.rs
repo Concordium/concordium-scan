@@ -25,7 +25,7 @@ pub enum TokenUpdateModuleType {
     AddDenyList,
     RemoveDenyList,
     Pause,
-    Unpause
+    Unpause,
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
