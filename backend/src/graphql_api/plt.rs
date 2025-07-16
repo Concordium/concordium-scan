@@ -135,7 +135,6 @@ impl QueryPLTEvent {
                     e.token_index,
                     e.event_type AS "event_type: TokenUpdateEventType",
                     e.token_module_type AS "token_module_type: TokenUpdateModuleType",
-
                     e.token_event AS "token_event: sqlx::types::Json<serde_json::Value>"
                 FROM plt_events e
                 JOIN plt_tokens t ON e.token_index = t.index

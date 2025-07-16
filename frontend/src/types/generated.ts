@@ -2406,7 +2406,6 @@ export type Query = {
   importState: ImportState;
   latestChainParameters: LatestChainParameters;
   latestTransactions?: Maybe<Array<LatestTransactionResponse>>;
-  liveStablecoins: Array<StableCoin>;
   moduleReferenceEvent: ModuleReferenceEvent;
   nodeStatus?: Maybe<NodeStatus>;
   nodeStatuses: NodeStatusConnection;
@@ -3174,8 +3173,10 @@ export enum TokenUpdateEventType {
 export enum TokenUpdateModuleType {
   AddAllowList = 'ADD_ALLOW_LIST',
   AddDenyList = 'ADD_DENY_LIST',
+  Pause = 'PAUSE',
   RemoveAllowList = 'REMOVE_ALLOW_LIST',
-  RemoveDenyList = 'REMOVE_DENY_LIST'
+  RemoveDenyList = 'REMOVE_DENY_LIST',
+  Unpause = 'UNPAUSE'
 }
 
 /** A segment of a collection. */

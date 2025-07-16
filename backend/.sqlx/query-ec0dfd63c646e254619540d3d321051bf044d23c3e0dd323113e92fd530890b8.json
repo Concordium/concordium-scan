@@ -27,7 +27,9 @@
                 "AddAllowList",
                 "RemoveAllowList",
                 "AddDenyList",
-                "RemoveDenyList"
+                "RemoveDenyList",
+                "Pause",
+                "Unpause"
               ]
             }
           }

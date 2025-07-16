@@ -287,7 +287,7 @@ __typename
 			tokenId
 			tokenModule
 			decimals
-    	initializationParameters
+    		initializationParameters
 		}
 
 	}
@@ -438,8 +438,26 @@ __typename
         tokenId
         tokenModule
         decimals
-        initializationParameters
-    }
+        initializationParameters {
+            name
+            allowList
+            denyList
+            mintable
+            burnable
+            metadata {
+                url
+            }
+            initialSupply {
+                value
+                decimals
+            }
+            governanceAccount {
+                address {
+                    asString
+                }
+            }
+        }
+	}
     events {
         tokenId
         event {

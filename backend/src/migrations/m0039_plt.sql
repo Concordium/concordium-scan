@@ -6,7 +6,9 @@ CREATE TYPE token_module_type AS ENUM (
     'AddAllowList',
     'RemoveAllowList',
     'AddDenyList',
-    'RemoveDenyList'
+    'RemoveDenyList',
+    'Pause',
+    'Unpause'
 );
 
 -- Create Plt table

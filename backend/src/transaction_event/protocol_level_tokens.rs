@@ -24,6 +24,8 @@ pub enum TokenUpdateModuleType {
     RemoveAllowList,
     AddDenyList,
     RemoveDenyList,
+    Pause,
+    Unpause
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
@@ -321,6 +323,8 @@ impl From<TokenUpdate> for PreparedTokenUpdate {
                     "removeAllowList" => Some(TokenUpdateModuleType::RemoveAllowList),
                     "addDenyList" => Some(TokenUpdateModuleType::AddDenyList),
                     "removeDenyList" => Some(TokenUpdateModuleType::RemoveDenyList),
+                    "pause" => Some(TokenUpdateModuleType::Pause),
+                    "unpause" => Some(TokenUpdateModuleType::Unpause),
                     _ => None,
                 };
                 TokenUpdateEventType::TokenModule
