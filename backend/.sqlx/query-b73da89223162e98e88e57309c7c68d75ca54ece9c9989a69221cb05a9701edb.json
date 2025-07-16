@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT \n                id,\n                transaction_index,\n                token_index,\n                event_type as \"event_type: TokenUpdateEventType\",\n                token_module_type as \"token_module_type: TokenUpdateModuleType\",\n                token_event as \"token_event: sqlx::types::Json<serde_json::Value>\"\n            FROM plt_events WHERE transaction_index = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "transaction_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "token_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "event_type: TokenUpdateEventType",
+        "type_info": {
+          "Custom": {
+            "name": "event_type",
+            "kind": {
+              "Enum": [
+                "Mint",
+                "Burn",
+                "Transfer",
+                "TokenModule"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "token_module_type: TokenUpdateModuleType",
+        "type_info": {
+          "Custom": {
+            "name": "token_module_type",
+            "kind": {
+              "Enum": [
+                "AddAllowList",
+                "RemoveAllowList",
+                "AddDenyList",
+                "RemoveDenyList"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "token_event: sqlx::types::Json<serde_json::Value>",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "b73da89223162e98e88e57309c7c68d75ca54ece9c9989a69221cb05a9701edb"
+}

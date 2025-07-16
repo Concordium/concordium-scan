@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Added 
+- Added plt specific tables `plt_events`, `plt_account`, `plt_tokens` 
+- Added query `PltEvents` to fetch events related to plt tokens. 
+- Added query `PltToken` to fetch details of a specific plt token.
+
+
 
 ## [2.0.14] - 2025-07-10
 

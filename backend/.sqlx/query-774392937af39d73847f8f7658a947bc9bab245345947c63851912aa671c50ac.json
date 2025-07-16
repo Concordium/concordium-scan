@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE plt_tokens SET total_burned = total_burned + $1 WHERE token_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Numeric",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "774392937af39d73847f8f7658a947bc9bab245345947c63851912aa671c50ac"
+}

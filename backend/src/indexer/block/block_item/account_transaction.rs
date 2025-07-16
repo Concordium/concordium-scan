@@ -401,7 +401,10 @@ impl PreparedEvent {
                 .save(tx, tx_idx)
                 .await
                 .context("Failed processing block item event with rejected event"),
-            PreparedEvent::TokenUpdateEvents(_event) => Ok(()),
+            PreparedEvent::TokenUpdateEvents(event) => event
+                .save(tx, tx_idx)
+                .await
+                .context("Failed processing block item event with token update events"),
             PreparedEvent::NoOperation => Ok(()),
         }
     }

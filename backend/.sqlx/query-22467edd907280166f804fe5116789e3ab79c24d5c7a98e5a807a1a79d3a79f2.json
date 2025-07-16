@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT \n                account_index,\n                token_index,\n                amount,\n                decimal\n            FROM plt_accounts         \n            WHERE account_index = $1 AND token_index = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "account_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "token_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "decimal",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "22467edd907280166f804fe5116789e3ab79c24d5c7a98e5a807a1a79d3a79f2"
+}

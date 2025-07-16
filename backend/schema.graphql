@@ -1064,6 +1064,17 @@ type CooldownParametersChainUpdatePayload {
 	delegatorCooldown: UnsignedLong!
 }
 
+type CreatePLTInitializationParameters {
+	name: String!
+	metadata: MetadataUrl!
+	allowList: Boolean
+	denyList: Boolean
+	mintable: Boolean
+	burnable: Boolean
+	initialSupply: TokenAmount
+	governanceAccount: TokenHolder
+}
+
 type CreatePlt {
 	"The symbol of the token."
 	tokenId: String!
@@ -1076,7 +1087,7 @@ type CreatePlt {
 	"""
 	decimals: Int!
 	"The initialization parameters of the token, encoded in CBOR."
-	initializationParameters: String!
+	initializationParameters: CreatePLTInitializationParameters!
 }
 
 type CreatePltUpdate {
@@ -1091,7 +1102,7 @@ type CreatePltUpdate {
 	"""
 	decimals: Int!
 	"The initialization parameters of the token, encoded in CBOR."
-	initializationParameters: String!
+	initializationParameters: JSON!
 }
 
 type CredentialDeployed {
@@ -1485,6 +1496,10 @@ type Memo {
 
 type Metadata {
 	iconUrl: String!
+}
+
+type MetadataUrl {
+	url: String!
 }
 
 enum MetricsPeriod {
@@ -1935,6 +1950,75 @@ type PendingBakerRemoval {
 	effectiveTime: DateTime!
 }
 
+type PltaccountAmount {
+	accountAddress: AccountAddress!
+	tokenId: String!
+	amount: TokenAmount!
+}
+
+type Pltevent {
+	id: Int!
+	transactionIndex: Int!
+	eventType: TokenUpdateEventType
+	tokenModuleType: TokenUpdateModuleType
+	tokenId: String!
+	tokenEvent: TokenEventDetails!
+	transactionHash: String!
+	block: Block!
+	tokenName: String
+}
+
+type PlteventConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [PlteventEdge!]!
+	"A list of nodes."
+	nodes: [Pltevent!]!
+}
+
+"An edge in a connection."
+type PlteventEdge {
+	"The item at the end of the edge"
+	node: Pltevent!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+type Plttoken {
+	name: String
+	tokenId: String!
+	transactionHash: String!
+	block: Block!
+	issuer: AccountAddress!
+	moduleReference: String
+	metadata: JSON
+	initialSupply: Int
+	totalSupply: Int
+	totalMinted: Int
+	totalBurned: Int
+	decimal: Int
+	index: Int!
+	totalUniqueHolders: Int!
+}
+
+type PlttokenConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [PlttokenEdge!]!
+	"A list of nodes."
+	nodes: [Plttoken!]!
+}
+
+"An edge in a connection."
+type PlttokenEdge {
+	"The item at the end of the edge"
+	node: Plttoken!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
 type PoolApy {
 	totalApy: Float
 	bakerApy: Float
@@ -2107,6 +2191,41 @@ type Query {
 	poolRewardMetricsForPassiveDelegation(period: MetricsPeriod!): PoolRewardMetrics!
 	blockMetrics(period: MetricsPeriod!): BlockMetrics!
 	transactionMetrics(period: MetricsPeriod!): TransactionMetrics!
+	pltEvent(id: ID!): Pltevent!
+	pltEventByTransactionIndex(transactionIndex: ID!): Pltevent!
+	pltEvents(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): PlteventConnection!
+	pltEventsByTokenId(		id: ID!,
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): PlteventConnection!
+	pltToken(id: ID!): Plttoken!
+	pltTokens(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): PlttokenConnection!
+	pltAccounts(account: ID!, tokenId: ID!): PltaccountAmount
+	pltAccountsByTokenId(tokenId: ID!): [PltaccountAmount!]!
 }
 
 """
@@ -2534,6 +2653,20 @@ type TokenTransferEvent {
 type TokenUpdate {
 	tokenId: String!
 	event: TokenEventDetails!
+}
+
+enum TokenUpdateEventType {
+	MINT
+	BURN
+	TRANSFER
+	TOKEN_MODULE
+}
+
+enum TokenUpdateModuleType {
+	ADD_ALLOW_LIST
+	REMOVE_ALLOW_LIST
+	ADD_DENY_LIST
+	REMOVE_DENY_LIST
 }
 
 "A segment of a collection."

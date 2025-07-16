@@ -1202,6 +1202,18 @@ export type CooldownParametersChainUpdatePayload = {
   poolOwnerCooldown: Scalars['UnsignedLong'];
 };
 
+export type CreatePltInitializationParameters = {
+  __typename?: 'CreatePLTInitializationParameters';
+  allowList?: Maybe<Scalars['Boolean']>;
+  burnable?: Maybe<Scalars['Boolean']>;
+  denyList?: Maybe<Scalars['Boolean']>;
+  governanceAccount?: Maybe<TokenHolder>;
+  initialSupply?: Maybe<TokenAmount>;
+  metadata: MetadataUrl;
+  mintable?: Maybe<Scalars['Boolean']>;
+  name: Scalars['String'];
+};
+
 export type CreatePlt = {
   __typename?: 'CreatePlt';
   /**
@@ -1211,7 +1223,7 @@ export type CreatePlt = {
    */
   decimals: Scalars['Int'];
   /** The initialization parameters of the token, encoded in CBOR. */
-  initializationParameters: Scalars['String'];
+  initializationParameters: CreatePltInitializationParameters;
   /** The symbol of the token. */
   tokenId: Scalars['String'];
   /** A SHA256 hash that identifies the token module implementation. */
@@ -1227,7 +1239,7 @@ export type CreatePltUpdate = {
    */
   decimals: Scalars['Int'];
   /** The initialization parameters of the token, encoded in CBOR. */
-  initializationParameters: Scalars['String'];
+  initializationParameters: Scalars['JSON'];
   /** The token symbol. */
   tokenId: Scalars['String'];
   /** The hash that identifies the token module implementation. */
@@ -1686,6 +1698,11 @@ export type Memo = {
 export type Metadata = {
   __typename?: 'Metadata';
   iconUrl: Scalars['String'];
+};
+
+export type MetadataUrl = {
+  __typename?: 'MetadataUrl';
+  url: Scalars['String'];
 };
 
 export enum MetricsPeriod {
@@ -2221,6 +2238,82 @@ export type PendingBakerRemoval = {
   effectiveTime: Scalars['DateTime'];
 };
 
+export type PltaccountAmount = {
+  __typename?: 'PltaccountAmount';
+  accountAddress: AccountAddress;
+  amount: TokenAmount;
+  tokenId: Scalars['String'];
+};
+
+export type Pltevent = {
+  __typename?: 'Pltevent';
+  block: Block;
+  eventType?: Maybe<TokenUpdateEventType>;
+  id: Scalars['Int'];
+  tokenEvent: TokenEventDetails;
+  tokenId: Scalars['String'];
+  tokenModuleType?: Maybe<TokenUpdateModuleType>;
+  tokenName?: Maybe<Scalars['String']>;
+  transactionHash: Scalars['String'];
+  transactionIndex: Scalars['Int'];
+};
+
+export type PlteventConnection = {
+  __typename?: 'PlteventConnection';
+  /** A list of edges. */
+  edges: Array<PlteventEdge>;
+  /** A list of nodes. */
+  nodes: Array<Pltevent>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type PlteventEdge = {
+  __typename?: 'PlteventEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: Pltevent;
+};
+
+export type Plttoken = {
+  __typename?: 'Plttoken';
+  block: Block;
+  decimal?: Maybe<Scalars['Int']>;
+  index: Scalars['Int'];
+  initialSupply?: Maybe<Scalars['Int']>;
+  issuer: AccountAddress;
+  metadata?: Maybe<Scalars['JSON']>;
+  moduleReference?: Maybe<Scalars['String']>;
+  name?: Maybe<Scalars['String']>;
+  tokenId: Scalars['String'];
+  totalBurned?: Maybe<Scalars['Int']>;
+  totalMinted?: Maybe<Scalars['Int']>;
+  totalSupply?: Maybe<Scalars['Int']>;
+  totalUniqueHolders: Scalars['Int'];
+  transactionHash: Scalars['String'];
+};
+
+export type PlttokenConnection = {
+  __typename?: 'PlttokenConnection';
+  /** A list of edges. */
+  edges: Array<PlttokenEdge>;
+  /** A list of nodes. */
+  nodes: Array<Plttoken>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type PlttokenEdge = {
+  __typename?: 'PlttokenEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: Plttoken;
+};
+
 export type PoolApy = {
   __typename?: 'PoolApy';
   bakerApy?: Maybe<Scalars['Float']>;
@@ -2319,6 +2412,14 @@ export type Query = {
   nodeStatuses: NodeStatusConnection;
   passiveDelegation: PassiveDelegation;
   paydayStatus: PaydayStatus;
+  pltAccounts?: Maybe<PltaccountAmount>;
+  pltAccountsByTokenId: Array<PltaccountAmount>;
+  pltEvent: Pltevent;
+  pltEventByTransactionIndex: Pltevent;
+  pltEvents: PlteventConnection;
+  pltEventsByTokenId: PlteventConnection;
+  pltToken: Plttoken;
+  pltTokens: PlttokenConnection;
   poolRewardMetricsForBakerPool: PoolRewardMetrics;
   poolRewardMetricsForPassiveDelegation: PoolRewardMetrics;
   rewardMetrics: RewardMetrics;
@@ -2449,6 +2550,57 @@ export type QueryNodeStatusesArgs = {
   last?: InputMaybe<Scalars['Int']>;
   sortDirection: NodeSortDirection;
   sortField: NodeSortField;
+};
+
+
+export type QueryPltAccountsArgs = {
+  account: Scalars['ID'];
+  tokenId: Scalars['ID'];
+};
+
+
+export type QueryPltAccountsByTokenIdArgs = {
+  tokenId: Scalars['ID'];
+};
+
+
+export type QueryPltEventArgs = {
+  id: Scalars['ID'];
+};
+
+
+export type QueryPltEventByTransactionIndexArgs = {
+  transactionIndex: Scalars['ID'];
+};
+
+
+export type QueryPltEventsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type QueryPltEventsByTokenIdArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  id: Scalars['ID'];
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type QueryPltTokenArgs = {
+  id: Scalars['ID'];
+};
+
+
+export type QueryPltTokensArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
 };
 
 
@@ -3011,6 +3163,20 @@ export type TokenUpdate = {
   event: TokenEventDetails;
   tokenId: Scalars['String'];
 };
+
+export enum TokenUpdateEventType {
+  Burn = 'BURN',
+  Mint = 'MINT',
+  TokenModule = 'TOKEN_MODULE',
+  Transfer = 'TRANSFER'
+}
+
+export enum TokenUpdateModuleType {
+  AddAllowList = 'ADD_ALLOW_LIST',
+  AddDenyList = 'ADD_DENY_LIST',
+  RemoveAllowList = 'REMOVE_ALLOW_LIST',
+  RemoveDenyList = 'REMOVE_DENY_LIST'
+}
 
 /** A segment of a collection. */
 export type TokensCollectionSegment = {
