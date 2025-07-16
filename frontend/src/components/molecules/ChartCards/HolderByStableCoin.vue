@@ -11,11 +11,11 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import type { StablecoinResponse } from '~/queries/useStableCoinQuery'
 import DistributionChartBar from '../DistributionChartBar.vue'
+import type { Plttoken } from '~/types/generated'
 
 type Props = {
-	stableCoinsData?: StablecoinResponse
+	stableCoinsData?: Plttoken[]
 	isLoading?: boolean
 }
 

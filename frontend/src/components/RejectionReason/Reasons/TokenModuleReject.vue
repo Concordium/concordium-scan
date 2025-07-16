@@ -66,7 +66,7 @@
 				<br />
 				<span class="px-2">
 					Operation Type :
-					<b> {{ reason.details[reason.reasonType].operation_type }} </b>
+					<b> {{ reason.details[reason.reasonType].operationType }} </b>
 				</span>
 				<br />
 				<span class="px-2">
@@ -84,22 +84,26 @@
 					Token Id : <b> {{ reason.tokenId }} </b>
 				</span>
 				<br />
-				<span class="px-2">
+				<span
+					v-if="reason.details[reason.reasonType].address !== null"
+					class="px-2"
+				>
 					Token Holder :
 					<b>
 						{{ reason.details[reason.reasonType].address.address }}
 					</b>
 				</span>
 				<br />
-
-				<span class="px-2">
+				<span
+					v-if="reason.details[reason.reasonType].address !== null"
+					class="px-2"
+				>
 					Coin Info :
 					<b>
 						{{ reason.details[reason.reasonType].address.coinInfo }}
 					</b>
 				</span>
 				<br />
-
 				<span class="px-2">
 					Details: <b> {{ reason.details[reason.reasonType].reason }} </b>
 				</span>

@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT MAX(id) as max_id, MIN(id) as min_id FROM plt_events",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "max_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "min_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "b3cdd0d9ad820ffb4549e9ef244a90d26e2aabaa010dcdd674041c265e012526"
+}

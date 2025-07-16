@@ -262,15 +262,17 @@ pub enum SchemaVersion {
     UpdateTransactionTypeAddTokenUpdate,
     #[display("0038: Baker APY query update, protect against overflow")]
     BakerApyQueryUpdateProtectAgainstOverflow,
+    #[display("0039: Create PLT token and event tables")]
+    CreatePltTokenAndEventTables,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking (destructive) database schema versions
     /// have been introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
-        SchemaVersion::IndexPartialContractsSearch;
+        SchemaVersion::CreatePltTokenAndEventTables;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::BakerApyQueryUpdateProtectAgainstOverflow;
+    const LATEST: SchemaVersion = SchemaVersion::CreatePltTokenAndEventTables;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -328,6 +330,7 @@ impl SchemaVersion {
             SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => false,
             SchemaVersion::UpdateTransactionTypeAddTokenUpdate => false,
             SchemaVersion::BakerApyQueryUpdateProtectAgainstOverflow => false,
+            SchemaVersion::CreatePltTokenAndEventTables => false,
         }
     }
 
@@ -376,6 +379,7 @@ impl SchemaVersion {
             SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => false,
             SchemaVersion::UpdateTransactionTypeAddTokenUpdate => false,
             SchemaVersion::BakerApyQueryUpdateProtectAgainstOverflow => false,
+            SchemaVersion::CreatePltTokenAndEventTables => false,
         }
     }
 
@@ -624,8 +628,14 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::BakerApyQueryUpdateProtectAgainstOverflow
             }
+            SchemaVersion::BakerApyQueryUpdateProtectAgainstOverflow => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!("./migrations/m0039_plt.sql")))
+                    .await?;
+                SchemaVersion::CreatePltTokenAndEventTables
+            }
 
-            SchemaVersion::BakerApyQueryUpdateProtectAgainstOverflow => unimplemented!(
+            SchemaVersion::CreatePltTokenAndEventTables => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),

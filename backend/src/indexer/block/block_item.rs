@@ -320,7 +320,7 @@ impl PreparedBlockItemEvent {
                 account_transaction_event.save(tx, transaction_index).await
             }
             PreparedBlockItemEvent::ChainUpdate => Ok(()),
-            PreparedBlockItemEvent::TokenCreation(event) => event.save(tx, transaction_index),
+            PreparedBlockItemEvent::TokenCreation(event) => event.save(tx, transaction_index).await,
         }
     }
 }

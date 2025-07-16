@@ -12,6 +12,7 @@ mod contract;
 mod module_reference_event;
 pub mod node_status;
 mod passive_delegation;
+mod plt;
 mod reward_metrics;
 mod search_result;
 mod stable_coin;
@@ -161,6 +162,12 @@ pub struct ApiServiceConfig {
     token_holder_addresses_collection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_TOKEN_EVENTS_COLLECTION_LIMIT", default_value = "100")]
     token_events_collection_limit: u64,
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_PLT_TOKEN_EVENTS_COLLECTION_LIMIT",
+        default_value = "100"
+    )]
+    plt_token_events_collection_limit: u64,
 }
 
 #[derive(MergedObject, Default)]
@@ -182,6 +189,9 @@ pub struct Query(
     reward_metrics::QueryRewardMetrics,
     block_metrics::QueryBlockMetrics,
     transaction_metrics::QueryTransactionMetrics,
+    plt::QueryPLTEvent,
+    plt::QueryPLT,
+    plt::QueryPLTAccountAmount,
 );
 
 pub struct Service {
