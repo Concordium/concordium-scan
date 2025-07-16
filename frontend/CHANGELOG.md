@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - Plt dashboard now uses the graphQL query `usePltEventsQuery` and `usePltTokenQuery` to fetch plt token details and events.
-- TokenModuleEvent `pause` and `unpause` events are now displayed in the transaction table.
+- TokenModuleEvent `pause` and `unpause` events are now displayed in the transaction table(UI).
 
 ### Added
 
