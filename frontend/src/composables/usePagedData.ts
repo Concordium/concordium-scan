@@ -8,11 +8,15 @@ export const MAX_PAGE_SIZE = 50
  * Hook to control pagination state and actions
  * Returns query variables and a curried navigation handler
  */
-export const usePagedData = <PageData>(initialData: PageData[] = []) => {
+export const usePagedData = <PageData>(
+	initialData: PageData[] = [],
+	pageSize: number = PAGE_SIZE,
+	maxPageSize: number = MAX_PAGE_SIZE
+) => {
 	const pagedData = ref<PageData[]>(initialData) as Ref<PageData[]>
 	const intention = ref<'fetchNew' | 'loadMore' | 'refresh'>('loadMore')
 
-	const first = ref<number | undefined>(PAGE_SIZE)
+	const first = ref<number | undefined>(pageSize)
 	const last = ref<number | undefined>(undefined)
 	const after = ref<PageInfo['endCursor']>(undefined)
 	const before = ref<PageInfo['endCursor']>(undefined)
@@ -28,9 +32,9 @@ export const usePagedData = <PageData>(initialData: PageData[] = []) => {
 	 * @param { newItemsCount } - Amount of new items to fetch
 	 */
 	const fetchNew = (newItems: number) => {
-		if (newItems > MAX_PAGE_SIZE) {
+		if (newItems > maxPageSize) {
 			intention.value = 'refresh'
-			first.value = PAGE_SIZE
+			first.value = pageSize
 			last.value = undefined
 			after.value = undefined
 			before.value = topCursor.value
@@ -48,7 +52,7 @@ export const usePagedData = <PageData>(initialData: PageData[] = []) => {
 	 */
 	const loadMore = () => {
 		intention.value = 'loadMore'
-		first.value = PAGE_SIZE
+		first.value = pageSize
 		last.value = undefined
 		after.value = lastAfterCursor?.value
 		before.value = undefined
