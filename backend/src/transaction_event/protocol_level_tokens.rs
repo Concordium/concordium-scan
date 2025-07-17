@@ -131,9 +131,6 @@ pub struct CborTokenAmount(pub i8, pub u64);
 
 impl From<CborTokenAmount> for TokenAmount {
     fn from(cbor: CborTokenAmount) -> Self {
-        if cbor.0 > 0 {
-            panic!("Expected negative exponent for decimal fraction");
-        }
         let decimals = cbor.0.unsigned_abs();
         let value = cbor.1;
         TokenAmount {
