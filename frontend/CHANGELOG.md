@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Changed
+
+- Fixed bug plt dashboard not displaying token distribution chart properly.
+- Fixed missing available balance and required balance when displaying an insufficient balance `TokenUpdateReject` reason in the transaction list page.
+- `usePagedData` composable has been updated to support optional `pageSize` and `maxPageSize` parameters, allowing for more flexible pagination control.
+
 ## [1.7.20] - 2025-07-16
 
 ### Changed

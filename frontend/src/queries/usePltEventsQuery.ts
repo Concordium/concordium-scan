@@ -87,7 +87,7 @@ export const usePltEventsQuery = (
 ) => {
 	const { data, fetching, error } = useQuery({
 		query: PLT_TOKEN_QUERY,
-		requestPolicy: 'cache-first',
+		requestPolicy: 'cache-and-network',
 		variables: eventsVariables,
 	})
 

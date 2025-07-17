@@ -194,8 +194,11 @@ definePageMeta({
 	middleware: 'plt-features-guard',
 })
 
+// page size and max page size for pagination plt events
+const pageSize = 10
+const maxPageSize = 20
 const { pagedData, first, last, after, before, addPagedData, loadMore } =
-	usePagedData<Pltevent>()
+	usePagedData<Pltevent>([], pageSize, maxPageSize)
 
 const { data: pltTokenData, loading: pltTokenLoading } = usePltTokenQuery()
 
