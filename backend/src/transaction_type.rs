@@ -47,8 +47,7 @@ pub enum AccountTransactionType {
     RegisterData,
     ConfigureBaker,
     ConfigureDelegation,
-    TokenHolder,
-    TokenGovernance,
+    TokenUpdate,
 }
 
 impl From<concordium_rust_sdk::types::TransactionType> for AccountTransactionType {
@@ -78,8 +77,7 @@ impl From<concordium_rust_sdk::types::TransactionType> for AccountTransactionTyp
             TT::TransferWithScheduleAndMemo => ATT::TransferWithScheduleWithMemo,
             TT::ConfigureBaker => ATT::ConfigureBaker,
             TT::ConfigureDelegation => ATT::ConfigureDelegation,
-            TT::TokenHolder => ATT::TokenHolder,
-            TT::TokenGovernance => ATT::TokenGovernance,
+            TT::TokenUpdate => ATT::TokenUpdate,
         }
     }
 }
@@ -177,7 +175,7 @@ impl From<concordium_rust_sdk::types::UpdateType> for UpdateTransactionType {
             UpdateType::UpdateValidatorScoreParameters => {
                 UpdateTransactionType::ValidatorScoreParametersUpdate
             }
-            UpdateType::CreatePlt => UpdateTransactionType::CreatePltUpdate,
+            UpdateType::UpdateCreatePLT => UpdateTransactionType::CreatePltUpdate,
         }
     }
 }

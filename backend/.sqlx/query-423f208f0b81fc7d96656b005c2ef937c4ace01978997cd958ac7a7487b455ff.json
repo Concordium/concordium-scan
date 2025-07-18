@@ -47,8 +47,7 @@
                       "RegisterData",
                       "ConfigureBaker",
                       "ConfigureDelegation",
-                      "TokenHolder",
-                      "TokenGovernance"
+                      "TokenUpdate"
                     ]
                   }
                 }

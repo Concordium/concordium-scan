@@ -17,6 +17,7 @@ mod m0023_add_init_parameter;
 mod m0025_fix_passive_delegator_stake;
 mod m0026_update_genesis_validator_info;
 mod m0027_reindex_credential_deployments;
+mod m0037_update_transaction_type_add_tokenupdate;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.
@@ -254,15 +255,24 @@ pub enum SchemaVersion {
     UpdateAccountTransactionTypes,
     #[display("0036: Added index and slot time for the account statements table")]
     IndexAndSlotTimeColumnAddedAccountStatements,
+    #[display(
+        "0037: Update account_transaction_type to add TokenUpdate, and remove TokenHolder, \
+         TokenGovernance"
+    )]
+    UpdateTransactionTypeAddTokenUpdate,
+    #[display("0038: Baker APY query update, protect against overflow")]
+    BakerApyQueryUpdateProtectAgainstOverflow,
+    #[display("0039: Create PLT token and event tables")]
+    CreatePltTokenAndEventTables,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking (destructive) database schema versions
     /// have been introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
-        SchemaVersion::IndexPartialContractsSearch;
+        SchemaVersion::CreatePltTokenAndEventTables;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements;
+    const LATEST: SchemaVersion = SchemaVersion::CreatePltTokenAndEventTables;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -318,6 +328,9 @@ impl SchemaVersion {
             SchemaVersion::IndexAccountRewards => false,
             SchemaVersion::UpdateAccountTransactionTypes => false,
             SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => false,
+            SchemaVersion::UpdateTransactionTypeAddTokenUpdate => false,
+            SchemaVersion::BakerApyQueryUpdateProtectAgainstOverflow => false,
+            SchemaVersion::CreatePltTokenAndEventTables => false,
         }
     }
 
@@ -364,6 +377,9 @@ impl SchemaVersion {
             SchemaVersion::IndexAccountRewards => false,
             SchemaVersion::UpdateAccountTransactionTypes => false,
             SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => false,
+            SchemaVersion::UpdateTransactionTypeAddTokenUpdate => false,
+            SchemaVersion::BakerApyQueryUpdateProtectAgainstOverflow => false,
+            SchemaVersion::CreatePltTokenAndEventTables => false,
         }
     }
 
@@ -600,7 +616,26 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements
             }
-            SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => unimplemented!(
+            SchemaVersion::IndexAndSlotTimeColumnAddedAccountStatements => {
+                m0037_update_transaction_type_add_tokenupdate::run(&mut tx, endpoints).await?
+            }
+
+            SchemaVersion::UpdateTransactionTypeAddTokenUpdate => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0038_bakers_apy_function_prevent_overflow.sql"
+                    )))
+                    .await?;
+                SchemaVersion::BakerApyQueryUpdateProtectAgainstOverflow
+            }
+            SchemaVersion::BakerApyQueryUpdateProtectAgainstOverflow => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!("./migrations/m0039_plt.sql")))
+                    .await?;
+                SchemaVersion::CreatePltTokenAndEventTables
+            }
+
+            SchemaVersion::CreatePltTokenAndEventTables => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),

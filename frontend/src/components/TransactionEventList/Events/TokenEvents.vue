@@ -36,24 +36,25 @@
 		<br />
 		<span> Token Id: {{ event.tokenId }} </span>
 		<br />
-		<span>
+		<span
+			v-if="
+				event.event.eventType !== 'pause' && event.event.eventType !== 'unpause'
+			"
+		>
 			Address:
 			<AccountLink
-				:address="
-					event.event.details[event.event.eventType].target.holderAccount
-						.address
-				"
+				:address="event.event.details[event.event.eventType]?.target.address"
 			/>
 		</span>
 	</span>
 </template>
 
 <script setup lang="ts">
-import type { TokenHolderEvent, TokenGovernanceEvent } from '~/types/generated'
+import type { TokenUpdate } from '~/types/generated'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 
 type Props = {
-	event: TokenHolderEvent | TokenGovernanceEvent
+	event: TokenUpdate
 }
 
 defineProps<Props>()

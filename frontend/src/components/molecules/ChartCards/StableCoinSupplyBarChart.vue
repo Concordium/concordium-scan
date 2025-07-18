@@ -3,7 +3,7 @@
 		<DistributionChartBar
 			:stable-coins-data="stableCoinsData"
 			chart-type="supply"
-			show-sign="$"
+			show-sign=""
 			:label-clickable="true"
 		>
 			<template #title> Protocol Token Supply </template>
@@ -11,11 +11,11 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import type { StablecoinResponse } from '~/queries/useStableCoinQuery'
+import type { Plttoken } from '~/types/generated'
 import DistributionChartBar from '../DistributionChartBar.vue'
 
 type Props = {
-	stableCoinsData?: StablecoinResponse
+	stableCoinsData?: Plttoken[]
 	isLoading?: boolean
 }
 

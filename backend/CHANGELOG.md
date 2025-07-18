@@ -4,8 +4,52 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [2.0.15] - 2025-07-16
+
+### Changed
+
+- Aligned with Rust SDK version `7.0.0-alpha.3`.
+
+### Added 
+
+- Added plt specific tables `plt_events`, `plt_account`, `plt_tokens` 
+- Added query `PltEvents` to fetch events related to plt tokens. 
+- Added query `PltToken` to fetch details of a specific plt token.
+
+## [2.0.14] - 2025-07-10
+
+### Changed
+
+- Staked amounts fix: now updated through querying the node
+- Fix P3->P4 protocol update migration to allow for bakers pending removal to be absent from the bakers table.
+
+## [2.0.13] - 2025-07-03
+
+### Changed
+
+Database schema version: 38
+
+- Baker APY query db migration to change the function to prevent overflow FLOAT8
+
+## [2.0.12] - 2025-07-03
+
+### Changed
+
+- New account_transaction_type enum values added `TokenUpdate`, Removed `TokenHolder` and `TokenGovernance`
+- TokenHolder and TokenGovernance events are now merged into `TokenUpdate` event.
+- The ccdscan-api now connects to the grpc node to fetch token list and details (This will be removed later).
+
+## [2.0.11] - 2025-07-01
+
 ### Fixed
 
+- Fix for db connections issue where new connections are created during failed block processing, and old connections are not closed and cleaned up effectively
+
+## [2.0.10] - 2025-06-24
+
+### Added
+
+- Plt TokenHolder and TokenGovernance Events are now indexed and available in the API.
 
 ## [2.0.9-hotfix.1] - 2025-07-18
 
@@ -112,6 +156,7 @@ Database schema version: 33
 ## [0.1.50] - 2025-04-28
 
 Modifying search key on the following tables to all be using `text_pattern_ops` because it is faster when using prefix searches only
+
 - `accounts`
 - `blocks`
 - `tokens`
@@ -132,7 +177,7 @@ Modifying search key on the following tables to all be using `text_pattern_ops` 
 
 - Optimise `Account::transactions` performance
 - Fix potential issue on `accountMetrics` which occurred when a blocks containing account creation occurred on the exact same time as the borders of the buckets slots
-- Fix query performance issues on `accountMetrics` when dataset becomes too large 
+- Fix query performance issues on `accountMetrics` when dataset becomes too large
 - Fix account statements performance issues where conditions was being used without indexes
 - Fix account statements where when querying an address using the complete address and not the canonical address
 - Fix account statements using DESC ordering per default instead of ASC
@@ -269,7 +314,7 @@ Database schema version: 17
 - Add database migration 17 adding a table tracking reward metrics.
 - Add database migration 16 adding a table tracking commission rates for passive delegation and adding an index to retrieve passive delegators efficiently from the accounts table.
 - Add query `PassiveDelegation::delegators`, `PassiveDelegation::delegatorCount`,
-`PassiveDelegation::commissionRates`, `PassiveDelegation::delegatedStake` and `PassiveDelegation::delegatedStakePercentage`.
+  `PassiveDelegation::commissionRates`, `PassiveDelegation::delegatedStake` and `PassiveDelegation::delegatedStakePercentage`.
 - Add `Query::rewardMetrics` and `Query::rewardMetricsForAccount` which returns metrics on the total rewards and those for a given account respectively.
 
 ### Fixed

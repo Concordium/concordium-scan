@@ -13,12 +13,28 @@
 				<br />
 				<span class="px-2">
 					Available balance :
-					<b> {{ reason.details[reason.reasonType].available_balance }} </b>
+					<b>
+						{{
+							reason.details[reason.reasonType].availableBalance.value /
+							10 **
+								reason.details[reason.reasonType].availableBalance.decimals[
+									'$serde_json::private::Number'
+								]
+						}}
+					</b>
 				</span>
 				<br />
 				<span class="px-2">
 					Required balance :
-					<b> {{ reason.details[reason.reasonType].required_balance }} </b>
+					<b>
+						{{
+							reason.details[reason.reasonType].requiredBalance.value /
+							10 **
+								reason.details[reason.reasonType].requiredBalance.decimals[
+									'$serde_json::private::Number'
+								]
+						}}
+					</b>
 				</span>
 			</Tooltip>
 		</span>
@@ -49,7 +65,8 @@
 				</span>
 				<br />
 				<span class="px-2">
-					Details: <b> {{ reason.details[reason.reasonType].cause }} </b>
+					Address:
+					<b> {{ reason.details[reason.reasonType].address.address }} </b>
 				</span>
 			</Tooltip>
 		</span>
@@ -65,7 +82,7 @@
 				<br />
 				<span class="px-2">
 					Operation Type :
-					<b> {{ reason.details[reason.reasonType].operation_type }} </b>
+					<b> {{ reason.details[reason.reasonType].operationType }} </b>
 				</span>
 				<br />
 				<span class="px-2">
@@ -83,26 +100,26 @@
 					Token Id : <b> {{ reason.tokenId }} </b>
 				</span>
 				<br />
-				<span class="px-2">
+				<span
+					v-if="reason.details[reason.reasonType].address !== null"
+					class="px-2"
+				>
 					Token Holder :
 					<b>
-						{{
-							reason.details[reason.reasonType].address.holderAccount.address
-						}}
+						{{ reason.details[reason.reasonType].address.address }}
 					</b>
 				</span>
 				<br />
-
-				<span class="px-2">
+				<span
+					v-if="reason.details[reason.reasonType].address !== null"
+					class="px-2"
+				>
 					Coin Info :
 					<b>
-						{{
-							reason.details[reason.reasonType].address.holderAccount.coinInfo
-						}}
+						{{ reason.details[reason.reasonType].address.coinInfo }}
 					</b>
 				</span>
 				<br />
-
 				<span class="px-2">
 					Details: <b> {{ reason.details[reason.reasonType].reason }} </b>
 				</span>

@@ -1,6 +1,7 @@
 use crate::{
     address::AccountAddress,
     scalar_types::{DateTime, Decimal, UnsignedInt, UnsignedLong},
+    transaction_event::protocol_level_tokens::InitializationParameters,
 };
 use async_graphql::{SimpleObject, Union};
 use concordium_rust_sdk::types::{ExchangeRate, UpdatePayload};
@@ -216,14 +217,12 @@ pub struct CreatePltUpdate {
     pub token_id:                  String,
     /// The hash that identifies the token module implementation.
     pub token_module:              String,
-    /// The address of the account that will govern the token.
-    pub governance_account:        AccountAddress,
     /// The number of decimal places used in the representation of amounts of
     /// this token. This determines the smallest representable fraction of
     /// the token. This can be at most 255.
     pub decimals:                  u8,
     /// The initialization parameters of the token, encoded in CBOR.
-    pub initialization_parameters: String,
+    pub initialization_parameters: serde_json::Value,
 }
 
 #[derive(SimpleObject, Serialize, Deserialize)]
@@ -415,9 +414,13 @@ impl From<UpdatePayload> for ChainUpdatePayload {
             UpdatePayload::CreatePlt(update) => ChainUpdatePayload::CreatePlt(CreatePltUpdate {
                 token_id:                  update.token_id.clone().into(),
                 token_module:              update.token_module.into(),
-                governance_account:        update.governance_account.into(),
                 decimals:                  update.decimals,
-                initialization_parameters: update.initialization_parameters.to_string(),
+                initialization_parameters:
+                    ciborium::de::from_reader::<InitializationParameters, _>(
+                        update.initialization_parameters.as_ref(),
+                    )
+                    .map(|params| serde_json::to_value(params).unwrap_or_default())
+                    .unwrap_or_default(),
             }),
         }
     }

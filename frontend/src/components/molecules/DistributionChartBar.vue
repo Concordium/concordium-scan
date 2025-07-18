@@ -17,7 +17,7 @@
 				:begin-at-zero="true"
 				:type="chartType"
 				:show-sign="showSign"
-				:label-clickable="true"
+				:label-clickable="false"
 			/>
 		</ClientOnly>
 	</MetricCard>
@@ -28,11 +28,11 @@ import MetricCard from '~/components/atoms/MetricCard.vue'
 import { computed, defineProps } from 'vue'
 import ChartBarST from '../Charts/ChartBarST.vue'
 
-import type { StablecoinResponse } from '~/queries/useStableCoinQuery'
+import type { Plttoken } from '~/types/generated'
 
 // Define Props
 const props = defineProps<{
-	stableCoinsData?: StablecoinResponse
+	stableCoinsData?: Plttoken[]
 	isLoading?: boolean
 	labelClickable?: boolean
 	showSign?: string
@@ -41,16 +41,20 @@ const props = defineProps<{
 
 // Computed Properties
 const chartLabels = computed(() => {
-	const coins = props.stableCoinsData?.stablecoins?.slice(0, 10) ?? []
-	return coins.map(item => item.symbol ?? '')
+	const coins = props.stableCoinsData?.slice(0, 10) ?? []
+	return coins.map(item => item.tokenId ?? '')
 })
 
 const chartData = computed(() => {
-	const coins = props.stableCoinsData?.stablecoins?.slice(0, 10) ?? []
+	const coins = props.stableCoinsData?.slice(0, 10) ?? []
 	return coins.map(item =>
 		props.chartType === 'supply'
-			? item.totalSupply ?? null
-			: item.totalUniqueHolders ?? null
+			? item.totalSupply != null && item.decimal != null
+				? item.totalSupply / Math.pow(10, item.decimal)
+				: null
+			: item.totalUniqueHolders != null
+			? item.totalUniqueHolders
+			: null
 	)
 })
 </script>

@@ -159,7 +159,7 @@ impl P4ProtocolUpdateMigration {
         )
         .execute(tx.as_mut())
         .await?
-        .ensure_affected_rows(self.baker_ids.len().try_into()?)?;
+        .ensure_affected_rows_in_range(0..=self.baker_ids.len().try_into()?)?;
         Ok(())
     }
 }

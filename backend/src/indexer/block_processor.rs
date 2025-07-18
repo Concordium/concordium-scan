@@ -178,19 +178,32 @@ impl ProcessEvent for BlockProcessor {
     ) -> Result<bool, Self::Error> {
         info!("Failed processing {} times in row: \n{:?}", successive_failures, error);
         self.processing_failures.inc();
-        let mut db_connection = PgConnection::connect_with(&self.db_connect_options)
+
+        // Create the new Database connection here
+        let new_db_connection = PgConnection::connect_with(&self.db_connect_options)
             .await
             .context("Failed to establish new connection to the database")?;
+
+        // replace the active db_connection with the new connection, then return the old
+        // connection reference so that it can be closed gracefully
+        let old_db_connection = std::mem::replace(&mut self.db_connection, new_db_connection);
+
+        // Gracefully close the old connection to the database
+        if let Err(e) = old_db_connection.close().await {
+            tracing::warn!("Failed to close old database connection: {:?}", e);
+        }
+
+        // acquire the DB lock for our new connection
         tokio::time::timeout(
             self.db_indexer_lock_timeout,
-            acquire_indexer_lock(db_connection.as_mut()),
+            acquire_indexer_lock(self.db_connection.as_mut()),
         )
         .await
         .context(
             "Acquire indexer lock timed out, another instance of ccdscan-indexer might already be \
              running",
         )??;
-        self.db_connection = db_connection;
+
         Ok(self.max_successive_failures >= successive_failures)
     }
 }

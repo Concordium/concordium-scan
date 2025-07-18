@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [1.7.21] - 2025-07-17
+
+### Changed
+
+- Fixed bug plt dashboard not displaying token distribution chart properly.
+- Fixed missing available balance and required balance when displaying an insufficient balance `TokenUpdateReject` reason in the transaction list page.
+- `usePagedData` composable has been updated to support optional `pageSize` and `maxPageSize` parameters, allowing for more flexible pagination control.
+
+## [1.7.20] - 2025-07-16
+
+### Changed
+
+- Plt dashboard now uses the graphQL query `usePltEventsQuery` and `usePltTokenQuery` to fetch plt token details and events.
+- TokenModuleEvent `pause` and `unpause` events are now displayed in the transaction table(UI).
+
+### Added
+
+- Added `usePltTokenQuery` to fetch details of a specific plt token.
+- Added `usePltEventsQuery` to fetch events related to plt tokens.
+
 ### Removed
 
 - Remove the temporary maintenance banner.
@@ -24,8 +44,33 @@ All notable changes to this project will be documented in this file.
   - `useBlockSubscription`
 
 - Move account statement export to use `rust-backend` API.
+- Update ccd scan copyright to 2025
 
-## [1.17.15] - 2025-06-29
+## [1.7.19] - 2025-07-03
+
+### Removed
+
+- Remove overview section from stablecoin dashboard.
+
+## [1.7.18] - 2025-07-03
+
+### Changed
+
+- Stable coin dashboard now displays plt list and plt supply analytics.
+
+## [1.7.17] - 2025-06-25
+
+### Fixed
+
+- Fix the bug where plt transactions were not displayed properly in the transaction list page.
+
+## [1.7.16] - 2025-06-24
+
+### Added
+
+- Plt TokenHolder and TokenGovernance events are now properly displayed in the Transaction table.
+
+## [1.7.15] - 2025-06-29
 
 ### Added
 

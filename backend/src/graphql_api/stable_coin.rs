@@ -1,3 +1,4 @@
+use crate::address::AccountAddress;
 use async_graphql::{Context, Object, SimpleObject};
 use chrono::{Duration, TimeZone, Utc};
 use serde::Deserialize;
@@ -6,8 +7,6 @@ use std::{
     fs::File,
     io::BufReader,
 };
-
-use crate::address::AccountAddress;
 
 pub type DateTime = chrono::DateTime<chrono::Utc>;
 
@@ -272,7 +271,6 @@ impl QueryStableCoins {
             Self::load_transactions(),
         );
         let coin = stablecoins.iter_mut().find(|coin: &&mut StableCoin| coin.symbol == symbol)?;
-
         coin.holdings = coin.top_holders(limit, min_quantity);
         coin.transactions = coin.last_n_transactions(last_n_transactions);
         Some(coin.clone())

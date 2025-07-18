@@ -283,11 +283,11 @@ __typename
 		... on BlockEnergyLimitUpdate {
 			energyLimit
 		}
-		...	on CreatePltUpdate{
+		...	on CreatePltUpdate {
+			tokenId
+			tokenModule
 			decimals
-			governanceAccount {
-			asString
-			}
+    		initializationParameters
 		}
 
 	}
@@ -383,7 +383,7 @@ __typename
 	delegatorId
 	accountAddress {asString}
 }
-... on TokenHolderEvent {
+... on TokenUpdate {
     tokenId
     event {
         ... on TokenModuleEvent {
@@ -399,12 +399,14 @@ __typename
                 decimals
             }
             to {
-                address
-                coinInfo
+                address{
+                	asString
+                }
             }
             from {
-                address
-                coinInfo
+                address{
+                	asString
+                }
             }
         }
         ... on MintEvent {
@@ -413,8 +415,9 @@ __typename
                 decimals
             }
             target {
-                address
-                coinInfo
+                address{
+                	asString
+                }
             }
         }
         ... on BurnEvent {
@@ -423,54 +426,85 @@ __typename
                 decimals
             }
             target {
-                address
-                coinInfo
+                address{
+                	asString
+                }
             }
         }
     }
 }
-... on TokenGovernanceEvent {
-    tokenId
-    event {
-        ... on TokenModuleEvent {
-            eventType
-            details
-        }
-        ... on TokenTransferEvent {
-            memo {
-                bytes
+... on TokenCreationDetails {
+    createPlt {
+        tokenId
+        tokenModule
+        decimals
+        initializationParameters {
+            name
+            allowList
+            denyList
+            mintable
+            burnable
+            metadata {
+                url
             }
-            amount {
+            initialSupply {
                 value
                 decimals
             }
-            to {
-                address
-                coinInfo
-            }
-            from {
-                address
-                coinInfo
+            governanceAccount {
+                address {
+                    asString
+                }
             }
         }
-        ... on MintEvent {
-            amount {
-                value
-                decimals
+	}
+    events {
+        tokenId
+        event {
+            ... on TokenModuleEvent {
+                eventType
+                details
             }
-            target {
-                address
-                coinInfo
+            ... on TokenTransferEvent {
+                from {
+                    address {
+                        asString
+                    }
+                }
+                to {
+                    address {
+                        asString
+                    }
+                }
+                amount {
+                    value
+                    decimals
+                }
+                memo {
+                    bytes
+                }
             }
-        }
-        ... on BurnEvent {
-            amount {
-                value
-                decimals
+            ... on MintEvent {
+                target {
+                    address {
+                        asString
+                    }
+                }
+                amount {
+                    value
+                    decimals
+                }
             }
-            target {
-                address
-                coinInfo
+            ... on BurnEvent {
+                target {
+                    address {
+                        asString
+                    }
+                }
+                amount {
+                    value
+                    decimals
+                }
             }
         }
     }

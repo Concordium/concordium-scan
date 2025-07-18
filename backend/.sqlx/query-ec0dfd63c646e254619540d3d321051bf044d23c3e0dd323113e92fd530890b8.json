@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO plt_events (\n                id,\n                transaction_index,\n                event_type,\n                token_module_type,\n                token_index,\n                token_event\n            )\n            VALUES (\n                (SELECT COALESCE(MAX(id) + 1, 0) FROM plt_events),\n                $1,\n                 $2,\n                 $3,\n                (SELECT index FROM plt_tokens WHERE token_id = $4),\n                $5\n                )\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        {
+          "Custom": {
+            "name": "event_type",
+            "kind": {
+              "Enum": [
+                "Mint",
+                "Burn",
+                "Transfer",
+                "TokenModule"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "token_module_type",
+            "kind": {
+              "Enum": [
+                "AddAllowList",
+                "RemoveAllowList",
+                "AddDenyList",
+                "RemoveDenyList",
+                "Pause",
+                "Unpause"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ec0dfd63c646e254619540d3d321051bf044d23c3e0dd323113e92fd530890b8"
+}
