@@ -13,12 +13,28 @@
 				<br />
 				<span class="px-2">
 					Available balance :
-					<b> {{ reason.details[reason.reasonType].available_balance }} </b>
+					<b>
+						{{
+							reason.details[reason.reasonType].availableBalance.value /
+							10 **
+								reason.details[reason.reasonType].availableBalance.decimals[
+									'$serde_json::private::Number'
+								]
+						}}
+					</b>
 				</span>
 				<br />
 				<span class="px-2">
 					Required balance :
-					<b> {{ reason.details[reason.reasonType].required_balance }} </b>
+					<b>
+						{{
+							reason.details[reason.reasonType].requiredBalance.value /
+							10 **
+								reason.details[reason.reasonType].requiredBalance.decimals[
+									'$serde_json::private::Number'
+								]
+						}}
+					</b>
 				</span>
 			</Tooltip>
 		</span>
