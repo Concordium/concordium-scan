@@ -201,19 +201,21 @@ struct LatestBalanceStatistics {
     unit:  Unit,
 }
 
-/// default unit for balance statistics to support backwards compatibility for callers
-fn default_balance_statistics_unit_microccd() -> Unit {
-    Unit::MicroCcd
-}
+/// default unit for balance statistics to support backwards compatibility for
+/// callers
+fn default_balance_statistics_unit_microccd() -> Unit { Unit::MicroCcd }
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[allow(clippy::enum_variant_names)]
 enum Balance {
-    /// deprecated alias to support backwards compatibility for old callers to .NET backend - total amount can be provided as 'TotalAmount'
+    /// deprecated alias to support backwards compatibility for old callers to
+    /// .NET backend - total amount can be provided as 'TotalAmount'
     #[serde(alias = "TotalAmount")]
     TotalAmount,
-    /// deprecated alias to support backwards compatibility for old callers to .NET backend - TotalAmountReleased is equivalent to TotalAmountCirculating
+    /// deprecated alias to support backwards compatibility for old callers to
+    /// .NET backend - TotalAmountReleased is equivalent to
+    /// TotalAmountCirculating
     #[serde(alias = "TotalAmountReleased")]
     TotalAmountCirculating,
     TotalAmountUnlocked,
