@@ -40,16 +40,22 @@ watchEffect(() => {
 	}
 
 	setTimeout(() => {
-		const totalSupplySum = stablecoins.reduce(
-			(sum, coin) => sum + ((coin.totalSupply ?? 0) || 0),
-			0
-		)
+		const totalSupplySum = stablecoins.reduce((sum, coin) => {
+			const totalSupply = coin.totalSupply ?? 0
+			const decimal = coin.decimal ?? 0
+			return sum + totalSupply / 10 ** decimal
+		}, 0)
 
 		delayedSupplyPercentage.value = stablecoins.map(coin => ({
 			symbol: coin.tokenId || '',
 			supplyPercentage:
 				totalSupplySum > 0
-					? (((coin.totalSupply ?? 0) / totalSupplySum) * 100).toString()
+					? (
+							((coin.totalSupply ?? 0) /
+								10 ** (coin.decimal ?? 0) /
+								totalSupplySum) *
+							100
+					  ).toString()
 					: '0',
 		}))
 	}, 1000)
