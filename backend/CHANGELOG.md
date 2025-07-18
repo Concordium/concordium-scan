@@ -7,6 +7,10 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 
+## [2.0.9-hotfix.1] - 2025-07-18
+
+- create hotfix for backwards compatability balance statistics api to support calls for: field=TotalAmountReleased and field=TotalAmount which is used by clients
+
 ## [2.0.9] - 2025-06-23
 
 - Added configurable environment variable in the code for Account Statements Export for the max allowed days: 'CCDSCAN_API_EXPORT_STATEMENTS_MAX_DAYS' which defaults currently to 32 for all environments.
