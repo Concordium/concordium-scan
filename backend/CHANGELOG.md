@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
 - Introduced batches in migrations m0037 and logging.
+- (Bugfix) Proper handling of serialization and deserialization of `InitializationParameters` in `CreatePlt`, `CreatePltUpdate`, `TokenCreationDetails` events.
 
 ## [2.0.15] - 2025-07-16
 

@@ -4,14 +4,14 @@ use crate::{
     graphql_api::{ApiResult, InternalError},
     scalar_types::{BigInteger, Byte, DateTime, UnsignedLong},
     transaction_event::{
-        protocol_level_tokens::{CreatePlt, InitializationParameters},
+        protocol_level_tokens::{CreatePlt},
         transfers::TimestampedAmount,
     },
 };
 use anyhow::Context;
 use async_graphql::{ComplexObject, Object, SimpleObject, Union};
 use bigdecimal::BigDecimal;
-use concordium_rust_sdk::{cis2, types::Address};
+use concordium_rust_sdk::{cis2, common::cbor, protocol_level_tokens::TokenModuleInitializationParameters, types::Address};
 use tracing::error;
 
 pub mod baker;
@@ -602,13 +602,11 @@ pub fn events_from_summary(
             })]
         }
         BlockItemSummaryDetails::TokenCreationDetails(token_creation_details) => {
-            let initialization_parameters: InitializationParameters = ciborium::de::from_reader::<
-                InitializationParameters,
-                _,
-            >(
-                token_creation_details.create_plt.initialization_parameters.as_ref(),
-            )
-            .map_err(|e| anyhow::anyhow!("Failed to decode initialization parameters: {}", e))?;
+            let initialization_parameters =
+                cbor::cbor_decode::<TokenModuleInitializationParameters>(
+                    token_creation_details.create_plt.initialization_parameters.as_ref(),
+                )
+                .context("Failed to decode token module initialization parameters")?;
 
             let create_plt = CreatePlt {
                 token_id:                  token_creation_details
