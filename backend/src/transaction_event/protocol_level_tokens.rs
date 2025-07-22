@@ -6,7 +6,6 @@ use concordium_rust_sdk::protocol_level_tokens::{self};
 use serde::{Deserialize, Serialize};
 const CONCORDIUM_SLIP_0044_CODE: u64 = 919;
 
-
 #[derive(Debug, Enum, Clone, Copy, PartialEq, Eq, sqlx::Type)]
 #[sqlx(type_name = "event_type")]
 pub enum TokenUpdateEventType {

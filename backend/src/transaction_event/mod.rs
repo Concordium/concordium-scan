@@ -3,15 +3,14 @@ use crate::{
     decoded_text::DecodedText,
     graphql_api::{ApiResult, InternalError},
     scalar_types::{BigInteger, Byte, DateTime, UnsignedLong},
-    transaction_event::{
-        protocol_level_tokens::{CreatePlt},
-        transfers::TimestampedAmount,
-    },
+    transaction_event::{protocol_level_tokens::CreatePlt, transfers::TimestampedAmount},
 };
 use anyhow::Context;
 use async_graphql::{ComplexObject, Object, SimpleObject, Union};
 use bigdecimal::BigDecimal;
-use concordium_rust_sdk::{cis2, common::cbor, protocol_level_tokens::TokenModuleInitializationParameters, types::Address};
+use concordium_rust_sdk::{
+    cis2, common::cbor, protocol_level_tokens::TokenModuleInitializationParameters, types::Address,
+};
 use tracing::error;
 
 pub mod baker;

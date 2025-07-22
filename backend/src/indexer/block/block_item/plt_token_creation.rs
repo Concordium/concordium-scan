@@ -1,6 +1,9 @@
 use anyhow::Ok;
 use bigdecimal::BigDecimal;
-use concordium_rust_sdk::{common::cbor, protocol_level_tokens::TokenModuleInitializationParameters, types::TokenCreationDetails};
+use concordium_rust_sdk::{
+    common::cbor, protocol_level_tokens::TokenModuleInitializationParameters,
+    types::TokenCreationDetails,
+};
 
 use crate::transaction_event::protocol_level_tokens::{
     CreatePlt, InitializationParameters, TokenUpdate,
@@ -25,10 +28,10 @@ impl PreparedTokenCreationDetails {
             .into();
         Ok(PreparedTokenCreationDetails {
             create_plt: CreatePlt {
-                token_id:                  details.create_plt.token_id.clone().into(),
-                token_module:              details.create_plt.token_module.to_string(),
-                decimals:                  details.create_plt.decimals,
-                initialization_parameters: initialization_parameters.into(),
+                token_id: details.create_plt.token_id.clone().into(),
+                token_module: details.create_plt.token_module.to_string(),
+                decimals: details.create_plt.decimals,
+                initialization_parameters,
             },
             events:     details
                 .events

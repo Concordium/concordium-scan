@@ -577,7 +577,7 @@ impl PLTAccountAmount {
         let value = self.amount.clone().and_then(|amt| amt.to_u64()).unwrap_or(0);
         let decimals = self.decimal.unwrap_or(0) as u8;
         Ok(TokenAmount {
-            value: value.to_string(),
+            value:    value.to_string(),
             decimals: decimals.to_string(),
         })
     }

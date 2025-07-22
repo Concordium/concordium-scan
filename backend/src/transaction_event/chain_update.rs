@@ -4,7 +4,11 @@ use crate::{
     transaction_event::protocol_level_tokens::InitializationParameters,
 };
 use async_graphql::{SimpleObject, Union};
-use concordium_rust_sdk::{common::cbor, protocol_level_tokens::TokenModuleInitializationParameters, types::{ExchangeRate, UpdatePayload}};
+use concordium_rust_sdk::{
+    common::cbor,
+    protocol_level_tokens::TokenModuleInitializationParameters,
+    types::{ExchangeRate, UpdatePayload},
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(SimpleObject, Serialize, Deserialize)]
