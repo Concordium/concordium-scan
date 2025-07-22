@@ -162,7 +162,7 @@
 							{{
 								(
 									Number(event.tokenEvent.amount.value) /
-									Math.pow(10,Number(event.tokenEvent.amount.decimals))
+									Math.pow(10, Number(event.tokenEvent.amount.decimals))
 								).toFixed(Number(event.tokenEvent.amount.decimals))
 							}}
 						</TableTd>
