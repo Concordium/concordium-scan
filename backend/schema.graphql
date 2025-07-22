@@ -845,6 +845,11 @@ type BurnEvent {
 
 scalar Byte
 
+type CborHolderAccount {
+	address: AccountAddress!
+	coinInfo: CoinInfo
+}
+
 type ChainParametersV1 {
 	rewardPeriodLength: UnsignedLong!
 }
@@ -895,6 +900,10 @@ type CisTransferEvent {
 
 type CisUnknownEvent {
 	dummy: UnsignedLong!
+}
+
+type CoinInfo {
+	coinInfoCode: String!
 }
 
 "Information about the offset pagination."
@@ -1064,17 +1073,6 @@ type CooldownParametersChainUpdatePayload {
 	delegatorCooldown: UnsignedLong!
 }
 
-type CreatePLTInitializationParameters {
-	name: String!
-	metadata: MetadataUrl!
-	allowList: Boolean
-	denyList: Boolean
-	mintable: Boolean
-	burnable: Boolean
-	initialSupply: TokenAmount
-	governanceAccount: TokenHolder
-}
-
 type CreatePlt {
 	"The symbol of the token."
 	tokenId: String!
@@ -1087,7 +1085,7 @@ type CreatePlt {
 	"""
 	decimals: Int!
 	"The initialization parameters of the token, encoded in CBOR."
-	initializationParameters: CreatePLTInitializationParameters!
+	initializationParameters: InitializationParameters!
 }
 
 type CreatePltUpdate {
@@ -1339,6 +1337,17 @@ type ImportState {
 	epochDuration: TimeSpan!
 }
 
+type InitializationParameters {
+	name: String!
+	metadata: MetadataUrl!
+	allowList: Boolean
+	denyList: Boolean
+	mintable: Boolean
+	burnable: Boolean
+	initialSupply: TokenAmount
+	governanceAccount: CborHolderAccount!
+}
+
 """
 The status of parsing `message` into its JSON representation using the
 smart contract module schema.
@@ -1500,6 +1509,8 @@ type Metadata {
 
 type MetadataUrl {
 	url: String!
+	checksumSha256: String
+	additional: JSON
 }
 
 enum MetricsPeriod {
@@ -1953,6 +1964,10 @@ type PendingBakerRemoval {
 type PltEventMetrics {
 	lastCumulativeEventCount: Int!
 	eventCount: Int!
+	lastCumulativeTransferCount: Int!
+	transferCount: Int!
+	lastCumulativeTransferVolume: Float!
+	transferVolume: Float!
 	lastCumulativeTotalSupply: Float!
 	totalSupply: Float!
 	lastCumulativeUniqueHolders: Int!
@@ -1965,6 +1980,10 @@ type PltEventMetricsBuckets {
 	x_Time: [DateTime!]!
 	y_LastCumulativeEventCount: [Int!]!
 	y_EventCount: [Int!]!
+	y_LastCumulativeTransferCount: [Int!]!
+	y_TransferCount: [Int!]!
+	y_LastCumulativeTransferVolume: [Float!]!
+	y_TransferVolume: [Float!]!
 	y_TotalSupply: [Float!]!
 	y_TotalUniqueHolders: [Int!]!
 }
@@ -2607,7 +2626,7 @@ type Token {
 
 type TokenAmount {
 	value: String!
-	decimals: Int!
+	decimals: String!
 }
 
 type TokenConnection {

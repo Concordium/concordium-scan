@@ -17,6 +17,12 @@ struct PltEventMetrics {
     last_cumulative_event_count: i64,
     event_count:                 i64,
 
+    last_cumulative_transfer_count: i64,
+    transfer_count:                 i64,
+
+    last_cumulative_transfer_volume: f64,
+    transfer_volume:                 f64,
+
     last_cumulative_total_supply: f64,
     total_supply:                 f64,
 
@@ -38,6 +44,18 @@ struct PltEventMetricsBuckets {
 
     #[graphql(name = "y_EventCount")]
     y_event_count: Vec<i64>,
+
+    #[graphql(name = "y_LastCumulativeTransferCount")]
+    y_last_cumulative_transfer_count: Vec<i64>,
+
+    #[graphql(name = "y_TransferCount")]
+    y_transfer_count: Vec<i64>,
+
+    #[graphql(name = "y_LastCumulativeTransferVolume")]
+    y_last_cumulative_transfer_volume: Vec<f64>,
+
+    #[graphql(name = "y_TransferVolume")]
+    y_transfer_volume: Vec<f64>,
 
     #[graphql(name = "y_TotalSupply")]
     y_total_supply: Vec<f64>,
@@ -80,6 +98,10 @@ impl QueryPltEventMetrics {
             return Ok(PltEventMetrics {
                 last_cumulative_event_count: 0,
                 event_count: 0,
+                last_cumulative_transfer_count: 0,
+                transfer_count: 0,
+                last_cumulative_transfer_volume: 0.0,
+                transfer_volume: 0.0,
                 last_cumulative_total_supply: 0.0,
                 total_supply: 0.0,
                 last_cumulative_unique_holders: 0,
@@ -89,18 +111,31 @@ impl QueryPltEventMetrics {
                     x_time: vec![],
                     y_last_cumulative_event_count: vec![],
                     y_event_count: vec![],
+                    y_last_cumulative_transfer_count: vec![],
+                    y_transfer_count: vec![],
+                    y_last_cumulative_transfer_volume: vec![],
+                    y_transfer_volume: vec![],
                     y_total_supply: vec![],
                     y_total_unique_holders: vec![],
                 },
             });
         }
 
-        let first = rows.first().unwrap();
-        let last = rows.last().unwrap();
+        let first = rows.first().ok_or_else(|| ApiError::NotFound)?;
+
+        let last = rows.last().ok_or_else(|| ApiError::NotFound)?;
 
         let start_event_count = first.start_cumulative_event_count;
         let end_event_count = last.end_cumulative_event_count;
         let event_count = end_event_count - start_event_count;
+
+        let start_transfer_count = first.start_cumulative_transfer_count;
+        let end_transfer_count = last.end_cumulative_transfer_count;
+        let transfer_count = end_transfer_count - start_transfer_count;
+
+        let start_transfer_volume = first.start_cumulative_transfer_volume.to_f64().unwrap_or(0.0);
+        let end_transfer_volume = last.end_cumulative_transfer_volume.to_f64().unwrap_or(0.0);
+        let transfer_volume = end_transfer_volume - start_transfer_volume;
 
         let start_supply = first.start_total_supply.to_f64().unwrap_or(0.0);
         let end_supply = last.end_total_supply.to_f64().unwrap_or(0.0);
@@ -113,6 +148,10 @@ impl QueryPltEventMetrics {
         let mut x_time = Vec::with_capacity(rows.len());
         let mut y_last_cumulative_event_count = Vec::with_capacity(rows.len());
         let mut y_event_count = Vec::with_capacity(rows.len());
+        let mut y_last_cumulative_transfer_count = Vec::with_capacity(rows.len());
+        let mut y_transfer_count = Vec::with_capacity(rows.len());
+        let mut y_last_cumulative_transfer_volume = Vec::with_capacity(rows.len());
+        let mut y_transfer_volume = Vec::with_capacity(rows.len());
         let mut y_total_supply = Vec::with_capacity(rows.len());
         let mut y_total_unique_holders = Vec::with_capacity(rows.len());
 
@@ -120,6 +159,16 @@ impl QueryPltEventMetrics {
             x_time.push(row.bucket_time);
             y_last_cumulative_event_count.push(row.end_cumulative_event_count);
             y_event_count.push(row.end_cumulative_event_count - row.start_cumulative_event_count);
+            y_last_cumulative_transfer_count.push(row.end_cumulative_transfer_count);
+            y_transfer_count
+                .push(row.end_cumulative_transfer_count - row.start_cumulative_transfer_count);
+            y_last_cumulative_transfer_volume
+                .push(row.end_cumulative_transfer_volume.to_f64().unwrap_or(0.0));
+            y_transfer_volume.push(
+                (row.end_cumulative_transfer_volume - row.start_cumulative_transfer_volume)
+                    .to_f64()
+                    .unwrap_or(0.0),
+            );
             y_total_supply.push(row.end_total_supply.to_f64().unwrap_or(0.0));
             y_total_unique_holders.push(row.end_total_unique_holders);
         }
@@ -127,6 +176,10 @@ impl QueryPltEventMetrics {
         Ok(PltEventMetrics {
             last_cumulative_event_count: end_event_count,
             event_count,
+            last_cumulative_transfer_count: end_transfer_count,
+            transfer_count,
+            last_cumulative_transfer_volume: end_transfer_volume,
+            transfer_volume,
             last_cumulative_total_supply: end_supply,
             total_supply,
             last_cumulative_unique_holders: end_holders,
@@ -136,6 +189,10 @@ impl QueryPltEventMetrics {
                 x_time,
                 y_last_cumulative_event_count,
                 y_event_count,
+                y_last_cumulative_transfer_count,
+                y_transfer_count,
+                y_last_cumulative_transfer_volume,
+                y_transfer_volume,
                 y_total_supply,
                 y_total_unique_holders,
             },

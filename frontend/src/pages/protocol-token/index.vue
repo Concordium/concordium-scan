@@ -16,7 +16,7 @@
 						:y-values="[[null]]"
 						:is-loading="false"
 					>
-						<template #title>Total Market Cap</template>
+						<template #title>Total Token Supply</template>
 						<template #value>
 							<p class="font-bold text-2xl mt-2">
 								{{
@@ -66,10 +66,14 @@
 						:y-values="[[null]]"
 						:is-loading="pltEventMetricsLoading"
 					>
-						<template #title>Total Values Transfer (24h)</template>
+						<template #title>Total Transfer Volume (24h)</template>
 						<template #value>
 							<p class="font-bold text-2xl mt-2">
-								{{ '$' + 0.0 }}
+								{{
+									numberFormatter(
+										pltEventMetricsDataRef?.pltEventMetrics.transferVolume
+									)
+								}}
 							</p>
 						</template>
 					</KeyValueChartCard>
@@ -183,8 +187,8 @@
 							{{
 								(
 									Number(event.tokenEvent.amount.value) /
-									Math.pow(10, event.tokenEvent.amount.decimals)
-								).toFixed(event.tokenEvent.amount.decimals)
+									Math.pow(10, Number(event.tokenEvent.amount.decimals))
+								).toFixed(Number(event.tokenEvent.amount.decimals))
 							}}
 						</TableTd>
 					</TableRow>

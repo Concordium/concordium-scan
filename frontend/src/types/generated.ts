@@ -937,6 +937,12 @@ export type BurnEvent = {
   target: TokenHolder;
 };
 
+export type CborHolderAccount = {
+  __typename?: 'CborHolderAccount';
+  address: AccountAddress;
+  coinInfo?: Maybe<CoinInfo>;
+};
+
 export type ChainParametersV1 = {
   __typename?: 'ChainParametersV1';
   rewardPeriodLength: Scalars['UnsignedLong'];
@@ -995,6 +1001,11 @@ export type CisTransferEvent = {
 export type CisUnknownEvent = {
   __typename?: 'CisUnknownEvent';
   dummy: Scalars['UnsignedLong'];
+};
+
+export type CoinInfo = {
+  __typename?: 'CoinInfo';
+  coinInfoCode: Scalars['String'];
 };
 
 /** Information about the offset pagination. */
@@ -1202,18 +1213,6 @@ export type CooldownParametersChainUpdatePayload = {
   poolOwnerCooldown: Scalars['UnsignedLong'];
 };
 
-export type CreatePltInitializationParameters = {
-  __typename?: 'CreatePLTInitializationParameters';
-  allowList?: Maybe<Scalars['Boolean']>;
-  burnable?: Maybe<Scalars['Boolean']>;
-  denyList?: Maybe<Scalars['Boolean']>;
-  governanceAccount?: Maybe<TokenHolder>;
-  initialSupply?: Maybe<TokenAmount>;
-  metadata: MetadataUrl;
-  mintable?: Maybe<Scalars['Boolean']>;
-  name: Scalars['String'];
-};
-
 export type CreatePlt = {
   __typename?: 'CreatePlt';
   /**
@@ -1223,7 +1222,7 @@ export type CreatePlt = {
    */
   decimals: Scalars['Int'];
   /** The initialization parameters of the token, encoded in CBOR. */
-  initializationParameters: CreatePltInitializationParameters;
+  initializationParameters: InitializationParameters;
   /** The symbol of the token. */
   tokenId: Scalars['String'];
   /** A SHA256 hash that identifies the token module implementation. */
@@ -1509,6 +1508,18 @@ export type ImportState = {
   epochDuration: Scalars['TimeSpan'];
 };
 
+export type InitializationParameters = {
+  __typename?: 'InitializationParameters';
+  allowList?: Maybe<Scalars['Boolean']>;
+  burnable?: Maybe<Scalars['Boolean']>;
+  denyList?: Maybe<Scalars['Boolean']>;
+  governanceAccount: CborHolderAccount;
+  initialSupply?: Maybe<TokenAmount>;
+  metadata: MetadataUrl;
+  mintable?: Maybe<Scalars['Boolean']>;
+  name: Scalars['String'];
+};
+
 /**
  * The status of parsing `message` into its JSON representation using the
  * smart contract module schema.
@@ -1702,6 +1713,8 @@ export type Metadata = {
 
 export type MetadataUrl = {
   __typename?: 'MetadataUrl';
+  additional?: Maybe<Scalars['JSON']>;
+  checksumSha256?: Maybe<Scalars['String']>;
   url: Scalars['String'];
 };
 
@@ -2244,9 +2257,13 @@ export type PltEventMetrics = {
   eventCount: Scalars['Int'];
   lastCumulativeEventCount: Scalars['Int'];
   lastCumulativeTotalSupply: Scalars['Float'];
+  lastCumulativeTransferCount: Scalars['Int'];
+  lastCumulativeTransferVolume: Scalars['Float'];
   lastCumulativeUniqueHolders: Scalars['Int'];
   totalSupply: Scalars['Float'];
   totalUniqueHolders: Scalars['Int'];
+  transferCount: Scalars['Int'];
+  transferVolume: Scalars['Float'];
 };
 
 export type PltEventMetricsBuckets = {
@@ -2255,8 +2272,12 @@ export type PltEventMetricsBuckets = {
   x_Time: Array<Scalars['DateTime']>;
   y_EventCount: Array<Scalars['Int']>;
   y_LastCumulativeEventCount: Array<Scalars['Int']>;
+  y_LastCumulativeTransferCount: Array<Scalars['Int']>;
+  y_LastCumulativeTransferVolume: Array<Scalars['Float']>;
   y_TotalSupply: Array<Scalars['Float']>;
   y_TotalUniqueHolders: Array<Scalars['Int']>;
+  y_TransferCount: Array<Scalars['Int']>;
+  y_TransferVolume: Array<Scalars['Float']>;
 };
 
 export type PltaccountAmount = {
@@ -3114,7 +3135,7 @@ export type TokenTokenEventsArgs = {
 
 export type TokenAmount = {
   __typename?: 'TokenAmount';
-  decimals: Scalars['Int'];
+  decimals: Scalars['String'];
   value: Scalars['String'];
 };
 

@@ -8,20 +8,28 @@ export type PltEventMetricsQueryResponse = {
 const PltEventMetricsQuery = gql<PltEventMetricsQueryResponse>`
 	query PltEventMetrics($period: MetricsPeriod!) {
 		pltEventMetrics(period: $period) {
+			lastCumulativeTransferCount
+			transferCount
+			lastCumulativeTransferVolume
+			transferVolume
+			lastCumulativeTotalSupply
+			totalSupply
+			lastCumulativeUniqueHolders
+			totalUniqueHolders
 			buckets {
 				bucketWidth
 				x_Time
-				y_EventCount
 				y_LastCumulativeEventCount
+				y_EventCount
+				y_LastCumulativeTransferCount
+				y_TransferCount
+				y_LastCumulativeTransferVolume
+				y_TransferVolume
 				y_TotalSupply
 				y_TotalUniqueHolders
 			}
 			eventCount
 			lastCumulativeEventCount
-			lastCumulativeTotalSupply
-			lastCumulativeUniqueHolders
-			totalSupply
-			totalUniqueHolders
 		}
 	}
 `

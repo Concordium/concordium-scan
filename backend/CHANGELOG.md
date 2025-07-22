@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## Added
+
+- Added query `PltEventMetrics` to fetch metrics related to plt token events.
+
 ## [2.0.15] - 2025-07-16
 
 ### Changed
