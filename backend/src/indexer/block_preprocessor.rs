@@ -307,13 +307,14 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
 /// information we need to update for the validators such as their staked
 /// amounts and their pool staked amounts. As it is intensive to go to the node
 /// through the client, the last computed total stake is stored in a cache. We
-/// only go to the retrieve the latest stakes if (current block height %
-/// STAKE_RECOMPUTE_INTERVAL_IN_BLOCKS == 0). It is important to note that in
-/// our cached scenario, we just return the last cached total stake amount - we
-/// do not return validatorStakingInformation because: if this is present when
-/// we reach the block processor it will perform database update queries for all
-/// the validator information provided, therefore it is crucial to return a
-/// struct that represents 'no updates at this time'
+/// only go to the retrieve the latest stakes if enough blocks have passed
+/// (defined by our env variable STAKE_RECOMPUTE_INTERVAL_IN_BLOCKS). It is
+/// important to note that in our cached scenario, we just return the last
+/// cached total stake amount - we do not return validatorStakingInformation
+/// because: if this is present when we reach the block processor it will
+/// perform database update queries for all the validator information provided,
+/// therefore it is crucial to return a struct that represents 'no updates at
+/// this time'
 pub async fn compute_validator_staking_information(
     client: &mut v2::Client,
     block_height: v2::BlockIdentifier,
