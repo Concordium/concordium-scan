@@ -942,6 +942,7 @@ dependencies = [
  "mockito",
  "num-derive",
  "num-traits",
+ "once_cell",
  "prometheus-client",
  "regex",
  "reqwest",

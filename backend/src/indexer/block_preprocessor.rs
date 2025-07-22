@@ -16,15 +16,17 @@ use concordium_rust_sdk::{
         self as sdk_types, block_certificates::BlockCertificates, queries::BlockInfo,
         BlockItemSummary, ProtocolVersion, RewardsOverview, SpecialTransactionOutcome,
     },
-    v2,
+    v2::{self, BlockIdentifier},
 };
 use futures::TryStreamExt as _;
+use once_cell::sync::Lazy;
 use prometheus_client::{
     metrics::{counter::Counter, family::Family, gauge::Gauge, histogram},
     registry::Registry,
 };
-use tokio::{time::Instant, try_join};
-use tracing::{debug, error, info};
+use std::{env, sync::Arc};
+use tokio::{sync::RwLock, time::Instant, try_join};
+use tracing::{debug, error, info, warn};
 
 /// State tracked during block preprocessing, this also holds the implementation
 /// of [`Indexer`](concordium_rust_sdk::indexer::Indexer). Since several
@@ -105,6 +107,23 @@ impl NodeMetricLabels {
         }
     }
 }
+
+/// Cache holding the last computed total stake for a block height
+#[derive(Clone)]
+struct TotalStakedAmountsCache {
+    block_height: u64,
+    total_staked: Amount,
+}
+
+/// A read write lock for the total staked amounts cache
+static TOTAL_STAKED_AMOUNTS_CACHE: Lazy<Arc<RwLock<Option<TotalStakedAmountsCache>>>> =
+    Lazy::new(|| Arc::new(RwLock::new(None)));
+
+/// How often to recompute the staked amounts for validators, the default
+/// interval to recompute staked amounts is every 100 blocks
+pub static STAKE_RECOMPUTE_INTERVAL_IN_BLOCKS: Lazy<u64> = Lazy::new(|| {
+    env::var("STAKE_RECOMPUTE_INTERVAL").ok().and_then(|s| s.parse::<u64>().ok()).unwrap_or(100)
+});
 
 #[tonic::async_trait]
 impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
@@ -281,49 +300,104 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
     }
 }
 
-/// compute validator staking information such as the validators stake and the
-/// total staked in their pool by getting pool info. pool info did not exist
-/// prior to protocol version 4, in this case the account info is used to get
-/// the stake for the validator and the total pool for the validator prior to
-/// protocol version 4 will be set to their account stake.
+/// Responsible for computing the latest validator staking information which
+/// returns a Tuple of <Amount, ValidatorStakingInformation> - where Amount is
+/// the total stake summed for all the validators
+/// and the ValidatorStakingInformation is a struct containing all of the new
+/// information we need to update for the validators such as their staked
+/// amounts and their pool staked amounts. As it is intensive to go to the node
+/// through the client, the last computed total stake is stored in a cache. We
+/// only go to the retrieve the latest stakes if (current block height %
+/// STAKE_RECOMPUTE_INTERVAL_IN_BLOCKS == 0). It is important to note that in
+/// our cached scenario, we just return the last cached total stake amount - we
+/// do not return validatorStakingInformation because: if this is present when
+/// we reach the block processor it will perform database update queries for all
+/// the validator information provided, therefore it is crucial to return a
+/// struct that represents 'no updates at this time'
 pub async fn compute_validator_staking_information(
     client: &mut v2::Client,
     block_height: v2::BlockIdentifier,
 ) -> v2::QueryResult<(Amount, ValidatorStakingInformation)> {
-    let mut total_staked = Amount::zero();
-    let mut bakers = client.get_baker_list(block_height).await?.response;
+    let current_block_height: u64 = get_block_height_from_absolute(block_height);
+    let cache_read = TOTAL_STAKED_AMOUNTS_CACHE.read().await;
+    let computed_stake_result: v2::QueryResult<(Amount, ValidatorStakingInformation)>;
+    let mut should_update_cache = false;
 
+    // Read from the cache, check if its time to recompute the staked amounts or if
+    // we can just return the cached total staked amount
+    if let Some(cache) = &*cache_read {
+        // check if enough blocks have passed to recompute stakes
+        if current_block_height - cache.block_height == *STAKE_RECOMPUTE_INTERVAL_IN_BLOCKS {
+            computed_stake_result =
+                compute_validator_staking_information_with_client(client, block_height).await;
+            should_update_cache = true;
+        } else {
+            // return cached values with no updates required staking information
+            let no_updates_required_for_validators = ValidatorStakingInformation {
+                ids: vec![],
+                staked_amounts: vec![],
+                pool_total_staked_amounts: vec![],
+            };
+            debug!(
+                "Returning cache total stake for height: {}, total staked: {}",
+                current_block_height, cache.total_staked
+            );
+            computed_stake_result = Ok((cache.total_staked, no_updates_required_for_validators));
+        }
+    } else {
+        // On startup the cache will not exist so recompute
+        warn!("Cache was not ready, computing now");
+        computed_stake_result =
+            compute_validator_staking_information_with_client(client, block_height).await;
+        should_update_cache = true;
+    }
+
+    // drop the read lock on the cache now
+    drop(cache_read);
+
+    // Update the cache with the new computed total stake
+    if should_update_cache {
+        {
+            let mut cache_write = TOTAL_STAKED_AMOUNTS_CACHE.write().await;
+            *cache_write = Some(TotalStakedAmountsCache {
+                block_height: current_block_height,
+                total_staked: computed_stake_result
+                    .as_ref()
+                    .map(|(amount, _)| *amount)
+                    .unwrap_or(Amount::zero()),
+            });
+            drop(cache_write);
+        }
+    }
+
+    computed_stake_result
+}
+
+/// compute validator staking information by going through the client to talk to
+/// the network to get the validators stake and the total staked in their pool
+/// by getting pool info. NOTE: pool info did not exist prior to protocol
+/// version 4, in this case the account info is used to get the stake for the
+/// validator and the total pool for the validator prior to protocol version 4
+/// will be set to their account stake.
+pub async fn compute_validator_staking_information_with_client(
+    client: &mut v2::Client,
+    block_height: v2::BlockIdentifier,
+) -> v2::QueryResult<(Amount, ValidatorStakingInformation)> {
+    let mut total_staked = Amount::zero();
     let mut validator_ids = Vec::new();
     let mut validator_staked_amounts = Vec::new();
     let mut validator_pool_staked = Vec::new();
+    let mut bakers = client.get_baker_list(block_height).await?.response;
 
     while let Some(baker_id) = bakers.try_next().await? {
-        // Try to get the pool info for a given Baker
         if let Ok(baker_pool_info) = client.get_pool_info(block_height, baker_id).await {
             if let Some(active_baker_pool_status) =
                 &baker_pool_info.response.active_baker_pool_status
             {
-                // stake for the baker
-                let validator_stake: i64 =
+                let validator_stake =
                     active_baker_pool_status.baker_equity_capital.micro_ccd as i64;
-
-                // delegated amount
-                let delegated_capital: i64 =
-                    active_baker_pool_status.delegated_capital.micro_ccd as i64;
-
-                // total stake of the pool for this baker (baker_equity_capital +
-                // delegated_capital)
-                let total_stake_for_this_validator: i64 = validator_stake + delegated_capital;
-
-                debug!(
-                    "Computing validator staking information for validator id: {} - validator \
-                     stake: {}, delegated stake: {}, total stake: {}, all pools: {}",
-                    baker_id,
-                    validator_stake,
-                    delegated_capital,
-                    total_stake_for_this_validator,
-                    baker_pool_info.response.all_pool_total_capital
-                );
+                let delegated_capital = active_baker_pool_status.delegated_capital.micro_ccd as i64;
+                let total_stake_for_this_validator = validator_stake + delegated_capital;
 
                 let baker_index = i64::try_from(baker_id.id.index).map_err(|e| {
                     v2::RPCError::ParseError(anyhow::anyhow!(
@@ -332,7 +406,6 @@ pub async fn compute_validator_staking_information(
                     ))
                 })?;
 
-                // push the information for this baker into their corresponding vectors
                 validator_ids.push(baker_index);
                 validator_staked_amounts.push(validator_stake);
                 validator_pool_staked.push(total_stake_for_this_validator);
@@ -340,16 +413,6 @@ pub async fn compute_validator_staking_information(
                 total_staked = baker_pool_info.response.all_pool_total_capital;
             }
         } else {
-            // Before protocol version 4, pool information and delegation did not exist. In
-            // this scenario we can take the staked amount for the baker from the call to
-            // get account info and the pool_total_staked_amount will be set to this same
-            // value.
-            debug!(
-                "Pool info not found, getting account info for this validator: {}, at block \
-                 height: {}",
-                baker_id.id, block_height
-            );
-
             let account_info = client
                 .get_account_info(&v2::AccountIdentifier::Index(baker_id.id), block_height)
                 .await?
@@ -373,13 +436,39 @@ pub async fn compute_validator_staking_information(
         }
     }
 
-    let validators_staking_information: ValidatorStakingInformation = ValidatorStakingInformation {
+    // prepare the validator staking information which will be updated later in the
+    // database
+    let validators_staking_information = ValidatorStakingInformation {
         ids: validator_ids,
         staked_amounts: validator_staked_amounts,
         pool_total_staked_amounts: validator_pool_staked,
     };
 
+    debug!(
+        "computed staking information through client, total staked: {:?}, for height: {:?}, \
+         validator staking ids: {:?}, validator staked amounts: {:?}, validator pool staked: {:?}",
+        &total_staked,
+        &block_height,
+        &validators_staking_information.ids,
+        &validators_staking_information.staked_amounts,
+        &validators_staking_information.pool_total_staked_amounts
+    );
     Ok((total_staked, validators_staking_information))
+}
+
+/// returns the block height from a provided Block Identifier.
+/// We are expecting this to be an AbsoluteBlockHeight where the height can be
+/// taken as u64 (later will be used for caching with computing staked amounts)
+/// we will immediately create an error if its not possible as the indexer
+/// should always work with Absolute height for this area of the code.
+fn get_block_height_from_absolute(block_height: BlockIdentifier) -> u64 {
+    match block_height {
+        v2::BlockIdentifier::AbsoluteHeight(h) => h.height,
+        _ => {
+            debug!("Non-absolute block identifier; skipping cache.");
+            panic!("Expected absolute block height in order to work with caching effectively");
+        }
+    }
 }
 
 /// Raw block information fetched from a Concordium Node.

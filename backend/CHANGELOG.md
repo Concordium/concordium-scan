@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Staked amounts caching mechanism to only go to the node every X number of blocks. Can be configured with STAKE_RECOMPUTE_INTERVAL_IN_BLOCKS (defaults to 100 if not provided)
+
 ## [2.0.15] - 2025-07-16
 
 ### Changed
