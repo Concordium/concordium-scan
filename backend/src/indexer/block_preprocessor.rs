@@ -120,9 +120,9 @@ static TOTAL_STAKED_AMOUNTS_CACHE: Lazy<Arc<RwLock<Option<TotalStakedAmountsCach
     Lazy::new(|| Arc::new(RwLock::new(None)));
 
 /// How often to recompute the staked amounts for validators, the default
-/// interval to recompute staked amounts is every 100 blocks
+/// interval to recompute staked amounts is every X blocks.
 pub static STAKE_RECOMPUTE_INTERVAL_IN_BLOCKS: Lazy<u64> = Lazy::new(|| {
-    env::var("STAKE_RECOMPUTE_INTERVAL").ok().and_then(|s| s.parse::<u64>().ok()).unwrap_or(100)
+    env::var("STAKE_RECOMPUTE_INTERVAL").ok().and_then(|s| s.parse::<u64>().ok()).unwrap_or(500)
 });
 
 #[tonic::async_trait]
