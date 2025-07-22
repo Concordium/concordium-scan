@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Introduced batches in migrations m0037 and logging.
+
 ## [2.0.15] - 2025-07-16
 
 ### Changed
