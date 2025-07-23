@@ -11,25 +11,34 @@ use crate::{
 #[derive(Default)]
 pub(crate) struct QueryPltEventMetrics;
 
+// This struct is used to define the GraphQL query for PLT event metrics.
 #[derive(SimpleObject)]
 struct PltEventMetrics {
+    // Total number of transfers in the requested period.
     transfer_count:  i64,
+    // Total volume of transfers in the requested period.
     transfer_volume: f64,
+    // Total number of mints in the requested period.
+    mint_count:      i64,
+    // Total volume of mints in the requested period.
+    mint_volume:     f64,
 
-    mint_count:  i64,
-    mint_volume: f64,
-
+    // Total number of burns in the requested period.
     burn_count:  i64,
+    // Total volume of burns in the requested period.
     burn_volume: f64,
 
+    // Total number of token modules created in the requested period.
     token_module_count: i64,
+    // Total number of events in the requested period.
     total_event_count:  i64,
-
-    buckets: PltEventMetricsBuckets,
+    // Buckets for the PLT event metrics.
+    buckets:            PltEventMetricsBuckets,
 }
-
+// This struct is used to define the buckets for PLT event metrics.
 #[derive(SimpleObject)]
 struct PltEventMetricsBuckets {
+    // The width (time interval) of each bucket.
     bucket_width: TimeSpan,
 
     #[graphql(name = "x_Time")]
@@ -78,7 +87,7 @@ impl QueryPltEventMetrics {
         let bucket_width = period.bucket_width();
         let bucket_interval: PgInterval =
             bucket_width.try_into().map_err(|e| ApiError::DurationOutOfRange(Arc::new(e)))?;
-
+        // One extra query to get the token index if a token_id is provided.
         let plt_token_index: Option<i64> = if let Some(token_id) = token_id {
             let result = sqlx::query!("SELECT index FROM plt_tokens WHERE token_id = $1", token_id)
                 .fetch_optional(pool)
