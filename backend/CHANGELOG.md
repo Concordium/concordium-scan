@@ -7,6 +7,8 @@ All notable changes to this project will be documented in this file.
 ## Added
 
 - Added query `PltEventMetrics` to fetch metrics related to plt token events.
+- Introduced batches in migrations m0037 and logging.
+- (Bugfix) Proper handling of serialization and deserialization of `InitializationParameters` in `CreatePlt`, `CreatePltUpdate`, `TokenCreationDetails` events.
 
 ## [2.0.15] - 2025-07-16
 
@@ -54,6 +56,10 @@ Database schema version: 38
 ### Added
 
 - Plt TokenHolder and TokenGovernance Events are now indexed and available in the API.
+
+## [2.0.9-hotfix.1] - 2025-07-18
+
+- create hotfix for backwards compatability balance statistics api to support calls for: field=TotalAmountReleased and field=TotalAmount which is used by clients
 
 ## [2.0.9] - 2025-06-23
 

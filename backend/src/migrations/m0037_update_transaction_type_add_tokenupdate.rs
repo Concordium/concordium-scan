@@ -2,8 +2,12 @@
 //!   `TokenGovernance` enum values being present. These are not part of the
 //!   intended devnet account_transaction_type enum set.
 
+use tracing::info;
+
 use super::SchemaVersion;
 const NEXT_SCHEMA_VERSION: SchemaVersion = SchemaVersion::UpdateTransactionTypeAddTokenUpdate;
+
+const BATCH_SIZE: i64 = 10_000;
 
 pub async fn run(
     tx: &mut sqlx::PgTransaction<'_>,
@@ -11,99 +15,201 @@ pub async fn run(
 ) -> anyhow::Result<SchemaVersion> {
     sqlx::query(
         r#"
-    CREATE TYPE account_transaction_type_new AS ENUM (
-        'InitializeSmartContractInstance',
-        'UpdateSmartContractInstance',
-        'SimpleTransfer',
-        'EncryptedTransfer',
-        'SimpleTransferWithMemo',
-        'EncryptedTransferWithMemo',
-        'TransferWithScheduleWithMemo',
-        'DeployModule',
-        'AddBaker',
-        'RemoveBaker',
-        'UpdateBakerStake',
-        'UpdateBakerRestakeEarnings',
-        'UpdateBakerKeys',
-        'UpdateCredentialKeys',
-        'TransferToEncrypted',
-        'TransferToPublic',
-        'TransferWithSchedule',
-        'UpdateCredentials',
-        'RegisterData',
-        'ConfigureBaker',
-        'ConfigureDelegation',
-        'TokenUpdate'
-    )
-    "#,
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_type WHERE typname = 'account_transaction_type_new'
+            ) THEN
+                CREATE TYPE account_transaction_type_new AS ENUM (
+                    'InitializeSmartContractInstance',
+                    'UpdateSmartContractInstance',
+                    'SimpleTransfer',
+                    'EncryptedTransfer',
+                    'SimpleTransferWithMemo',
+                    'EncryptedTransferWithMemo',
+                    'TransferWithScheduleWithMemo',
+                    'DeployModule',
+                    'AddBaker',
+                    'RemoveBaker',
+                    'UpdateBakerStake',
+                    'UpdateBakerRestakeEarnings',
+                    'UpdateBakerKeys',
+                    'UpdateCredentialKeys',
+                    'TransferToEncrypted',
+                    'TransferToPublic',
+                    'TransferWithSchedule',
+                    'UpdateCredentials',
+                    'RegisterData',
+                    'ConfigureBaker',
+                    'ConfigureDelegation',
+                    'TokenUpdate'
+                );
+            END IF;
+        END$$;
+        "#,
     )
     .execute(tx.as_mut())
     .await?;
+    info!("Created new enum: account_transaction_type_new");
 
-    let rows = sqlx::query(
+    sqlx::query(
         r#"
-        SELECT index, type_account::TEXT
-        FROM transactions
-        WHERE type_account IN ('TokenHolder', 'TokenGovernance')
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'transactions' AND column_name = 'type_account_new'
+            ) THEN
+                ALTER TABLE transactions
+                ADD COLUMN type_account_new account_transaction_type_new;
+            END IF;
+        END$$;
         "#,
     )
-    .fetch_all(tx.as_mut())
+    .execute(tx.as_mut())
     .await?;
+    info!("Added new column: type_account_new");
 
-    if !rows.is_empty() {
-        sqlx::query(
+    let mut total_updated = 0;
+
+    loop {
+        let rows_updated = sqlx::query(
             r#"
-            UPDATE transactions
-            SET type_account = TokenUpdate
-            WHERE type_account IN ('TokenHolder', 'TokenGovernance')
+            WITH batch AS (
+                SELECT index
+                FROM transactions
+                WHERE type_account IN ('TokenHolder', 'TokenGovernance')
+                LIMIT $1
+            )
+            UPDATE transactions t
+            SET type_account_new = 'TokenUpdate'
+            FROM batch
+            WHERE t.index = batch.index
             "#,
         )
+        .bind(BATCH_SIZE)
         .execute(tx.as_mut())
-        .await?;
+        .await?
+        .rows_affected();
+
+        total_updated += rows_updated;
+        println!(
+            "Updating to TokenUpdate in transactions table. Running total: {} rows updated",
+            total_updated
+        );
+
+        if rows_updated == 0 {
+            break;
+        }
     }
+    info!("Finished replacing deprecated values.");
 
-    sqlx::query(
-        r#"
-        ALTER TABLE transactions
-        ADD COLUMN type_account_new account_transaction_type_new
-        "#,
-    )
-    .execute(tx.as_mut())
-    .await?;
+    let mut total_migrated = 0;
 
-    sqlx::query(
-        r#"
-        UPDATE transactions
-        SET type_account_new = type_account::TEXT::account_transaction_type_new
-        WHERE type_account IS NOT NULL
-        "#,
-    )
-    .execute(tx.as_mut())
-    .await?;
-
-    sqlx::query(
-        r#"
-        ALTER TABLE transactions
-        DROP COLUMN type_account
-        "#,
-    )
-    .execute(tx.as_mut())
-    .await?;
-
-    sqlx::query(
-        r#"
-        ALTER TABLE transactions
-        RENAME COLUMN type_account_new TO type_account
-        "#,
-    )
-    .execute(tx.as_mut())
-    .await?;
-
-    sqlx::query("DROP TYPE account_transaction_type").execute(tx.as_mut()).await?;
-
-    sqlx::query("ALTER TYPE account_transaction_type_new RENAME TO account_transaction_type")
+    loop {
+        let rows_updated = sqlx::query(
+            r#"
+            WITH batch AS (
+                SELECT index, type_account::TEXT AS type_text
+                FROM transactions
+                WHERE type_account IS NOT NULL
+                  AND type_account_new IS NULL
+                LIMIT $1
+            )
+            UPDATE transactions t
+            SET type_account_new = batch.type_text::account_transaction_type_new
+            FROM batch
+            WHERE t.index = batch.index
+            "#,
+        )
+        .bind(BATCH_SIZE)
         .execute(tx.as_mut())
-        .await?;
+        .await?
+        .rows_affected();
+
+        total_migrated += rows_updated;
+        info!(
+            "Migrating type_account to type_account_new in transactions table. Running total: {} \
+             rows migrated",
+            total_migrated
+        );
+
+        if rows_updated == 0 {
+            break;
+        }
+    }
+    info!("Finished copying all `type_account` values into new column.");
+
+    sqlx::query(
+        r#"
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'transactions' AND column_name = 'type_account'
+            ) THEN
+                ALTER TABLE transactions DROP COLUMN type_account;
+            END IF;
+        END$$;
+        "#,
+    )
+    .execute(tx.as_mut())
+    .await?;
+    info!("Dropped old column: type_account");
+
+    sqlx::query(
+        r#"
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'transactions' AND column_name = 'type_account_new'
+            ) AND NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'transactions' AND column_name = 'type_account'
+            ) THEN
+                ALTER TABLE transactions RENAME COLUMN type_account_new TO type_account;
+            END IF;
+        END$$;
+        "#,
+    )
+    .execute(tx.as_mut())
+    .await?;
+    info!("Renamed type_account_new → type_account");
+
+    sqlx::query(
+        r#"
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM pg_type WHERE typname = 'account_transaction_type'
+            ) THEN
+                DROP TYPE account_transaction_type;
+            END IF;
+        END$$;
+        "#,
+    )
+    .execute(tx.as_mut())
+    .await?;
+    info!("Dropped old enum: account_transaction_type");
+
+    sqlx::query(
+        r#"
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM pg_type WHERE typname = 'account_transaction_type_new'
+            ) THEN
+                ALTER TYPE account_transaction_type_new RENAME TO account_transaction_type;
+            END IF;
+        END$$;
+        "#,
+    )
+    .execute(tx.as_mut())
+    .await?;
+    info!("Renamed account_transaction_type_new → account_transaction_type");
+
+    info!("Migration complete. Schema version: {NEXT_SCHEMA_VERSION:?}");
 
     Ok(NEXT_SCHEMA_VERSION)
 }
