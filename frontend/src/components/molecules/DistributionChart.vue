@@ -15,7 +15,7 @@
 				:labels="chartLabels"
 				:background-colors="baseColors"
 				:hover-background-colors="hoverColors"
-				:label-clickable="false"
+				:label-clickable="true"
 			/>
 		</ClientOnly>
 	</MetricCard>

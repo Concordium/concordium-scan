@@ -1518,6 +1518,7 @@ enum MetricsPeriod {
 	LAST24_HOURS
 	LAST7_DAYS
 	LAST30_DAYS
+	LAST90_DAYS
 	LAST_YEAR
 }
 
@@ -1962,30 +1963,28 @@ type PendingBakerRemoval {
 }
 
 type PltEventMetrics {
-	lastCumulativeEventCount: Int!
-	eventCount: Int!
-	lastCumulativeTransferCount: Int!
 	transferCount: Int!
-	lastCumulativeTransferVolume: Float!
 	transferVolume: Float!
-	lastCumulativeTotalSupply: Float!
-	totalSupply: Float!
-	lastCumulativeUniqueHolders: Int!
-	totalUniqueHolders: Int!
+	mintCount: Int!
+	mintVolume: Float!
+	burnCount: Int!
+	burnVolume: Float!
+	tokenModuleCount: Int!
+	totalEventCount: Int!
 	buckets: PltEventMetricsBuckets!
 }
 
 type PltEventMetricsBuckets {
 	bucketWidth: TimeSpan!
 	x_Time: [DateTime!]!
-	y_LastCumulativeEventCount: [Int!]!
-	y_EventCount: [Int!]!
-	y_LastCumulativeTransferCount: [Int!]!
 	y_TransferCount: [Int!]!
-	y_LastCumulativeTransferVolume: [Float!]!
 	y_TransferVolume: [Float!]!
-	y_TotalSupply: [Float!]!
-	y_TotalUniqueHolders: [Int!]!
+	y_MintCount: [Int!]!
+	y_MintVolume: [Float!]!
+	y_BurnCount: [Int!]!
+	y_BurnVolume: [Float!]!
+	y_TokenModuleCount: [Int!]!
+	y_TotalEventCount: [Int!]!
 }
 
 type PltaccountAmount {
@@ -2263,7 +2262,8 @@ type Query {
 	): PlttokenConnection!
 	pltAccounts(account: ID!, tokenId: ID!): PltaccountAmount
 	pltAccountsByTokenId(tokenId: ID!): [PltaccountAmount!]!
-	pltEventMetrics(period: MetricsPeriod!, tokenId: ID): PltEventMetrics!
+	pltUniqueAccounts: Int!
+	pltEventMetrics(period: MetricsPeriod!, tokenId: String): PltEventMetrics!
 }
 
 """

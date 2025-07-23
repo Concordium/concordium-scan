@@ -21,8 +21,13 @@
 							<p class="font-bold text-2xl mt-2">
 								{{
 									numberFormatter(
-										pltEventMetricsDataRef?.pltEventMetrics
-											.lastCumulativeTotalSupply
+										pltTokenDataRef.reduce(
+											(acc, coin) =>
+												acc +
+												(coin?.totalSupply ?? 0) /
+													Math.pow(10, Number(coin?.decimal)),
+											0
+										)
 									)
 								}}
 							</p>
@@ -38,10 +43,7 @@
 						<template #title>Unique Holders</template>
 						<template #value>
 							<p class="font-bold text-2xl mt-2">
-								{{
-									pltEventMetricsDataRef?.pltEventMetrics
-										.lastCumulativeUniqueHolders
-								}}
+								{{ pltUniqueAccountsDataRef?.pltUniqueAccounts }}
 							</p>
 						</template>
 					</KeyValueChartCard>
@@ -55,7 +57,7 @@
 						<template #title># of Txs (24h)</template>
 						<template #value>
 							<p class="font-bold text-2xl mt-2">
-								{{ pltEventMetricsDataRef?.pltEventMetrics.eventCount }}
+								{{ pltEventMetricsDataRef?.pltEventMetrics.totalEventCount }}
 							</p>
 						</template>
 					</KeyValueChartCard>
@@ -139,15 +141,15 @@
 						</TableTd>
 
 						<TableTd>
-							<!-- <a
+							<a
 								:href="`/protocol-token/${event.tokenId}`"
 								target="_blank"
 								class="font-normal text-md text-theme-interactive flex flex-row items-center"
 							>
-								<img :src="event.tokenIconUrl" class="rounded-full w-6 h-6 mr-2"
-									alt="Token Icon" loading="lazy" decoding="async" />
-							</a> -->
-							{{ event.tokenName }}
+								<!-- <img :src="event.tokenIconUrl" class="rounded-full w-6 h-6 mr-2"
+									alt="Token Icon" loading="lazy" decoding="async" /> -->
+								{{ event.tokenName }}
+							</a>
 						</TableTd>
 						<TableTd>
 							<AccountLink
@@ -203,13 +205,16 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 import CarouselSlide from '~/components/molecules/CarouselSlide.vue'
 import StableCoinDistributionChart from '~/components/molecules/ChartCards/StableCoinDistributionChart.vue'
 import StableCoinSupplyBarChart from '~/components/molecules/ChartCards/StableCoinSupplyBarChart.vue'
-import { usePltTokenQuery } from '~/queries/usePltTokenQuery'
+import {
+	usePltTokenQuery,
+	usePltUniqueAccountsQuery,
+} from '~/queries/usePltTokenQuery'
 import { usePagedData } from '~/composables/usePagedData'
 import { usePltEventsQuery } from '~/queries/usePltEventsQuery'
 import type { Pltevent } from '~/types/generated'
@@ -267,6 +272,16 @@ watch(
 	pltEventMetricsData,
 	newData => {
 		pltEventMetricsDataRef.value = newData
+	},
+	{ immediate: true, deep: true }
+)
+
+const { data: pltUniqueAccountsData } = usePltUniqueAccountsQuery()
+const pltUniqueAccountsDataRef = ref(pltUniqueAccountsData)
+watch(
+	pltUniqueAccountsDataRef,
+	newData => {
+		pltUniqueAccountsDataRef.value = newData
 	},
 	{ immediate: true, deep: true }
 )

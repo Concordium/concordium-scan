@@ -175,8 +175,10 @@ const handleBarClick = (event: MouseEvent) => {
 		// You can tweak the range depending on font size
 		if (y >= pixel - 10 && y <= pixel + 10 && x < yScale.left) {
 			const label = chartData.labels?.[i]
+			console.log(label)
+
 			if (label) {
-				window.open(`/protocol-token/${label.toLowerCase()}`, '_blank')
+				window.open(`/protocol-token/${label}`, '_blank')
 			}
 			return
 		}
@@ -193,7 +195,7 @@ const handleBarClick = (event: MouseEvent) => {
 		const index = elements[0].index
 		const label = chartData.labels?.[index] as string
 		if (label) {
-			window.open(`/protocol-token/${label.toLowerCase()}`, '_blank')
+			window.open(`/protocol-token/${label}`, '_blank')
 		}
 	}
 }

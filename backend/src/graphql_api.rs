@@ -898,6 +898,8 @@ enum MetricsPeriod {
     Last7Days,
     #[graphql(name = "LAST30_DAYS")]
     Last30Days,
+    #[graphql(name = "LAST90_DAYS")]
+    Last90Days,
     #[graphql(name = "LAST_YEAR")]
     LastYear,
 }
@@ -910,6 +912,7 @@ impl MetricsPeriod {
             MetricsPeriod::Last24Hours => Duration::hours(24),
             MetricsPeriod::Last7Days => Duration::days(7),
             MetricsPeriod::Last30Days => Duration::days(30),
+            MetricsPeriod::Last90Days => Duration::days(90),
             MetricsPeriod::LastYear => Duration::days(365),
         }
     }
@@ -921,6 +924,7 @@ impl MetricsPeriod {
             MetricsPeriod::Last24Hours => Duration::hours(1),
             MetricsPeriod::Last7Days => Duration::hours(6),
             MetricsPeriod::Last30Days => Duration::days(1),
+            MetricsPeriod::Last90Days => Duration::days(3),
             MetricsPeriod::LastYear => Duration::days(15),
         }
     }

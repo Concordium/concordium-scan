@@ -8,18 +8,19 @@
 				>
 					<h1>Market Overview</h1>
 					<div class="flex flex-col">
-						<div class="flex justify-between pt-4">
+						<!-- <div class="flex justify-between pt-4">
 							<p class="text-xl text-theme-faded">Price</p>
 							<p class="font-bold text-xl text-theme-interactive">
 								${{ dataTransferSummary?.stablecoin?.valueInDollar }}
 							</p>
-						</div>
+						</div> -->
 						<div class="flex justify-between pt-4">
-							<p class="text-xl text-theme-faded">Market Cap</p>
+							<p class="text-xl text-theme-faded">Initial Supply</p>
 							<p class="font-bold text-xl text-theme-interactive">
 								{{
 									numberFormatter(
-										Number(dataTransferSummary?.stablecoin?.totalSupply)
+										Number(pltTokenDataRef?.initialSupply) /
+											Math.pow(10, Number(pltTokenDataRef?.decimal))
 									)
 								}}
 							</p>
@@ -29,7 +30,8 @@
 							<p class="font-bold text-xl text-theme-interactive">
 								{{
 									numberFormatter(
-										Number(dataTransferSummary?.stablecoin?.totalSupply)
+										Number(pltTokenDataRef?.totalSupply) /
+											Math.pow(10, Number(pltTokenDataRef?.decimal))
 									)
 								}}
 							</p>
@@ -37,7 +39,7 @@
 						<div class="flex justify-between pt-4">
 							<p class="text-xl text-theme-faded"># of Holders</p>
 							<p class="font-bold text-xl text-theme-interactive">
-								{{ dataTransferSummary?.stablecoin?.totalUniqueHolders }}
+								{{ pltTokenDataRef?.totalUniqueHolders }}
 							</p>
 						</div>
 					</div>
@@ -49,7 +51,7 @@
 				>
 					<h1>Profile Summary</h1>
 					<div class="flex flex-col">
-						<div class="flex justify-between pt-4">
+						<!-- <div class="flex justify-between pt-4">
 							<p class="text-xl text-theme-faded">Token name</p>
 							<p
 								class="font-bold text-xl text-theme-interactive flex flex-row items-center"
@@ -63,17 +65,23 @@
 								/>
 								{{ dataTransferSummary?.stablecoin?.name }}
 							</p>
+						</div> -->
+						<div class="flex justify-between pt-4">
+							<p class="text-xl text-theme-faded">Name</p>
+							<p class="font-bold text-xl text-theme-interactive">
+								{{ pltTokenDataRef?.name }}
+							</p>
 						</div>
 						<div class="flex justify-between pt-4">
 							<p class="text-xl text-theme-faded">Symbol</p>
 							<p class="font-bold text-xl text-theme-interactive">
-								{{ dataTransferSummary?.stablecoin?.symbol }}
+								{{ pltTokenDataRef?.tokenId }}
 							</p>
 						</div>
 						<div class="flex justify-between pt-4">
 							<p class="text-xl text-theme-faded">Decimals</p>
 							<p class="font-bold text-xl text-theme-interactive">
-								{{ dataTransferSummary?.stablecoin?.decimal }}
+								{{ pltTokenDataRef?.decimal }}
 							</p>
 						</div>
 						<div class="flex justify-between pt-4">
@@ -81,23 +89,7 @@
 							<p
 								class="font-bold text-xl text-theme-interactive flex flex-row items-center"
 							>
-								<Tooltip
-									v-if="dataTransferSummary?.stablecoin?.issuer"
-									:text="dataTransferSummary?.stablecoin?.issuer"
-									text-class="text-theme-body"
-								>
-									<UserIcon
-										class="h-4 text-theme-white inline align-text-top"
-									/>
-									{{ shortenHash(dataTransferSummary?.stablecoin?.issuer) }}
-								</Tooltip>
-								<TextCopy
-									v-if="dataTransferSummary?.stablecoin?.issuer"
-									:text="dataTransferSummary?.stablecoin?.issuer"
-									label="Click to copy block hash to clipboard"
-									class="h-5 inline align-baseline"
-									tooltip-class="font-sans"
-								/>
+								<AccountLink :address="pltTokenDataRef?.issuer.asString" />
 							</p>
 						</div>
 					</div>
@@ -116,7 +108,7 @@
 					>
 						Transactions
 					</TabBarItem>
-					<TabBarItem
+					<!-- <TabBarItem
 						tab-id="holders"
 						:selected-tab="selectedTab"
 						:on-click="handleSelectTab"
@@ -129,7 +121,7 @@
 						:on-click="handleSelectTab"
 					>
 						Analytics
-					</TabBarItem>
+					</TabBarItem> -->
 				</TabBar>
 			</div>
 		</header>
@@ -138,21 +130,22 @@
 			v-else-if="selectedTab === 'transactions'"
 			:coin-id="coinId"
 		/>
-		<Analytics v-else :coin-id="coinId" />
+		<!-- <Analytics v-else :coin-id="coinId" /> -->
 	</div>
 </template>
 <script lang="ts" setup>
-import { UserIcon } from '@heroicons/vue/solid/index.js'
-import { numberFormatter, shortenHash } from '~/utils/format'
+import { ref } from 'vue'
+
 import TabBar from '~/components/atoms/TabBar.vue'
 import TabBarItem from '~/components/atoms/TabBarItem.vue'
-import { useStableCoinTokenTransferQuery } from '~/queries/useStableCoinTokenTransferQuery'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 import CarouselSlide from '~/components/molecules/CarouselSlide.vue'
 import Holders from '~/components/StableCoin/Holders.vue'
 import Transactions from '~/components/StableCoin/Transactions.vue'
-import Analytics from '~/components/StableCoin/Analytics.vue'
+import { usePltTokenQueryById } from '~/queries/usePltTokenQuery'
+
 import { useRoute } from 'vue-router'
+
 const route = useRoute()
 
 definePageMeta({
@@ -164,19 +157,30 @@ const coinId = computed(() => {
 	return Array.isArray(id) ? id[0] : id || ''
 })
 
-const days = ref(30)
+const { data: pltTokenData } = usePltTokenQueryById(coinId.value)
+const pltTokenDataRef = ref(pltTokenData)
 
 watch(
-	() => coinId.value,
-	(newId, oldId) => {
-		console.log(`User ID changed from ${oldId} to ${newId}`)
-	}
+	pltTokenData,
+	newData => {
+		pltTokenDataRef.value = newData
+	},
+	{ immediate: true, deep: true }
 )
 
-const { data: dataTransferSummary } = useStableCoinTokenTransferQuery(
-	coinId.value.toUpperCase(),
-	days
-)
+// const days = ref(30)
+
+// watch(
+// 	() => coinId.value,
+// 	(newId, oldId) => {
+// 		console.log(`User ID changed from ${oldId} to ${newId}`)
+// 	}
+// )
+
+// const { data: dataTransferSummary } = useStableCoinTokenTransferQuery(
+// 	coinId.value.toUpperCase(),
+// 	days
+// )
 
 const selectedTab = ref('transactions')
 const handleSelectTab = (tabId: string) => (selectedTab.value = tabId)

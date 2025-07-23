@@ -1722,6 +1722,7 @@ export enum MetricsPeriod {
   Last7Days = 'LAST7_DAYS',
   Last24Hours = 'LAST24_HOURS',
   Last30Days = 'LAST30_DAYS',
+  Last90Days = 'LAST90_DAYS',
   LastHour = 'LAST_HOUR',
   LastYear = 'LAST_YEAR'
 }
@@ -2254,14 +2255,12 @@ export type PendingBakerRemoval = {
 export type PltEventMetrics = {
   __typename?: 'PltEventMetrics';
   buckets: PltEventMetricsBuckets;
-  eventCount: Scalars['Int'];
-  lastCumulativeEventCount: Scalars['Int'];
-  lastCumulativeTotalSupply: Scalars['Float'];
-  lastCumulativeTransferCount: Scalars['Int'];
-  lastCumulativeTransferVolume: Scalars['Float'];
-  lastCumulativeUniqueHolders: Scalars['Int'];
-  totalSupply: Scalars['Float'];
-  totalUniqueHolders: Scalars['Int'];
+  burnCount: Scalars['Int'];
+  burnVolume: Scalars['Float'];
+  mintCount: Scalars['Int'];
+  mintVolume: Scalars['Float'];
+  tokenModuleCount: Scalars['Int'];
+  totalEventCount: Scalars['Int'];
   transferCount: Scalars['Int'];
   transferVolume: Scalars['Float'];
 };
@@ -2270,12 +2269,12 @@ export type PltEventMetricsBuckets = {
   __typename?: 'PltEventMetricsBuckets';
   bucketWidth: Scalars['TimeSpan'];
   x_Time: Array<Scalars['DateTime']>;
-  y_EventCount: Array<Scalars['Int']>;
-  y_LastCumulativeEventCount: Array<Scalars['Int']>;
-  y_LastCumulativeTransferCount: Array<Scalars['Int']>;
-  y_LastCumulativeTransferVolume: Array<Scalars['Float']>;
-  y_TotalSupply: Array<Scalars['Float']>;
-  y_TotalUniqueHolders: Array<Scalars['Int']>;
+  y_BurnCount: Array<Scalars['Int']>;
+  y_BurnVolume: Array<Scalars['Float']>;
+  y_MintCount: Array<Scalars['Int']>;
+  y_MintVolume: Array<Scalars['Float']>;
+  y_TokenModuleCount: Array<Scalars['Int']>;
+  y_TotalEventCount: Array<Scalars['Int']>;
   y_TransferCount: Array<Scalars['Int']>;
   y_TransferVolume: Array<Scalars['Float']>;
 };
@@ -2462,6 +2461,7 @@ export type Query = {
   pltEventsByTokenId: PlteventConnection;
   pltToken: Plttoken;
   pltTokens: PlttokenConnection;
+  pltUniqueAccounts: Scalars['Int'];
   poolRewardMetricsForBakerPool: PoolRewardMetrics;
   poolRewardMetricsForPassiveDelegation: PoolRewardMetrics;
   rewardMetrics: RewardMetrics;
@@ -2618,7 +2618,7 @@ export type QueryPltEventByTransactionIndexArgs = {
 
 export type QueryPltEventMetricsArgs = {
   period: MetricsPeriod;
-  tokenId?: InputMaybe<Scalars['ID']>;
+  tokenId?: InputMaybe<Scalars['String']>;
 };
 
 

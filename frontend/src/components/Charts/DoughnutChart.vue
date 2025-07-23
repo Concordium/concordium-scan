@@ -81,16 +81,16 @@ const defaultOptions: ChartOptions<'doughnut'> = {
 					}))
 				},
 			},
-			onClick: (/*_e, legendItem*/) => {
-				// if (!props.labelClickable) return
+			onClick: (_e, legendItem) => {
+				if (!props.labelClickable) return
 
-				// const index = legendItem.index
-				// if (index !== undefined) {
-				// 	const label = chartData.value.labels?.[index]
-				// 	if (label) {
-				// 		window.open(`/protocol-token/${label.toLowerCase()}`, '_blank')
-				// 	}
-				// }
+				const index = legendItem.index
+				if (index !== undefined) {
+					const label = chartData.value.labels?.[index]
+					if (label) {
+						window.open(`/protocol-token/${label}`, '_blank')
+					}
+				}
 				return
 			},
 		},
@@ -135,7 +135,7 @@ const handleSliceClick = (event: MouseEvent) => {
 		const index = elements[0].index
 		const label = chartInstance.data.labels?.[index] as string
 		if (label) {
-			window.open(`/protocol-token/${label.toLowerCase()}`, '_blank')
+			window.open(`/protocol-token/${label}`, '_blank')
 		}
 	}
 }

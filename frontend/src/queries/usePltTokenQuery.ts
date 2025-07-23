@@ -1,5 +1,5 @@
 import { useQuery, gql } from '@urql/vue'
-import type { Plttoken } from '~/types/generated'
+import type { Plttoken, Scalars } from '~/types/generated'
 
 import type { QueryVariables } from '~/types/queryVariables'
 
@@ -107,6 +107,42 @@ export const usePltTokenQueryById = (tokenId: string) => {
 	watch(
 		() => data.value,
 		value => (dataRef.value = value?.pltToken ?? null)
+	)
+
+	return {
+		data: dataRef,
+		error,
+		componentState,
+		loading: fetching,
+	}
+}
+
+export type UniqueHolders = {
+	pltUniqueAccounts: Scalars['Int']
+}
+
+const PLT_ACCOUNT_AMOUNT_QUERY = gql<UniqueHolders>`
+	query PltUniqueAccounts {
+		pltUniqueAccounts
+	}
+`
+
+export const usePltUniqueAccountsQuery = () => {
+	const { data, fetching, error } = useQuery({
+		query: PLT_ACCOUNT_AMOUNT_QUERY,
+		requestPolicy: 'cache-and-network',
+	})
+
+	const dataRef = ref<UniqueHolders | null>(data.value ?? null)
+	const componentState = useComponentState<UniqueHolders | null>({
+		fetching,
+		error,
+		data: dataRef,
+	})
+
+	watch(
+		() => data.value,
+		value => (dataRef.value = value ?? null)
 	)
 
 	return {

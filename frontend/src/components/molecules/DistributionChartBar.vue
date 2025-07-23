@@ -17,7 +17,7 @@
 				:begin-at-zero="true"
 				:type="chartType"
 				:show-sign="showSign"
-				:label-clickable="false"
+				:label-clickable="true"
 			/>
 		</ClientOnly>
 	</MetricCard>
