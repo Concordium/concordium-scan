@@ -419,15 +419,16 @@ impl From<UpdatePayload> for ChainUpdatePayload {
                 token_id:                  update.token_id.clone().into(),
                 token_module:              update.token_module.into(),
                 decimals:                  update.decimals,
-                initialization_parameters:
-                    cbor::cbor_decode::<TokenModuleInitializationParameters>(
+                initialization_parameters: {
+                    let params = cbor::cbor_decode::<TokenModuleInitializationParameters>(
                         update.initialization_parameters.as_ref(),
                     )
-                    .map(|params| {
-                        serde_json::to_value::<InitializationParameters>(params.into())
-                            .unwrap_or(serde_json::Value::Null)
-                    })
-                    .unwrap_or(serde_json::Value::Null),
+                    .expect("Failed to decode PLT initialization parameters");
+                    serde_json::to_value::<InitializationParameters>(params.into()).expect(
+                        "Failed to serialize PLT initialization parameters to JSON (Probably \
+                         unsupported type)",
+                    )
+                },
             }),
         }
     }
