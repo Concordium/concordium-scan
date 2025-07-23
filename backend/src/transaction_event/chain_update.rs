@@ -4,7 +4,11 @@ use crate::{
     transaction_event::protocol_level_tokens::InitializationParameters,
 };
 use async_graphql::{SimpleObject, Union};
-use concordium_rust_sdk::types::{ExchangeRate, UpdatePayload};
+use concordium_rust_sdk::{
+    common::cbor,
+    protocol_level_tokens::TokenModuleInitializationParameters,
+    types::{ExchangeRate, UpdatePayload},
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(SimpleObject, Serialize, Deserialize)]
@@ -415,12 +419,16 @@ impl From<UpdatePayload> for ChainUpdatePayload {
                 token_id:                  update.token_id.clone().into(),
                 token_module:              update.token_module.into(),
                 decimals:                  update.decimals,
-                initialization_parameters:
-                    ciborium::de::from_reader::<InitializationParameters, _>(
+                initialization_parameters: {
+                    let params = cbor::cbor_decode::<TokenModuleInitializationParameters>(
                         update.initialization_parameters.as_ref(),
                     )
-                    .map(|params| serde_json::to_value(params).unwrap_or_default())
-                    .unwrap_or_default(),
+                    .expect("Failed to decode PLT initialization parameters");
+                    serde_json::to_value::<InitializationParameters>(params.into()).expect(
+                        "Failed to serialize PLT initialization parameters to JSON (Probably \
+                         unsupported type)",
+                    )
+                },
             }),
         }
     }

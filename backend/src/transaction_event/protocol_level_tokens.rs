@@ -1,11 +1,10 @@
 use crate::address::AccountAddress;
 use async_graphql::{Enum, SimpleObject, Union};
 use bigdecimal::BigDecimal;
-use concordium_rust_sdk::{
-    base::protocol_level_tokens,
-    id::types::{AccountAddress as CborAccountAddress, ACCOUNT_ADDRESS_SIZE},
-};
-use serde::{Deserialize, Deserializer, Serialize};
+
+use concordium_rust_sdk::protocol_level_tokens::{self};
+use serde::{Deserialize, Serialize};
+const CONCORDIUM_SLIP_0044_CODE: u64 = 919;
 
 #[derive(Debug, Enum, Clone, Copy, PartialEq, Eq, sqlx::Type)]
 #[sqlx(type_name = "event_type")]
@@ -39,16 +38,18 @@ pub struct CreatePlt {
     /// token.
     pub decimals:                  u8,
     /// The initialization parameters of the token, encoded in CBOR.
-    pub initialization_parameters: CreatePLTInitializationParameters,
+    pub initialization_parameters: InitializationParameters,
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
 pub struct MetadataUrl {
-    pub url: String,
+    pub url:              String,
+    pub checksum_sha_256: Option<String>,
+    pub additional:       Option<serde_json::Value>,
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
-pub struct CreatePLTInitializationParameters {
+pub struct InitializationParameters {
     pub name:               String,
     pub metadata:           MetadataUrl,
     pub allow_list:         Option<bool>,
@@ -56,89 +57,99 @@ pub struct CreatePLTInitializationParameters {
     pub mintable:           Option<bool>,
     pub burnable:           Option<bool>,
     pub initial_supply:     Option<TokenAmount>,
-    pub governance_account: Option<TokenHolder>,
+    // Todo: Refactior convert this to CborTokenHolder (to ensure backwards compatibility will
+    // update the type when we reset devnet db)
+    pub governance_account: CborHolderAccount,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct InitializationParameters {
-    /// The name of the token
-    pub name:               String,
-    /// A URL pointing to the token metadata
-    pub metadata:           MetadataUrl,
-    /// Whether the token supports a deny list.
-    #[serde(rename = "denyList")]
-    pub deny_list:          Option<bool>,
-    #[serde(rename = "allowList")]
-    pub allow_list:         Option<bool>,
-    /// Whether the token is burnable.
-    pub burnable:           Option<bool>,
-    /// Whether the token is mintable.
-    pub mintable:           Option<bool>,
-    /// Initial supply as decimal fraction
-    #[serde(rename = "initialSupply")]
-    pub initial_supply:     Option<CborTokenAmount>,
-    /// Governance account
-    #[serde(rename = "governanceAccount", deserialize_with = "deserialize_governance_account")]
-    pub governance_account: Option<concordium_rust_sdk::protocol_level_tokens::TokenHolder>,
+#[derive(SimpleObject, Debug, Serialize, Deserialize, Clone)]
+pub struct CborTokenHolder {
+    pub account: CborHolderAccount,
 }
 
-impl From<InitializationParameters> for CreatePLTInitializationParameters {
-    fn from(params: InitializationParameters) -> Self {
-        CreatePLTInitializationParameters {
+impl From<concordium_rust_sdk::protocol_level_tokens::CborTokenHolder> for CborTokenHolder {
+    fn from(holder: concordium_rust_sdk::protocol_level_tokens::CborTokenHolder) -> Self {
+        match holder {
+            concordium_rust_sdk::protocol_level_tokens::CborTokenHolder::Account(account) => {
+                CborTokenHolder {
+                    account: CborHolderAccount {
+                        address:   account.address.into(),
+                        coin_info: account.coin_info.map(|info| CoinInfo {
+                            coin_info_code: match info {
+                                concordium_rust_sdk::protocol_level_tokens::CoinInfo::CCD => {
+                                    CONCORDIUM_SLIP_0044_CODE.to_string()
+                                }
+                            },
+                        }),
+                    },
+                }
+            }
+        }
+    }
+}
+
+impl From<concordium_rust_sdk::protocol_level_tokens::CborTokenHolder> for CborHolderAccount {
+    fn from(holder: concordium_rust_sdk::protocol_level_tokens::CborTokenHolder) -> Self {
+        match holder {
+            concordium_rust_sdk::protocol_level_tokens::CborTokenHolder::Account(account) => {
+                CborHolderAccount {
+                    address:   account.address.into(),
+                    coin_info: account.coin_info.map(|info| CoinInfo {
+                        coin_info_code: match info {
+                            concordium_rust_sdk::protocol_level_tokens::CoinInfo::CCD => {
+                                CONCORDIUM_SLIP_0044_CODE.to_string()
+                            }
+                        },
+                    }),
+                }
+            }
+        }
+    }
+}
+
+#[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
+pub struct CborHolderAccount {
+    pub address:   AccountAddress,
+    pub coin_info: Option<CoinInfo>,
+}
+
+#[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
+pub struct CoinInfo {
+    pub coin_info_code: String,
+}
+
+impl From<concordium_rust_sdk::protocol_level_tokens::TokenModuleInitializationParameters>
+    for InitializationParameters
+{
+    fn from(
+        params: concordium_rust_sdk::protocol_level_tokens::TokenModuleInitializationParameters,
+    ) -> Self {
+        InitializationParameters {
             name:               params.name,
-            metadata:           params.metadata,
+            metadata:           MetadataUrl {
+                url:              params.metadata.url,
+                checksum_sha_256: params.metadata.checksum_sha_256.map(|h| hex::encode(h.as_ref())),
+                additional:       if params.metadata.additional.is_empty() {
+                    None
+                } else {
+                    Some(serde_json::Value::Object(
+                        params
+                            .metadata
+                            .additional
+                            .into_iter()
+                            .map(|(key, value)| {
+                                (key, serde_json::Value::String(format!("{:?}", value)))
+                            })
+                            .collect(),
+                    ))
+                },
+            },
             allow_list:         params.allow_list,
             deny_list:          params.deny_list,
             mintable:           params.mintable,
             burnable:           params.burnable,
             initial_supply:     params.initial_supply.map(Into::into),
-            governance_account: params.governance_account.map(Into::into),
-        }
-    }
-}
-
-fn deserialize_governance_account<'de, D>(
-    deserializer: D,
-) -> Result<Option<concordium_rust_sdk::protocol_level_tokens::TokenHolder>, D::Error>
-where
-    D: Deserializer<'de>, {
-    // The CBOR structure is: tag(40307) -> map(1) -> { 3: bytes(32) }
-    use serde::de::Error;
-    use std::collections::HashMap;
-    let map: HashMap<u8, Vec<u8>> = Deserialize::deserialize(deserializer)?;
-    if let Some(address_bytes) = map.get(&3) {
-        if address_bytes.len() == ACCOUNT_ADDRESS_SIZE {
-            let mut bytes_array = [0u8; ACCOUNT_ADDRESS_SIZE];
-            bytes_array.copy_from_slice(address_bytes);
-            Ok(Some(concordium_rust_sdk::protocol_level_tokens::TokenHolder::Account {
-                address: CborAccountAddress(bytes_array),
-            }))
-        } else {
-            Err(D::Error::custom(format!(
-                "Invalid address length: expected {}, got {}",
-                ACCOUNT_ADDRESS_SIZE,
-                address_bytes.len()
-            )))
-        }
-    } else {
-        Err(D::Error::custom("Expected key 3 in governance account map"))
-    }
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct CborTokenAmount(pub i8, pub u64);
-
-impl From<CborTokenAmount> for TokenAmount {
-    fn from(cbor: CborTokenAmount) -> Self {
-        if cbor.0 > 0 {
-            panic!("Expected negative exponent for decimal fraction");
-        }
-        let decimals = cbor.0.unsigned_abs();
-        let value = cbor.1;
-        TokenAmount {
-            value: value.to_string(),
-            decimals,
+            governance_account: params.governance_account.into(),
         }
     }
 }
@@ -193,7 +204,7 @@ pub struct TokenHolder {
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
 pub struct TokenAmount {
     pub value:    String,
-    pub decimals: u8,
+    pub decimals: String,
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
@@ -237,7 +248,7 @@ impl From<concordium_rust_sdk::protocol_level_tokens::TokenAmount> for TokenAmou
     fn from(amount: concordium_rust_sdk::protocol_level_tokens::TokenAmount) -> Self {
         Self {
             value:    amount.value().to_string(),
-            decimals: amount.decimals(),
+            decimals: amount.decimals().to_string(),
         }
     }
 }
