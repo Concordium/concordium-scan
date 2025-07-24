@@ -1,48 +1,17 @@
--- 1. Add the new column if it doesn't already exist
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1
-    FROM information_schema.columns
-    WHERE table_name = 'plt_events'
-      AND column_name = 'event_timestamp'
-  ) THEN
-    ALTER TABLE plt_events
-    ADD COLUMN event_timestamp TIMESTAMPTZ;
-  END IF;
-END $$;
+ALTER TABLE plt_events
+ADD COLUMN IF NOT EXISTS event_timestamp TIMESTAMPTZ;
 
--- 2. Create a permanent index for future query optimization
+ALTER TABLE plt_events
+ADD COLUMN IF NOT EXISTS amount_value NUMERIC;
 
-  CREATE INDEX  IF NOT EXISTS idx_plt_events_token_type_time
-  ON plt_events (event_type, event_timestamp, token_index)
-  INCLUDE (amount_value, amount_decimals);
+ALTER TABLE plt_events
+ADD COLUMN IF NOT EXISTS amount_decimals INT;
 
--- 3. Add amount_value and amount_decimals columns if they don't already exist
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1
-    FROM information_schema.columns
-    WHERE table_name = 'plt_events'
-      AND column_name = 'amount_value'
-  ) THEN
-    ALTER TABLE plt_events
-    ADD COLUMN amount_value NUMERIC;
-  END IF;
-  
-  IF NOT EXISTS (
-    SELECT 1
-    FROM information_schema.columns
-    WHERE table_name = 'plt_events'
-      AND column_name = 'amount_decimals'
-  ) THEN
-    ALTER TABLE plt_events
-    ADD COLUMN amount_decimals INT;
-  END IF;
-END $$;
+CREATE INDEX  IF NOT EXISTS idx_plt_events_token_type_time
+ON plt_events (event_type, event_timestamp, token_index)
+INCLUDE (amount_value, amount_decimals);
 
--- 4. Create TEMPORARY indexes to speed up the backfill process
+--  Create TEMPORARY indexes to speed up the backfill process
 CREATE INDEX IF NOT EXISTS idx_temp_plt_events_backfill
   ON plt_events (id);
 
@@ -52,7 +21,7 @@ CREATE INDEX IF NOT EXISTS idx_temp_transactions_index
 CREATE INDEX IF NOT EXISTS idx_temp_blocks_height
   ON blocks (height);
 
--- 5. Backfill all columns (timestamp, amount_value, amount_decimals) in one loop
+--  Backfill all columns (timestamp, amount_value, amount_decimals) in one loop
 DO $$
 DECLARE
   batch_size INTEGER := 100000; -- Adjust batch size for performance
@@ -111,7 +80,7 @@ BEGIN
   RAISE NOTICE 'Finished backfilling all columns. Total rows updated: %', total_updated;
 END $$;
 
--- 6. Drop temporary indexes after backfill
+--  Drop temporary indexes after backfill
 DROP INDEX IF EXISTS idx_temp_plt_events_backfill;
 DROP INDEX IF EXISTS idx_temp_transactions_index;
 DROP INDEX IF EXISTS idx_temp_blocks_height;
