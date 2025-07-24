@@ -24,7 +24,7 @@ use prometheus_client::{
     metrics::{counter::Counter, family::Family, gauge::Gauge, histogram},
     registry::Registry,
 };
-use std::{env, sync::Arc};
+use std::sync::Arc;
 use tokio::{sync::RwLock, time::Instant, try_join};
 use tracing::{debug, error, info, warn};
 
@@ -33,26 +33,30 @@ use tracing::{debug, error, info, warn};
 /// preprocessors can run in parallel, this must be `Sync`.
 pub struct BlockPreProcessor {
     /// Genesis hash, used to ensure the nodes are on the expected network.
-    genesis_hash:                 sdk_types::hashes::BlockHash,
+    genesis_hash: sdk_types::hashes::BlockHash,
     /// Metric counting the total number of connections ever established to a
     /// node.
     established_node_connections: Family<NodeMetricLabels, Counter>,
     /// Metric counting the total number of failed attempts to preprocess
     /// blocks.
-    preprocessing_failures:       Family<NodeMetricLabels, Counter>,
+    preprocessing_failures: Family<NodeMetricLabels, Counter>,
     /// Metric tracking the number of blocks currently being preprocessed.
-    blocks_being_preprocessed:    Family<NodeMetricLabels, Gauge>,
+    blocks_being_preprocessed: Family<NodeMetricLabels, Gauge>,
     /// Histogram collecting the time it takes for fetching all the block data
     /// from the node.
-    node_response_time:           Family<NodeMetricLabels, histogram::Histogram>,
+    node_response_time: Family<NodeMetricLabels, histogram::Histogram>,
     /// Max number of acceptable successive failures before shutting down the
     /// service.
-    max_successive_failures:      u64,
+    max_successive_failures: u64,
+    /// How often to recompute staked amounts for validators with the node.
+    /// Denotes the number of blocks to allow pass before updating stakes.
+    stake_recompute_interval_in_blocks: u64,
 }
 impl BlockPreProcessor {
     pub fn new(
         genesis_hash: sdk_types::hashes::BlockHash,
         max_successive_failures: u64,
+        stake_recompute_interval_in_blocks: u64,
         registry: &mut Registry,
     ) -> Self {
         let established_node_connections = Family::default();
@@ -90,6 +94,7 @@ impl BlockPreProcessor {
             blocks_being_preprocessed,
             node_response_time,
             max_successive_failures,
+            stake_recompute_interval_in_blocks,
         }
     }
 }
@@ -118,12 +123,6 @@ struct TotalStakedAmountsCache {
 /// A read write lock for the total staked amounts cache
 static TOTAL_STAKED_AMOUNTS_CACHE: Lazy<Arc<RwLock<Option<TotalStakedAmountsCache>>>> =
     Lazy::new(|| Arc::new(RwLock::new(None)));
-
-/// How often to recompute the staked amounts for validators, the default
-/// interval to recompute staked amounts is every X blocks.
-pub static STAKE_RECOMPUTE_INTERVAL_IN_BLOCKS: Lazy<u64> = Lazy::new(|| {
-    env::var("STAKE_RECOMPUTE_INTERVAL").ok().and_then(|s| s.parse::<u64>().ok()).unwrap_or(500)
-});
 
 #[tonic::async_trait]
 impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
@@ -218,6 +217,7 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
                 let computed_validator_staking_details = compute_validator_staking_information(
                     &mut client3,
                     v2::BlockIdentifier::AbsoluteHeight(fbi.height),
+                    self.stake_recompute_interval_in_blocks,
                 )
                 .await?;
                 Ok((tokenomics_info, computed_validator_staking_details))
@@ -318,6 +318,7 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
 pub async fn compute_validator_staking_information(
     client: &mut v2::Client,
     block_height: v2::BlockIdentifier,
+    stake_recompute_interval_in_blocks: u64,
 ) -> v2::QueryResult<(Amount, ValidatorStakingInformation)> {
     let current_block_height: u64 = get_block_height_from_absolute(block_height);
     let cache_read = TOTAL_STAKED_AMOUNTS_CACHE.read().await;
@@ -328,7 +329,7 @@ pub async fn compute_validator_staking_information(
     // we can just return the cached total staked amount
     if let Some(cache) = &*cache_read {
         // check if enough blocks have passed to recompute stakes
-        if current_block_height - cache.block_height == *STAKE_RECOMPUTE_INTERVAL_IN_BLOCKS {
+        if current_block_height - cache.block_height == stake_recompute_interval_in_blocks {
             computed_stake_result =
                 compute_validator_staking_information_with_client(client, block_height).await;
             should_update_cache = true;

@@ -92,6 +92,7 @@ impl IndexerService {
         mut db_connection: PgConnection,
         registry: &mut Registry,
         config: IndexerServiceConfig,
+        stake_recompute_interval_in_blocks: u64,
     ) -> anyhow::Result<Self> {
         let database_indexer_lock_timeout =
             Duration::from_secs(config.database_indexer_lock_timeout);
@@ -110,9 +111,13 @@ impl IndexerService {
         let start_height = if let Some(height) = last_height_stored {
             u64::try_from(height)? + 1
         } else {
-            genesis_data::save_genesis_data(endpoints[0].clone(), db_connection.as_mut())
-                .await
-                .context("Failed initializing the database with the genesis block")?;
+            genesis_data::save_genesis_data(
+                endpoints[0].clone(),
+                db_connection.as_mut(),
+                stake_recompute_interval_in_blocks,
+            )
+            .await
+            .context("Failed initializing the database with the genesis block")?;
             1
         };
         let genesis_block_hash: sdk_types::hashes::BlockHash =
@@ -125,6 +130,7 @@ impl IndexerService {
         let block_pre_processor = block_preprocessor::BlockPreProcessor::new(
             genesis_block_hash,
             config.max_successive_failures.into(),
+            stake_recompute_interval_in_blocks,
             registry.sub_registry_with_prefix("preprocessor"),
         );
         let block_processor = block_processor::BlockProcessor::new(

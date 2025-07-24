@@ -61,7 +61,7 @@ struct Cli {
     /// How often to recompute staked amounts for validators with the node.
     /// Denotes the number of blocks to allow pass before updating stakes.
     #[arg(long, env = "STAKE_RECOMPUTE_INTERVAL_IN_BLOCKS", default_value = "500")]
-    stake_recompute_every_x_blocks: u64,
+    stake_recompute_interval_in_blocks: u64,
 }
 
 /// CLI argument parser first used for parsing only the --dotenv option.
@@ -186,6 +186,7 @@ async fn main() -> anyhow::Result<()> {
             db_connection,
             &mut registry,
             cli.indexer_config,
+            cli.stake_recompute_interval_in_blocks,
         )
         .await?;
         tokio::spawn(indexer.run(stop_signal))
