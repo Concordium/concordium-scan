@@ -1,3 +1,9 @@
+// Contains the GraphQL query for PLT event metrics.
+// This query retrieves metrics related to PLT token events such as transfers,
+// mints, burns, and token module creations over a specified period, with
+// optional token filtering. It also provides bucketed data for visualizing
+// trends over time. The results include counts and volumes for each event type,
+// along with time buckets for analysis.
 use std::sync::Arc;
 
 use async_graphql::{Context, Object, SimpleObject};
@@ -39,29 +45,30 @@ struct PltEventMetrics {
 #[derive(SimpleObject)]
 struct PltEventMetricsBuckets {
     // The width (time interval) of each bucket.
-    bucket_width: TimeSpan,
-
+    bucket_width:     TimeSpan,
+    // The time values for each bucket.
     #[graphql(name = "x_Time")]
-    x_time: Vec<DateTime>,
-
+    x_time:           Vec<DateTime>,
+    // The counts and volumes for each event type in the buckets.
     #[graphql(name = "y_TransferCount")]
     y_transfer_count: Vec<i64>,
 
     #[graphql(name = "y_TransferVolume")]
     y_transfer_volume: Vec<f64>,
 
+    // Counts and volumes for mint events in the buckets.
     #[graphql(name = "y_MintCount")]
     y_mint_count: Vec<i64>,
 
     #[graphql(name = "y_MintVolume")]
     y_mint_volume: Vec<f64>,
-
+    // Counts and volumes for burn events in the buckets.
     #[graphql(name = "y_BurnCount")]
-    y_burn_count: Vec<i64>,
+    y_burn_count:  Vec<i64>,
 
     #[graphql(name = "y_BurnVolume")]
-    y_burn_volume: Vec<f64>,
-
+    y_burn_volume:        Vec<f64>,
+    // Counts of token modules created in the buckets.
     #[graphql(name = "y_TokenModuleCount")]
     y_token_module_count: Vec<i64>,
 
@@ -69,6 +76,11 @@ struct PltEventMetricsBuckets {
     y_total_event_count: Vec<i64>,
 }
 
+// Implementation of the GraphQL query for PLT event metrics.
+// This query retrieves metrics related to PLT token events over a specified
+// period. It allows filtering by token ID and provides bucketed data for
+// analysis. The results include counts and volumes for transfers, mints, burns,
+// and token module creations.
 #[Object]
 impl QueryPltEventMetrics {
     async fn plt_event_metrics(
@@ -129,7 +141,10 @@ impl QueryPltEventMetrics {
         let mut total_burn_volume = 0.0;
         let mut total_token_module_count = 0;
         let mut total_event_count = 0;
-
+        // Iterate through the rows and populate the metrics variables.
+        // Each row corresponds to a time bucket with counts and volumes for each event
+        // type. The results are aggregated to provide totals for the entire
+        // period.
         for row in rows {
             x_time.push(row.bucket_time);
 

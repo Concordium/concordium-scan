@@ -1,3 +1,6 @@
+-- Migration script to alter plt_events table
+-- Add new columns: event_timestamp, amount_value, amount_decimals
+-- This reduces the plt_event_metrics query complexity 
 ALTER TABLE plt_events
 ADD COLUMN IF NOT EXISTS event_timestamp TIMESTAMPTZ;
 
@@ -7,6 +10,7 @@ ADD COLUMN IF NOT EXISTS amount_value NUMERIC;
 ALTER TABLE plt_events
 ADD COLUMN IF NOT EXISTS amount_decimals INT;
 
+-- Create indexes to optimize queries on the new columns (helps in index only scans)
 CREATE INDEX  IF NOT EXISTS idx_plt_events_token_type_time
 ON plt_events (event_type, event_timestamp, token_index)
 INCLUDE (amount_value, amount_decimals);
