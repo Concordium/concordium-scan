@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [2.0.17] - 2025-07-24
+
+### Added
+
+- Updated Rust SDK submodule in order to fix bug with CBOR decoding empty string
+
+
 ## [2.0.16] - 2025-07-24
 
 ### Added
