@@ -26,7 +26,7 @@ struct Cli {
     /// Use an environment variable when the connection contains a password, as
     /// command line arguments are visible across OS processes.
     #[arg(long, env = "CCDSCAN_INDEXER_DATABASE_URL")]
-    database_url:      PgConnectOptions,
+    database_url: PgConnectOptions,
     /// gRPC interface of the node. Several can be provided.
     #[arg(
         long,
@@ -34,30 +34,34 @@ struct Cli {
         value_delimiter = ',',
         num_args = 1..
     )]
-    node:              Vec<v2::Endpoint>,
+    node: Vec<v2::Endpoint>,
     /// Address to listen for monitoring related requests
     #[arg(long, env = "CCDSCAN_INDEXER_MONITORING_ADDRESS", default_value = "127.0.0.1:8001")]
     monitoring_listen: SocketAddr,
     #[command(flatten)]
-    indexer_config:    IndexerServiceConfig,
+    indexer_config: IndexerServiceConfig,
     /// The maximum log level. Possible values are: `trace`, `debug`, `info`,
     /// `warn`, and `error`.
     #[arg(long = "log-level", default_value = "info", env = "LOG_LEVEL")]
-    log_level:         tracing_subscriber::filter::LevelFilter,
+    log_level: tracing_subscriber::filter::LevelFilter,
     /// Run database schema migrations before the processing of blocks.
     #[arg(long, env = "CCDSCAN_INDEXER_MIGRATE")]
-    migrate:           bool,
+    migrate: bool,
     /// Run database schema migrations only and then exit.
     /// In production it is recommended to use this for first running the
     /// migrations with elevated privileges.
     #[arg(long, env = "CCDSCAN_INDEXER_MIGRATE_ONLY")]
-    migrate_only:      bool,
+    migrate_only: bool,
     /// Provide file to load environment variables from, instead of the default
     /// `.env`.
     // This is only part of this struct in order to generate help information.
     // This argument is actually handled before hand using `DotenvCli`.
     #[arg(long)]
-    dotenv:            Option<PathBuf>,
+    dotenv: Option<PathBuf>,
+    /// How often to recompute staked amounts for validators with the node.
+    /// Denotes the number of blocks to allow pass before updating stakes.
+    #[arg(long, env = "STAKE_RECOMPUTE_INTERVAL_IN_BLOCKS", default_value = "500")]
+    stake_recompute_every_x_blocks: u64,
 }
 
 /// CLI argument parser first used for parsing only the --dotenv option.

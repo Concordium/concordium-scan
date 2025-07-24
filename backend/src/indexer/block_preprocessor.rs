@@ -457,11 +457,8 @@ pub async fn compute_validator_staking_information_with_client(
     Ok((total_staked, validators_staking_information))
 }
 
-/// returns the block height from a provided Block Identifier.
-/// We are expecting this to be an AbsoluteBlockHeight where the height can be
-/// taken as u64 (later will be used for caching with computing staked amounts)
-/// we will immediately create an error if its not possible as the indexer
-/// should always work with Absolute height for this area of the code.
+/// gets the block height as a u64 where the AbsoluteHeight identifier is
+/// passed.
 fn get_block_height_from_absolute(block_height: BlockIdentifier) -> u64 {
     match block_height {
         v2::BlockIdentifier::AbsoluteHeight(h) => h.height,
