@@ -7,6 +7,11 @@ All notable changes to this project will be documented in this file.
 ## Added
 
 - Added query `PltEventMetrics` to fetch metrics related to plt token events.
+
+## [2.0.16] - 2025-07-24
+
+### Added
+
 - Introduced batches in migrations m0037 and logging.
 - (Bugfix) Proper handling of serialization and deserialization of `InitializationParameters` in `CreatePlt`, `CreatePltUpdate`, `TokenCreationDetails` events.
 

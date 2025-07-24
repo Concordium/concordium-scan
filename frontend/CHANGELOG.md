@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [1.7.22] - 2025-07-24
+
+### Changed
+
+- Fixed bug to ensure backward compatibility with `TokenAmount` types.
+
 ## [1.7.21] - 2025-07-17
 
 ### Changed
