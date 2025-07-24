@@ -16,6 +16,7 @@ use sqlx::Connection;
 pub async fn save_genesis_data(
     endpoint: v2::Endpoint,
     pool: &mut sqlx::PgConnection,
+    stake_recompute_interval_in_blocks: u64,
 ) -> anyhow::Result<()> {
     let mut client = v2::Client::new(endpoint)
         .await
@@ -28,8 +29,12 @@ pub async fn save_genesis_data(
     let slot_time = genesis_block_info.block_slot_time;
     let genesis_tokenomics = client.get_tokenomics_info(genesis_height).await?.response;
 
-    let (total_staked_capital, _) =
-        compute_validator_staking_information(&mut client, genesis_height).await?;
+    let (total_staked_capital, _) = compute_validator_staking_information(
+        &mut client,
+        genesis_height,
+        stake_recompute_interval_in_blocks,
+    )
+    .await?;
     let total_staked = i64::try_from(total_staked_capital.micro_ccd())?;
 
     let total_amount =
