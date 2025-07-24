@@ -165,7 +165,8 @@ impl QueryPltEventMetrics {
             total_burn_volume += burn_volume;
             total_token_module_count += token_module_count;
             total_event_count += event_count;
-
+            // Push the counts and volumes into their respective vectors for each bucket.
+            // This allows for easy visualization and analysis of trends over time.
             y_transfer_count.push(transfer_count);
             y_transfer_volume.push(transfer_volume);
             y_mint_count.push(mint_count);
