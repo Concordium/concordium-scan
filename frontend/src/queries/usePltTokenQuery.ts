@@ -1,5 +1,5 @@
 import { useQuery, gql } from '@urql/vue'
-import type { Plttoken } from '~/types/generated'
+import type { Plttoken, Scalars } from '~/types/generated'
 
 import type { QueryVariables } from '~/types/queryVariables'
 
@@ -54,6 +54,95 @@ export const usePltTokenQuery = (eventsVariables?: QueryVariables) => {
 	watch(
 		() => data.value,
 		value => (dataRef.value = getData(value))
+	)
+
+	return {
+		data: dataRef,
+		error,
+		componentState,
+		loading: fetching,
+	}
+}
+
+export type PltTokenQueryByTokenIdResponse = {
+	pltToken: Plttoken
+}
+
+const PLT_TOKEN_QUERY_BY_ID = gql<PltTokenQueryByTokenIdResponse>`
+	query ($id: String!) {
+		pltToken(id: $id) {
+			name
+			tokenId
+			transactionHash
+			moduleReference
+			metadata
+			initialSupply
+			totalSupply
+			totalMinted
+			totalBurned
+			decimal
+			index
+			totalUniqueHolders
+			issuer {
+				asString
+			}
+		}
+	}
+`
+
+export const usePltTokenQueryById = (tokenId: string) => {
+	const { data, fetching, error } = useQuery({
+		query: PLT_TOKEN_QUERY_BY_ID,
+		requestPolicy: 'cache-and-network',
+		variables: { id: tokenId },
+	})
+
+	const dataRef = ref<Plttoken | null>(data.value?.pltToken ?? null)
+	const componentState = useComponentState<Plttoken | null>({
+		fetching,
+		error,
+		data: dataRef,
+	})
+
+	watch(
+		() => data.value,
+		value => (dataRef.value = value?.pltToken ?? null)
+	)
+
+	return {
+		data: dataRef,
+		error,
+		componentState,
+		loading: fetching,
+	}
+}
+
+export type UniqueHolders = {
+	pltUniqueAccounts: Scalars['Int']
+}
+
+const PLT_ACCOUNT_AMOUNT_QUERY = gql<UniqueHolders>`
+	query PltUniqueAccounts {
+		pltUniqueAccounts
+	}
+`
+
+export const usePltUniqueAccountsQuery = () => {
+	const { data, fetching, error } = useQuery({
+		query: PLT_ACCOUNT_AMOUNT_QUERY,
+		requestPolicy: 'cache-and-network',
+	})
+
+	const dataRef = ref<UniqueHolders | null>(data.value ?? null)
+	const componentState = useComponentState<UniqueHolders | null>({
+		fetching,
+		error,
+		data: dataRef,
+	})
+
+	watch(
+		() => data.value,
+		value => (dataRef.value = value ?? null)
 	)
 
 	return {

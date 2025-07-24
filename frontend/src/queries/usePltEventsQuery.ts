@@ -1,5 +1,5 @@
 import { useQuery, gql } from '@urql/vue'
-import type { PageInfo, Pltevent } from '~/types/generated'
+import type { PageInfo, Pltevent, Scalars } from '~/types/generated'
 
 import type { QueryVariables } from '~/types/queryVariables'
 
@@ -89,6 +89,114 @@ export const usePltEventsQuery = (
 		query: PLT_TOKEN_QUERY,
 		requestPolicy: 'cache-and-network',
 		variables: eventsVariables,
+	})
+
+	return {
+		data,
+		error,
+		loading: fetching,
+	}
+}
+
+export type PLTEventsByTokenIdQueryResponse = {
+	pltEventsByTokenId: {
+		nodes: Pltevent[]
+		pageInfo: PageInfo
+	}
+}
+
+const PLT_EVENT_BY_ID_QUERY = gql<PLTEventsByTokenIdQueryResponse>`
+	query (
+		$after: String
+		$before: String
+		$first: Int
+		$last: Int
+		$id: String
+	) {
+		pltEventsByTokenId(
+			first: $first
+			last: $last
+			after: $after
+			before: $before
+			id: $id
+		) {
+			nodes {
+				id
+				transactionIndex
+				eventType
+				tokenModuleType
+				tokenId
+				tokenName
+				tokenEvent {
+					... on BurnEvent {
+						target {
+							address {
+								asString
+							}
+						}
+						amount {
+							value
+							decimals
+						}
+					}
+					... on MintEvent {
+						target {
+							address {
+								asString
+							}
+						}
+						amount {
+							value
+							decimals
+						}
+					}
+					... on TokenTransferEvent {
+						from {
+							address {
+								asString
+							}
+						}
+						to {
+							address {
+								asString
+							}
+						}
+						amount {
+							value
+							decimals
+						}
+						memo {
+							bytes
+						}
+					}
+					... on TokenModuleEvent {
+						eventType
+						details
+					}
+				}
+				transactionHash
+				block {
+					blockSlotTime
+				}
+			}
+			pageInfo {
+				startCursor
+				endCursor
+				hasPreviousPage
+				hasNextPage
+			}
+		}
+	}
+`
+
+export const usePltEventByIdQuery = (
+	id: Scalars['ID'],
+	eventsVariables?: Partial<QueryVariables>
+) => {
+	const { data, fetching, error } = useQuery({
+		query: PLT_EVENT_BY_ID_QUERY,
+		requestPolicy: 'network-only',
+		variables: { ...eventsVariables, id },
 	})
 
 	return {
