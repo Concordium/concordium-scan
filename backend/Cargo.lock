@@ -923,7 +923,7 @@ dependencies = [
 
 [[package]]
 name = "concordium-scan"
-version = "2.0.15"
+version = "2.0.16"
 dependencies = [
  "anyhow",
  "async-graphql",
