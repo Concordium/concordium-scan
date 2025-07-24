@@ -46,7 +46,7 @@ jobs:
       - name: Run clippy
         working-directory: backend
         run: |
-          cargo clippy --color=always --tests -- -D warnings
+          cargo clippy --locked --color=always --tests -- -D warnings
 
   test:
     name: test
@@ -62,7 +62,7 @@ jobs:
         working-directory: backend
         run: |
           rustup default ${{ env.RUST_VERSION }}
-          cargo test
+          cargo test --locked
 
   schema-diff:
     name: GraphQL schema diff
