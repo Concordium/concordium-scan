@@ -19,9 +19,10 @@ INCLUDE (amount_value, amount_decimals);
 CREATE INDEX IF NOT EXISTS idx_temp_plt_events_backfill
   ON plt_events (id);
 
+-- Create temporary indexes on related tables to speed up joins during backfill
 CREATE INDEX IF NOT EXISTS idx_temp_transactions_index
   ON transactions (index);
-
+-- Create temporary index on blocks to speed up backfill
 CREATE INDEX IF NOT EXISTS idx_temp_blocks_height
   ON blocks (height);
 
