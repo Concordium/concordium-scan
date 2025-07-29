@@ -1722,6 +1722,7 @@ export enum MetricsPeriod {
   Last7Days = 'LAST7_DAYS',
   Last24Hours = 'LAST24_HOURS',
   Last30Days = 'LAST30_DAYS',
+  Last90Days = 'LAST90_DAYS',
   LastHour = 'LAST_HOUR',
   LastYear = 'LAST_YEAR'
 }
@@ -2251,6 +2252,33 @@ export type PendingBakerRemoval = {
   effectiveTime: Scalars['DateTime'];
 };
 
+export type PltEventMetrics = {
+  __typename?: 'PltEventMetrics';
+  buckets: PltEventMetricsBuckets;
+  burnCount: Scalars['Int'];
+  burnVolume: Scalars['Float'];
+  mintCount: Scalars['Int'];
+  mintVolume: Scalars['Float'];
+  tokenModuleCount: Scalars['Int'];
+  totalEventCount: Scalars['Int'];
+  transferCount: Scalars['Int'];
+  transferVolume: Scalars['Float'];
+};
+
+export type PltEventMetricsBuckets = {
+  __typename?: 'PltEventMetricsBuckets';
+  bucketWidth: Scalars['TimeSpan'];
+  x_Time: Array<Scalars['DateTime']>;
+  y_BurnCount: Array<Scalars['Int']>;
+  y_BurnVolume: Array<Scalars['Float']>;
+  y_MintCount: Array<Scalars['Int']>;
+  y_MintVolume: Array<Scalars['Float']>;
+  y_TokenModuleCount: Array<Scalars['Int']>;
+  y_TotalEventCount: Array<Scalars['Int']>;
+  y_TransferCount: Array<Scalars['Int']>;
+  y_TransferVolume: Array<Scalars['Float']>;
+};
+
 export type PltaccountAmount = {
   __typename?: 'PltaccountAmount';
   accountAddress: AccountAddress;
@@ -2428,6 +2456,7 @@ export type Query = {
   pltAccountsByTokenId: Array<PltaccountAmount>;
   pltEvent: Pltevent;
   pltEventByTransactionIndex: Pltevent;
+  pltEventMetrics: PltEventMetrics;
   pltEvents: PlteventConnection;
   pltEventsByTokenId: PlteventConnection;
   pltToken: Plttoken;
@@ -2584,6 +2613,12 @@ export type QueryPltEventArgs = {
 
 export type QueryPltEventByTransactionIndexArgs = {
   transactionIndex: Scalars['ID'];
+};
+
+
+export type QueryPltEventMetricsArgs = {
+  period: MetricsPeriod;
+  tokenId?: InputMaybe<Scalars['String']>;
 };
 
 

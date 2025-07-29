@@ -1518,6 +1518,7 @@ enum MetricsPeriod {
 	LAST24_HOURS
 	LAST7_DAYS
 	LAST30_DAYS
+	LAST90_DAYS
 	LAST_YEAR
 }
 
@@ -1961,6 +1962,31 @@ type PendingBakerRemoval {
 	effectiveTime: DateTime!
 }
 
+type PltEventMetrics {
+	transferCount: Int!
+	transferVolume: Float!
+	mintCount: Int!
+	mintVolume: Float!
+	burnCount: Int!
+	burnVolume: Float!
+	tokenModuleCount: Int!
+	totalEventCount: Int!
+	buckets: PltEventMetricsBuckets!
+}
+
+type PltEventMetricsBuckets {
+	bucketWidth: TimeSpan!
+	x_Time: [DateTime!]!
+	y_TransferCount: [Int!]!
+	y_TransferVolume: [Float!]!
+	y_MintCount: [Int!]!
+	y_MintVolume: [Float!]!
+	y_BurnCount: [Int!]!
+	y_BurnVolume: [Float!]!
+	y_TokenModuleCount: [Int!]!
+	y_TotalEventCount: [Int!]!
+}
+
 type PltaccountAmount {
 	accountAddress: AccountAddress!
 	tokenId: String!
@@ -2237,6 +2263,7 @@ type Query {
 	pltAccounts(account: ID!, tokenId: ID!): PltaccountAmount
 	pltAccountsByTokenId(tokenId: ID!): [PltaccountAmount!]!
 	pltUniqueAccounts: Int!
+	pltEventMetrics(period: MetricsPeriod!, tokenId: String): PltEventMetrics!
 }
 
 """
