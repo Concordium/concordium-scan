@@ -2,9 +2,189 @@ use crate::address::AccountAddress;
 use async_graphql::{Enum, SimpleObject, Union};
 use bigdecimal::BigDecimal;
 
-use concordium_rust_sdk::protocol_level_tokens::{self};
+use concordium_rust_sdk::protocol_level_tokens::{self, TokenModuleRejectReasonType};
 use serde::{Deserialize, Serialize};
 const CONCORDIUM_SLIP_0044_CODE: u64 = 919;
+
+#[derive(Union, Serialize, Deserialize, Clone, Debug)]
+#[serde(tag = "type")]
+pub enum TokenModuleRejectReasonTypes {
+    /// Address not found
+    AddressNotFound(AddressNotFoundRejectReason),
+    /// Token balance is insufficient
+    TokenBalanceInsufficient(TokenBalanceInsufficientRejectReason),
+    /// The transaction could not be deserialized
+    DeserializationFailure(DeserializationFailureRejectReason),
+    /// The operation is not supported by the token module
+    UnsupportedOperation(UnsupportedOperationRejectReason),
+    /// Operation authorization check failed
+    OperationNotPermitted(OperationNotPermittedRejectReason),
+    /// Minting the requested amount would overflow the representable token
+    /// amount.
+    MintWouldOverflow(MintWouldOverflowRejectReason),
+    /// Unknown reject reason
+    Unknown(UnknownRejectReason),
+}
+
+#[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
+pub struct UnknownRejectReason {
+    pub message: String,
+}
+
+#[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
+pub struct AddressNotFoundRejectReason {
+    pub index:   String,
+    pub address: CborTokenHolder,
+}
+
+#[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
+pub struct TokenBalanceInsufficientRejectReason {
+    pub index:             String,
+    pub available_balance: TokenAmount,
+    pub required_balance:  TokenAmount,
+}
+
+#[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
+pub struct DeserializationFailureRejectReason {
+    pub cause: Option<String>,
+}
+
+#[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
+pub struct UnsupportedOperationRejectReason {
+    pub index:          String,
+    pub operation_type: String,
+    pub reason:         Option<String>,
+}
+
+#[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
+pub struct OperationNotPermittedRejectReason {
+    pub index:   String,
+    pub address: Option<CborTokenHolder>,
+    pub reason:  Option<String>,
+}
+
+#[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
+pub struct MintWouldOverflowRejectReason {
+    /// The index in the list of operations of the failing operation.
+    pub index:                    String,
+    /// The requested amount to mint.
+    pub requested_amount:         TokenAmount,
+    /// The current supply of the token.
+    pub current_supply:           TokenAmount,
+    /// The maximum representable token amount.
+    pub max_representable_amount: TokenAmount,
+}
+
+impl From<TokenModuleRejectReasonType> for TokenModuleRejectReasonTypes {
+    fn from(reject_reason: TokenModuleRejectReasonType) -> Self {
+        match reject_reason {
+            TokenModuleRejectReasonType::AddressNotFound(reason) => {
+                TokenModuleRejectReasonTypes::AddressNotFound(reason.into())
+            }
+            TokenModuleRejectReasonType::TokenBalanceInsufficient(reason) => {
+                TokenModuleRejectReasonTypes::TokenBalanceInsufficient(reason.into())
+            }
+            TokenModuleRejectReasonType::DeserializationFailure(reason) => {
+                TokenModuleRejectReasonTypes::DeserializationFailure(reason.into())
+            }
+            TokenModuleRejectReasonType::UnsupportedOperation(reason) => {
+                TokenModuleRejectReasonTypes::UnsupportedOperation(reason.into())
+            }
+            TokenModuleRejectReasonType::OperationNotPermitted(reason) => {
+                TokenModuleRejectReasonTypes::OperationNotPermitted(reason.into())
+            }
+            TokenModuleRejectReasonType::MintWouldOverflow(reason) => {
+                TokenModuleRejectReasonTypes::MintWouldOverflow(reason.into())
+            }
+            _ => TokenModuleRejectReasonTypes::Unknown(UnknownRejectReason {
+                message: "Unknown reject reason".into(),
+            }),
+        }
+    }
+}
+
+// Implement From conversions for each reject reason type
+impl From<concordium_rust_sdk::protocol_level_tokens::AddressNotFoundRejectReason>
+    for AddressNotFoundRejectReason
+{
+    fn from(
+        reason: concordium_rust_sdk::protocol_level_tokens::AddressNotFoundRejectReason,
+    ) -> Self {
+        AddressNotFoundRejectReason {
+            index:   reason.index.to_string(),
+            address: reason.address.into(),
+        }
+    }
+}
+
+impl From<concordium_rust_sdk::protocol_level_tokens::TokenBalanceInsufficientRejectReason>
+    for TokenBalanceInsufficientRejectReason
+{
+    fn from(
+        reason: concordium_rust_sdk::protocol_level_tokens::TokenBalanceInsufficientRejectReason,
+    ) -> Self {
+        TokenBalanceInsufficientRejectReason {
+            index:             reason.index.to_string(),
+            available_balance: reason.available_balance.into(),
+            required_balance:  reason.required_balance.into(),
+        }
+    }
+}
+
+impl From<concordium_rust_sdk::protocol_level_tokens::DeserializationFailureRejectReason>
+    for DeserializationFailureRejectReason
+{
+    fn from(
+        reason: concordium_rust_sdk::protocol_level_tokens::DeserializationFailureRejectReason,
+    ) -> Self {
+        DeserializationFailureRejectReason {
+            cause: reason.cause,
+        }
+    }
+}
+
+impl From<concordium_rust_sdk::protocol_level_tokens::UnsupportedOperationRejectReason>
+    for UnsupportedOperationRejectReason
+{
+    fn from(
+        reason: concordium_rust_sdk::protocol_level_tokens::UnsupportedOperationRejectReason,
+    ) -> Self {
+        UnsupportedOperationRejectReason {
+            index:          reason.index.to_string(),
+            operation_type: reason.operation_type,
+            reason:         reason.reason,
+        }
+    }
+}
+
+impl From<concordium_rust_sdk::protocol_level_tokens::OperationNotPermittedRejectReason>
+    for OperationNotPermittedRejectReason
+{
+    fn from(
+        reason: concordium_rust_sdk::protocol_level_tokens::OperationNotPermittedRejectReason,
+    ) -> Self {
+        OperationNotPermittedRejectReason {
+            index:   reason.index.to_string(),
+            address: reason.address.map(Into::into),
+            reason:  reason.reason,
+        }
+    }
+}
+
+impl From<concordium_rust_sdk::protocol_level_tokens::MintWouldOverflowRejectReason>
+    for MintWouldOverflowRejectReason
+{
+    fn from(
+        reason: concordium_rust_sdk::protocol_level_tokens::MintWouldOverflowRejectReason,
+    ) -> Self {
+        MintWouldOverflowRejectReason {
+            index:                    reason.index.to_string(),
+            requested_amount:         reason.requested_amount.into(),
+            current_supply:           reason.current_supply.into(),
+            max_representable_amount: reason.max_representable_amount.into(),
+        }
+    }
+}
 
 #[derive(Debug, Enum, Clone, Copy, PartialEq, Eq, sqlx::Type)]
 #[sqlx(type_name = "event_type")]
