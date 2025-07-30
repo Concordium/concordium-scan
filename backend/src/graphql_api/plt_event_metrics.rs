@@ -20,55 +20,55 @@ pub(crate) struct QueryPltEventMetrics;
 /// This struct is used to define the GraphQL query for PLT event metrics.
 #[derive(SimpleObject)]
 struct PltEventMetrics {
-    /// Total number of transfers in the requested period.
+    // Total number of transfers in the requested period.
     transfer_count:  i64,
-    /// Total volume of transfers in the requested period.
+    // Total volume of transfers in the requested period.
     transfer_volume: f64,
-    /// Total number of mints in the requested period.
+    // Total number of mints in the requested period.
     mint_count:      i64,
-    /// Total volume of mints in the requested period.
+    // Total volume of mints in the requested period.
     mint_volume:     f64,
 
-    /// Total number of burns in the requested period.
+    // Total number of burns in the requested period.
     burn_count:  i64,
-    /// Total volume of burns in the requested period.
+    // Total volume of burns in the requested period.
     burn_volume: f64,
 
-    /// Total number of token modules created in the requested period.
+    // Total number of token modules created in the requested period.
     token_module_count: i64,
-    /// Total number of events in the requested period.
+    // Total number of events in the requested period.
     total_event_count:  i64,
-    /// Buckets for the PLT event metrics.
+    // Buckets for the PLT event metrics.
     buckets:            PltEventMetricsBuckets,
 }
 /// This struct is used to define the buckets for PLT event metrics.
 #[derive(SimpleObject)]
 struct PltEventMetricsBuckets {
-    /// The width (time interval) of each bucket.
+    // The width (time interval) of each bucket.
     bucket_width:     TimeSpan,
-    /// The time values for each bucket.
+    // The time values for each bucket.
     #[graphql(name = "x_Time")]
     x_time:           Vec<DateTime>,
-    /// The counts and volumes for each event type in the buckets.
+    // The counts and volumes for each event type in the buckets.
     #[graphql(name = "y_TransferCount")]
     y_transfer_count: Vec<i64>,
 
     #[graphql(name = "y_TransferVolume")]
     y_transfer_volume: Vec<f64>,
 
-    /// Counts and volumes for mint events in the buckets.
+    // Counts and volumes for mint events in the buckets.
     #[graphql(name = "y_MintCount")]
     y_mint_count: Vec<i64>,
 
     #[graphql(name = "y_MintVolume")]
     y_mint_volume: Vec<f64>,
-    /// Counts and volumes for burn events in the buckets.
+    // Counts and volumes for burn events in the buckets.
     #[graphql(name = "y_BurnCount")]
     y_burn_count:  Vec<i64>,
 
     #[graphql(name = "y_BurnVolume")]
     y_burn_volume:        Vec<f64>,
-    /// Counts of token modules created in the buckets.
+    // Counts of token modules created in the buckets.
     #[graphql(name = "y_TokenModuleCount")]
     y_token_module_count: Vec<i64>,
 
@@ -99,7 +99,7 @@ impl QueryPltEventMetrics {
         let bucket_width = period.bucket_width();
         let bucket_interval: PgInterval =
             bucket_width.try_into().map_err(|e| ApiError::DurationOutOfRange(Arc::new(e)))?;
-        /// One extra query to get the token index if a token_id is provided.
+        // One extra query to get the token index if a token_id is provided.
         let plt_token_index: Option<i64> = if let Some(token_id) = token_id {
             let result = sqlx::query!("SELECT index FROM plt_tokens WHERE token_id = $1", token_id)
                 .fetch_optional(pool)
@@ -141,10 +141,10 @@ impl QueryPltEventMetrics {
         let mut total_burn_volume = 0.0;
         let mut total_token_module_count = 0;
         let mut total_event_count = 0;
-        /// Iterate through the rows and populate the metrics variables.
-        /// Each row corresponds to a time bucket with counts and volumes for
-        /// each event type. The results are aggregated to provide
-        /// totals for the entire period.
+        // Iterate through the rows and populate the metrics variables.
+        // Each row corresponds to a time bucket with counts and volumes for
+        // each event type. The results are aggregated to provide
+        // totals for the entire period.
         for row in rows {
             x_time.push(row.bucket_time);
 
@@ -165,9 +165,9 @@ impl QueryPltEventMetrics {
             total_burn_volume += burn_volume;
             total_token_module_count += token_module_count;
             total_event_count += event_count;
-            /// Push the counts and volumes into their respective vectors for
-            /// each bucket. This allows for easy visualization and
-            /// analysis of trends over time.
+            // Push the counts and volumes into their respective vectors for
+            // each bucket. This allows for easy visualization and
+            // analysis of trends over time.
             y_transfer_count.push(transfer_count);
             y_transfer_volume.push(transfer_volume);
             y_mint_count.push(mint_count);
