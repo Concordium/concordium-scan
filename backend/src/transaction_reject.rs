@@ -1,7 +1,7 @@
 use crate::{
     address::{AccountAddress, Address, ContractAddress},
     scalar_types::{Amount, BakerId},
-    transaction_event::protocol_level_tokens::TokenModuleRejectReasonTypes,
+    transaction_event::protocol_level_tokens::TokenModuleRejectReasonType
 };
 use anyhow::Context;
 use async_graphql::{Enum, SimpleObject, Union};
@@ -937,7 +937,7 @@ impl PreparedTransactionRejectReason {
                 TransactionRejectReason::TokenUpdateTransactionFailed(TokenModuleReject {
                     token_id:    token_module_reject_reason.token_id.clone().into(),
                     reason_type: token_module_reject_reason.clone().reason_type.into(),
-                    details:     serde_json::to_value::<TokenModuleRejectReasonTypes>(
+                    details:     serde_json::to_value::<TokenModuleRejectReasonType>(
                         details.into(),
                     )
                     .context(
