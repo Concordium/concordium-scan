@@ -159,12 +159,10 @@
 								event.tokenEvent.__typename == 'TokenTransferEvent'
 							"
 						>
-							{{
-								(
-									Number(event.tokenEvent.amount.value) /
-									Math.pow(10, Number(event.tokenEvent.amount.decimals))
-								).toFixed(Number(event.tokenEvent.amount.decimals))
-							}}
+							<PLtAmount
+								:value="Number(event.tokenEvent.amount.value)"
+								:decimals="Number(event.tokenEvent.amount.decimals)"
+							/>
 						</TableTd>
 					</TableRow>
 				</TableBody>
