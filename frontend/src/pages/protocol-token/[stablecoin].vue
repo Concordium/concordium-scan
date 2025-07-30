@@ -168,20 +168,6 @@ watch(
 	{ immediate: true, deep: true }
 )
 
-// const days = ref(30)
-
-// watch(
-// 	() => coinId.value,
-// 	(newId, oldId) => {
-// 		console.log(`User ID changed from ${oldId} to ${newId}`)
-// 	}
-// )
-
-// const { data: dataTransferSummary } = useStableCoinTokenTransferQuery(
-// 	coinId.value.toUpperCase(),
-// 	days
-// )
-
 const selectedTab = ref('transactions')
 const handleSelectTab = (tabId: string) => (selectedTab.value = tabId)
 </script>
