@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Added
+
+- TokenModuleRejectReason enum to proper serialization and deserialization of the `TokenModuleReject` event.
+- Query `PltUniqueAccounts` to fetch unique accounts holding PLT tokens.
+
 ## [2.0.17] - 2025-07-24
 
 ### Added

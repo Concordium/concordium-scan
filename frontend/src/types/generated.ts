@@ -2432,6 +2432,7 @@ export type Query = {
   pltEventsByTokenId: PlteventConnection;
   pltToken: Plttoken;
   pltTokens: PlttokenConnection;
+  pltUniqueAccounts: Scalars['Int'];
   poolRewardMetricsForBakerPool: PoolRewardMetrics;
   poolRewardMetricsForPassiveDelegation: PoolRewardMetrics;
   rewardMetrics: RewardMetrics;

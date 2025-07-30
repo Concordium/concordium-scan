@@ -1,6 +1,7 @@
 use crate::{
     address::{AccountAddress, Address, ContractAddress},
     scalar_types::{Amount, BakerId},
+    transaction_event::protocol_level_tokens::TokenModuleRejectReasonType,
 };
 use anyhow::Context;
 use async_graphql::{Enum, SimpleObject, Union};
@@ -930,20 +931,18 @@ impl PreparedTransactionRejectReason {
                 })
             }
             RejectReason::TokenUpdateTransactionFailed(token_module_reject_reason) => {
+                let details =
+                    TokenModuleRejectReason::decode_reject_reason(&token_module_reject_reason)
+                        .context("Failed to decode token module transaction failure reason")?;
                 TransactionRejectReason::TokenUpdateTransactionFailed(TokenModuleReject {
                     token_id:    token_module_reject_reason.token_id.clone().into(),
                     reason_type: token_module_reject_reason.clone().reason_type.into(),
-                    details:     match TokenModuleRejectReason::decode_reject_reason(
-                        &token_module_reject_reason,
-                    ) {
-                        Ok(details) => serde_json::to_value(details)?,
-                        Err(err) => {
-                            return Err(anyhow::anyhow!(
-                                "Failed to decode token transaction failed: {}",
-                                err
-                            ))
-                        }
-                    },
+                    details:     serde_json::to_value::<TokenModuleRejectReasonType>(
+                        details.into(),
+                    )
+                    .context(
+                        "Failed to serialize token module transaction failure details to JSON",
+                    )?,
                 })
             }
         };

@@ -62,7 +62,7 @@
 			<header class="flex justify-between items-center mb-4">
 				<h1 class="text-xl">Supply & Holders</h1>
 			</header>
-			<FtbCarousel non-carousel-classes="grid-cols-2">
+			<FtbCarousel non-carousel-classes="grid-cols-3">
 				<CarouselSlide class="w-full lg:h-full">
 					<StableCoinSupplyBarChart
 						:stable-coins-data="pltTokenDataRef"
@@ -75,9 +75,12 @@
 						:is-loading="pltTokenLoading"
 					/>
 				</CarouselSlide>
-				<!-- <CarouselSlide class="w-full lg:h-full">
-					<HolderByStableCoin :stable-coins-data="pltTokenDataRef" :is-loading="pltTokenLoading" />
-				</CarouselSlide> -->
+				<CarouselSlide class="w-full lg:h-full">
+					<HolderByStableCoin
+						:stable-coins-data="pltTokenDataRef"
+						:is-loading="pltTokenLoading"
+					/>
+				</CarouselSlide>
 			</FtbCarousel>
 			<header class="flex justify-between items-center mb-4">
 				<h1 class="text-xl">Transactions</h1>
@@ -184,6 +187,7 @@ import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 import CarouselSlide from '~/components/molecules/CarouselSlide.vue'
 import StableCoinDistributionChart from '~/components/molecules/ChartCards/StableCoinDistributionChart.vue'
 import StableCoinSupplyBarChart from '~/components/molecules/ChartCards/StableCoinSupplyBarChart.vue'
+import HolderByStableCoin from '~/components/molecules/ChartCards/HolderByStableCoin.vue'
 import { usePltTokenQuery } from '~/queries/usePltTokenQuery'
 import { usePagedData } from '~/composables/usePagedData'
 import { usePltEventsQuery } from '~/queries/usePltEventsQuery'

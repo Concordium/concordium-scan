@@ -498,6 +498,12 @@ impl QueryPLTAccountAmount {
         let token_id: TokenId = token_id.to_string();
         Ok(PLTAccountAmount::query_by_token_id(pool, token_id).await?)
     }
+
+    async fn plt_unique_accounts(&self, ctx: &Context<'_>) -> ApiResult<i64> {
+        let pool = get_pool(ctx)?;
+        let accounts = PLTAccountAmount::query_unique_accounts(pool).await?;
+        Ok(accounts)
+    }
 }
 
 pub struct PLTAccountAmount {
@@ -552,6 +558,14 @@ impl PLTAccountAmount {
         .fetch_all(pool)
         .await?;
         Ok(result)
+    }
+
+    pub async fn query_unique_accounts(pool: &PgPool) -> ApiResult<i64> {
+        let result =
+            sqlx::query!("SELECT COUNT(DISTINCT account_index) as count FROM plt_accounts")
+                .fetch_one(pool)
+                .await?;
+        Ok(result.count.unwrap_or(0))
     }
 }
 

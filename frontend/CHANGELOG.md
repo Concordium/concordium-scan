@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Added
+
+- Added Protocol token holder distribution chart to the plt dashboard.
+
 ## [1.7.22] - 2025-07-24
 
 ### Changed
