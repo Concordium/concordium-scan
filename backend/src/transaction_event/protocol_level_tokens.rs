@@ -75,8 +75,12 @@ pub struct MintWouldOverflowRejectReason {
     pub max_representable_amount: TokenAmount,
 }
 
-impl From<concordium_rust_sdk::protocol_level_tokens::TokenModuleRejectReasonType> for TokenModuleRejectReasonType {
-    fn from(reject_reason: concordium_rust_sdk::protocol_level_tokens::TokenModuleRejectReasonType) -> Self {
+impl From<concordium_rust_sdk::protocol_level_tokens::TokenModuleRejectReasonType>
+    for TokenModuleRejectReasonType
+{
+    fn from(
+        reject_reason: concordium_rust_sdk::protocol_level_tokens::TokenModuleRejectReasonType,
+    ) -> Self {
         use concordium_rust_sdk::protocol_level_tokens::TokenModuleRejectReasonType as Reason;
         match reject_reason {
             Reason::AddressNotFound(reason) => {

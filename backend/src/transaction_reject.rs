@@ -1,7 +1,7 @@
 use crate::{
     address::{AccountAddress, Address, ContractAddress},
     scalar_types::{Amount, BakerId},
-    transaction_event::protocol_level_tokens::TokenModuleRejectReasonType
+    transaction_event::protocol_level_tokens::TokenModuleRejectReasonType,
 };
 use anyhow::Context;
 use async_graphql::{Enum, SimpleObject, Union};
