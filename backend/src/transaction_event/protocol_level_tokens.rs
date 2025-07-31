@@ -2,14 +2,14 @@ use crate::address::AccountAddress;
 use async_graphql::{Enum, SimpleObject, Union};
 use bigdecimal::BigDecimal;
 
-use concordium_rust_sdk::protocol_level_tokens::{self, TokenModuleRejectReasonType};
+use concordium_rust_sdk::protocol_level_tokens::{self};
 use serde::{Deserialize, Serialize};
 
 const CONCORDIUM_SLIP_0044_CODE: u64 = 919;
 
 #[derive(Union, Serialize, Deserialize, Clone, Debug)]
 #[serde(tag = "type")]
-pub enum TokenModuleRejectReasonTypes {
+pub enum TokenModuleRejectReasonType {
     /// Address not found
     AddressNotFound(AddressNotFoundRejectReason),
     /// Token balance is insufficient
@@ -76,34 +76,38 @@ pub struct MintWouldOverflowRejectReason {
     pub max_representable_amount: TokenAmount,
 }
 
-impl From<TokenModuleRejectReasonType> for TokenModuleRejectReasonTypes {
-    fn from(reject_reason: TokenModuleRejectReasonType) -> Self {
+impl From<concordium_rust_sdk::protocol_level_tokens::TokenModuleRejectReasonType>
+    for TokenModuleRejectReasonType
+{
+    fn from(
+        reject_reason: concordium_rust_sdk::protocol_level_tokens::TokenModuleRejectReasonType,
+    ) -> Self {
+        use concordium_rust_sdk::protocol_level_tokens::TokenModuleRejectReasonType as Reason;
         match reject_reason {
-            TokenModuleRejectReasonType::AddressNotFound(reason) => {
-                TokenModuleRejectReasonTypes::AddressNotFound(reason.into())
+            Reason::AddressNotFound(reason) => {
+                TokenModuleRejectReasonType::AddressNotFound(reason.into())
             }
-            TokenModuleRejectReasonType::TokenBalanceInsufficient(reason) => {
-                TokenModuleRejectReasonTypes::TokenBalanceInsufficient(reason.into())
+            Reason::TokenBalanceInsufficient(reason) => {
+                TokenModuleRejectReasonType::TokenBalanceInsufficient(reason.into())
             }
-            TokenModuleRejectReasonType::DeserializationFailure(reason) => {
-                TokenModuleRejectReasonTypes::DeserializationFailure(reason.into())
+            Reason::DeserializationFailure(reason) => {
+                TokenModuleRejectReasonType::DeserializationFailure(reason.into())
             }
-            TokenModuleRejectReasonType::UnsupportedOperation(reason) => {
-                TokenModuleRejectReasonTypes::UnsupportedOperation(reason.into())
+            Reason::UnsupportedOperation(reason) => {
+                TokenModuleRejectReasonType::UnsupportedOperation(reason.into())
             }
-            TokenModuleRejectReasonType::OperationNotPermitted(reason) => {
-                TokenModuleRejectReasonTypes::OperationNotPermitted(reason.into())
+            Reason::OperationNotPermitted(reason) => {
+                TokenModuleRejectReasonType::OperationNotPermitted(reason.into())
             }
-            TokenModuleRejectReasonType::MintWouldOverflow(reason) => {
-                TokenModuleRejectReasonTypes::MintWouldOverflow(reason.into())
+            Reason::MintWouldOverflow(reason) => {
+                TokenModuleRejectReasonType::MintWouldOverflow(reason.into())
             }
-            _ => TokenModuleRejectReasonTypes::Unknown(UnknownRejectReason {
+            Reason::Unknow => TokenModuleRejectReasonType::Unknown(UnknownRejectReason {
                 message: "Unknown reject reason".into(),
             }),
         }
     }
 }
-
 // Implement From conversions for each reject reason type
 impl From<concordium_rust_sdk::protocol_level_tokens::AddressNotFoundRejectReason>
     for AddressNotFoundRejectReason

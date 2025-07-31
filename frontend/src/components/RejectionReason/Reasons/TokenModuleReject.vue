@@ -15,6 +15,7 @@
 					Available balance :
 					<b>
 						{{
+							// Todo: fix this when we reset the devnet DB
 							reason.details[reason.reasonType]?.availableBalance?.value /
 							10 **
 								reason.details[reason.reasonType]?.availableBalance?.decimals[
@@ -34,6 +35,7 @@
 					Required balance :
 					<b>
 						{{
+							// Todo: fix this when we reset the devnet DB
 							reason.details[reason.reasonType]?.requiredBalance?.value /
 							10 **
 								reason.details[reason.reasonType]?.requiredBalance?.decimals[
@@ -65,9 +67,9 @@
 					Details:
 					<b>
 						{{
-							reason.details[reason.reasonType]?.cause
-								? reason.details[reason.reasonType]?.cause
-								: reason.details?.cause
+							// Todo: fix this when we reset the devnet DB
+
+							reason.details[reason.reasonType]?.cause ?? reason.details?.cause
 						}}
 					</b>
 				</span>
@@ -87,9 +89,10 @@
 					Address:
 					<b>
 						{{
-							reason.details[reason.reasonType].address.address
-								? reason.details[reason.reasonType].address.address
-								: reason.details.address.account.address.as_string
+							// Todo: fix this when we reset the devnet DB
+
+							reason.details[reason.reasonType].address.address ??
+							reason.details.address.account.address.as_string
 						}}
 					</b>
 				</span>
@@ -109,9 +112,10 @@
 					Operation Type :
 					<b>
 						{{
-							reason.details[reason.reasonType].operationType
-								? reason.details[reason.reasonType].operationType
-								: reason.details.operationType
+							// Todo: fix this when we reset the devnet DB
+
+							reason.details[reason.reasonType].operationType ??
+							reason.details.operationType
 						}}
 					</b>
 				</span>
@@ -120,9 +124,9 @@
 					Details:
 					<b>
 						{{
-							reason.details[reason.reasonType].reason
-								? reason.details[reason.reasonType].reason
-								: reason.details.reason
+							// Todo: fix this when we reset the devnet DB
+
+							reason.details[reason.reasonType].reason ?? reason.details.reason
 						}}
 					</b>
 				</span>
@@ -140,42 +144,40 @@
 				<br />
 				<span
 					v-if="
-						(reason.details[reason.reasonType]?.address
-							? reason.details[reason.reasonType].address
-							: reason.details.address?.account?.address) !== null &&
-						(reason.details[reason.reasonType]?.address
-							? reason.details[reason.reasonType].address
-							: reason.details.address?.account?.address) !== undefined
+						// Todo: fix this when we reset the devnet DB
+
+						reason.details[reason.reasonType]?.address ??
+						reason.details.address?.account?.address
 					"
 					class="px-2"
 				>
 					Token Holder :
 					<b>
 						{{
-							reason.details[reason.reasonType]?.address?.address
-								? reason.details[reason.reasonType]?.address?.address
-								: reason.details.address?.account?.address?.as_string
+							// Todo: fix this when we reset the devnet DB
+
+							reason.details[reason.reasonType]?.address?.address ??
+							reason.details.address?.account?.address?.as_string
 						}}
 					</b>
 				</span>
 				<br />
 				<span
 					v-if="
-						(reason.details[reason.reasonType]?.address
-							? reason.details[reason.reasonType]?.address.coinInfo
-							: reason.details.address?.account?.coin_info) !== undefined &&
-						(reason.details[reason.reasonType]?.address
-							? reason.details[reason.reasonType]?.address.coinInfo
-							: reason.details.address?.account?.coin_info) !== null
+						// Todo: fix this when we reset the devnet DB
+
+						reason.details[reason.reasonType]?.address?.coinInfo ??
+						reason.details.address?.account?.coin_info
 					"
 					class="px-2"
 				>
 					Coin Info :
 					<b>
 						{{
-							reason.details[reason.reasonType]?.address?.coinInfo
-								? reason.details[reason.reasonType]?.address?.coinInfo
-								: reason.details.address?.account?.coin_info
+							// Todo: fix this when we reset the devnet DB
+
+							reason.details[reason.reasonType]?.address?.coinInfo ??
+							reason.details.address?.account?.coin_info
 						}}
 					</b>
 				</span>
@@ -184,9 +186,9 @@
 					Details:
 					<b>
 						{{
-							reason.details[reason.reasonType]?.reason
-								? reason.details[reason.reasonType]?.reason
-								: reason.details.reason
+							// Todo: fix this when we reset the devnet DB
+
+							reason.details[reason.reasonType]?.reason ?? reason.details.reason
 						}}
 					</b>
 				</span>
@@ -206,9 +208,10 @@
 					Requested amount :
 					<b>
 						{{
-							reason.details[reason.reasonType]?.requested_amount
-								? reason.details[reason.reasonType]?.requested_amount
-								: reason.details.requested_amount
+							// Todo: fix this when we reset the devnet DB
+
+							reason.details[reason.reasonType]?.requested_amount ??
+							reason.details.requested_amount
 						}}
 					</b>
 				</span>
@@ -217,9 +220,10 @@
 					Current supply :
 					<b>
 						{{
-							reason.details[reason.reasonType]?.current_supply
-								? reason.details[reason.reasonType]?.current_supply
-								: reason.details.current_supply
+							// Todo: fix this when we reset the devnet DB
+
+							reason.details[reason.reasonType]?.current_supply ??
+							reason.details.current_supply
 						}}
 					</b>
 				</span>
@@ -228,9 +232,10 @@
 					Max representable ammount :
 					<b>
 						{{
-							reason.details[reason.reasonType]?.max_representable_amount
-								? reason.details[reason.reasonType]?.max_representable_amount
-								: reason.details.max_representable_amount
+							// Todo: fix this when we reset the devnet DB
+
+							reason.details[reason.reasonType]?.max_representable_amount ??
+							reason.details.max_representable_amount
 						}}
 					</b>
 				</span>

@@ -249,24 +249,3 @@ export const numberFormatter = (num?: number): string => {
 		? (num / 1e3).toFixed(2) + 'K'
 		: num.toFixed(2)
 }
-
-export const timeAgo = (dateString: string | undefined) => {
-	if (!dateString) {
-		return 'Invalid date' // or return a default value
-	}
-	const now = new Date()
-	const past = new Date(dateString)
-	const diff = Math.floor((now.getTime() - past.getTime()) / 1000) // in seconds
-
-	if (diff < 60) return `${diff} second${diff !== 1 ? 's' : ''} ago`
-	if (diff < 3600) {
-		const mins = Math.floor(diff / 60)
-		return `${mins} minute${mins !== 1 ? 's' : ''} ago`
-	}
-	if (diff < 86400) {
-		const hours = Math.floor(diff / 3600)
-		return `${hours} hour${hours !== 1 ? 's' : ''} ago`
-	}
-	const days = Math.floor(diff / 86400)
-	return `${days} day${days !== 1 ? 's' : ''} ago`
-}
