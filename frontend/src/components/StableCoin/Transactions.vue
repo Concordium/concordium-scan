@@ -85,7 +85,7 @@
 									"
 								>
 									<PLtAmount
-										:value="Number(event.tokenEvent.amount.value)"
+										:value="event.tokenEvent.amount.value"
 										:decimals="Number(event.tokenEvent.amount.decimals)"
 									/>
 								</TableTd>

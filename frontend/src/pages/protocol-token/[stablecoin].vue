@@ -17,23 +17,21 @@
 						<div class="flex justify-between pt-4">
 							<p class="text-xl text-theme-faded">Initial Supply</p>
 							<p class="font-bold text-xl text-theme-interactive">
-								{{
-									numberFormatter(
-										Number(pltTokenDataRef?.initialSupply) /
-											Math.pow(10, Number(pltTokenDataRef?.decimal))
-									)
-								}}
+								<PLtAmount
+									:value="(pltTokenDataRef?.initialSupply ?? 0).toString()"
+									:decimals="pltTokenDataRef?.decimal ?? 0"
+									:format-number="true"
+								/>
 							</p>
 						</div>
 						<div class="flex justify-between pt-4">
 							<p class="text-xl text-theme-faded">Current Supply</p>
 							<p class="font-bold text-xl text-theme-interactive">
-								{{
-									numberFormatter(
-										Number(pltTokenDataRef?.totalSupply) /
-											Math.pow(10, Number(pltTokenDataRef?.decimal))
-									)
-								}}
+								<PLtAmount
+									:value="(pltTokenDataRef?.totalSupply ?? 0).toString()"
+									:decimals="pltTokenDataRef?.decimal ?? 0"
+									:format-number="true"
+								/>
 							</p>
 						</div>
 						<div class="flex justify-between pt-4">
