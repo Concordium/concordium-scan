@@ -23,7 +23,7 @@ const numberFormatter = (significantBigInt: bigint, decimals: number) => {
 		{ threshold: 1000000000000n, suffix: 'T' },
 		{ threshold: 1000000000n, suffix: 'B' },
 		{ threshold: 1000000n, suffix: 'M' },
-		{ threshold: 1000n, suffix: 'K' }
+		{ threshold: 1000n, suffix: 'K' },
 	]
 
 	const unit = units.find(u => significantBigInt >= u.threshold)
@@ -35,10 +35,10 @@ const numberFormatter = (significantBigInt: bigint, decimals: number) => {
 		}
 	}
 
-	const totalValue = Number(significantBigInt) / (10 ** decimals)
-	return { 
-		formatedNum: totalValue.toFixed(decimals), 
-		suffix: '' 
+	const totalValue = Number(significantBigInt) / 10 ** decimals
+	return {
+		formatedNum: totalValue.toFixed(decimals),
+		suffix: '',
 	}
 }
 
@@ -64,15 +64,18 @@ const amounts: ComputedRef<[string, string]> = computed(() => {
 	if (props.formatNumber) {
 		const rawValue = BigInt(props.value)
 		const { formatedNum, suffix } = numberFormatter(rawValue, props.decimals)
-		
+
 		const trimmed = formatedNum.replace(/\.?0+$/, '')
 		return trimmed === '0'
 			? ['0' + formatedNum.replace(trimmed, '') + suffix, '']
 			: [trimmed + formatedNum.replace(trimmed, '') + suffix, '']
 	}
 
-	const formattedInteger = new Intl.NumberFormat().format(BigInt(significantDigits))
-	const trimmedDecimals = nonSignificantDigits.replace(/0+$/, '') || (props.decimals > 0 ? '0' : '')
+	const formattedInteger = new Intl.NumberFormat().format(
+		BigInt(significantDigits)
+	)
+	const trimmedDecimals =
+		nonSignificantDigits.replace(/0+$/, '') || (props.decimals > 0 ? '0' : '')
 
 	return [formattedInteger, trimmedDecimals]
 })
