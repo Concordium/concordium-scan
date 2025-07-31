@@ -27,6 +27,8 @@ const numberFormatter = (significantBigInt: bigint, decimals: number) => {
 	]
 
 	const unit = units.find(u => significantBigInt >= u.threshold)
+	console.log('unit:', unit)
+
 	if (unit) {
 		const totalValue = Number(significantBigInt) / Number(unit.threshold)
 		return {
@@ -35,7 +37,7 @@ const numberFormatter = (significantBigInt: bigint, decimals: number) => {
 		}
 	}
 
-	const totalValue = Number(significantBigInt) / 10 ** decimals
+	const totalValue = Number(significantBigInt)
 	return {
 		formatedNum: totalValue.toFixed(decimals),
 		suffix: '',
@@ -62,9 +64,10 @@ const amounts: ComputedRef<[string, string]> = computed(() => {
 	}
 
 	if (props.formatNumber) {
-		const rawValue = BigInt(props.value)
-		const { formatedNum, suffix } = numberFormatter(rawValue, props.decimals)
-
+		const { formatedNum, suffix } = numberFormatter(
+			BigInt(significantDigits),
+			props.decimals
+		)
 		const trimmed = formatedNum.replace(/\.?0+$/, '')
 		return trimmed === '0'
 			? ['0' + formatedNum.replace(trimmed, '') + suffix, '']

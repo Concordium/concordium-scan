@@ -141,15 +141,15 @@
 						</TableTd>
 
 						<TableTd>
-							<!-- <a
+							<a
 								:href="`/protocol-token/${event.tokenId}`"
 								target="_blank"
 								class="font-normal text-md text-theme-interactive flex flex-row items-center"
 							>
-								<img :src="event.tokenIconUrl" class="rounded-full w-6 h-6 mr-2"
-									alt="Token Icon" loading="lazy" decoding="async" />
-							</a> -->
-							{{ event.tokenName }}
+								{{ event.tokenName }}
+								<!-- <img :src="event.tokenIconUrl" class="rounded-full w-6 h-6 mr-2"
+									alt="Token Icon" loading="lazy" decoding="async" /> -->
+							</a>
 						</TableTd>
 						<TableTd>
 							<AccountLink
