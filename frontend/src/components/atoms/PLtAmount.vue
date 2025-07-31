@@ -27,7 +27,6 @@ const numberFormatter = (significantBigInt: bigint, decimals: number) => {
 	]
 
 	const unit = units.find(u => significantBigInt >= u.threshold)
-	console.log('unit:', unit)
 
 	if (unit) {
 		const totalValue = Number(significantBigInt) / Number(unit.threshold)
