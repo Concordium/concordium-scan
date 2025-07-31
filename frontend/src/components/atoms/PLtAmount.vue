@@ -18,71 +18,61 @@ type Props = {
 
 const props = defineProps<Props>()
 
-const numberFormatter = (num: number, decimals: number) => {
-	if (isNaN(num)) return { formatedNum: '0', suffix: '' }
-
+const numberFormatter = (significantBigInt: bigint, decimals: number) => {
 	const units = [
-		{ threshold: 1e12, suffix: 'T' },
-		{ threshold: 1e9, suffix: 'B' },
-		{ threshold: 1e6, suffix: 'M' },
-		{ threshold: 1e3, suffix: 'K' },
+		{ threshold: 1000000000000n, suffix: 'T' },
+		{ threshold: 1000000000n, suffix: 'B' },
+		{ threshold: 1000000n, suffix: 'M' },
+		{ threshold: 1000n, suffix: 'K' }
 	]
 
-	const unit = units.find(u => num >= u.threshold)
-	return unit
-		? {
-				formatedNum: (num / unit.threshold).toFixed(decimals),
-				suffix: unit.suffix,
-		  }
-		: { formatedNum: num.toFixed(decimals), suffix: '' }
+	const unit = units.find(u => significantBigInt >= u.threshold)
+	if (unit) {
+		const totalValue = Number(significantBigInt) / Number(unit.threshold)
+		return {
+			formatedNum: totalValue.toFixed(decimals),
+			suffix: unit.suffix,
+		}
+	}
+
+	const totalValue = Number(significantBigInt) / (10 ** decimals)
+	return { 
+		formatedNum: totalValue.toFixed(decimals), 
+		suffix: '' 
+	}
 }
 
 const amounts: ComputedRef<[string, string]> = computed(() => {
 	const valueStr = props.value.toString()
+	const totalLength = valueStr.length
 
+	// Calculate significant and non-significant digits
 	let significantDigits: string
 	let nonSignificantDigits: string
 
 	if (props.decimals === 0) {
-		// No decimal places - everything is significant
 		significantDigits = valueStr
 		nonSignificantDigits = ''
+	} else if (totalLength <= props.decimals) {
+		significantDigits = '0'
+		nonSignificantDigits = valueStr.padStart(props.decimals, '0')
 	} else {
-		// Has decimal places
-		const totalLength = valueStr.length
-
-		if (totalLength <= props.decimals) {
-			// If value has fewer digits than decimals, pad with leading zeros
-			significantDigits = '0'
-			nonSignificantDigits = valueStr.padStart(props.decimals, '0')
-		} else {
-			// Split normally: last 'decimals' digits are fractional
-			significantDigits = valueStr.slice(0, totalLength - props.decimals)
-			nonSignificantDigits = valueStr.slice(totalLength - props.decimals)
-		}
+		significantDigits = valueStr.slice(0, totalLength - props.decimals)
+		nonSignificantDigits = valueStr.slice(totalLength - props.decimals)
 	}
 
-	const numericValue =
-		Number(significantDigits) +
-		Number(nonSignificantDigits || '0') / 10 ** props.decimals
-
 	if (props.formatNumber) {
-		const { formatedNum, suffix } = numberFormatter(
-			numericValue,
-			props.decimals
-		)
-		// Trim trailing zeros and format the number
+		const rawValue = BigInt(props.value)
+		const { formatedNum, suffix } = numberFormatter(rawValue, props.decimals)
+		
 		const trimmed = formatedNum.replace(/\.?0+$/, '')
 		return trimmed === '0'
 			? ['0' + formatedNum.replace(trimmed, '') + suffix, '']
 			: [trimmed + formatedNum.replace(trimmed, '') + suffix, '']
 	}
 
-	const formattedInteger = new Intl.NumberFormat().format(
-		BigInt(significantDigits)
-	)
-	const trimmedDecimals =
-		nonSignificantDigits.replace(/0+$/, '') || (props.decimals > 0 ? '0' : '')
+	const formattedInteger = new Intl.NumberFormat().format(BigInt(significantDigits))
+	const trimmedDecimals = nonSignificantDigits.replace(/0+$/, '') || (props.decimals > 0 ? '0' : '')
 
 	return [formattedInteger, trimmedDecimals]
 })
