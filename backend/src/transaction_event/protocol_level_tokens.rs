@@ -4,6 +4,7 @@ use bigdecimal::BigDecimal;
 
 use concordium_rust_sdk::protocol_level_tokens::{self};
 use serde::{Deserialize, Serialize};
+
 const CONCORDIUM_SLIP_0044_CODE: u64 = 919;
 
 #[derive(Union, Serialize, Deserialize, Clone, Debug)]
@@ -363,6 +364,8 @@ pub struct PreparedTokenUpdate {
     pub target:            Option<String>,
     pub to:                Option<String>,
     pub from:              Option<String>,
+    pub amount_value:      BigDecimal,
+    pub amount_decimals:   i32,
 }
 
 #[derive(Union, Serialize, Deserialize, Clone, Debug)]
@@ -497,13 +500,15 @@ impl TokenUpdate {
         tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
-        let prepared: PreparedTokenUpdate = self.clone().into();
+        let prepared: PreparedTokenUpdate = self.clone().try_into()?;
         prepared.save(tx, transaction_index).await
     }
 }
 
-impl From<TokenUpdate> for PreparedTokenUpdate {
-    fn from(update: TokenUpdate) -> Self {
+impl TryFrom<TokenUpdate> for PreparedTokenUpdate {
+    type Error = anyhow::Error;
+
+    fn try_from(update: TokenUpdate) -> anyhow::Result<Self> {
         let mut token_module_type = None;
         let mut target = None;
         let mut from = None;
@@ -511,41 +516,72 @@ impl From<TokenUpdate> for PreparedTokenUpdate {
         let mut plt_amount_change = BigDecimal::from(0u64);
         let event: TokenEventDetails = update.event.clone();
 
-        let event_type = match &update.event {
-            TokenEventDetails::Module(e) => {
-                token_module_type = match e.event_type.as_str() {
-                    "addAllowList" => Some(TokenUpdateModuleType::AddAllowList),
-                    "removeAllowList" => Some(TokenUpdateModuleType::RemoveAllowList),
-                    "addDenyList" => Some(TokenUpdateModuleType::AddDenyList),
-                    "removeDenyList" => Some(TokenUpdateModuleType::RemoveDenyList),
-                    "pause" => Some(TokenUpdateModuleType::Pause),
-                    "unpause" => Some(TokenUpdateModuleType::Unpause),
-                    _ => None,
-                };
-                TokenUpdateEventType::TokenModule
-            }
-            TokenEventDetails::Transfer(e) => {
-                from = Some(e.from.address.to_string());
-                to = Some(e.to.address.to_string());
-                plt_amount_change =
-                    BigDecimal::from(e.amount.value.parse::<f64>().unwrap_or(0.0) as u64);
-                TokenUpdateEventType::Transfer
-            }
-            TokenEventDetails::Mint(e) => {
-                target = Some(e.target.address.to_string());
-                plt_amount_change =
-                    BigDecimal::from(e.amount.value.parse::<f64>().unwrap_or(0.0) as u64);
-                TokenUpdateEventType::Mint
-            }
-            TokenEventDetails::Burn(e) => {
-                target = Some(e.target.address.to_string());
-                plt_amount_change =
-                    BigDecimal::from(e.amount.value.parse::<f64>().unwrap_or(0.0) as u64);
-                TokenUpdateEventType::Burn
-            }
-        };
+        let (event_type, amount_value, amount_decimals) =
+            match &update.event {
+                TokenEventDetails::Module(e) => {
+                    token_module_type = match e.event_type.as_str() {
+                        "addAllowList" => Some(TokenUpdateModuleType::AddAllowList),
+                        "removeAllowList" => Some(TokenUpdateModuleType::RemoveAllowList),
+                        "addDenyList" => Some(TokenUpdateModuleType::AddDenyList),
+                        "removeDenyList" => Some(TokenUpdateModuleType::RemoveDenyList),
+                        "pause" => Some(TokenUpdateModuleType::Pause),
+                        "unpause" => Some(TokenUpdateModuleType::Unpause),
+                        _ => None,
+                    };
+                    (TokenUpdateEventType::TokenModule, 0u64, 0i32)
+                }
+                TokenEventDetails::Transfer(e) => {
+                    from = Some(e.from.address.to_string());
+                    to = Some(e.to.address.to_string());
+                    plt_amount_change =
+                        BigDecimal::from(e.amount.value.parse::<u64>().map_err(|e| {
+                            anyhow::anyhow!("Failed to parse transfer amount value: {}", e)
+                        })?);
+                    (
+                        TokenUpdateEventType::Transfer,
+                        e.amount.value.parse::<u64>().map_err(|e| {
+                            anyhow::anyhow!("Failed to parse transfer amount value: {}", e)
+                        })?,
+                        e.amount.decimals.parse::<i32>().map_err(|e| {
+                            anyhow::anyhow!("Failed to parse transfer amount decimals: {}", e)
+                        })?,
+                    )
+                }
+                TokenEventDetails::Mint(e) => {
+                    target = Some(e.target.address.to_string());
+                    plt_amount_change =
+                        BigDecimal::from(e.amount.value.parse::<u64>().map_err(|e| {
+                            anyhow::anyhow!("Failed to parse mint amount value: {}", e)
+                        })?);
+                    (
+                        TokenUpdateEventType::Mint,
+                        e.amount.value.parse::<u64>().map_err(|e| {
+                            anyhow::anyhow!("Failed to parse mint amount value: {}", e)
+                        })?,
+                        e.amount.decimals.parse::<i32>().map_err(|e| {
+                            anyhow::anyhow!("Failed to parse mint amount decimals: {}", e)
+                        })?,
+                    )
+                }
+                TokenEventDetails::Burn(e) => {
+                    target = Some(e.target.address.to_string());
+                    plt_amount_change =
+                        BigDecimal::from(e.amount.value.parse::<u64>().map_err(|e| {
+                            anyhow::anyhow!("Failed to parse burn amount value: {}", e)
+                        })?);
+                    (
+                        TokenUpdateEventType::Burn,
+                        e.amount.value.parse::<u64>().map_err(|e| {
+                            anyhow::anyhow!("Failed to parse burn amount value: {}", e)
+                        })?,
+                        e.amount.decimals.parse::<i32>().map_err(|e| {
+                            anyhow::anyhow!("Failed to parse burn amount decimals: {}", e)
+                        })?,
+                    )
+                }
+            };
 
-        Self {
+        Ok(Self {
             token_id: update.token_id,
             event_type,
             token_module_type,
@@ -554,7 +590,9 @@ impl From<TokenUpdate> for PreparedTokenUpdate {
             to,
             plt_amount_change,
             event,
-        }
+            amount_value: BigDecimal::from(amount_value),
+            amount_decimals,
+        })
     }
 }
 
@@ -575,7 +613,10 @@ impl PreparedTokenUpdate {
                 event_type,
                 token_module_type,
                 token_index,
-                token_event
+                token_event,
+                event_timestamp,
+                amount_value,
+                amount_decimals
             )
             VALUES (
                 (SELECT COALESCE(MAX(id) + 1, 0) FROM plt_events),
@@ -583,14 +624,19 @@ impl PreparedTokenUpdate {
                  $2,
                  $3,
                 (SELECT index FROM plt_tokens WHERE token_id = $4),
-                $5
-                )
+                $5,
+                (SELECT slot_time from blocks WHERE height = (SELECT block_height FROM \
+             transactions WHERE index = $1)), 
+                $6,
+                $7)
             ",
             transaction_index,
             self.event_type as TokenUpdateEventType,
             self.token_module_type as Option<TokenUpdateModuleType>,
             self.token_id,
-            token_event
+            token_event,
+            self.amount_value,
+            self.amount_decimals
         )
         .execute(tx.as_mut())
         .await?;
