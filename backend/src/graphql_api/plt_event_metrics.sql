@@ -3,7 +3,7 @@
 -- $2::interval - e.g. '3 days'
 -- $3::BIGINT   - optional token filter
 
-WITH pre_agg_events AS MATERIALIZED (
+WITH pre_agg_events AS (
   SELECT
     date_bin($2::interval, event_timestamp, now() - $1::interval) AS bucket_start,
     token_index,

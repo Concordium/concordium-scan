@@ -1,0 +1,78 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Inputs:\n-- $1::interval - e.g. '90 days'\n-- $2::interval - e.g. '3 days'\n-- $3::BIGINT   - optional token filter\n\nWITH pre_agg_events AS (\n  SELECT\n    date_bin($2::interval, event_timestamp, now() - $1::interval) AS bucket_start,\n    token_index,\n    event_type,\n    CASE\n      WHEN event_type IN ('Transfer', 'Mint', 'Burn') AND amount_value IS NOT NULL THEN\n        amount_value / POWER(10, COALESCE(amount_decimals, 0))\n      ELSE 0\n    END AS amount\n  FROM plt_events\n  WHERE token_index IS NOT NULL\n    AND event_timestamp >= now() - $1::interval\n    AND event_timestamp <= now()\n  AND ($3::BIGINT IS NULL OR token_index = $3::BIGINT)\n),\n\naggregated AS MATERIALIZED (\n  SELECT\n    bucket_start,\n    token_index,\n\n    COUNT(token_index) FILTER (WHERE event_type = 'Transfer')    AS transfer_count,\n    COUNT(token_index) FILTER (WHERE event_type = 'Mint')        AS mint_count,\n    COUNT(token_index) FILTER (WHERE event_type = 'Burn')        AS burn_count,\n    COUNT(token_index) FILTER (WHERE event_type = 'TokenModule') AS token_module_count,\n\n    SUM(amount) FILTER (WHERE event_type = 'Transfer') AS transfer_volume,\n    SUM(amount) FILTER (WHERE event_type = 'Mint')     AS mint_volume,\n    SUM(amount) FILTER (WHERE event_type = 'Burn')     AS burn_volume,\n\n    COUNT(*) AS total_event_count\n  FROM pre_agg_events\n  GROUP BY bucket_start, token_index\n)\n\nSELECT\n  bucket_start AS \"bucket_time!\",\n  token_index  AS \"token_index!\",\n  transfer_count,\n  transfer_volume,\n  mint_count,\n  mint_volume,\n  burn_count,\n  burn_volume,\n  token_module_count,\n  total_event_count\nFROM aggregated\nORDER BY bucket_start, token_index;\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "bucket_time!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 1,
+        "name": "token_index!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "transfer_count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "transfer_volume",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 4,
+        "name": "mint_count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "mint_volume",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 6,
+        "name": "burn_count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "burn_volume",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 8,
+        "name": "token_module_count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "total_event_count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Interval",
+        "Interval",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "5fdb0b3fe9859e722976b40173856de7ed25db32ad6f791c208cc7c7fb8711d0"
+}
