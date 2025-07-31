@@ -1,6 +1,6 @@
 <template>
 	<div>
-		<div v-if="holderLoading" class="w-full h-36 text-center">
+		<div v-if="pltEventsLoading" class="w-full h-36 text-center">
 			<BWCubeLogoIcon class="w-10 h-10 animate-ping mt-8" />
 		</div>
 		<div v-else>
@@ -14,37 +14,80 @@
 					<Table>
 						<TableHead>
 							<TableRow>
-								<TableTh width="20%">Transaction Hash</TableTh>
-								<TableTh width="20%">Age</TableTh>
-								<TableTh width="20%">From</TableTh>
-								<TableTh width="20%">To</TableTh>
-								<TableTh width="20%">Amount</TableTh>
-								<TableTh width="20%">Value</TableTh>
+								<TableTh width="12.5%">Transaction Hash</TableTh>
+								<TableTh width="12.5%">Age</TableTh>
+								<TableTh width="12.5%">Token Event</TableTh>
+								<TableTh width="12.5%">Symbol</TableTh>
+								<TableTh width="12.5%">From</TableTh>
+								<TableTh width="12.5%">To</TableTh>
+								<TableTh width="12.5%">Target</TableTh>
+								<TableTh width="12.5%">Amount</TableTh>
 							</TableRow>
 						</TableHead>
 						<TableBody>
-							<TableRow
-								v-for="(coin, index) in dataPerStablecoin?.stablecoin
-									?.transactions"
-								:key="index"
-							>
+							<TableRow v-for="(event, index) in pagedData" :key="index">
 								<TableTd>
-									<TransactionLink :hash="coin.transactionHash ?? ''" />
+									<TransactionLink :hash="event.transactionHash ?? ''" />
 								</TableTd>
 								<TableTd>
-									{{ coin.dateTime ? timeAgo(coin.dateTime) : '-' }}
+									<Tooltip :text="formatTimestamp(event.block.blockSlotTime)">
+										{{
+											convertTimestampToRelative(event.block.blockSlotTime, NOW)
+										}}
+									</Tooltip>
 								</TableTd>
 								<TableTd>
-									<AccountLink :address="coin.from" />
+									<span class="text-theme-interactive font-semibold">
+										{{
+											event.eventType == 'TOKEN_MODULE'
+												? event.tokenModuleType
+												: event.eventType
+										}}
+									</span>
+								</TableTd>
+
+								<TableTd>
+									{{ event.tokenId }}
 								</TableTd>
 								<TableTd>
-									<AccountLink :address="coin.to" />
+									<AccountLink
+										:address="
+											event.tokenEvent.__typename == 'TokenTransferEvent'
+												? event.tokenEvent.from.address.asString
+												: ''
+										"
+									/>
 								</TableTd>
 								<TableTd>
-									{{ coin.amount?.toFixed(2) }}
+									<AccountLink
+										:address="
+											event.tokenEvent.__typename == 'TokenTransferEvent'
+												? event.tokenEvent.to.address.asString
+												: ''
+										"
+									/>
 								</TableTd>
 								<TableTd>
-									{{ coin.value?.toFixed(2) }}
+									<AccountLink
+										:address="
+											event.tokenEvent.__typename == 'BurnEvent' ||
+											event.tokenEvent.__typename == 'MintEvent'
+												? event.tokenEvent.target.address.asString
+												: ''
+										"
+									/>
+								</TableTd>
+								<TableTd
+									v-if="
+										event.tokenEvent.__typename == 'BurnEvent' ||
+										event.tokenEvent.__typename == 'MintEvent' ||
+										event.tokenEvent.__typename == 'TokenTransferEvent'
+									"
+								>
+									<PLtAmount
+										:value="event.tokenEvent.amount.value"
+										:decimals="Number(event.tokenEvent.amount.decimals)"
+									/>
 								</TableTd>
 							</TableRow>
 						</TableBody>
@@ -55,8 +98,6 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import { timeAgo } from '~/utils/format'
-import { useStableCoinDashboardList } from '~/queries/useStableCoinDashboardList'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 import CarouselSlide from '~/components/molecules/CarouselSlide.vue'
 import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
@@ -65,27 +106,56 @@ import {
 	TransactionFilterOption,
 	transactionFilterOptions,
 } from '~/types/stable-coin'
+import { usePagedData } from '~/composables/usePagedData'
+import type { Pltevent } from '~/types/generated'
+import { useDateNow } from '~/composables/useDateNow'
+
+import { usePltEventByIdQuery } from '~/queries/usePltEventsQuery'
+import { ref, watch } from 'vue'
+const { NOW } = useDateNow()
+
 // Define Props
 const props = defineProps<{
 	coinId?: string
 }>()
 
-// Loading state
-const isLoading = ref(true)
 const lastNTransactions = ref(TransactionFilterOption.Top20)
-const limit = ref(10)
 
-const coinId = props.coinId?.toUpperCase() ?? 'USDC'
+const coinId = props.coinId ?? ''
 
-// Fetch Data
+const { pagedData, addPagedData } = usePagedData<Pltevent>(
+	[],
+	lastNTransactions.value,
+	lastNTransactions.value
+)
 
-const { data: dataPerStablecoin, fetching: holderLoading } =
-	useStableCoinDashboardList(coinId, limit, lastNTransactions)
+const queryFirst = ref(lastNTransactions.value)
 
-// Watch for data updates
-watch(dataPerStablecoin, newData => {
-	if (newData) {
-		isLoading.value = false
+watch(
+	() => lastNTransactions.value,
+	newValue => {
+		queryFirst.value = newValue
+		pagedData.value = []
 	}
-})
+)
+
+const { data: pltEventsData, loading: pltEventsLoading } = usePltEventByIdQuery(
+	coinId,
+	{
+		first: queryFirst,
+	}
+)
+
+watch(
+	() => pltEventsData.value,
+	value => {
+		if (value?.pltEventsByTokenId) {
+			addPagedData(
+				value.pltEventsByTokenId.nodes || [],
+				value.pltEventsByTokenId.pageInfo
+			)
+		}
+	},
+	{ immediate: true, deep: true }
+)
 </script>
