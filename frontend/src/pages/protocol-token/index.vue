@@ -19,17 +19,23 @@
 						<template #title>Total Token Supply</template>
 						<template #value>
 							<p class="font-bold text-2xl mt-2">
-								{{
-									numberFormatter(
-										pltTokenDataRef.reduce(
-											(acc, coin) =>
-												acc +
-												(coin?.totalSupply ?? 0) /
-													Math.pow(10, Number(coin?.decimal)),
-											0
-										)
-									)
-								}}
+								<PLtAmount
+									:value="
+										pltTokenDataRef
+											.reduce(
+												(acc, coin) =>
+													acc +
+													calculateActualValue(
+														String(coin?.totalSupply),
+														Number(coin?.decimal)
+													),
+												0n
+											)
+											.toString()
+									"
+									:decimals="0"
+									:format-number="true"
+								/>
 							</p>
 						</template>
 					</KeyValueChartCard>

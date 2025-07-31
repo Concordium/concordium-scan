@@ -1,6 +1,6 @@
 /// Contains the GraphQL query for PLT event metrics.
 /// This query retrieves metrics related to PLT token events such as transfers,
-/// mints, burns, and token module creations over a specified period, with
+/// mints, burns, and token module events over a specified period, with
 /// optional token filtering. It also provides bucketed data for visualizing
 /// trends over time. The results include counts and volumes for each event
 /// type, along with time buckets for analysis.
@@ -34,7 +34,7 @@ struct PltEventMetrics {
     // Total volume of burns in the requested period.
     burn_volume: f64,
 
-    // Total number of token modules created in the requested period.
+    // Total number of token_module_event_type is occurred in the requested period.
     token_module_count: i64,
     // Total number of events in the requested period.
     total_event_count:  i64,
@@ -68,7 +68,7 @@ struct PltEventMetricsBuckets {
 
     #[graphql(name = "y_BurnVolume")]
     y_burn_volume:        Vec<f64>,
-    // Counts of token modules created in the buckets.
+    // Counts of token modules events occurred in the buckets.
     #[graphql(name = "y_TokenModuleCount")]
     y_token_module_count: Vec<i64>,
 
@@ -80,7 +80,7 @@ struct PltEventMetricsBuckets {
 /// This query retrieves metrics related to PLT token events over a specified
 /// period. It allows filtering by token ID and provides bucketed data for
 /// analysis. The results include counts and volumes for transfers, mints,
-/// burns, and token module creations.
+/// burns, and token_module_event occurrences.
 #[Object]
 impl QueryPltEventMetrics {
     async fn plt_event_metrics(

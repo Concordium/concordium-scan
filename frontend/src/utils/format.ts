@@ -249,3 +249,13 @@ export const numberFormatter = (num?: number): string => {
 		? (num / 1e3).toFixed(2) + 'K'
 		: num.toFixed(2)
 }
+
+// calculates actual value by addressing decimals
+export const calculateActualValue = (value: string, decimals: number) => {
+	// value is BigInt, so we need to convert it to a number
+	const bigIntValue = BigInt(value)
+	// calculate the actual value by dividing by 10^decimals
+	const actualValue = bigIntValue / BigInt(10 ** decimals)
+	// return the actual value as a string
+	return actualValue
+}
