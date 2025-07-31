@@ -3,7 +3,7 @@
 -- $2::interval - e.g. '3 days'
 -- $3::BIGINT   - optional token filter
 
-WITH pre_agg_events AS (
+WITH pre_agg_events AS  (
   SELECT
     date_bin($2::interval, event_timestamp, now() - $1::interval) AS bucket_start,
     token_index,
@@ -20,15 +20,15 @@ WITH pre_agg_events AS (
   AND ($3::BIGINT IS NULL OR token_index = $3::BIGINT)
 ),
 
-aggregated AS MATERIALIZED (
+aggregated AS (
   SELECT
     bucket_start,
     token_index,
 
-    COUNT(token_index) FILTER (WHERE event_type = 'Transfer')    AS transfer_count,
-    COUNT(token_index) FILTER (WHERE event_type = 'Mint')        AS mint_count,
-    COUNT(token_index) FILTER (WHERE event_type = 'Burn')        AS burn_count,
-    COUNT(token_index) FILTER (WHERE event_type = 'TokenModule') AS token_module_count,
+    COUNT(*) FILTER (WHERE event_type = 'Transfer')    AS transfer_count,
+    COUNT(*) FILTER (WHERE event_type = 'Mint')        AS mint_count,
+    COUNT(*) FILTER (WHERE event_type = 'Burn')        AS burn_count,
+    COUNT(*) FILTER (WHERE event_type = 'TokenModule') AS token_module_count,
 
     SUM(amount) FILTER (WHERE event_type = 'Transfer') AS transfer_volume,
     SUM(amount) FILTER (WHERE event_type = 'Mint')     AS mint_volume,
