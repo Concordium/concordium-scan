@@ -18,6 +18,7 @@ export type Transfers = {
 
 // types.ts
 export enum TransactionFilterOption {
+	Top10 = 10,
 	Top20 = 20,
 	Top50 = 50,
 	Top100 = 100,
@@ -25,11 +26,15 @@ export enum TransactionFilterOption {
 
 // Optional: If you want labels for UI
 export const transactionFilterOptions = [
+	{ label: 'Last 20', value: TransactionFilterOption.Top20 },
+	{ label: 'Last 50', value: TransactionFilterOption.Top50 },
+	{ label: 'Last 100', value: TransactionFilterOption.Top100 },
+]
+export const holderFilterOptions = [
 	{ label: 'Top 20', value: TransactionFilterOption.Top20 },
 	{ label: 'Top 50', value: TransactionFilterOption.Top50 },
 	{ label: 'Top 100', value: TransactionFilterOption.Top100 },
 ]
-
 // types.ts
 // Enum for metrics periods
 export enum TopHolderFilterOption {

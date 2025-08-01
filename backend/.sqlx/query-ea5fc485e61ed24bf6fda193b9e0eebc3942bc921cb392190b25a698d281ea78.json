@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT \n                account_index,\n                token_index,\n                amount,\n                decimal\n            FROM plt_accounts\n            WHERE $2 < token_index AND token_index < $1 AND token_index = $3\n            ORDER BY \n                CASE WHEN $4 THEN amount END ASC,\n                CASE WHEN NOT $4 THEN amount END DESC\n            LIMIT $5\n          \n           ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "account_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "token_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "decimal",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Bool",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "ea5fc485e61ed24bf6fda193b9e0eebc3942bc921cb392190b25a698d281ea78"
+}
