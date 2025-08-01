@@ -41,3 +41,43 @@ export const usePltEventsMetricsQuery = (period: Ref<MetricsPeriod>) => {
 
 	return { data, executeQuery, loading: fetching }
 }
+
+const PltEventMetricsQueryByTokenId = gql<PltEventMetricsQueryResponse>`
+	query PltEventMetrics($period: MetricsPeriod!, $tokenId: String!) {
+		pltEventMetrics(period: $period, tokenId: $tokenId) {
+			transferCount
+			transferVolume
+			mintCount
+			mintVolume
+			burnCount
+			burnVolume
+			tokenModuleCount
+			totalEventCount
+			buckets {
+				bucketWidth
+				x_Time
+				y_TransferCount
+				y_TransferVolume
+				y_MintCount
+				y_MintVolume
+				y_BurnCount
+				y_BurnVolume
+				y_TokenModuleCount
+				y_TotalEventCount
+			}
+		}
+	}
+`
+
+export const usePltEventsMetricsQueryByTokenId = (
+	period: Ref<MetricsPeriod>,
+	tokenId: Ref<string> | string
+) => {
+	const { data, executeQuery, fetching } = useQuery({
+		query: PltEventMetricsQueryByTokenId,
+		requestPolicy: 'cache-and-network',
+		variables: { period, tokenId },
+	})
+
+	return { data, executeQuery, loading: fetching }
+}

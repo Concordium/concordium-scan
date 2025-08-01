@@ -2252,6 +2252,7 @@ export type PendingBakerRemoval = {
   effectiveTime: Scalars['DateTime'];
 };
 
+/** This struct is used to define the GraphQL query for PLT event metrics. */
 export type PltEventMetrics = {
   __typename?: 'PltEventMetrics';
   buckets: PltEventMetricsBuckets;
@@ -2265,6 +2266,7 @@ export type PltEventMetrics = {
   transferVolume: Scalars['Float'];
 };
 
+/** This struct is used to define the buckets for PLT event metrics. */
 export type PltEventMetricsBuckets = {
   __typename?: 'PltEventMetricsBuckets';
   bucketWidth: Scalars['TimeSpan'];
@@ -2284,6 +2286,25 @@ export type PltaccountAmount = {
   accountAddress: AccountAddress;
   amount: TokenAmount;
   tokenId: Scalars['String'];
+};
+
+export type PltaccountAmountConnection = {
+  __typename?: 'PltaccountAmountConnection';
+  /** A list of edges. */
+  edges: Array<PltaccountAmountEdge>;
+  /** A list of nodes. */
+  nodes: Array<PltaccountAmount>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type PltaccountAmountEdge = {
+  __typename?: 'PltaccountAmountEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: PltaccountAmount;
 };
 
 export type Pltevent = {
@@ -2453,7 +2474,7 @@ export type Query = {
   passiveDelegation: PassiveDelegation;
   paydayStatus: PaydayStatus;
   pltAccounts?: Maybe<PltaccountAmount>;
-  pltAccountsByTokenId: Array<PltaccountAmount>;
+  pltAccountsByTokenId: PltaccountAmountConnection;
   pltEvent: Pltevent;
   pltEventByTransactionIndex: Pltevent;
   pltEventMetrics: PltEventMetrics;
@@ -2602,7 +2623,11 @@ export type QueryPltAccountsArgs = {
 
 
 export type QueryPltAccountsByTokenIdArgs = {
-  tokenId: Scalars['ID'];
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  id: Scalars['ID'];
+  last?: InputMaybe<Scalars['Int']>;
 };
 
 

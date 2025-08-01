@@ -365,13 +365,19 @@ mod tests {
         assert_eq!(d.to_string(), "PT6H");
     }
 
-    // P15D
+    // P1D
     #[test]
     fn test_1d() {
         let d = TimeSpan(Duration::seconds(3600 * 24));
         assert_eq!(d.to_string(), "P1D");
     }
-
+    // P3D
+    #[test]
+    fn test_3d() {
+        let d = TimeSpan(Duration::seconds(3600 * 24 * 3));
+        assert_eq!(d.to_string(), "P3D");
+    }
+    // P7D
     #[test]
     fn test_15d() {
         let d = TimeSpan(Duration::seconds(3600 * 24 * 15));

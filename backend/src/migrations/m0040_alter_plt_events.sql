@@ -92,3 +92,6 @@ DROP INDEX IF EXISTS idx_temp_blocks_height;
 
 
 
+-- Create index on plt_accounts for faster queries Top Account amount holders
+CREATE INDEX IF NOT EXISTS idx_token_amount_desc
+ON plt_accounts (token_index, amount DESC);

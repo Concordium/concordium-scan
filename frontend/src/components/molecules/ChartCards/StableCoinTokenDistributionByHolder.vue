@@ -3,7 +3,7 @@
 		<DistributionByHolder
 			:is-loading="isLoading"
 			:distribution-values="distributionValues"
-			:label-clickable="false"
+			:label-clickable="true"
 		>
 			<template #title> Token Distribution By Holder </template>
 		</DistributionByHolder>
@@ -12,14 +12,15 @@
 
 <script lang="ts" setup>
 import { ref, watchEffect, defineProps } from 'vue'
-import type { StableCoinDashboardListResponse } from '~/queries/useStableCoinDashboardList'
 import DistributionByHolder from '~/components/molecules/DistributionByHolder.vue'
 import { shortenHash } from '~/utils/format'
-import type { HoldingResponse } from '~/types/generated'
+import type { PltaccountAmount } from '~/types/generated'
 
 type Props = {
-	tokenTransferData?: StableCoinDashboardListResponse
+	tokenTransferData?: PltaccountAmount[]
+	totalSupply?: bigint
 }
+
 const props = defineProps<Props>()
 
 const isLoading = ref(true)
@@ -28,20 +29,17 @@ const distributionValues = ref<
 >([])
 
 watchEffect(() => {
-	const holders = props.tokenTransferData?.stablecoin?.holdings || []
-
-	if (holders.length === 0) {
-		distributionValues.value = []
-		return
-	}
-
-	setTimeout(() => {
-		distributionValues.value = holders.map((ele: HoldingResponse) => ({
-			address: shortenHash(ele.address),
-			symbol: ele.assetName || '',
-			percentage: (ele.percentage ?? 0).toFixed(2),
-		}))
-		isLoading.value = false
-	}, 1000)
+	distributionValues.value = []
+	props.tokenTransferData?.map(item => {
+		const address = item.accountAddress.asString
+		const amount = BigInt(item.amount.value)
+		const percentage = (Number(amount) / Number(props.totalSupply ?? 0n)) * 100
+		const symbol = item.tokenId ?? ''
+		distributionValues.value.push({
+			address: shortenHash(address),
+			percentage: `${percentage}`,
+			symbol,
+		})
+	})
 })
 </script>
