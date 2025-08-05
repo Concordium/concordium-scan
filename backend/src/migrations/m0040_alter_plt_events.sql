@@ -112,10 +112,10 @@ CREATE INDEX IF NOT EXISTS idx_metrics_plt_transfer_token_time
 ON metrics_specific_plt_transfer (token_index, event_timestamp DESC)
 INCLUDE (cumulative_transfer_count, cumulative_transfer_amount);
 
--- Backfill metrics_specific_plt_transfer table with cumulative data for billions of records
+-- Backfill metrics_specific_plt_transfer table with cumulative data 
 DO $$
 DECLARE
-    batch_size INTEGER := 50000; -- Larger batch for billions of data
+    batch_size INTEGER := 50000; -- Larger batch for 
     total_processed INTEGER := 0;
     min_id BIGINT := -1;
     max_id BIGINT;
