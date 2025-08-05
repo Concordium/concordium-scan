@@ -1,40 +1,28 @@
 import { useQuery, gql } from '@urql/vue'
 import type { Ref } from 'vue'
-import type { MetricsPeriod, PltEventMetrics } from '~/types/generated'
-export type PltEventMetricsQueryResponse = {
-	pltEventMetrics: PltEventMetrics
+import type {
+	MetricsPeriod,
+	PltTransferMetrics,
+	PltMetrics,
+} from '~/types/generated'
+
+export type PltMetricsQueryResponse = {
+	pltMetrics: PltMetrics
 }
 
-const PltEventMetricsQuery = gql<PltEventMetricsQueryResponse>`
-	query PltEventMetrics($period: MetricsPeriod!) {
-		pltEventMetrics(period: $period) {
-			transferCount
+const PltMetricsQuery = gql<PltMetricsQueryResponse>`
+	query PltMetrics($period: MetricsPeriod!) {
+		pltMetrics(period: $period) {
+			transactionCount
 			transferVolume
-			mintCount
-			mintVolume
-			burnCount
-			burnVolume
-			tokenModuleCount
-			totalEventCount
-			buckets {
-				bucketWidth
-				x_Time
-				y_TransferCount
-				y_TransferVolume
-				y_MintCount
-				y_MintVolume
-				y_BurnCount
-				y_BurnVolume
-				y_TokenModuleCount
-				y_TotalEventCount
-			}
+			uniqueAccounts
 		}
 	}
 `
 
-export const usePltEventsMetricsQuery = (period: Ref<MetricsPeriod>) => {
+export const usePltMetricsQuery = (period: Ref<MetricsPeriod>) => {
 	const { data, executeQuery, fetching } = useQuery({
-		query: PltEventMetricsQuery,
+		query: PltMetricsQuery,
 		requestPolicy: 'cache-and-network',
 		variables: { period },
 	})
@@ -42,39 +30,32 @@ export const usePltEventsMetricsQuery = (period: Ref<MetricsPeriod>) => {
 	return { data, executeQuery, loading: fetching }
 }
 
-const PltEventMetricsQueryByTokenId = gql<PltEventMetricsQueryResponse>`
-	query PltEventMetrics($period: MetricsPeriod!, $tokenId: String!) {
-		pltEventMetrics(period: $period, tokenId: $tokenId) {
+export type PltTransferMetricsQueryResponse = {
+	pltTransferMetrics: PltTransferMetrics
+}
+
+const PltTransferMetricsQueryByTokenId = gql<PltTransferMetricsQueryResponse>`
+	query PltTransferMetrics($period: MetricsPeriod!, $tokenId: String!) {
+		pltTransferMetrics(period: $period, tokenId: $tokenId) {
 			transferCount
 			transferVolume
-			mintCount
-			mintVolume
-			burnCount
-			burnVolume
-			tokenModuleCount
-			totalEventCount
+			decimal
 			buckets {
 				bucketWidth
 				x_Time
 				y_TransferCount
 				y_TransferVolume
-				y_MintCount
-				y_MintVolume
-				y_BurnCount
-				y_BurnVolume
-				y_TokenModuleCount
-				y_TotalEventCount
 			}
 		}
 	}
 `
 
-export const usePltEventsMetricsQueryByTokenId = (
+export const usePltTransferMetricsQueryByTokenId = (
 	period: Ref<MetricsPeriod>,
 	tokenId: Ref<string> | string
 ) => {
 	const { data, executeQuery, fetching } = useQuery({
-		query: PltEventMetricsQueryByTokenId,
+		query: PltTransferMetricsQueryByTokenId,
 		requestPolicy: 'cache-and-network',
 		variables: { period, tokenId },
 	})

@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT unique_account_count FROM metrics_plt\n            ORDER BY event_timestamp DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "unique_account_count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "53b689fdcc37c94c335f89c405a553d5bb001bf656c3751fa8f67313df91871e"
+}

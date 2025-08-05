@@ -17,6 +17,7 @@
 					<StableCoinTokenTransfer
 						:is-loading="pltEventMetricsLoading"
 						:transfer-summary="pltEventMetricsDataRef"
+						:decimals="pltEventMetricsDataRef?.pltTransferMetrics.decimal"
 					/>
 				</CarouselSlide>
 				<CarouselSlide class="w-full lg:h-full">
@@ -44,7 +45,7 @@ import StableCoinTokenTransfer from '~/components/molecules/ChartCards/StableCoi
 import StableCoinTokenDistributionByHolder from '~/components/molecules/ChartCards/StableCoinTokenDistributionByHolder.vue'
 import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
 import Filter from '~/components/StableCoin/Filter.vue'
-import { usePltEventsMetricsQueryByTokenId } from '~/queries/usePltEventsMetricsQuery'
+import { usePltTransferMetricsQueryByTokenId } from '~/queries/usePltEventsMetricsQuery'
 import { MetricsPeriod, type PltaccountAmount } from '~/types/generated'
 import { ref, watch } from 'vue'
 import { TransactionFilterOption } from '~/types/stable-coin'
@@ -72,7 +73,7 @@ watch(days, newValue => {
 const selectedMetricsPeriod = ref(MetricsPeriod.Last24Hours)
 
 const { data: pltEventMetricsData, loading: pltEventMetricsLoading } =
-	usePltEventsMetricsQueryByTokenId(selectedMetricsPeriod, coinId)
+	usePltTransferMetricsQueryByTokenId(selectedMetricsPeriod, coinId)
 const pltEventMetricsDataRef = ref(pltEventMetricsData)
 watch(
 	pltEventMetricsData,

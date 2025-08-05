@@ -13,7 +13,7 @@ mod module_reference_event;
 pub mod node_status;
 mod passive_delegation;
 mod plt;
-mod plt_event_metrics;
+mod plt_transfer_metrics;
 mod reward_metrics;
 mod search_result;
 mod stable_coin;
@@ -193,7 +193,8 @@ pub struct Query(
     plt::QueryPLTEvent,
     plt::QueryPLT,
     plt::QueryPLTAccountAmount,
-    plt_event_metrics::QueryPltEventMetrics,
+    plt_transfer_metrics::QueryPltTransferMetrics,
+    plt_transfer_metrics::QueryPltMetrics,
 );
 
 pub struct Service {
