@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+Database schema version: 40
+
 ### Added
 
 - TokenModuleRejectReason enum to proper serialization and deserialization of the `TokenModuleReject` event.
@@ -16,7 +18,6 @@ All notable changes to this project will be documented in this file.
 
 - Updated Rust SDK submodule in order to fix bug with CBOR decoding empty string
 
-
 ## [2.0.16] - 2025-07-24
 
 ### Added
@@ -26,14 +27,16 @@ All notable changes to this project will be documented in this file.
 
 ## [2.0.15] - 2025-07-16
 
+Database schema version: 39
+
 ### Changed
 
 - Aligned with Rust SDK version `7.0.0-alpha.3`.
 
-### Added 
+### Added
 
-- Added plt specific tables `plt_events`, `plt_account`, `plt_tokens` 
-- Added query `PltEvents` to fetch events related to plt tokens. 
+- Added plt specific tables `plt_events`, `plt_account`, `plt_tokens`
+- Added query `PltEvents` to fetch events related to plt tokens.
 - Added query `PltToken` to fetch details of a specific plt token.
 
 ## [2.0.14] - 2025-07-10
@@ -52,6 +55,8 @@ Database schema version: 38
 - Baker APY query db migration to change the function to prevent overflow FLOAT8
 
 ## [2.0.12] - 2025-07-03
+
+Database schema version: 37
 
 ### Changed
 
