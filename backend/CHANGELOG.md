@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
 Database schema version: 40
+Database schema version: 41
 
 ### Added
 
@@ -15,6 +16,7 @@ Database schema version: 40
 - Added two new tables via migration `m0040`  
     - `metrics_specific_plt_transfer` to store plt transfer metrics (the data is being stored as cumulative increments by timestamp).
     - `metrics_plt` to store plt metrics (the data is being stored as cumulative increments by timestamp) .
+- Migration `m0041` to fix the token module reject reasons by properly serializing and deserializing the `TokenModuleReject` event using the `TokenModuleRejectReason` enum.
 
 ## [2.0.17] - 2025-07-24
 
