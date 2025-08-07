@@ -468,8 +468,6 @@ impl PLTToken {
     }
 }
 
-// --------------
-
 #[derive(Default)]
 pub struct QueryPLTAccountAmount;
 
@@ -507,10 +505,7 @@ impl QueryPLTAccountAmount {
                 e
             )))
         })?;
-        let token: PLTToken =
-            PLTToken::query_by_id(pool, token_id).await?.ok_or(ApiError::NotFound)?;
         let config = get_config(ctx)?;
-        let pool = get_pool(ctx)?;
         let query = ConnectionQuery::<DescendingI64>::new(
             first,
             after,
@@ -526,17 +521,26 @@ impl QueryPLTAccountAmount {
                 token_index,
                 amount,
                 decimal
-            FROM plt_accounts
-            WHERE $2 < token_index AND token_index < $1 AND token_index = $3
-            ORDER BY 
-                CASE WHEN $4 THEN amount END ASC,
-                CASE WHEN NOT $4 THEN amount END DESC
-            LIMIT $5
-          
+            FROM (
+                SELECT 
+                    account_index,
+                    token_index,
+                    amount,
+                    decimal
+                FROM plt_accounts
+                WHERE $2 < account_index AND account_index < $1 AND token_index = (
+                    SELECT index FROM plt_tokens WHERE token_id = $3 LIMIT 1
+                )
+                ORDER BY 
+                    CASE WHEN $4 THEN amount END ASC,
+                    CASE WHEN NOT $4 THEN amount END DESC
+                LIMIT $5
+            ) AS subquery
+            ORDER BY amount DESC
            "#,
             i64::from(query.from),
             i64::from(query.to),
-            token.index,
+            token_id.to_string(),
             query.is_last,
             query.limit,
         )

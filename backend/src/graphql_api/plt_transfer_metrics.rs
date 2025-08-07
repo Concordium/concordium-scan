@@ -76,7 +76,7 @@ impl QueryPltTransferMetrics {
         let plt_token_index = record.index;
         let plt_token_decimal = record.decimal;
 
-        let mut rows = sqlx::query_file!(
+        let rows = sqlx::query_file!(
             "src/graphql_api/plt_transfer_metrics.sql",
             period_interval,
             bucket_interval,
@@ -84,8 +84,13 @@ impl QueryPltTransferMetrics {
         )
         .fetch_all(pool)
         .await?;
-        // Remove the first element from the rows it can have redundant data
-        rows.remove(0);
+        // Remove the first element from the rows if it exists, as it can have redundant
+        // data
+        let rows = if rows.is_empty() {
+            &[]
+        } else {
+            &rows[1..]
+        };
 
         let mut x_time = Vec::with_capacity(rows.len());
         let mut y_transfer_count = Vec::with_capacity(rows.len());
@@ -93,8 +98,7 @@ impl QueryPltTransferMetrics {
 
         let mut total_transfer_count = 0;
         let mut total_transfer_volume = 0.0;
-        // Remove the first element from the rows it can have redundant data
-        rows.remove(0);
+
         // Iterate through the rows and populate the transfer metrics.
         // Each row corresponds to a time bucket with transfer counts and volumes.
         for row in rows {
@@ -103,9 +107,9 @@ impl QueryPltTransferMetrics {
             let transfer_count = row.transfer_count.unwrap_or(0);
             let transfer_volume = row
                 .transfer_volume
-                .map(|v| v.to_string().parse::<f64>().unwrap_or(0.0))
+                .as_ref()
+                .and_then(num_traits::ToPrimitive::to_f64)
                 .unwrap_or(0.0);
-
             total_transfer_count += transfer_count;
             total_transfer_volume += transfer_volume;
 
