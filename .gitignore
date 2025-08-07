@@ -7,13 +7,13 @@ pgbackrest.conf
 # Mac users
 .DS_Store
 
-# Snapshot test
-*.received.*
-
-target/
-
+# Editors
 .vscode/
-
-.env
-
 **/.idea
+
+# Rust
+target
+debug
+
+# Local environment configuration.
+.env
