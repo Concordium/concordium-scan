@@ -63,7 +63,7 @@
 						<template #title># of Txs (24h)</template>
 						<template #value>
 							<p class="font-bold text-2xl mt-2">
-								{{ pltEventMetricsDataRef?.pltEventMetrics.totalEventCount }}
+								{{ pltEventMetricsDataRef?.pltMetrics.transactionCount }}
 							</p>
 						</template>
 					</KeyValueChartCard>
@@ -79,7 +79,7 @@
 							<p class="font-bold text-2xl mt-2">
 								{{
 									numberFormatter(
-										pltEventMetricsDataRef?.pltEventMetrics.transferVolume
+										pltEventMetricsDataRef?.pltMetrics.transferVolume
 									)
 								}}
 							</p>
@@ -225,7 +225,7 @@ import type { Pltevent } from '~/types/generated'
 import { useDateNow } from '~/composables/useDateNow'
 import HolderByStableCoin from '~/components/molecules/ChartCards/HolderByStableCoin.vue'
 import KeyValueChartCard from '~/components/molecules/KeyValueChartCard.vue'
-import { usePltEventsMetricsQuery } from '~/queries/usePltEventsMetricsQuery'
+import { usePltMetricsQuery } from '~/queries/usePltEventsMetricsQuery'
 import { MetricsPeriod } from '~/types/generated'
 definePageMeta({
 	middleware: 'plt-features-guard',
@@ -269,7 +269,7 @@ watch(
 )
 
 const { data: pltEventMetricsData, loading: pltEventMetricsLoading } =
-	usePltEventsMetricsQuery(selectedMetricsPeriod)
+	usePltMetricsQuery(selectedMetricsPeriod)
 const pltEventMetricsDataRef = ref(pltEventMetricsData)
 
 watch(

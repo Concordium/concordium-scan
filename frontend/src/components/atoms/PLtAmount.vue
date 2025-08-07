@@ -3,7 +3,9 @@
 		<span class="numerical">{{ amounts[0] }}</span>
 		<span v-if="amounts[1]" class="numerical text-sm opacity-50"
 			>.{{ amounts[1] }}</span
-		>
+		><span v-if="props.symbol" class="text-sm opacity-50">{{
+			props.symbol
+		}}</span>
 	</span>
 </template>
 
@@ -14,6 +16,7 @@ type Props = {
 	value: string
 	decimals: number
 	formatNumber?: boolean
+	symbol?: string
 }
 
 const props = defineProps<Props>()

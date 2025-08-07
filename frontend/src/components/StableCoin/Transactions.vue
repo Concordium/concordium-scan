@@ -117,6 +117,7 @@ const { NOW } = useDateNow()
 // Define Props
 const props = defineProps<{
 	coinId?: string
+	decimals?: number
 }>()
 
 const lastNTransactions = ref(TransactionFilterOption.Top20)

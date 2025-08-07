@@ -2252,29 +2252,27 @@ export type PendingBakerRemoval = {
   effectiveTime: Scalars['DateTime'];
 };
 
-export type PltEventMetrics = {
-  __typename?: 'PltEventMetrics';
-  buckets: PltEventMetricsBuckets;
-  burnCount: Scalars['Int'];
-  burnVolume: Scalars['Float'];
-  mintCount: Scalars['Int'];
-  mintVolume: Scalars['Float'];
-  tokenModuleCount: Scalars['Int'];
-  totalEventCount: Scalars['Int'];
+export type PltMetrics = {
+  __typename?: 'PltMetrics';
+  transactionCount: Scalars['Int'];
+  transferVolume: Scalars['Float'];
+  uniqueAccounts: Scalars['Int'];
+};
+
+/** This struct is used to define the GraphQL query for PLT transfer metrics. */
+export type PltTransferMetrics = {
+  __typename?: 'PltTransferMetrics';
+  buckets: PltTransferMetricsBuckets;
+  decimal: Scalars['Int'];
   transferCount: Scalars['Int'];
   transferVolume: Scalars['Float'];
 };
 
-export type PltEventMetricsBuckets = {
-  __typename?: 'PltEventMetricsBuckets';
+/** This struct is used to define the buckets for PLT transfer metrics. */
+export type PltTransferMetricsBuckets = {
+  __typename?: 'PltTransferMetricsBuckets';
   bucketWidth: Scalars['TimeSpan'];
   x_Time: Array<Scalars['DateTime']>;
-  y_BurnCount: Array<Scalars['Int']>;
-  y_BurnVolume: Array<Scalars['Float']>;
-  y_MintCount: Array<Scalars['Int']>;
-  y_MintVolume: Array<Scalars['Float']>;
-  y_TokenModuleCount: Array<Scalars['Int']>;
-  y_TotalEventCount: Array<Scalars['Int']>;
   y_TransferCount: Array<Scalars['Int']>;
   y_TransferVolume: Array<Scalars['Float']>;
 };
@@ -2284,6 +2282,25 @@ export type PltaccountAmount = {
   accountAddress: AccountAddress;
   amount: TokenAmount;
   tokenId: Scalars['String'];
+};
+
+export type PltaccountAmountConnection = {
+  __typename?: 'PltaccountAmountConnection';
+  /** A list of edges. */
+  edges: Array<PltaccountAmountEdge>;
+  /** A list of nodes. */
+  nodes: Array<PltaccountAmount>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type PltaccountAmountEdge = {
+  __typename?: 'PltaccountAmountEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: PltaccountAmount;
 };
 
 export type Pltevent = {
@@ -2453,14 +2470,15 @@ export type Query = {
   passiveDelegation: PassiveDelegation;
   paydayStatus: PaydayStatus;
   pltAccounts?: Maybe<PltaccountAmount>;
-  pltAccountsByTokenId: Array<PltaccountAmount>;
+  pltAccountsByTokenId: PltaccountAmountConnection;
   pltEvent: Pltevent;
   pltEventByTransactionIndex: Pltevent;
-  pltEventMetrics: PltEventMetrics;
   pltEvents: PlteventConnection;
   pltEventsByTokenId: PlteventConnection;
+  pltMetrics: PltMetrics;
   pltToken: Plttoken;
   pltTokens: PlttokenConnection;
+  pltTransferMetrics: PltTransferMetrics;
   pltUniqueAccounts: Scalars['Int'];
   poolRewardMetricsForBakerPool: PoolRewardMetrics;
   poolRewardMetricsForPassiveDelegation: PoolRewardMetrics;
@@ -2602,7 +2620,11 @@ export type QueryPltAccountsArgs = {
 
 
 export type QueryPltAccountsByTokenIdArgs = {
-  tokenId: Scalars['ID'];
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  id: Scalars['ID'];
+  last?: InputMaybe<Scalars['Int']>;
 };
 
 
@@ -2613,12 +2635,6 @@ export type QueryPltEventArgs = {
 
 export type QueryPltEventByTransactionIndexArgs = {
   transactionIndex: Scalars['ID'];
-};
-
-
-export type QueryPltEventMetricsArgs = {
-  period: MetricsPeriod;
-  tokenId?: InputMaybe<Scalars['String']>;
 };
 
 
@@ -2639,6 +2655,11 @@ export type QueryPltEventsByTokenIdArgs = {
 };
 
 
+export type QueryPltMetricsArgs = {
+  period: MetricsPeriod;
+};
+
+
 export type QueryPltTokenArgs = {
   id: Scalars['ID'];
 };
@@ -2649,6 +2670,12 @@ export type QueryPltTokensArgs = {
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
   last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type QueryPltTransferMetricsArgs = {
+  period: MetricsPeriod;
+  tokenId: Scalars['String'];
 };
 
 
