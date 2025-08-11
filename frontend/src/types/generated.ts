@@ -2252,31 +2252,27 @@ export type PendingBakerRemoval = {
   effectiveTime: Scalars['DateTime'];
 };
 
-/** This struct is used to define the GraphQL query for PLT event metrics. */
-export type PltEventMetrics = {
-  __typename?: 'PltEventMetrics';
-  buckets: PltEventMetricsBuckets;
-  burnCount: Scalars['Int'];
-  burnVolume: Scalars['Float'];
-  mintCount: Scalars['Int'];
-  mintVolume: Scalars['Float'];
-  tokenModuleCount: Scalars['Int'];
-  totalEventCount: Scalars['Int'];
+export type PltMetrics = {
+  __typename?: 'PltMetrics';
+  transactionCount: Scalars['Int'];
+  transferVolume: Scalars['Float'];
+  uniqueAccounts: Scalars['Int'];
+};
+
+/** This struct is used to define the GraphQL query for PLT transfer metrics. */
+export type PltTransferMetrics = {
+  __typename?: 'PltTransferMetrics';
+  buckets: PltTransferMetricsBuckets;
+  decimal: Scalars['Int'];
   transferCount: Scalars['Int'];
   transferVolume: Scalars['Float'];
 };
 
-/** This struct is used to define the buckets for PLT event metrics. */
-export type PltEventMetricsBuckets = {
-  __typename?: 'PltEventMetricsBuckets';
+/** This struct is used to define the buckets for PLT transfer metrics. */
+export type PltTransferMetricsBuckets = {
+  __typename?: 'PltTransferMetricsBuckets';
   bucketWidth: Scalars['TimeSpan'];
   x_Time: Array<Scalars['DateTime']>;
-  y_BurnCount: Array<Scalars['Int']>;
-  y_BurnVolume: Array<Scalars['Float']>;
-  y_MintCount: Array<Scalars['Int']>;
-  y_MintVolume: Array<Scalars['Float']>;
-  y_TokenModuleCount: Array<Scalars['Int']>;
-  y_TotalEventCount: Array<Scalars['Int']>;
   y_TransferCount: Array<Scalars['Int']>;
   y_TransferVolume: Array<Scalars['Float']>;
 };
@@ -2477,11 +2473,12 @@ export type Query = {
   pltAccountsByTokenId: PltaccountAmountConnection;
   pltEvent: Pltevent;
   pltEventByTransactionIndex: Pltevent;
-  pltEventMetrics: PltEventMetrics;
   pltEvents: PlteventConnection;
   pltEventsByTokenId: PlteventConnection;
+  pltMetrics: PltMetrics;
   pltToken: Plttoken;
   pltTokens: PlttokenConnection;
+  pltTransferMetrics: PltTransferMetrics;
   pltUniqueAccounts: Scalars['Int'];
   poolRewardMetricsForBakerPool: PoolRewardMetrics;
   poolRewardMetricsForPassiveDelegation: PoolRewardMetrics;
@@ -2641,12 +2638,6 @@ export type QueryPltEventByTransactionIndexArgs = {
 };
 
 
-export type QueryPltEventMetricsArgs = {
-  period: MetricsPeriod;
-  tokenId?: InputMaybe<Scalars['String']>;
-};
-
-
 export type QueryPltEventsArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
@@ -2664,6 +2655,11 @@ export type QueryPltEventsByTokenIdArgs = {
 };
 
 
+export type QueryPltMetricsArgs = {
+  period: MetricsPeriod;
+};
+
+
 export type QueryPltTokenArgs = {
   id: Scalars['ID'];
 };
@@ -2674,6 +2670,12 @@ export type QueryPltTokensArgs = {
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
   last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type QueryPltTransferMetricsArgs = {
+  period: MetricsPeriod;
+  tokenId: Scalars['String'];
 };
 
 

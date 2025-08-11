@@ -1962,31 +1962,26 @@ type PendingBakerRemoval {
 	effectiveTime: DateTime!
 }
 
-"This struct is used to define the GraphQL query for PLT event metrics."
-type PltEventMetrics {
-	transferCount: Int!
+type PltMetrics {
+	transactionCount: Int!
 	transferVolume: Float!
-	mintCount: Int!
-	mintVolume: Float!
-	burnCount: Int!
-	burnVolume: Float!
-	tokenModuleCount: Int!
-	totalEventCount: Int!
-	buckets: PltEventMetricsBuckets!
+	uniqueAccounts: Int!
 }
 
-"This struct is used to define the buckets for PLT event metrics."
-type PltEventMetricsBuckets {
+"This struct is used to define the GraphQL query for PLT transfer metrics."
+type PltTransferMetrics {
+	transferCount: Int!
+	transferVolume: Float!
+	decimal: Int!
+	buckets: PltTransferMetricsBuckets!
+}
+
+"This struct is used to define the buckets for PLT transfer metrics."
+type PltTransferMetricsBuckets {
 	bucketWidth: TimeSpan!
 	x_Time: [DateTime!]!
 	y_TransferCount: [Int!]!
 	y_TransferVolume: [Float!]!
-	y_MintCount: [Int!]!
-	y_MintVolume: [Float!]!
-	y_BurnCount: [Int!]!
-	y_BurnVolume: [Float!]!
-	y_TokenModuleCount: [Int!]!
-	y_TotalEventCount: [Int!]!
 }
 
 type PltaccountAmount {
@@ -2291,7 +2286,8 @@ type Query {
 		before: String
 	): PltaccountAmountConnection!
 	pltUniqueAccounts: Int!
-	pltEventMetrics(period: MetricsPeriod!, tokenId: String): PltEventMetrics!
+	pltTransferMetrics(period: MetricsPeriod!, tokenId: String!): PltTransferMetrics!
+	pltMetrics(period: MetricsPeriod!): PltMetrics!
 }
 
 """

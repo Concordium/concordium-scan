@@ -616,11 +616,13 @@ impl PLTAccountAmount {
     }
 
     pub async fn query_unique_accounts(pool: &PgPool) -> ApiResult<i64> {
-        let result =
-            sqlx::query!("SELECT COUNT(DISTINCT account_index) as count FROM plt_accounts")
-                .fetch_one(pool)
-                .await?;
-        Ok(result.count.unwrap_or(0))
+        let result = sqlx::query!(
+            "SELECT unique_account_count FROM metrics_plt
+            ORDER BY event_timestamp DESC LIMIT 1"
+        )
+        .fetch_one(pool)
+        .await?;
+        Ok(result.unique_account_count)
     }
 }
 
