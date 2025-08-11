@@ -16,6 +16,7 @@ Database schema version: 40
 - Added two new tables for plt metrics:
     - `metrics_specific_plt_transfer` to store plt transfer metrics (the data is being stored as cumulative increments by timestamp).
     - `metrics_plt` to store plt metrics (the data is being stored as cumulative increments by timestamp) .
+- Migration `m0041` to fix the token module reject reasons by properly serializing and deserializing the `TokenModuleReject` event using the `TokenModuleRejectReason` enum.
 
 ### Changed
 
