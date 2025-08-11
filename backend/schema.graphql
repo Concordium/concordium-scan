@@ -1962,6 +1962,7 @@ type PendingBakerRemoval {
 	effectiveTime: DateTime!
 }
 
+"This struct is used to define the GraphQL query for PLT event metrics."
 type PltEventMetrics {
 	transferCount: Int!
 	transferVolume: Float!
@@ -1974,6 +1975,7 @@ type PltEventMetrics {
 	buckets: PltEventMetricsBuckets!
 }
 
+"This struct is used to define the buckets for PLT event metrics."
 type PltEventMetricsBuckets {
 	bucketWidth: TimeSpan!
 	x_Time: [DateTime!]!
@@ -1991,6 +1993,23 @@ type PltaccountAmount {
 	accountAddress: AccountAddress!
 	tokenId: String!
 	amount: TokenAmount!
+}
+
+type PltaccountAmountConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [PltaccountAmountEdge!]!
+	"A list of nodes."
+	nodes: [PltaccountAmount!]!
+}
+
+"An edge in a connection."
+type PltaccountAmountEdge {
+	"The item at the end of the edge"
+	node: PltaccountAmount!
+	"A cursor for use in pagination"
+	cursor: String!
 }
 
 type Pltevent {
@@ -2261,7 +2280,16 @@ type Query {
 		before: String
 	): PlttokenConnection!
 	pltAccounts(account: ID!, tokenId: ID!): PltaccountAmount
-	pltAccountsByTokenId(tokenId: ID!): [PltaccountAmount!]!
+	pltAccountsByTokenId(		id: ID!,
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): PltaccountAmountConnection!
 	pltUniqueAccounts: Int!
 	pltEventMetrics(period: MetricsPeriod!, tokenId: String): PltEventMetrics!
 }

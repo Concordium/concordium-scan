@@ -489,14 +489,69 @@ impl QueryPLTAccountAmount {
             .map_err(|e| ApiError::InternalServerError(InternalError::InternalError(e.to_string())))
     }
 
-    async fn plt_accounts_by_token_id(
+    async fn plt_accounts_by_token_id<'a>(
         &self,
-        ctx: &Context<'_>,
-        token_id: types::ID,
-    ) -> ApiResult<Vec<PLTAccountAmount>> {
+        ctx: &Context<'a>,
+        id: types::ID,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        before: Option<String>,
+    ) -> ApiResult<connection::Connection<String, PLTAccountAmount>> {
         let pool = get_pool(ctx)?;
-        let token_id: TokenId = token_id.to_string();
-        Ok(PLTAccountAmount::query_by_token_id(pool, token_id).await?)
+        let token_id = TokenId::from_str(id.as_ref()).map_err(|e| {
+            ApiError::InternalServerError(InternalError::InternalError(format!(
+                "Failed to parse token ID: {}",
+                e
+            )))
+        })?;
+        let config = get_config(ctx)?;
+        let query = ConnectionQuery::<DescendingI64>::new(
+            first,
+            after,
+            last,
+            before,
+            config.plt_token_events_collection_limit,
+        )?;
+
+        let mut row_stream = sqlx::query_as!(
+            PLTAccountAmount,
+            r#"SELECT 
+                account_index,
+                token_index,
+                amount,
+                decimal
+            FROM (
+                SELECT 
+                    account_index,
+                    token_index,
+                    amount,
+                    decimal
+                FROM plt_accounts
+                WHERE $2 < account_index AND account_index < $1 AND token_index = (
+                    SELECT index FROM plt_tokens WHERE token_id = $3 LIMIT 1
+                )
+                ORDER BY 
+                    CASE WHEN $4 THEN amount END ASC,
+                    CASE WHEN NOT $4 THEN amount END DESC
+                LIMIT $5
+            ) AS subquery
+            ORDER BY amount DESC
+           "#,
+            i64::from(query.from),
+            i64::from(query.to),
+            token_id.to_string(),
+            query.is_last,
+            query.limit,
+        )
+        .fetch(pool);
+        let mut connection = connection::Connection::new(false, false);
+        while let Some(tx) = row_stream.try_next().await? {
+            connection.edges.push(connection::Edge::new(tx.account_index.to_string(), tx));
+        }
+        Ok(connection)
     }
 
     async fn plt_unique_accounts(&self, ctx: &Context<'_>) -> ApiResult<i64> {

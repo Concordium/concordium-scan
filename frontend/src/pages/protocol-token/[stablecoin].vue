@@ -106,14 +106,14 @@
 					>
 						Transactions
 					</TabBarItem>
-					<!-- <TabBarItem
+					<TabBarItem
 						tab-id="holders"
 						:selected-tab="selectedTab"
 						:on-click="handleSelectTab"
 					>
 						Holders
 					</TabBarItem>
-					<TabBarItem
+					<!-- <TabBarItem
 						tab-id="analytics"
 						:selected-tab="selectedTab"
 						:on-click="handleSelectTab"
@@ -132,8 +132,7 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import { ref } from 'vue'
-
+import { computed, ref } from 'vue'
 import TabBar from '~/components/atoms/TabBar.vue'
 import TabBarItem from '~/components/atoms/TabBarItem.vue'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
