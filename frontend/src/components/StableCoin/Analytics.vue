@@ -1,6 +1,6 @@
 <template>
 	<div>
-		<div v-if="isLoading" class="w-full h-36 text-center">
+		<div v-if="pltEventMetricsLoading" class="w-full h-36 text-center">
 			<BWCubeLogoIcon class="w-10 h-10 animate-ping mt-8" />
 		</div>
 		<div v-else>
@@ -9,67 +9,72 @@
 					<Filter
 						v-model="days"
 						:data="[
-							{ label: '7 Days', value: 7 },
-							{ label: '1 month', value: 30 },
-							{ label: '3 months', value: 90 },
+							{ label: '7 Days', value: MetricsPeriod.Last7Days },
+							{ label: '1 month', value: MetricsPeriod.Last30Days },
+							{ label: '3 months', value: MetricsPeriod.Last90Days },
 						]"
 					/>
 					<StableCoinTokenTransfer
-						:is-loading="transferLoading"
-						:transfer-summary="dataTransferSummary"
+						:is-loading="pltEventMetricsLoading"
+						:transfer-summary="pltEventMetricsDataRef"
+						:decimals="pltEventMetricsDataRef?.pltTransferMetrics.decimal"
 					/>
 				</CarouselSlide>
 				<CarouselSlide class="w-full lg:h-full">
-					<Filter
+					<!-- <Filter
 						v-model="topHolder"
 						:data="[
-							{ label: 'Top 10', value: 10 },
-							{ label: 'Top 20', value: 20 },
+							{ label: 'Top 10', value: TransactionFilterOption.Top10 },
+							{ label: 'Top 20', value: TransactionFilterOption.Top20 },
 						]"
-					/>
-					<StableCoinTokenDistributionByHolder
-						:token-transfer-data="dataPerStablecoin"
-						:is-loading="holderLoading"
-					/>
+					/> -->
+					<!-- <StableCoinTokenDistributionByHolder
+						:token-transfer-data="pagedData"
+						:is-loading="pltHolderLoading"
+						:total-supply="props.totalSupply"
+					/> -->
 				</CarouselSlide>
 			</FtbCarousel>
 		</div>
 	</div>
 </template>
 <script lang="ts" setup>
-import { useStableCoinDashboardList } from '~/queries/useStableCoinDashboardList'
-import { useStableCoinTokenTransferQuery } from '~/queries/useStableCoinTokenTransferQuery'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 import CarouselSlide from '~/components/molecules/CarouselSlide.vue'
 import StableCoinTokenTransfer from '~/components/molecules/ChartCards/StableCoinTokenTransfer.vue'
-import StableCoinTokenDistributionByHolder from '~/components/molecules/ChartCards/StableCoinTokenDistributionByHolder.vue'
 import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
 import Filter from '~/components/StableCoin/Filter.vue'
+import { usePltTransferMetricsQueryByTokenId } from '~/queries/usePltEventsMetricsQuery'
+import { MetricsPeriod } from '~/types/generated'
+import { ref, watch } from 'vue'
 
 // Define Props
 const props = defineProps<{
 	coinId?: string
+	totalSupply?: bigint
 }>()
-
 // Loading state
-const isLoading = ref(true)
-const topHolder = ref(10)
-const lastNTransactions = ref(20)
-const days = ref(7)
+
+const coinId = props.coinId ?? ''
+// Loading state
+
+const days = ref(MetricsPeriod.Last7Days)
+watch(days, newValue => {
+	selectedMetricsPeriod.value = newValue
+})
 
 // Handle undefined props
-const coinId = props.coinId?.toUpperCase() ?? 'USDC'
 
-const { data: dataPerStablecoin, fetching: holderLoading } =
-	useStableCoinDashboardList(coinId, topHolder, lastNTransactions)
+const selectedMetricsPeriod = ref(MetricsPeriod.Last24Hours)
 
-const { data: dataTransferSummary, fetching: transferLoading } =
-	useStableCoinTokenTransferQuery(coinId, days)
-
-// Watch for data updates
-watch(dataPerStablecoin, newData => {
-	if (newData) {
-		isLoading.value = false
-	}
-})
+const { data: pltEventMetricsData, loading: pltEventMetricsLoading } =
+	usePltTransferMetricsQueryByTokenId(selectedMetricsPeriod, coinId)
+const pltEventMetricsDataRef = ref(pltEventMetricsData)
+watch(
+	pltEventMetricsData,
+	newData => {
+		pltEventMetricsDataRef.value = newData
+	},
+	{ immediate: true, deep: true }
+)
 </script>
