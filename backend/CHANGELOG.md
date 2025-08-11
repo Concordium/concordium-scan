@@ -12,6 +12,10 @@ Database schema version: 40
 - Query `PltUniqueAccounts` to fetch unique accounts holding PLT tokens.
 - Added query `PltEventMetrics` to fetch metrics related to plt token events.
 
+### Changed
+
+- Updated query `pltAccountsByTokenId` to fetch accounts holding PLT tokens by token ID.
+
 ## [2.0.17] - 2025-07-24
 
 ### Added
