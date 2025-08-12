@@ -1,0 +1,43 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT \n                pa.account_index,\n                pa.token_index,\n                pa.amount,\n                pa.decimal\n            FROM plt_accounts pa\n            JOIN plt_tokens pt ON pa.token_index = pt.index\n            WHERE $2 < pa.account_index AND pa.account_index < $1 AND pt.token_id = $3\n            ORDER BY  pa.amount DESC, pa.account_index DESC\n            LIMIT $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "account_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "token_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "decimal",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "aee60560cf5cb7533306304b3bb5fc51480479bc8d38640c655955790318f87f"
+}

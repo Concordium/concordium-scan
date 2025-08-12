@@ -2252,6 +2252,32 @@ export type PendingBakerRemoval = {
   effectiveTime: Scalars['DateTime'];
 };
 
+export type PltAccountAmount = {
+  __typename?: 'PltAccountAmount';
+  accountAddress: AccountAddress;
+  amount: TokenAmount;
+  tokenId: Scalars['String'];
+};
+
+export type PltAccountAmountConnection = {
+  __typename?: 'PltAccountAmountConnection';
+  /** A list of edges. */
+  edges: Array<PltAccountAmountEdge>;
+  /** A list of nodes. */
+  nodes: Array<PltAccountAmount>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type PltAccountAmountEdge = {
+  __typename?: 'PltAccountAmountEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: PltAccountAmount;
+};
+
 /** This struct is used to define the GraphQL query for PLT event metrics. */
 export type PltEventMetrics = {
   __typename?: 'PltEventMetrics';
@@ -2281,30 +2307,41 @@ export type PltEventMetricsBuckets = {
   y_TransferVolume: Array<Scalars['Float']>;
 };
 
-export type PltaccountAmount = {
-  __typename?: 'PltaccountAmount';
-  accountAddress: AccountAddress;
-  amount: TokenAmount;
+export type PltToken = {
+  __typename?: 'PltToken';
+  block: Block;
+  decimal?: Maybe<Scalars['Int']>;
+  index: Scalars['Int'];
+  initialSupply?: Maybe<Scalars['Int']>;
+  issuer: AccountAddress;
+  metadata?: Maybe<Scalars['JSON']>;
+  moduleReference?: Maybe<Scalars['String']>;
+  name?: Maybe<Scalars['String']>;
   tokenId: Scalars['String'];
+  totalBurned?: Maybe<Scalars['Int']>;
+  totalMinted?: Maybe<Scalars['Int']>;
+  totalSupply?: Maybe<Scalars['Int']>;
+  totalUniqueHolders: Scalars['Int'];
+  transactionHash: Scalars['String'];
 };
 
-export type PltaccountAmountConnection = {
-  __typename?: 'PltaccountAmountConnection';
+export type PltTokenConnection = {
+  __typename?: 'PltTokenConnection';
   /** A list of edges. */
-  edges: Array<PltaccountAmountEdge>;
+  edges: Array<PltTokenEdge>;
   /** A list of nodes. */
-  nodes: Array<PltaccountAmount>;
+  nodes: Array<PltToken>;
   /** Information to aid in pagination. */
   pageInfo: PageInfo;
 };
 
 /** An edge in a connection. */
-export type PltaccountAmountEdge = {
-  __typename?: 'PltaccountAmountEdge';
+export type PltTokenEdge = {
+  __typename?: 'PltTokenEdge';
   /** A cursor for use in pagination */
   cursor: Scalars['String'];
   /** The item at the end of the edge */
-  node: PltaccountAmount;
+  node: PltToken;
 };
 
 export type Pltevent = {
@@ -2337,43 +2374,6 @@ export type PlteventEdge = {
   cursor: Scalars['String'];
   /** The item at the end of the edge */
   node: Pltevent;
-};
-
-export type Plttoken = {
-  __typename?: 'Plttoken';
-  block: Block;
-  decimal?: Maybe<Scalars['Int']>;
-  index: Scalars['Int'];
-  initialSupply?: Maybe<Scalars['Int']>;
-  issuer: AccountAddress;
-  metadata?: Maybe<Scalars['JSON']>;
-  moduleReference?: Maybe<Scalars['String']>;
-  name?: Maybe<Scalars['String']>;
-  tokenId: Scalars['String'];
-  totalBurned?: Maybe<Scalars['Int']>;
-  totalMinted?: Maybe<Scalars['Int']>;
-  totalSupply?: Maybe<Scalars['Int']>;
-  totalUniqueHolders: Scalars['Int'];
-  transactionHash: Scalars['String'];
-};
-
-export type PlttokenConnection = {
-  __typename?: 'PlttokenConnection';
-  /** A list of edges. */
-  edges: Array<PlttokenEdge>;
-  /** A list of nodes. */
-  nodes: Array<Plttoken>;
-  /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-};
-
-/** An edge in a connection. */
-export type PlttokenEdge = {
-  __typename?: 'PlttokenEdge';
-  /** A cursor for use in pagination */
-  cursor: Scalars['String'];
-  /** The item at the end of the edge */
-  node: Plttoken;
 };
 
 export type PoolApy = {
@@ -2473,15 +2473,15 @@ export type Query = {
   nodeStatuses: NodeStatusConnection;
   passiveDelegation: PassiveDelegation;
   paydayStatus: PaydayStatus;
-  pltAccounts?: Maybe<PltaccountAmount>;
-  pltAccountsByTokenId: PltaccountAmountConnection;
+  pltAccountByTokenId?: Maybe<PltAccountAmount>;
+  pltAccountsByTokenId: PltAccountAmountConnection;
   pltEvent: Pltevent;
   pltEventByTransactionIndex: Pltevent;
   pltEventMetrics: PltEventMetrics;
   pltEvents: PlteventConnection;
   pltEventsByTokenId: PlteventConnection;
-  pltToken: Plttoken;
-  pltTokens: PlttokenConnection;
+  pltToken: PltToken;
+  pltTokens: PltTokenConnection;
   pltUniqueAccounts: Scalars['Int'];
   poolRewardMetricsForBakerPool: PoolRewardMetrics;
   poolRewardMetricsForPassiveDelegation: PoolRewardMetrics;
@@ -2616,7 +2616,7 @@ export type QueryNodeStatusesArgs = {
 };
 
 
-export type QueryPltAccountsArgs = {
+export type QueryPltAccountByTokenIdArgs = {
   account: Scalars['ID'];
   tokenId: Scalars['ID'];
 };
@@ -2626,8 +2626,8 @@ export type QueryPltAccountsByTokenIdArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
-  id: Scalars['ID'];
   last?: InputMaybe<Scalars['Int']>;
+  tokenId: Scalars['ID'];
 };
 
 

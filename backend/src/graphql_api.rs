@@ -169,6 +169,13 @@ pub struct ApiServiceConfig {
         default_value = "100"
     )]
     plt_token_events_collection_limit: u64,
+
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_PLT_ACCOUNT_AMOUNT_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
+    plt_account_amount_connection_limit: u64,
 }
 
 #[derive(MergedObject, Default)]
@@ -192,7 +199,7 @@ pub struct Query(
     transaction_metrics::QueryTransactionMetrics,
     plt::QueryPLTEvent,
     plt::QueryPLT,
-    plt::QueryPLTAccountAmount,
+    plt::QueryPltAccountAmount,
     plt_event_metrics::QueryPltEventMetrics,
 );
 
@@ -489,6 +496,8 @@ pub enum ApiError {
     InvalidContractVersion(#[from] InvalidContractVersionError),
     #[error("Service unavailable: {0}")]
     Unavailable(String),
+    #[error("Invalid Token ID format: {0}")]
+    InvalidIdFormat(String),
 }
 
 impl From<sqlx::Error> for InternalError {

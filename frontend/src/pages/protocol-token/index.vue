@@ -19,7 +19,7 @@
 						<template #title>Total Token Supply</template>
 						<template #value>
 							<p class="font-bold text-2xl mt-2">
-								<PLtAmount
+								<PltAmount
 									:value="
 										pltTokenDataRef
 											.reduce(
@@ -192,7 +192,7 @@
 								event.tokenEvent.__typename == 'TokenTransferEvent'
 							"
 						>
-							<PLtAmount
+							<PltAmount
 								:value="event.tokenEvent.amount.value"
 								:decimals="Number(event.tokenEvent.amount.decimals)"
 							/>

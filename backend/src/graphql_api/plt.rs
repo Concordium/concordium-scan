@@ -273,14 +273,14 @@ pub struct QueryPLT;
 
 #[Object]
 impl QueryPLT {
-    async fn plt_token(&self, ctx: &Context<'_>, id: types::ID) -> ApiResult<PLTToken> {
+    async fn plt_token(&self, ctx: &Context<'_>, id: types::ID) -> ApiResult<PltToken> {
         let token_id = TokenId::from_str(id.as_ref()).map_err(|e| {
             ApiError::InternalServerError(InternalError::InternalError(format!(
                 "Failed to parse token ID: {}",
                 e
             )))
         })?;
-        PLTToken::query_by_id(get_pool(ctx)?, token_id).await?.ok_or(ApiError::NotFound)
+        PltToken::query_by_id(get_pool(ctx)?, token_id).await?.ok_or(ApiError::NotFound)
     }
 
     async fn plt_tokens<'a>(
@@ -292,7 +292,7 @@ impl QueryPLT {
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, PLTToken>> {
+    ) -> ApiResult<connection::Connection<String, PltToken>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
         let query = ConnectionQuery::<DescendingI64>::new(
@@ -304,7 +304,7 @@ impl QueryPLT {
         )?;
 
         let mut row_stream = sqlx::query_as!(
-            PLTToken,
+            PltToken,
             r#"SELECT name,
                 index,
                 token_id,
@@ -349,7 +349,7 @@ impl QueryPLT {
     }
 }
 
-pub struct PLTToken {
+pub struct PltToken {
     index:             TokenIndex,
     name:              Option<String>,
     token_id:          TokenId,
@@ -363,10 +363,10 @@ pub struct PLTToken {
     decimal:           Option<i32>,
 }
 
-impl PLTToken {
+impl PltToken {
     pub async fn query_by_id(pool: &PgPool, token_id: TokenId) -> ApiResult<Option<Self>> {
         let result = sqlx::query_as!(
-            PLTToken,
+            PltToken,
             r#"SELECT name,
                     index,
                     token_id,
@@ -388,7 +388,7 @@ impl PLTToken {
 }
 
 #[Object]
-impl PLTToken {
+impl PltToken {
     async fn name(&self) -> ApiResult<Option<String>> { Ok(self.name.clone()) }
 
     async fn token_id(&self) -> ApiResult<TokenId> { Ok(self.token_id.clone()) }
@@ -457,7 +457,7 @@ impl PLTToken {
 
     async fn total_unique_holders<'a>(&self, ctx: &Context<'a>) -> ApiResult<i64> {
         let pool = get_pool(ctx)?;
-        let unique_holder = PLTAccountAmount::query_by_token_id(pool, self.token_id.clone())
+        let unique_holder = PltAccountAmount::query_by_token_id(pool, self.token_id.clone())
             .await
             .map_err(|e| {
                 ApiError::InternalServerError(InternalError::InternalError(e.to_string()))
@@ -471,20 +471,20 @@ impl PLTToken {
 // --------------
 
 #[derive(Default)]
-pub struct QueryPLTAccountAmount;
+pub struct QueryPltAccountAmount;
 
 #[Object]
-impl QueryPLTAccountAmount {
-    async fn plt_accounts(
+impl QueryPltAccountAmount {
+    async fn plt_account_by_token_id(
         &self,
         ctx: &Context<'_>,
         account: types::ID,
         token_id: types::ID,
-    ) -> ApiResult<Option<PLTAccountAmount>> {
+    ) -> ApiResult<Option<PltAccountAmount>> {
         let pool = get_pool(ctx)?;
         let account_address = AccountAddress::from(account.to_string());
         let token_id: TokenId = token_id.to_string();
-        PLTAccountAmount::query_by_account_and_token(pool, account_address, token_id)
+        PltAccountAmount::query_by_account_and_token(pool, account_address, token_id)
             .await
             .map_err(|e| ApiError::InternalServerError(InternalError::InternalError(e.to_string())))
     }
@@ -492,58 +492,44 @@ impl QueryPLTAccountAmount {
     async fn plt_accounts_by_token_id<'a>(
         &self,
         ctx: &Context<'a>,
-        id: types::ID,
+        token_id: types::ID,
         #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, PLTAccountAmount>> {
+    ) -> ApiResult<connection::Connection<String, PltAccountAmount>> {
         let pool = get_pool(ctx)?;
-        let token_id = TokenId::from_str(id.as_ref()).map_err(|e| {
-            ApiError::InternalServerError(InternalError::InternalError(format!(
-                "Failed to parse token ID: {}",
-                e
-            )))
-        })?;
+        let token_id = TokenId::from_str(token_id.as_ref())
+            .map_err(|e| ApiError::InvalidIdFormat(format!("Failed to parse token ID: {}", e)))?;
         let config = get_config(ctx)?;
+        // Nested cursor: order by amount DESC, then account_index DESC for
+        // deterministic pagination This ensures accounts with same token
+        // amounts have a strict ordering
         let query = ConnectionQuery::<DescendingI64>::new(
             first,
             after,
             last,
             before,
-            config.plt_token_events_collection_limit,
+            config.plt_account_amount_connection_limit,
         )?;
 
         let mut row_stream = sqlx::query_as!(
-            PLTAccountAmount,
-            r#"SELECT 
-                account_index,
-                token_index,
-                amount,
-                decimal
-            FROM (
-                SELECT 
-                    account_index,
-                    token_index,
-                    amount,
-                    decimal
-                FROM plt_accounts
-                WHERE $2 < account_index AND account_index < $1 AND token_index = (
-                    SELECT index FROM plt_tokens WHERE token_id = $3 LIMIT 1
-                )
-                ORDER BY 
-                    CASE WHEN $4 THEN amount END ASC,
-                    CASE WHEN NOT $4 THEN amount END DESC
-                LIMIT $5
-            ) AS subquery
-            ORDER BY amount DESC
-           "#,
+            PltAccountAmount,
+            "SELECT 
+                pa.account_index,
+                pa.token_index,
+                pa.amount,
+                pa.decimal
+            FROM plt_accounts pa
+            JOIN plt_tokens pt ON pa.token_index = pt.index
+            WHERE $2 < pa.account_index AND pa.account_index < $1 AND pt.token_id = $3
+            ORDER BY  pa.amount DESC, pa.account_index DESC
+            LIMIT $4",
             i64::from(query.from),
             i64::from(query.to),
             token_id.to_string(),
-            query.is_last,
             query.limit,
         )
         .fetch(pool);
@@ -556,19 +542,19 @@ impl QueryPLTAccountAmount {
 
     async fn plt_unique_accounts(&self, ctx: &Context<'_>) -> ApiResult<i64> {
         let pool = get_pool(ctx)?;
-        let accounts = PLTAccountAmount::query_unique_accounts(pool).await?;
+        let accounts = PltAccountAmount::query_unique_accounts(pool).await?;
         Ok(accounts)
     }
 }
 
-pub struct PLTAccountAmount {
+pub struct PltAccountAmount {
     pub account_index: i64,
     pub token_index:   TokenIndex,
     pub amount:        Option<BigDecimal>,
     pub decimal:       Option<i32>,
 }
 
-impl PLTAccountAmount {
+impl PltAccountAmount {
     pub async fn query_by_account_and_token(
         pool: &PgPool,
         account: AccountAddress,
@@ -577,10 +563,10 @@ impl PLTAccountAmount {
         let account: Account = Account::query_by_address(pool, account.to_string())
             .await?
             .ok_or(ApiError::NotFound)?;
-        let token: PLTToken =
-            PLTToken::query_by_id(pool, token_id).await?.ok_or(ApiError::NotFound)?;
+        let token: PltToken =
+            PltToken::query_by_id(pool, token_id).await?.ok_or(ApiError::NotFound)?;
         let result = sqlx::query_as!(
-            PLTAccountAmount,
+            PltAccountAmount,
             r#"SELECT 
                 account_index,
                 token_index,
@@ -597,10 +583,10 @@ impl PLTAccountAmount {
     }
 
     pub async fn query_by_token_id(pool: &PgPool, token_id: TokenId) -> ApiResult<Vec<Self>> {
-        let token: PLTToken =
-            PLTToken::query_by_id(pool, token_id).await?.ok_or(ApiError::NotFound)?;
+        let token: PltToken =
+            PltToken::query_by_id(pool, token_id).await?.ok_or(ApiError::NotFound)?;
         let result = sqlx::query_as!(
-            PLTAccountAmount,
+            PltAccountAmount,
             r#"SELECT 
                 account_index,
                 token_index,
@@ -625,7 +611,7 @@ impl PLTAccountAmount {
 }
 
 #[Object]
-impl PLTAccountAmount {
+impl PltAccountAmount {
     async fn account_address<'a>(&self, ctx: &Context<'a>) -> ApiResult<AccountAddress> {
         let result =
             sqlx::query!("SELECT address FROM accounts WHERE index = $1", self.account_index)

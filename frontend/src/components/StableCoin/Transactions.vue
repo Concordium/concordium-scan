@@ -84,7 +84,7 @@
 										event.tokenEvent.__typename == 'TokenTransferEvent'
 									"
 								>
-									<PLtAmount
+									<PltAmount
 										:value="event.tokenEvent.amount.value"
 										:decimals="Number(event.tokenEvent.amount.decimals)"
 									/>

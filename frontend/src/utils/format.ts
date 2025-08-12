@@ -259,3 +259,38 @@ export const calculateActualValue = (value: string, decimals: number) => {
 	// return the actual value as a string
 	return actualValue
 }
+// calculates percentage for BigInt values
+// value is a string representing a BigInt, total is a BigInt
+// returns a percentage as a number (0-100)
+export const calculatePercentageforBigInt = (value: string, total: bigint) => {
+	// value is bigint in string format
+	const valueBigInt = BigInt(value)
+
+	// For better precision, multiply by 10000 first
+	const fractional_value = (valueBigInt * BigInt(10000)) / total
+	// calculate significant digits and non-significant digits
+
+	const valueStr = fractional_value.toString()
+	const totalLength = valueStr.length
+	const decimals = 2 // We want 2 decimal places for percentage
+
+	// Calculate significant and non-significant digits
+	let significantDigits: string
+	let nonSignificantDigits: string
+
+	if (totalLength <= decimals) {
+		significantDigits = '0'
+		nonSignificantDigits = valueStr.padStart(decimals, '0')
+	} else {
+		significantDigits = valueStr.slice(0, totalLength - decimals)
+		nonSignificantDigits = valueStr.slice(totalLength - decimals)
+	}
+
+	const formattedInteger = Number(significantDigits)
+	const trimmedDecimals = nonSignificantDigits.slice(0, 2) // Limit to 2 decimal places
+	// as the values are in bigint, we can we represent the percentage by formatting otherwise the percentage will always integer
+	const percentageValue =
+		formattedInteger + (trimmedDecimals ? Number(`0.${trimmedDecimals}`) : 0)
+
+	return percentageValue.toString()
+}

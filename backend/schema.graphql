@@ -1962,6 +1962,29 @@ type PendingBakerRemoval {
 	effectiveTime: DateTime!
 }
 
+type PltAccountAmount {
+	accountAddress: AccountAddress!
+	tokenId: String!
+	amount: TokenAmount!
+}
+
+type PltAccountAmountConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [PltAccountAmountEdge!]!
+	"A list of nodes."
+	nodes: [PltAccountAmount!]!
+}
+
+"An edge in a connection."
+type PltAccountAmountEdge {
+	"The item at the end of the edge"
+	node: PltAccountAmount!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
 "This struct is used to define the GraphQL query for PLT event metrics."
 type PltEventMetrics {
 	transferCount: Int!
@@ -1989,25 +2012,36 @@ type PltEventMetricsBuckets {
 	y_TotalEventCount: [Int!]!
 }
 
-type PltaccountAmount {
-	accountAddress: AccountAddress!
+type PltToken {
+	name: String
 	tokenId: String!
-	amount: TokenAmount!
+	transactionHash: String!
+	block: Block!
+	issuer: AccountAddress!
+	moduleReference: String
+	metadata: JSON
+	initialSupply: Int
+	totalSupply: Int
+	totalMinted: Int
+	totalBurned: Int
+	decimal: Int
+	index: Int!
+	totalUniqueHolders: Int!
 }
 
-type PltaccountAmountConnection {
+type PltTokenConnection {
 	"Information to aid in pagination."
 	pageInfo: PageInfo!
 	"A list of edges."
-	edges: [PltaccountAmountEdge!]!
+	edges: [PltTokenEdge!]!
 	"A list of nodes."
-	nodes: [PltaccountAmount!]!
+	nodes: [PltToken!]!
 }
 
 "An edge in a connection."
-type PltaccountAmountEdge {
+type PltTokenEdge {
 	"The item at the end of the edge"
-	node: PltaccountAmount!
+	node: PltToken!
 	"A cursor for use in pagination"
 	cursor: String!
 }
@@ -2037,40 +2071,6 @@ type PlteventConnection {
 type PlteventEdge {
 	"The item at the end of the edge"
 	node: Pltevent!
-	"A cursor for use in pagination"
-	cursor: String!
-}
-
-type Plttoken {
-	name: String
-	tokenId: String!
-	transactionHash: String!
-	block: Block!
-	issuer: AccountAddress!
-	moduleReference: String
-	metadata: JSON
-	initialSupply: Int
-	totalSupply: Int
-	totalMinted: Int
-	totalBurned: Int
-	decimal: Int
-	index: Int!
-	totalUniqueHolders: Int!
-}
-
-type PlttokenConnection {
-	"Information to aid in pagination."
-	pageInfo: PageInfo!
-	"A list of edges."
-	edges: [PlttokenEdge!]!
-	"A list of nodes."
-	nodes: [Plttoken!]!
-}
-
-"An edge in a connection."
-type PlttokenEdge {
-	"The item at the end of the edge"
-	node: Plttoken!
 	"A cursor for use in pagination"
 	cursor: String!
 }
@@ -2268,7 +2268,7 @@ type Query {
 		"Returns the elements in the list that come before the specified cursor."
 		before: String
 	): PlteventConnection!
-	pltToken(id: ID!): Plttoken!
+	pltToken(id: ID!): PltToken!
 	pltTokens(
 		"Returns the first _n_ elements from the list."
 		first: Int,
@@ -2278,9 +2278,9 @@ type Query {
 		last: Int,
 		"Returns the elements in the list that come before the specified cursor."
 		before: String
-	): PlttokenConnection!
-	pltAccounts(account: ID!, tokenId: ID!): PltaccountAmount
-	pltAccountsByTokenId(		id: ID!,
+	): PltTokenConnection!
+	pltAccountByTokenId(account: ID!, tokenId: ID!): PltAccountAmount
+	pltAccountsByTokenId(		tokenId: ID!,
 		"Returns the first _n_ elements from the list."
 		first: Int,
 		"Returns the elements in the list that come after the specified cursor."
@@ -2289,7 +2289,7 @@ type Query {
 		last: Int,
 		"Returns the elements in the list that come before the specified cursor."
 		before: String
-	): PltaccountAmountConnection!
+	): PltAccountAmountConnection!
 	pltUniqueAccounts: Int!
 	pltEventMetrics(period: MetricsPeriod!, tokenId: String): PltEventMetrics!
 }
