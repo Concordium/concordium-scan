@@ -4,7 +4,7 @@ use num_traits::ToPrimitive;
 
 use crate::{
     address::AccountAddress,
-    connection::DescendingI64,
+    connection::{DescendingI64, NestedCursor},
     graphql_api::account::Account,
     scalar_types::{
         ModuleReference, PltIndex, TokenId, TokenIndex, TransactionHash, TransactionIndex,
@@ -499,7 +499,9 @@ impl QueryPltAccountAmount {
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, PltAccountAmount>> {
+    ) -> ApiResult<
+        connection::Connection<NestedCursor<DescendingI64, DescendingI64>, PltAccountAmount>,
+    > {
         let pool = get_pool(ctx)?;
         let token_id = TokenId::from_str(token_id.as_ref())
             .map_err(|e| ApiError::InvalidIdFormat(format!("Failed to parse token ID: {}", e)))?;
@@ -507,7 +509,8 @@ impl QueryPltAccountAmount {
         // Nested cursor: order by amount DESC, then account_index DESC for
         // deterministic pagination This ensures accounts with same token
         // amounts have a strict ordering
-        let query = ConnectionQuery::<DescendingI64>::new(
+        type Cursor = NestedCursor<DescendingI64, DescendingI64>;
+        let query = ConnectionQuery::<Cursor>::new(
             first,
             after,
             last,
@@ -524,18 +527,66 @@ impl QueryPltAccountAmount {
                 pa.decimal
             FROM plt_accounts pa
             JOIN plt_tokens pt ON pa.token_index = pt.index
-            WHERE $2 < pa.account_index AND pa.account_index < $1 AND pt.token_id = $3
-            ORDER BY  pa.amount DESC, pa.account_index DESC
-            LIMIT $4",
-            i64::from(query.from),
-            i64::from(query.to),
+            WHERE pt.token_id = $1
+              AND (
+                  (COALESCE(pa.amount, 0) > $3 AND COALESCE(pa.amount, 0) < $2)
+                  OR ($2 != $3 AND (
+                      (COALESCE(pa.amount, 0) = $2 AND pa.account_index < $5)
+                      OR (COALESCE(pa.amount, 0) = $3 AND pa.account_index > $4)
+                  ))
+                  OR ($2 = $3 AND COALESCE(pa.amount, 0) = $2 AND pa.account_index < $5 AND \
+             pa.account_index > $4)
+              )
+            ORDER BY COALESCE(pa.amount, 0) DESC, pa.account_index DESC
+            LIMIT $6",
             token_id.to_string(),
+            BigDecimal::from(i64::from(query.from.outer)), // $2 - amount upper bound
+            BigDecimal::from(i64::from(query.to.outer)),   // $3 - amount lower bound
+            i64::from(query.from.inner),                   // $4 - account_index upper bound
+            i64::from(query.to.inner),                     // $5 - account_index lower bound
             query.limit,
         )
         .fetch(pool);
         let mut connection = connection::Connection::new(false, false);
         while let Some(tx) = row_stream.try_next().await? {
-            connection.edges.push(connection::Edge::new(tx.account_index.to_string(), tx));
+            let amount_val = tx.amount.as_ref().and_then(|a| a.to_i64()).unwrap_or(0);
+            let cursor: NestedCursor<DescendingI64, DescendingI64> = NestedCursor {
+                outer: amount_val.into(),
+                inner: tx.account_index.into(),
+            };
+            connection.edges.push(connection::Edge::new(cursor, tx));
+        }
+        if let (Some(page_min), Some(page_max)) =
+            (connection.edges.last(), connection.edges.first())
+        {
+            let result = sqlx::query!(
+                r#"SELECT 
+                    MAX(COALESCE(pa.amount, 0)) as max_amount,
+                    MIN(COALESCE(pa.amount, 0)) as min_amount
+                FROM plt_accounts pa
+                JOIN plt_tokens pt ON pa.token_index = pt.index
+                WHERE pt.token_id = $1"#,
+                token_id.to_string()
+            )
+            .fetch_one(pool)
+            .await?;
+
+            // Simple boundary checks
+            connection.has_next_page = if let Some(min_amount) = result.min_amount {
+                let last_amount = i64::from(page_min.cursor.outer.clone());
+                let min_amount_i64 = min_amount.to_i64().unwrap_or(0);
+                last_amount > min_amount_i64
+            } else {
+                false
+            };
+
+            connection.has_previous_page = if let Some(max_amount) = result.max_amount {
+                let first_amount = i64::from(page_max.cursor.outer.clone());
+                let max_amount_i64 = max_amount.to_i64().unwrap_or(0);
+                first_amount < max_amount_i64
+            } else {
+                false
+            };
         }
         Ok(connection)
     }
