@@ -34,9 +34,9 @@
 									<PltAmountPercentage
 										:value="
 											calculatePercentageforBigInt(
-												coin.amount.value,
+												BigInt(coin.amount.value),
 												totalSupply
-											).toString()
+											)
 										"
 									/>
 								</TableTd>
@@ -66,14 +66,14 @@ import { ref, watch } from 'vue'
 // Define Props
 const props = defineProps<{
 	coinId: string
-	totalSupply?: bigint
+	totalSupply: bigint
 }>()
 
 // Loading state
 const lastNTransactions = ref(TransactionFilterOption.Top20)
 
 const coinId = props.coinId
-const totalSupply = props.totalSupply ?? BigInt(0)
+const totalSupply = props.totalSupply
 
 const { pagedData, addPagedData } = usePagedData<PltAccountAmount>(
 	[],

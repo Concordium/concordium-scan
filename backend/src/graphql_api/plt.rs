@@ -23,22 +23,22 @@ use sqlx::{types::Json, PgPool};
 use std::str::FromStr;
 
 #[derive(Default)]
-pub struct QueryPLTEvent;
+pub struct QueryPltEvent;
 
 #[Object]
-impl QueryPLTEvent {
-    async fn plt_event(&self, ctx: &Context<'_>, id: types::ID) -> ApiResult<PLTEvent> {
+impl QueryPltEvent {
+    async fn plt_event(&self, ctx: &Context<'_>, id: types::ID) -> ApiResult<PltEvent> {
         let index: i64 = id.try_into().map_err(ApiError::InvalidIdInt)?;
-        PLTEvent::query_by_index(get_pool(ctx)?, index).await?.ok_or(ApiError::NotFound)
+        PltEvent::query_by_index(get_pool(ctx)?, index).await?.ok_or(ApiError::NotFound)
     }
 
     async fn plt_event_by_transaction_index(
         &self,
         ctx: &Context<'_>,
         transaction_index: types::ID,
-    ) -> ApiResult<PLTEvent> {
+    ) -> ApiResult<PltEvent> {
         let index: i64 = transaction_index.try_into().map_err(ApiError::InvalidIdInt)?;
-        PLTEvent::query_by_transaction_index(get_pool(ctx)?, index).await?.ok_or(ApiError::NotFound)
+        PltEvent::query_by_transaction_index(get_pool(ctx)?, index).await?.ok_or(ApiError::NotFound)
     }
 
     async fn plt_events<'a>(
@@ -50,7 +50,7 @@ impl QueryPLTEvent {
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, PLTEvent>> {
+    ) -> ApiResult<connection::Connection<String, PltEvent>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
         let query = ConnectionQuery::<DescendingI64>::new(
@@ -62,7 +62,7 @@ impl QueryPLTEvent {
         )?;
 
         let mut row_stream = sqlx::query_as!(
-            PLTEvent,
+            PltEvent,
             r#"SELECT 
                 id,
                 transaction_index,
@@ -111,7 +111,7 @@ impl QueryPLTEvent {
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, PLTEvent>> {
+    ) -> ApiResult<connection::Connection<String, PltEvent>> {
         let token_id = TokenId::from_str(id.as_ref()).map_err(|e| {
             ApiError::InternalServerError(InternalError::InternalError(format!(
                 "Failed to parse token ID: {}",
@@ -128,7 +128,7 @@ impl QueryPLTEvent {
             config.plt_token_events_collection_limit,
         )?;
         let mut row_stream = sqlx::query_as!(
-            PLTEvent,
+            PltEvent,
             r#"SELECT 
                     e.id,
                     e.transaction_index,
@@ -159,7 +159,7 @@ impl QueryPLTEvent {
 }
 
 #[derive(Debug, Clone)]
-pub struct PLTEvent {
+pub struct PltEvent {
     pub id:                PltIndex,
     pub transaction_index: TransactionIndex,
     pub event_type:        Option<TokenUpdateEventType>,
@@ -168,10 +168,10 @@ pub struct PLTEvent {
     pub token_event:       Json<serde_json::Value>,
 }
 
-impl PLTEvent {
+impl PltEvent {
     pub async fn query_by_index(pool: &PgPool, index: i64) -> ApiResult<Option<Self>> {
-        let plt_event: Option<PLTEvent> = sqlx::query_as!(
-            PLTEvent,
+        let plt_event: Option<PltEvent> = sqlx::query_as!(
+            PltEvent,
             r#"SELECT 
                 id,
                 transaction_index,
@@ -191,8 +191,8 @@ impl PLTEvent {
         pool: &PgPool,
         transaction_index: i64,
     ) -> ApiResult<Option<Self>> {
-        let plt_event: Option<PLTEvent> = sqlx::query_as!(
-            PLTEvent,
+        let plt_event: Option<PltEvent> = sqlx::query_as!(
+            PltEvent,
             r#"SELECT 
                 id,
                 transaction_index,
@@ -210,7 +210,7 @@ impl PLTEvent {
 }
 
 #[Object]
-impl PLTEvent {
+impl PltEvent {
     async fn id(&self) -> ApiResult<PltIndex> { Ok(self.id) }
 
     async fn transaction_index(&self) -> ApiResult<TransactionIndex> { Ok(self.transaction_index) }
@@ -269,10 +269,10 @@ impl PLTEvent {
 // --------------------------
 
 #[derive(Default)]
-pub struct QueryPLT;
+pub struct QueryPlt;
 
 #[Object]
-impl QueryPLT {
+impl QueryPlt {
     async fn plt_token(&self, ctx: &Context<'_>, id: types::ID) -> ApiResult<PltToken> {
         let token_id = TokenId::from_str(id.as_ref()).map_err(|e| {
             ApiError::InternalServerError(InternalError::InternalError(format!(
@@ -537,7 +537,11 @@ impl QueryPltAccountAmount {
                   OR ($2 = $3 AND COALESCE(pa.amount, 0) = $2 AND pa.account_index < $5 AND \
              pa.account_index > $4)
               )
-            ORDER BY COALESCE(pa.amount, 0) DESC, pa.account_index DESC
+            ORDER BY 
+                CASE WHEN $7 THEN COALESCE(pa.amount, 0) END ASC,
+                CASE WHEN $7 THEN pa.account_index END ASC,
+                CASE WHEN NOT $7 THEN COALESCE(pa.amount, 0) END DESC,
+                CASE WHEN NOT $7 THEN pa.account_index END DESC
             LIMIT $6",
             token_id.to_string(),
             BigDecimal::from(i64::from(query.from.outer)), // $2 - amount upper bound
@@ -545,6 +549,7 @@ impl QueryPltAccountAmount {
             i64::from(query.from.inner),                   // $4 - account_index upper bound
             i64::from(query.to.inner),                     // $5 - account_index lower bound
             query.limit,
+            query.is_last,
         )
         .fetch(pool);
         let mut connection = connection::Connection::new(false, false);

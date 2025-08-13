@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT \n                pa.account_index,\n                pa.token_index,\n                pa.amount,\n                pa.decimal\n            FROM plt_accounts pa\n            JOIN plt_tokens pt ON pa.token_index = pt.index\n            WHERE pt.token_id = $1\n              AND (\n                  (COALESCE(pa.amount, 0) > $3 AND COALESCE(pa.amount, 0) < $2)\n                  OR ($2 != $3 AND (\n                      (COALESCE(pa.amount, 0) = $2 AND pa.account_index < $5)\n                      OR (COALESCE(pa.amount, 0) = $3 AND pa.account_index > $4)\n                  ))\n                  OR ($2 = $3 AND COALESCE(pa.amount, 0) = $2 AND pa.account_index < $5 AND pa.account_index > $4)\n              )\n            ORDER BY \n                CASE WHEN $7 THEN COALESCE(pa.amount, 0) END ASC,\n                CASE WHEN $7 THEN pa.account_index END ASC,\n                CASE WHEN NOT $7 THEN COALESCE(pa.amount, 0) END DESC,\n                CASE WHEN NOT $7 THEN pa.account_index END DESC\n            LIMIT $6",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "account_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "token_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "decimal",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Numeric",
+        "Numeric",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "de01484fc3d641245159d1b572180117d3f77188f2f079a9f2f6d6d8ace507b1"
+}

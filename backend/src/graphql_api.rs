@@ -197,8 +197,8 @@ pub struct Query(
     reward_metrics::QueryRewardMetrics,
     block_metrics::QueryBlockMetrics,
     transaction_metrics::QueryTransactionMetrics,
-    plt::QueryPLTEvent,
-    plt::QueryPLT,
+    plt::QueryPltEvent,
+    plt::QueryPlt,
     plt::QueryPltAccountAmount,
     plt_event_metrics::QueryPltEventMetrics,
 );
@@ -496,7 +496,7 @@ pub enum ApiError {
     InvalidContractVersion(#[from] InvalidContractVersionError),
     #[error("Service unavailable: {0}")]
     Unavailable(String),
-    #[error("Invalid Token ID format: {0}")]
+    #[error("Invalid ID format: {0}")]
     InvalidIdFormat(String),
 }
 

@@ -107,7 +107,7 @@ import {
 	transactionFilterOptions,
 } from '~/types/stable-coin'
 import { usePagedData } from '~/composables/usePagedData'
-import type { Pltevent } from '~/types/generated'
+import type { PltEvent } from '~/types/generated'
 import { useDateNow } from '~/composables/useDateNow'
 
 import { usePltEventByIdQuery } from '~/queries/usePltEventsQuery'
@@ -123,7 +123,7 @@ const lastNTransactions = ref(TransactionFilterOption.Top20)
 
 const coinId = props.coinId ?? ''
 
-const { pagedData, addPagedData } = usePagedData<Pltevent>(
+const { pagedData, addPagedData } = usePagedData<PltEvent>(
 	[],
 	lastNTransactions.value,
 	lastNTransactions.value

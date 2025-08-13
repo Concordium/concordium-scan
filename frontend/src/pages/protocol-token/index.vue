@@ -221,7 +221,7 @@ import {
 } from '~/queries/usePltTokenQuery'
 import { usePagedData } from '~/composables/usePagedData'
 import { usePltEventsQuery } from '~/queries/usePltEventsQuery'
-import type { Pltevent } from '~/types/generated'
+import type { PltEvent } from '~/types/generated'
 import { useDateNow } from '~/composables/useDateNow'
 import HolderByStableCoin from '~/components/molecules/ChartCards/HolderByStableCoin.vue'
 import KeyValueChartCard from '~/components/molecules/KeyValueChartCard.vue'
@@ -235,7 +235,7 @@ definePageMeta({
 const pageSize = 10
 const maxPageSize = 20
 const { pagedData, first, last, after, before, addPagedData, loadMore } =
-	usePagedData<Pltevent>([], pageSize, maxPageSize)
+	usePagedData<PltEvent>([], pageSize, maxPageSize)
 
 const { data: pltTokenData, loading: pltTokenLoading } = usePltTokenQuery()
 

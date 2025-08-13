@@ -2278,6 +2278,38 @@ export type PltAccountAmountEdge = {
   node: PltAccountAmount;
 };
 
+export type PltEvent = {
+  __typename?: 'PltEvent';
+  block: Block;
+  eventType?: Maybe<TokenUpdateEventType>;
+  id: Scalars['Int'];
+  tokenEvent: TokenEventDetails;
+  tokenId: Scalars['String'];
+  tokenModuleType?: Maybe<TokenUpdateModuleType>;
+  tokenName?: Maybe<Scalars['String']>;
+  transactionHash: Scalars['String'];
+  transactionIndex: Scalars['Int'];
+};
+
+export type PltEventConnection = {
+  __typename?: 'PltEventConnection';
+  /** A list of edges. */
+  edges: Array<PltEventEdge>;
+  /** A list of nodes. */
+  nodes: Array<PltEvent>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type PltEventEdge = {
+  __typename?: 'PltEventEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: PltEvent;
+};
+
 /** This struct is used to define the GraphQL query for PLT event metrics. */
 export type PltEventMetrics = {
   __typename?: 'PltEventMetrics';
@@ -2342,38 +2374,6 @@ export type PltTokenEdge = {
   cursor: Scalars['String'];
   /** The item at the end of the edge */
   node: PltToken;
-};
-
-export type Pltevent = {
-  __typename?: 'Pltevent';
-  block: Block;
-  eventType?: Maybe<TokenUpdateEventType>;
-  id: Scalars['Int'];
-  tokenEvent: TokenEventDetails;
-  tokenId: Scalars['String'];
-  tokenModuleType?: Maybe<TokenUpdateModuleType>;
-  tokenName?: Maybe<Scalars['String']>;
-  transactionHash: Scalars['String'];
-  transactionIndex: Scalars['Int'];
-};
-
-export type PlteventConnection = {
-  __typename?: 'PlteventConnection';
-  /** A list of edges. */
-  edges: Array<PlteventEdge>;
-  /** A list of nodes. */
-  nodes: Array<Pltevent>;
-  /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-};
-
-/** An edge in a connection. */
-export type PlteventEdge = {
-  __typename?: 'PlteventEdge';
-  /** A cursor for use in pagination */
-  cursor: Scalars['String'];
-  /** The item at the end of the edge */
-  node: Pltevent;
 };
 
 export type PoolApy = {
@@ -2475,11 +2475,11 @@ export type Query = {
   paydayStatus: PaydayStatus;
   pltAccountByTokenId?: Maybe<PltAccountAmount>;
   pltAccountsByTokenId: PltAccountAmountConnection;
-  pltEvent: Pltevent;
-  pltEventByTransactionIndex: Pltevent;
+  pltEvent: PltEvent;
+  pltEventByTransactionIndex: PltEvent;
   pltEventMetrics: PltEventMetrics;
-  pltEvents: PlteventConnection;
-  pltEventsByTokenId: PlteventConnection;
+  pltEvents: PltEventConnection;
+  pltEventsByTokenId: PltEventConnection;
   pltToken: PltToken;
   pltTokens: PltTokenConnection;
   pltUniqueAccounts: Scalars['Int'];

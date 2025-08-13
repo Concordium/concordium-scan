@@ -259,38 +259,46 @@ export const calculateActualValue = (value: string, decimals: number) => {
 	// return the actual value as a string
 	return actualValue
 }
-// calculates percentage for BigInt values
-// value is a string representing a BigInt, total is a BigInt
-// returns a percentage as a number (0-100)
-export const calculatePercentageforBigInt = (value: string, total: bigint) => {
-	// value is bigint in string format
-	const valueBigInt = BigInt(value)
 
-	// For better precision, multiply by 10000 first
-	const fractional_value = (valueBigInt * BigInt(10000)) / total
-	// calculate significant digits and non-significant digits
+/**
+ * Calculates percentage for BigInt values with 2 decimal precision
+ *
+ * Since BigInt division truncates decimals,this is a scaling technique:
+ * 1. Multiply numerator by 10000 to preserve 4 decimal places in division
+ * 2. Split result into integer and fractional parts
+ * 3. Format as percentage with 2 decimal places
+ *
+ * @param value - The numerator value as BigInt
+ * @param total - The denominator value as BigInt
+ * @returns Percentage as string(bigint can not represent decimals) with 2 decimal places (e.g., "12.34")
+ *
+ * @example
+ * calculatePercentageforBigInt(25n, 100n) // returns "25.00"
+ * calculatePercentageforBigInt(1n, 3n)    // returns "33.33"
+ * calculatePercentageforBigInt(1n, 7n)    // returns "14.28"
+ */
+export const calculatePercentageforBigInt = (
+	value: bigint,
+	total: bigint
+): string => {
+	// Scale up by 10000 to preserve 4 decimal places during BigInt division
+	// This allows us to extract 2 decimal places for percentage display
+	const scaledResult = (value * BigInt(10000)) / total
 
-	const valueStr = fractional_value.toString()
-	const totalLength = valueStr.length
-	const decimals = 2 // We want 2 decimal places for percentage
+	// Convert to string to manually extract integer and decimal parts
+	const resultString = scaledResult.toString()
+	const DECIMAL_PLACES = 2
 
-	// Calculate significant and non-significant digits
-	let significantDigits: string
-	let nonSignificantDigits: string
-
-	if (totalLength <= decimals) {
-		significantDigits = '0'
-		nonSignificantDigits = valueStr.padStart(decimals, '0')
+	// Split the scaled result into integer and decimal parts
+	if (resultString.length <= DECIMAL_PLACES) {
+		// Handle small numbers: pad with leading zeros for decimal part
+		const integerPart = 0
+		const decimalPart = resultString.padStart(DECIMAL_PLACES, '0')
+		return `${integerPart}.${decimalPart}`
 	} else {
-		significantDigits = valueStr.slice(0, totalLength - decimals)
-		nonSignificantDigits = valueStr.slice(totalLength - decimals)
+		// Handle normal numbers: split at decimal position
+		const integerPart = resultString.slice(0, -DECIMAL_PLACES)
+		const decimalPart = resultString.slice(-DECIMAL_PLACES)
+		return `${integerPart}.${decimalPart}`
 	}
-
-	const formattedInteger = Number(significantDigits)
-	const trimmedDecimals = nonSignificantDigits.slice(0, 2) // Limit to 2 decimal places
-	// as the values are in bigint, we can we represent the percentage by formatting otherwise the percentage will always integer
-	const percentageValue =
-		formattedInteger + (trimmedDecimals ? Number(`0.${trimmedDecimals}`) : 0)
-
-	return percentageValue.toString()
 }
