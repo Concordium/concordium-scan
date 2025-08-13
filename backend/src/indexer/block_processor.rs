@@ -12,6 +12,7 @@ use concordium_rust_sdk::indexer::{async_trait, ProcessEvent};
 use prometheus_client::{
     metrics::{
         counter::Counter,
+        gauge::Gauge,
         histogram::{self, Histogram},
     },
     registry::Registry,
@@ -25,24 +26,28 @@ use tracing::info;
 /// blocks.
 pub struct BlockProcessor {
     /// Options for the database connection.
-    db_connect_options:          PgConnectOptions,
+    db_connect_options:             PgConnectOptions,
     /// Timeout for acquiring the indexer advisory lock after connecting to the
     /// database.
-    db_indexer_lock_timeout:     Duration,
+    db_indexer_lock_timeout:        Duration,
     /// Current database connection.
-    db_connection:               PgConnection,
+    db_connection:                  PgConnection,
     /// Histogram collecting batch size
-    batch_size:                  Histogram,
+    batch_size:                     Histogram,
     /// Metric counting the total number of failed attempts to process
     /// blocks.
-    processing_failures:         Counter,
+    processing_failures:            Counter,
     /// Histogram collecting the time it took to process a block.
-    processing_duration_seconds: Histogram,
+    processing_duration_seconds:    Histogram,
     /// Max number of acceptable successive failures before shutting down the
     /// service.
-    max_successive_failures:     u32,
+    max_successive_failures:        u32,
     /// Starting context which is tracked across processing blocks.
-    current_context:             BlockProcessingContext,
+    current_context:                BlockProcessingContext,
+    /// Metric tracking the last processed block height.
+    last_processed_block_height:    Gauge<i64>,
+    /// Metric tracking the last processed block slot time
+    last_processed_block_slot_time: Gauge<i64>,
 }
 impl BlockProcessor {
     /// Construct the block processor by loading the initial state from the
@@ -108,6 +113,20 @@ impl BlockProcessor {
         let batch_size = Histogram::new(histogram::linear_buckets(1.0, 1.0, 10));
         registry.register("batch_size", "Batch sizes", batch_size.clone());
 
+        let last_processed_block_height: Gauge<i64> = Gauge::default();
+        registry.register(
+            "last_processed_block_height",
+            "The last processed block height",
+            last_processed_block_height.clone(),
+        );
+
+        let last_processed_block_slot_time: Gauge<i64> = Gauge::default();
+        registry.register(
+            "last_processed_block_slot_time",
+            "The last processed block slot_time",
+            last_processed_block_slot_time.clone(),
+        );
+
         Ok(Self {
             db_connect_options,
             db_connection,
@@ -117,6 +136,8 @@ impl BlockProcessor {
             processing_failures,
             processing_duration_seconds,
             max_successive_failures,
+            last_processed_block_height,
+            last_processed_block_slot_time,
         })
     }
 }
@@ -149,6 +170,8 @@ impl ProcessEvent for BlockProcessor {
         PreparedBlock::batch_save(batch, &mut new_context, &mut tx).await?;
         for block in batch {
             block.process_block_content(&mut tx).await?;
+            self.last_processed_block_height.set(block.height);
+            self.last_processed_block_slot_time.set(block.slot_time.timestamp());
             out.push_str(format!("\n- {}:{}", block.height, block.hash).as_str());
         }
         process_release_schedules(new_context.last_block_slot_time, &mut tx)

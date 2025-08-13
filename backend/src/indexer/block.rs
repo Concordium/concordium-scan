@@ -35,7 +35,7 @@ pub struct PreparedBlock {
     /// Absolute height of the block.
     pub height: i64,
     /// Block slot time (UTC).
-    slot_time: DateTime<Utc>,
+    pub slot_time: DateTime<Utc>,
     /// Id of the validator which constructed the block. Is only None for the
     /// genesis block.
     baker_id: Option<i64>,
