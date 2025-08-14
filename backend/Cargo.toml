@@ -45,6 +45,7 @@ num-traits = "0.2.19"
 
 [dev-dependencies]
 mockito = "1.4"
+mockall = "0.13.1"
 
 # Recommended by SQLx to speed up incremental builds
 [profile.dev.package.sqlx-macros]

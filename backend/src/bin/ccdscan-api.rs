@@ -1,10 +1,10 @@
-use anyhow::Context;
+use anyhow::{Context, Ok};
 use axum::{http::StatusCode, Json};
 use clap::Parser;
 use concordium_scan::{
     graphql_api::{self, node_status::NodeInfoReceiver},
-    migrations,
-    migrations::SchemaVersion,
+    migrations::{self, SchemaVersion},
+    monitoring::database_metrics::{DatabaseMetrics, RealDatabaseStatisticsProvider},
     rest_api, router,
 };
 use prometheus_client::{
@@ -17,7 +17,7 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use std::{net::SocketAddr, path::PathBuf, sync::Arc, time::Duration};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _};
 
 #[derive(Parser)]
@@ -65,6 +65,9 @@ struct Cli {
     /// backend
     #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_PULL_FREQUENCY_SECS", default_value_t = 5)]
     node_collector_backend_pull_frequency_secs: u64,
+    /// Frequency in seconds of how often to update database metrics
+    #[arg(long, env = "CCDSCAN_API_UPDATE_DATABASE_METRICS_FREQUENCY_SECS", default_value_t = 1)]
+    database_metrics_update_frequency_secs: u64,
     /// Request timeout when awaiting response from the node collector backend
     /// in seconds.
     #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_CLIENT_TIMEOUT_SECS", default_value_t = 30)]
@@ -156,6 +159,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .await
         .context("Failed constructing database connection pool")?;
+
     // Ensure the database schema is compatible with supported schema version.
     migrations::ensure_compatible_schema_version(
         &pool,
@@ -188,6 +192,32 @@ async fn main() -> anyhow::Result<()> {
         "Timestamp of starting up the API service (Unix time in milliseconds)",
         prometheus_client::metrics::gauge::ConstGauge::new(chrono::Utc::now().timestamp_millis()),
     );
+
+    // Create the Db metrics reference
+    let provider = RealDatabaseStatisticsProvider::new(pool.clone());
+    let db_metrics = DatabaseMetrics::new(provider, &mut registry);
+
+    // Start an async task to gather database metrics
+    let mut db_metrics_task = {
+        let stop_signal = cancel_token.child_token();
+        tokio::spawn(async move {
+            debug!("Starting task now for database connections....");
+            let mut interval = tokio::time::interval(Duration::from_secs(
+                cli.database_metrics_update_frequency_secs,
+            ));
+            loop {
+                tokio::select! {
+                    _ = stop_signal.cancelled() => break,
+                    _ = interval.tick() => {
+                        if let Err(e) = db_metrics.update().await {
+                            tracing::warn!("Failed to update DB metrics: {e}");
+                        }
+                    }
+                }
+            }
+            Ok(())
+        })
+    };
 
     let (subscription, subscription_listener) =
         graphql_api::Subscription::new(cli.database_retry_delay_secs);
@@ -283,6 +313,13 @@ async fn main() -> anyhow::Result<()> {
             error!("Node collector task stopped.");
             if let Err(err) = result? {
                 error!("Node collector error: {}", err);
+            }
+            cancel_token.cancel();
+        }
+        result = &mut db_metrics_task => {
+            error!("Database metrics task stopped.");
+            if let Err(err) = result? {
+                error!("Database metrics error: {}", err);
             }
             cancel_token.cancel();
         }
