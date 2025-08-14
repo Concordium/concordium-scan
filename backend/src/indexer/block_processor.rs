@@ -170,14 +170,19 @@ impl ProcessEvent for BlockProcessor {
         PreparedBlock::batch_save(batch, &mut new_context, &mut tx).await?;
         for block in batch {
             block.process_block_content(&mut tx).await?;
-            self.last_processed_block_height.set(block.height);
-            self.last_processed_block_slot_time.set(block.slot_time.timestamp());
             out.push_str(format!("\n- {}:{}", block.height, block.hash).as_str());
         }
         process_release_schedules(new_context.last_block_slot_time, &mut tx)
             .await
             .context("Processing scheduled releases")?;
         tx.commit().await.context("Failed to commit SQL transaction")?;
+
+        // set prometheus metrics tracking the latest block height and slot time
+        if let Some(last_block) = batch.last() {
+            self.last_processed_block_height.set(last_block.height);
+            self.last_processed_block_slot_time.set(last_block.slot_time.timestamp());
+        }
+
         self.batch_size.observe(batch.len() as f64);
         let duration = start_time.elapsed();
         self.processing_duration_seconds.observe(duration.as_secs_f64());
