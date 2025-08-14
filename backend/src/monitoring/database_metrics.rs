@@ -5,6 +5,7 @@ use std::sync::Arc;
 use tonic::async_trait;
 use tracing::{debug, info};
 
+/// Represent the metric name that will be registered with prometheus 
 const ACTIVE_DATABASE_CONNECTIONS_METRIC_NAME: &str = "db_connections_active_count";
 const IDLE_DATABASE_CONNECTIONS_METRIC_NAME: &str = "db_connections_idle_count";
 const TOTAL_DATABASE_CONNECTIONS_METRIC_NAME: &str = "db_connections_total_count";
