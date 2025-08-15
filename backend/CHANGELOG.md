@@ -12,6 +12,7 @@ Database schema version: 40
 - Query `PltUniqueAccounts` to fetch unique accounts holding PLT tokens.
 - Added query `PltEventMetrics` to fetch metrics related to plt token events.
 - Added `last_processed_block_height` and `last_processed_block_slot_time` prometheus gauge metrics so that we can easily see if we have caught up and are processing the latest blocks from the chain.
+- GraphQL API: Optimized the query that fetches paging information for the `blocks` query
 
 ## [2.0.17] - 2025-07-24
 
