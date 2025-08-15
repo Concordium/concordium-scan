@@ -209,7 +209,7 @@ async fn main() -> anyhow::Result<()> {
                 tokio::select! {
                     _ = stop_signal.cancelled() => break,
                     _ = interval.tick() => {
-                        if let Err(e) = db_metrics.update().await {
+                        if let Err(e) = db_metrics.update() {
                             tracing::warn!("Failed to update DB metrics: {e}");
                         }
                     }
