@@ -1,1 +1,1 @@
-pub mod database_metrics;
+pub mod database_metrics_collector;

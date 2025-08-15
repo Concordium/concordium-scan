@@ -4,7 +4,7 @@ use clap::Parser;
 use concordium_scan::{
     graphql_api::{self, node_status::NodeInfoReceiver},
     migrations::{self, SchemaVersion},
-    monitoring::database_metrics::{DatabaseMetrics, RealDatabaseStatisticsProvider},
+    monitoring::database_metrics_collector::DatabaseMetricsCollector,
     rest_api, router,
 };
 use prometheus_client::{
@@ -17,7 +17,7 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use std::{net::SocketAddr, path::PathBuf, sync::Arc, time::Duration};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
-use tracing::{debug, error, info};
+use tracing::{error, info};
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _};
 
 #[derive(Parser)]
@@ -150,6 +150,7 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::registry().with(tracing_subscriber::fmt::layer()).with(filter).init();
 
     let connection_options: PgConnectOptions = cli.database_url.parse()?;
+
     let pool = PgPoolOptions::new()
         .min_connections(cli.min_connections)
         .max_connections(cli.max_connections)
@@ -193,31 +194,8 @@ async fn main() -> anyhow::Result<()> {
         prometheus_client::metrics::gauge::ConstGauge::new(chrono::Utc::now().timestamp_millis()),
     );
 
-    // Create the Db metrics reference
-    let provider = RealDatabaseStatisticsProvider::new(pool.clone());
-    let db_metrics = DatabaseMetrics::new(provider, &mut registry);
-
-    // Start an async task to gather database metrics
-    let mut db_metrics_task = {
-        let stop_signal = cancel_token.child_token();
-        tokio::spawn(async move {
-            debug!("Starting task now for database connections....");
-            let mut interval = tokio::time::interval(Duration::from_secs(
-                cli.database_metrics_update_frequency_secs,
-            ));
-            loop {
-                tokio::select! {
-                    _ = stop_signal.cancelled() => break,
-                    _ = interval.tick() => {
-                        if let Err(e) = db_metrics.update() {
-                            tracing::warn!("Failed to update DB metrics: {e}");
-                        }
-                    }
-                }
-            }
-            Ok(())
-        })
-    };
+    // register db metrics collector
+    registry.register_collector(Box::new(DatabaseMetricsCollector::new(pool.clone())));
 
     let (subscription, subscription_listener) =
         graphql_api::Subscription::new(cli.database_retry_delay_secs);
@@ -313,13 +291,6 @@ async fn main() -> anyhow::Result<()> {
             error!("Node collector task stopped.");
             if let Err(err) = result? {
                 error!("Node collector error: {}", err);
-            }
-            cancel_token.cancel();
-        }
-        result = &mut db_metrics_task => {
-            error!("Database metrics task stopped.");
-            if let Err(err) = result? {
-                error!("Database metrics error: {}", err);
             }
             cancel_token.cancel();
         }
