@@ -1,15 +1,15 @@
 import { useQuery, gql } from '@urql/vue'
-import type { Plttoken, Scalars } from '~/types/generated'
+import type { PltToken, Scalars } from '~/types/generated'
 
 import type { QueryVariables } from '~/types/queryVariables'
 
-export type PLTTokenQueryResponse = {
+export type PltTokenQueryResponse = {
 	pltTokens: {
-		nodes: Plttoken[]
+		nodes: PltToken[]
 	}
 }
 
-const PLT_TOKEN_QUERY = gql<PLTTokenQueryResponse>`
+const PLT_TOKEN_QUERY = gql<PltTokenQueryResponse>`
 	query {
 		pltTokens {
 			nodes {
@@ -33,7 +33,7 @@ const PLT_TOKEN_QUERY = gql<PLTTokenQueryResponse>`
 	}
 `
 
-function getData(value: PLTTokenQueryResponse | undefined | null): Plttoken[] {
+function getData(value: PltTokenQueryResponse | undefined | null): PltToken[] {
 	return value?.pltTokens?.nodes ?? []
 }
 
@@ -44,8 +44,8 @@ export const usePltTokenQuery = (eventsVariables?: QueryVariables) => {
 		variables: eventsVariables,
 	})
 
-	const dataRef = ref<Plttoken[]>(getData(data.value))
-	const componentState = useComponentState<Plttoken[]>({
+	const dataRef = ref<PltToken[]>(getData(data.value))
+	const componentState = useComponentState<PltToken[]>({
 		fetching,
 		error,
 		data: dataRef,
@@ -65,7 +65,7 @@ export const usePltTokenQuery = (eventsVariables?: QueryVariables) => {
 }
 
 export type PltTokenQueryByTokenIdResponse = {
-	pltToken: Plttoken
+	pltToken: PltToken
 }
 
 const PLT_TOKEN_QUERY_BY_ID = gql<PltTokenQueryByTokenIdResponse>`
@@ -97,8 +97,8 @@ export const usePltTokenQueryById = (tokenId: string) => {
 		variables: { id: tokenId },
 	})
 
-	const dataRef = ref<Plttoken | null>(data.value?.pltToken ?? null)
-	const componentState = useComponentState<Plttoken | null>({
+	const dataRef = ref<PltToken | null>(data.value?.pltToken ?? null)
+	const componentState = useComponentState<PltToken | null>({
 		fetching,
 		error,
 		data: dataRef,

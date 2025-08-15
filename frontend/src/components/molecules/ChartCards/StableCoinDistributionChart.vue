@@ -13,7 +13,7 @@
 <script lang="ts" setup>
 import { ref, watchEffect, defineProps } from 'vue'
 import DistributionChart from '../DistributionChart.vue'
-import type { Plttoken } from '~/types/generated'
+import type { PltToken } from '~/types/generated'
 
 type StableCoin = {
 	totalSupply?: number
@@ -23,7 +23,7 @@ type StableCoin = {
 }
 
 type Props = {
-	stableCoinsData?: Plttoken[]
+	stableCoinsData?: PltToken[]
 	isLoading?: boolean
 }
 

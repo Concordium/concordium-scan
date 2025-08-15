@@ -28,11 +28,11 @@ import MetricCard from '~/components/atoms/MetricCard.vue'
 import { computed, defineProps } from 'vue'
 import ChartBarST from '../Charts/ChartBarST.vue'
 
-import type { Plttoken } from '~/types/generated'
+import type { PltToken } from '~/types/generated'
 
 // Define Props
 const props = defineProps<{
-	stableCoinsData?: Plttoken[]
+	stableCoinsData?: PltToken[]
 	isLoading?: boolean
 	labelClickable?: boolean
 	showSign?: string

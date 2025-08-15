@@ -1962,6 +1962,59 @@ type PendingBakerRemoval {
 	effectiveTime: DateTime!
 }
 
+type PltAccountAmount {
+	accountAddress: AccountAddress!
+	tokenId: String!
+	amount: TokenAmount!
+}
+
+type PltAccountAmountConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [PltAccountAmountEdge!]!
+	"A list of nodes."
+	nodes: [PltAccountAmount!]!
+}
+
+"An edge in a connection."
+type PltAccountAmountEdge {
+	"The item at the end of the edge"
+	node: PltAccountAmount!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+type PltEvent {
+	id: Int!
+	transactionIndex: Int!
+	eventType: TokenUpdateEventType
+	tokenModuleType: TokenUpdateModuleType
+	tokenId: String!
+	tokenEvent: TokenEventDetails!
+	transactionHash: String!
+	block: Block!
+	tokenName: String
+}
+
+type PltEventConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [PltEventEdge!]!
+	"A list of nodes."
+	nodes: [PltEvent!]!
+}
+
+"An edge in a connection."
+type PltEventEdge {
+	"The item at the end of the edge"
+	node: PltEvent!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+"This struct is used to define the GraphQL query for PLT event metrics."
 type PltEventMetrics {
 	transferCount: Int!
 	transferVolume: Float!
@@ -1974,6 +2027,7 @@ type PltEventMetrics {
 	buckets: PltEventMetricsBuckets!
 }
 
+"This struct is used to define the buckets for PLT event metrics."
 type PltEventMetricsBuckets {
 	bucketWidth: TimeSpan!
 	x_Time: [DateTime!]!
@@ -1987,42 +2041,7 @@ type PltEventMetricsBuckets {
 	y_TotalEventCount: [Int!]!
 }
 
-type PltaccountAmount {
-	accountAddress: AccountAddress!
-	tokenId: String!
-	amount: TokenAmount!
-}
-
-type Pltevent {
-	id: Int!
-	transactionIndex: Int!
-	eventType: TokenUpdateEventType
-	tokenModuleType: TokenUpdateModuleType
-	tokenId: String!
-	tokenEvent: TokenEventDetails!
-	transactionHash: String!
-	block: Block!
-	tokenName: String
-}
-
-type PlteventConnection {
-	"Information to aid in pagination."
-	pageInfo: PageInfo!
-	"A list of edges."
-	edges: [PlteventEdge!]!
-	"A list of nodes."
-	nodes: [Pltevent!]!
-}
-
-"An edge in a connection."
-type PlteventEdge {
-	"The item at the end of the edge"
-	node: Pltevent!
-	"A cursor for use in pagination"
-	cursor: String!
-}
-
-type Plttoken {
+type PltToken {
 	name: String
 	tokenId: String!
 	transactionHash: String!
@@ -2039,19 +2058,19 @@ type Plttoken {
 	totalUniqueHolders: Int!
 }
 
-type PlttokenConnection {
+type PltTokenConnection {
 	"Information to aid in pagination."
 	pageInfo: PageInfo!
 	"A list of edges."
-	edges: [PlttokenEdge!]!
+	edges: [PltTokenEdge!]!
 	"A list of nodes."
-	nodes: [Plttoken!]!
+	nodes: [PltToken!]!
 }
 
 "An edge in a connection."
-type PlttokenEdge {
+type PltTokenEdge {
 	"The item at the end of the edge"
-	node: Plttoken!
+	node: PltToken!
 	"A cursor for use in pagination"
 	cursor: String!
 }
@@ -2227,8 +2246,8 @@ type Query {
 	poolRewardMetricsForPassiveDelegation(period: MetricsPeriod!): PoolRewardMetrics!
 	blockMetrics(period: MetricsPeriod!): BlockMetrics!
 	transactionMetrics(period: MetricsPeriod!): TransactionMetrics!
-	pltEvent(id: ID!): Pltevent!
-	pltEventByTransactionIndex(transactionIndex: ID!): Pltevent!
+	pltEvent(id: ID!): PltEvent!
+	pltEventByTransactionIndex(transactionIndex: ID!): PltEvent!
 	pltEvents(
 		"Returns the first _n_ elements from the list."
 		first: Int,
@@ -2238,7 +2257,7 @@ type Query {
 		last: Int,
 		"Returns the elements in the list that come before the specified cursor."
 		before: String
-	): PlteventConnection!
+	): PltEventConnection!
 	pltEventsByTokenId(		id: ID!,
 		"Returns the first _n_ elements from the list."
 		first: Int,
@@ -2248,8 +2267,8 @@ type Query {
 		last: Int,
 		"Returns the elements in the list that come before the specified cursor."
 		before: String
-	): PlteventConnection!
-	pltToken(id: ID!): Plttoken!
+	): PltEventConnection!
+	pltToken(id: ID!): PltToken!
 	pltTokens(
 		"Returns the first _n_ elements from the list."
 		first: Int,
@@ -2259,9 +2278,18 @@ type Query {
 		last: Int,
 		"Returns the elements in the list that come before the specified cursor."
 		before: String
-	): PlttokenConnection!
-	pltAccounts(account: ID!, tokenId: ID!): PltaccountAmount
-	pltAccountsByTokenId(tokenId: ID!): [PltaccountAmount!]!
+	): PltTokenConnection!
+	pltAccountByTokenId(account: ID!, tokenId: ID!): PltAccountAmount
+	pltAccountsByTokenId(		tokenId: ID!,
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): PltAccountAmountConnection!
 	pltUniqueAccounts: Int!
 	pltEventMetrics(period: MetricsPeriod!, tokenId: String): PltEventMetrics!
 }

@@ -29,7 +29,11 @@ export const transactionFilterOptions = [
 	{ label: 'Top 50', value: TransactionFilterOption.Top50 },
 	{ label: 'Top 100', value: TransactionFilterOption.Top100 },
 ]
-
+export const holderFilterOptions = [
+	{ label: 'Top 20', value: TransactionFilterOption.Top20 },
+	{ label: 'Top 50', value: TransactionFilterOption.Top50 },
+	{ label: 'Top 100', value: TransactionFilterOption.Top100 },
+]
 // types.ts
 // Enum for metrics periods
 export enum TopHolderFilterOption {

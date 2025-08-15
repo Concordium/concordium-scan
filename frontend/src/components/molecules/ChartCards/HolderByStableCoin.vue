@@ -12,10 +12,10 @@
 </template>
 <script lang="ts" setup>
 import DistributionChartBar from '../DistributionChartBar.vue'
-import type { Plttoken } from '~/types/generated'
+import type { PltToken } from '~/types/generated'
 
 type Props = {
-	stableCoinsData?: Plttoken[]
+	stableCoinsData?: PltToken[]
 	isLoading?: boolean
 }
 

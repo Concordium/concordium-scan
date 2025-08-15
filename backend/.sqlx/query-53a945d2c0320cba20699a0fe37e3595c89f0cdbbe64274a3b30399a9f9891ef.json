@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT \n                    MAX(COALESCE(pa.amount, 0)) as max_amount,\n                    MIN(COALESCE(pa.amount, 0)) as min_amount\n                FROM plt_accounts pa\n                JOIN plt_tokens pt ON pa.token_index = pt.index\n                WHERE pt.token_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "max_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 1,
+        "name": "min_amount",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "53a945d2c0320cba20699a0fe37e3595c89f0cdbbe64274a3b30399a9f9891ef"
+}

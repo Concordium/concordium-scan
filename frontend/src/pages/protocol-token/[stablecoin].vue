@@ -17,7 +17,7 @@
 						<div class="flex justify-between pt-4">
 							<p class="text-xl text-theme-faded">Initial Supply</p>
 							<p class="font-bold text-xl text-theme-interactive">
-								<PLtAmount
+								<PltAmount
 									:value="(pltTokenDataRef?.initialSupply ?? 0).toString()"
 									:decimals="pltTokenDataRef?.decimal ?? 0"
 									:format-number="true"
@@ -27,7 +27,7 @@
 						<div class="flex justify-between pt-4">
 							<p class="text-xl text-theme-faded">Current Supply</p>
 							<p class="font-bold text-xl text-theme-interactive">
-								<PLtAmount
+								<PltAmount
 									:value="(pltTokenDataRef?.totalSupply ?? 0).toString()"
 									:decimals="pltTokenDataRef?.decimal ?? 0"
 									:format-number="true"
@@ -106,14 +106,14 @@
 					>
 						Transactions
 					</TabBarItem>
-					<!-- <TabBarItem
+					<TabBarItem
 						tab-id="holders"
 						:selected-tab="selectedTab"
 						:on-click="handleSelectTab"
 					>
 						Holders
 					</TabBarItem>
-					<TabBarItem
+					<!-- <TabBarItem
 						tab-id="analytics"
 						:selected-tab="selectedTab"
 						:on-click="handleSelectTab"
@@ -123,7 +123,11 @@
 				</TabBar>
 			</div>
 		</header>
-		<Holders v-if="selectedTab === 'holders'" :coin-id="coinId" />
+		<Holders
+			v-if="selectedTab === 'holders'"
+			:coin-id="coinId"
+			:total-supply="BigInt(pltTokenDataRef?.totalSupply ?? 0)"
+		/>
 		<Transactions
 			v-else-if="selectedTab === 'transactions'"
 			:coin-id="coinId"
@@ -132,8 +136,7 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import { ref } from 'vue'
-
+import { computed, ref } from 'vue'
 import TabBar from '~/components/atoms/TabBar.vue'
 import TabBarItem from '~/components/atoms/TabBarItem.vue'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
