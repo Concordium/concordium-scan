@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Fixed
+
+- Fixed transaction details for `TokenUpdate` not displaying decimal places properly.
+
 ### Added
 
 - Added Protocol token holder distribution chart to the plt dashboard.
