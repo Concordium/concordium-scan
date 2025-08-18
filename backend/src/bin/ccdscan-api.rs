@@ -1,4 +1,4 @@
-use anyhow::{Context, Ok};
+use anyhow::Context;
 use axum::{http::StatusCode, Json};
 use clap::Parser;
 use concordium_scan::{
