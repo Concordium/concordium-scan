@@ -353,6 +353,19 @@ pub struct TokenUpdate {
     pub token_id: String,
     pub event:    TokenEventDetails,
 }
+
+/// PreparedTokenUpdate:
+///   - Normalize and extract all relevant fields from a TokenUpdate for
+///     database storage and metrics.
+///   - Handle Mint, Burn, Transfer, and TokenModule events.
+///   - Track event type, module type, amount changes, and involved accounts
+///     (from, to, target).
+///   - Updates db for:
+///       * Account balances
+///       * Token supply (minted/burned)
+///       * Metrics tables (cumulative event count, transfer amount, unique
+///         accounts)
+
 #[derive(Debug, Clone)]
 pub struct PreparedTokenUpdate {
     pub token_id:          String,

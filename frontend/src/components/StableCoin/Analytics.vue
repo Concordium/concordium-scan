@@ -1,6 +1,6 @@
 <template>
 	<div>
-		<div v-if="pltEventMetricsLoading" class="w-full h-36 text-center">
+		<div v-if="isLoading" class="w-full h-36 text-center">
 			<BWCubeLogoIcon class="w-10 h-10 animate-ping mt-8" />
 		</div>
 		<div v-else>
@@ -15,9 +15,11 @@
 						]"
 					/>
 					<StableCoinTokenTransfer
-						:is-loading="pltEventMetricsLoading"
-						:transfer-summary="pltEventMetricsDataRef"
-						:decimals="pltEventMetricsDataRef?.pltTransferMetrics.decimal"
+						:is-loading="isLoading"
+						:transfer-summary="pltTransferMetricsDataRef"
+						:decimals="
+							pltTransferMetricsDataRef?.pltTransferMetrics.decimal || 0
+						"
 					/>
 				</CarouselSlide>
 				<CarouselSlide class="w-full lg:h-full">
@@ -44,18 +46,18 @@ import CarouselSlide from '~/components/molecules/CarouselSlide.vue'
 import StableCoinTokenTransfer from '~/components/molecules/ChartCards/StableCoinTokenTransfer.vue'
 import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
 import Filter from '~/components/StableCoin/Filter.vue'
-import { usePltTransferMetricsQueryByTokenId } from '~/queries/usePltEventsMetricsQuery'
+import { usePltTransferMetricsQueryByTokenId } from '~/queries/usePltTransferMetricsQuery'
 import { MetricsPeriod } from '~/types/generated'
 import { ref, watch } from 'vue'
 
 // Define Props
 const props = defineProps<{
-	coinId?: string
-	totalSupply?: bigint
+	coinId: string
+	totalSupply: bigint
 }>()
 // Loading state
 
-const coinId = props.coinId ?? ''
+const coinId = props.coinId
 // Loading state
 
 const days = ref(MetricsPeriod.Last7Days)
@@ -67,13 +69,13 @@ watch(days, newValue => {
 
 const selectedMetricsPeriod = ref(MetricsPeriod.Last24Hours)
 
-const { data: pltEventMetricsData, loading: pltEventMetricsLoading } =
+const { data: pltTransferMetricsData, loading: isLoading } =
 	usePltTransferMetricsQueryByTokenId(selectedMetricsPeriod, coinId)
-const pltEventMetricsDataRef = ref(pltEventMetricsData)
+const pltTransferMetricsDataRef = ref(pltTransferMetricsData)
 watch(
-	pltEventMetricsData,
+	pltTransferMetricsData,
 	newData => {
-		pltEventMetricsDataRef.value = newData
+		pltTransferMetricsDataRef.value = newData
 	},
 	{ immediate: true, deep: true }
 )

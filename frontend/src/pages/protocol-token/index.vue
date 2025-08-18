@@ -225,7 +225,7 @@ import type { PltEvent } from '~/types/generated'
 import { useDateNow } from '~/composables/useDateNow'
 import HolderByStableCoin from '~/components/molecules/ChartCards/HolderByStableCoin.vue'
 import KeyValueChartCard from '~/components/molecules/KeyValueChartCard.vue'
-import { usePltMetricsQuery } from '~/queries/usePltEventsMetricsQuery'
+import { usePltMetricsQuery } from '~/queries/usePltTransferMetricsQuery'
 import { MetricsPeriod } from '~/types/generated'
 definePageMeta({
 	middleware: 'plt-features-guard',

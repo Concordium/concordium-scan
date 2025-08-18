@@ -26,7 +26,7 @@
 import MetricCard from '~/components/atoms/MetricCard.vue'
 import { defineProps, computed } from 'vue'
 import ChartBarLine from '~/components/Charts/ChartBarLine.vue'
-import type { PltTransferMetricsQueryResponse } from '~/queries/usePltEventsMetricsQuery'
+import type { PltTransferMetricsQueryResponse } from '~/queries/usePltTransferMetricsQuery'
 
 const baseColors = [
 	'#2AE8B8', // Bright Mint
@@ -57,8 +57,7 @@ const hoverColors = [
 // Define Props
 const props = defineProps<{
 	transferSummary?: PltTransferMetricsQueryResponse
-	isLoading?: boolean
-	decimals?: number
+	decimals: number
 }>()
 
 // Computed Properties
@@ -149,7 +148,7 @@ const barGraphValues = computed<number[]>(
 const lineGraphValues = computed<number[]>(
 	() =>
 		props.transferSummary?.pltTransferMetrics.buckets.y_TransferVolume.map(
-			(item: number) => item / Math.pow(10, props.decimals ?? 0)
+			(item: number) => item / Math.pow(10, props.decimals)
 		) ?? []
 )
 </script>
