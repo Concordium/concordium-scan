@@ -5,7 +5,7 @@ use prometheus_client::{
 };
 use sqlx::PgPool;
 use std::sync::Arc;
-use tracing::info;
+use tracing::debug;
 
 const ACTIVE_DATABASE_CONNECTIONS_METRIC_NAME: &str = "db_connections_active_gauge";
 const IDLE_DATABASE_CONNECTIONS_METRIC_NAME: &str = "db_connections_idle_gauge";
@@ -64,7 +64,7 @@ impl Collector for DatabaseMetricsCollector {
         let idle_db_connections_count: u64 = u64::try_from(self.pool.num_idle())
             .expect("expected to convert idle connections to i64");
         let active_db_connections_count = size_db_connections_count - idle_db_connections_count;
-        info!(
+        debug!(
             "db connection metrics now for pool. max: {}, active: {}, idle: {}",
             &max_db_connections_count, &active_db_connections_count, &idle_db_connections_count
         );
