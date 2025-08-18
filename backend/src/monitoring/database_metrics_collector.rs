@@ -78,7 +78,7 @@ impl<Pool: DatabasePool + 'static + Send + Sync + std::fmt::Debug> Collector
 
         max_connections_gauge.encode(encoder.encode_descriptor(
             MAX_DATABASE_CONNECTIONS_METRIC_NAME,
-            "max database connections available",
+            "max database connections",
             None,
             max_connections_gauge.metric_type(),
         )?)?;
