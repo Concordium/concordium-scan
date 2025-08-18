@@ -14,6 +14,10 @@ Database schema version: 40
 - Added `last_processed_block_height` and `last_processed_block_slot_time` prometheus gauge metrics so that we can easily see if we have caught up and are processing the latest blocks from the chain.
 - GraphQL API: Optimized the query that fetches paging information for the `blocks` query
 
+### Changed
+
+- Updated query `pltAccountsByTokenId` to fetch accounts holding PLT tokens by token ID.
+
 ## [2.0.17] - 2025-07-24
 
 ### Added
