@@ -1,10 +1,12 @@
+//! Contains `DatabaseMetricsCollector` an implementation of
+//! prometheus_client::Collector for gathering metrics related to the database
+//! pool used.
 use prometheus_client::{
     collector::Collector,
     encoding::{DescriptorEncoder, EncodeMetric},
     metrics::gauge::ConstGauge,
 };
 use sqlx::PgPool;
-use std::sync::Arc;
 use tracing::debug;
 
 const ACTIVE_DATABASE_CONNECTIONS_METRIC_NAME: &str = "db_connections_active_gauge";
@@ -12,15 +14,15 @@ const IDLE_DATABASE_CONNECTIONS_METRIC_NAME: &str = "db_connections_idle_gauge";
 const MAX_DATABASE_CONNECTIONS_METRIC_NAME: &str = "db_connections_max_gauge";
 
 /// Abstract Database pool definition, with functions to get the database
-/// connections
-pub trait DatabasePool: Send + Sync + std::fmt::Debug {
+/// connections. Defined as a Trait to facilitate mocking for unit tests.
+trait DatabasePool {
     fn get_max_connections(&self) -> u32;
     fn size(&self) -> u32;
     fn num_idle(&self) -> usize;
 }
 
 /// implementation of Database pool for the Pg pool which allows to swap out the
-/// implementation for testing
+/// implementation for testing.
 impl DatabasePool for PgPool {
     fn get_max_connections(&self) -> u32 { self.options().get_max_connections() }
 
@@ -32,19 +34,17 @@ impl DatabasePool for PgPool {
 /// Database metrics collector defines our DatabasePool trait so that the
 /// implementation can be swapped for testing
 #[derive(Debug)]
-pub struct DatabaseMetricsCollector {
-    pool: Arc<dyn DatabasePool>,
+pub struct DatabaseMetricsCollector<DatabasePool> {
+    pool: DatabasePool,
 }
 
 /// Implementation of database metrics collector defines a generic type, and
 /// where this is of type DatabasePool we construct and return a reference to
 /// self
-impl DatabaseMetricsCollector {
-    pub fn new<T>(pool: T) -> Self
-    where
-        T: DatabasePool + 'static, {
+impl<Pool> DatabaseMetricsCollector<Pool> {
+    pub fn new(pool: Pool) -> Self {
         Self {
-            pool: Arc::new(pool),
+            pool,
         }
     }
 }
@@ -54,27 +54,28 @@ impl DatabaseMetricsCollector {
 /// connections, the current pool size which is active + idle connections and
 /// finally the idle connections. Gauges are defined for metrics collection
 /// which are: max, active and idle connections.
-impl Collector for DatabaseMetricsCollector {
+/// send, sync and std::fmt::debug are required by bounds by the Collector and
+/// the 'static keyword is required because the of the Pools lifetime
+impl<Pool: DatabasePool + 'static + Send + Sync + std::fmt::Debug> Collector
+    for DatabaseMetricsCollector<Pool>
+{
     fn encode(&self, mut encoder: DescriptorEncoder) -> Result<(), std::fmt::Error> {
-        let pool = self.pool.clone();
-
-        // get db connections from the pool
-        let max_db_connections_count: u64 = pool.get_max_connections().into();
-        let size_db_connections_count: u64 = pool.size().into();
+        let max_db_connections_count: u64 = self.pool.get_max_connections().into();
+        let size_db_connections_count: u64 = self.pool.size().into();
         let idle_db_connections_count: u64 = u64::try_from(self.pool.num_idle())
-            .expect("expected to convert idle connections to i64");
+            .expect("expected to convert idle connections to u64");
         let active_db_connections_count = size_db_connections_count - idle_db_connections_count;
+
         debug!(
             "db connection metrics now for pool. max: {}, active: {}, idle: {}",
             &max_db_connections_count, &active_db_connections_count, &idle_db_connections_count
         );
 
-        // Create counters
+        // Gauges
         let max_connections_gauge = ConstGauge::new(max_db_connections_count);
         let active_connections_gauge = ConstGauge::new(active_db_connections_count);
         let idle_connections_gauge = ConstGauge::new(idle_db_connections_count);
 
-        // encode max connections metric
         max_connections_gauge.encode(encoder.encode_descriptor(
             MAX_DATABASE_CONNECTIONS_METRIC_NAME,
             "max database connections available",
@@ -82,18 +83,16 @@ impl Collector for DatabaseMetricsCollector {
             max_connections_gauge.metric_type(),
         )?)?;
 
-        // encode active connections metric
         active_connections_gauge.encode(encoder.encode_descriptor(
             ACTIVE_DATABASE_CONNECTIONS_METRIC_NAME,
-            "active database connections available",
+            "active database connections",
             None,
             active_connections_gauge.metric_type(),
         )?)?;
 
-        // encode idle connections metric
         idle_connections_gauge.encode(encoder.encode_descriptor(
             IDLE_DATABASE_CONNECTIONS_METRIC_NAME,
-            "idle database connections available",
+            "idle database connections",
             None,
             idle_connections_gauge.metric_type(),
         )?)?;
@@ -127,11 +126,11 @@ mod tests {
     /// connection pool.
     #[test]
     fn encodes_expected_metrics() {
-        let pool: Arc<dyn DatabasePool> = Arc::new(DummyPool {
+        let pool = DummyPool {
             max:  10,
             size: 8,
             idle: 3,
-        });
+        };
 
         let collector = DatabaseMetricsCollector {
             pool,
