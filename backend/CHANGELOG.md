@@ -16,6 +16,8 @@ Database schema version: 40
 - Added two new tables for plt metrics:
     - `metrics_specific_plt_transfer` to store plt transfer metrics (the data is being stored as cumulative increments by timestamp).
     - `metrics_plt` to store plt metrics (the data is being stored as cumulative increments by timestamp) .
+- Added `last_processed_block_height` and `last_processed_block_slot_time` prometheus gauge metrics so that we can easily see if we have caught up and are processing the latest blocks from the chain.
+- GraphQL API: Optimized the query that fetches paging information for the `blocks` query
 
 ### Changed
 

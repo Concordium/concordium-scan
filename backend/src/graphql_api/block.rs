@@ -82,15 +82,15 @@ impl QueryBlocks {
         )
         .fetch_all(pool)
         .await?;
+
         let has_prev_page = if let Some(first) = rows.first() {
-            sqlx::query_scalar!("SELECT true FROM blocks WHERE height > $1 LIMIT 1", first.height)
-                .fetch_optional(pool)
-                .await?
-                .flatten()
-                .unwrap_or_default()
+            let max_height_option: Option<i64> =
+                sqlx::query_scalar!("SELECT MAX(height) FROM blocks").fetch_one(pool).await?;
+            max_height_option.is_some_and(|height| height > first.height)
         } else {
             false
         };
+
         let has_next_page = if let Some(last) = rows.last() {
             // Genesis block have height 0, so we check whether the last block is higher.
             last.height > 0

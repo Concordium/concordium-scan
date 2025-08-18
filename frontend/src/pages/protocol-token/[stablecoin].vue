@@ -123,7 +123,6 @@
 				</TabBar>
 			</div>
 		</header>
-
 		<Holders
 			v-if="selectedTab === 'holders'"
 			:coin-id="coinId"
@@ -142,7 +141,6 @@
 </template>
 <script lang="ts" setup>
 import { computed, ref } from 'vue'
-
 import TabBar from '~/components/atoms/TabBar.vue'
 import TabBarItem from '~/components/atoms/TabBarItem.vue'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
