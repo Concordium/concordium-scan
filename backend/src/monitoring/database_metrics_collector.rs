@@ -41,8 +41,8 @@ pub struct DatabaseMetricsCollector<DatabasePool> {
 /// Implementation of database metrics collector defines a generic type, and
 /// where this is of type DatabasePool we construct and return a reference to
 /// self
-impl<Pool> DatabaseMetricsCollector<Pool> {
-    pub fn new(pool: Pool) -> Self {
+impl<DatabasePool> DatabaseMetricsCollector<DatabasePool> {
+    pub fn new(pool: DatabasePool) -> Self {
         Self {
             pool,
         }
