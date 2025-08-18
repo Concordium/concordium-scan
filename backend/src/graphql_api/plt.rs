@@ -509,7 +509,9 @@ impl QueryPltAccountAmount {
         // Nested cursor: order by amount DESC, then account_index DESC for
         // deterministic pagination This ensures accounts with same token
         // amounts have a strict ordering
-        type Cursor = NestedCursor<DescendingI64, DescendingI64>;
+        type AmountCursor = DescendingI64;
+        type AccountIndexCursor = DescendingI64;
+        type Cursor = NestedCursor<AmountCursor, AccountIndexCursor>;
         let query = ConnectionQuery::<Cursor>::new(
             first,
             after,
@@ -554,7 +556,11 @@ impl QueryPltAccountAmount {
         .fetch(pool);
         let mut connection = connection::Connection::new(false, false);
         while let Some(tx) = row_stream.try_next().await? {
-            let amount_val = tx.amount.as_ref().and_then(|a| a.to_i64()).unwrap_or(0);
+            let amount_val = tx.amount.as_ref().and_then(|a| a.to_i64()).ok_or_else(|| {
+                ApiError::InternalServerError(InternalError::InternalError(
+                    "Failed to convert amount to i64".to_string(),
+                ))
+            })?;
             let cursor: NestedCursor<DescendingI64, DescendingI64> = NestedCursor {
                 outer: amount_val.into(),
                 inner: tx.account_index.into(),
@@ -564,34 +570,68 @@ impl QueryPltAccountAmount {
         if let (Some(page_min), Some(page_max)) =
             (connection.edges.last(), connection.edges.first())
         {
-            let result = sqlx::query!(
-                r#"SELECT 
-                    MAX(COALESCE(pa.amount, 0)) as max_amount,
-                    MIN(COALESCE(pa.amount, 0)) as min_amount
-                FROM plt_accounts pa
-                JOIN plt_tokens pt ON pa.token_index = pt.index
-                WHERE pt.token_id = $1"#,
+            let collection_ends = sqlx::query!(
+                "WITH
+                    starting AS (
+                        SELECT
+                            account_index AS start_index,
+                            COALESCE(amount, 0) AS start_amount
+                        FROM plt_accounts pa
+                        JOIN plt_tokens pt ON pa.token_index = pt.index
+                        WHERE pt.token_id = $1
+                        ORDER BY COALESCE(amount, 0) DESC, account_index DESC
+                        LIMIT 1
+                    ),
+                    ending AS (
+                        SELECT
+                            account_index AS end_index,
+                            COALESCE(amount, 0) AS end_amount
+                        FROM plt_accounts pa
+                        JOIN plt_tokens pt ON pa.token_index = pt.index
+                        WHERE pt.token_id = $1
+                        ORDER BY COALESCE(amount, 0) ASC, account_index ASC
+                        LIMIT 1
+                    )
+                SELECT * FROM starting, ending",
                 token_id.to_string()
             )
-            .fetch_one(pool)
+            .fetch_optional(pool)
             .await?;
 
-            // Simple boundary checks
-            connection.has_next_page = if let Some(min_amount) = result.min_amount {
-                let last_amount = i64::from(page_min.cursor.outer.clone());
-                let min_amount_i64 = min_amount.to_i64().unwrap_or(0);
-                last_amount > min_amount_i64
-            } else {
-                false
+            let collection_ends = collection_ends.ok_or_else(|| {
+                InternalError::InternalError(
+                    "Failed to find collection ends for a non-empty collection".to_string(),
+                )
+            })?;
+
+            let collection_start_cursor = NestedCursor {
+                outer: collection_ends
+                    .start_amount
+                    .and_then(|a| a.to_i64())
+                    .ok_or_else(|| {
+                        InternalError::InternalError(
+                            "Failed to convert start_amount to i64".to_string(),
+                        )
+                    })?
+                    .into(),
+                inner: collection_ends.start_index.into(),
             };
 
-            connection.has_previous_page = if let Some(max_amount) = result.max_amount {
-                let first_amount = i64::from(page_max.cursor.outer.clone());
-                let max_amount_i64 = max_amount.to_i64().unwrap_or(0);
-                first_amount < max_amount_i64
-            } else {
-                false
+            let collection_end_cursor = NestedCursor {
+                outer: collection_ends
+                    .end_amount
+                    .and_then(|a| a.to_i64())
+                    .ok_or_else(|| {
+                        InternalError::InternalError(
+                            "Failed to convert end_amount to i64".to_string(),
+                        )
+                    })?
+                    .into(),
+                inner: collection_ends.end_index.into(),
             };
+
+            connection.has_previous_page = collection_start_cursor < page_max.cursor;
+            connection.has_next_page = collection_end_cursor > page_min.cursor;
         }
         Ok(connection)
     }

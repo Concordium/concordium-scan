@@ -169,7 +169,6 @@ pub struct ApiServiceConfig {
         default_value = "100"
     )]
     plt_token_events_collection_limit: u64,
-
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_PLT_ACCOUNT_AMOUNT_CONNECTION_LIMIT",
