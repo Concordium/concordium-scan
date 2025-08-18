@@ -17,7 +17,7 @@
 						<div class="flex justify-between pt-4">
 							<p class="text-xl text-theme-faded">Initial Supply</p>
 							<p class="font-bold text-xl text-theme-interactive">
-								<PLtAmount
+								<PltAmount
 									:value="(pltTokenDataRef?.initialSupply ?? 0).toString()"
 									:decimals="pltTokenDataRef?.decimal ?? 0"
 									:format-number="true"
@@ -27,7 +27,7 @@
 						<div class="flex justify-between pt-4">
 							<p class="text-xl text-theme-faded">Current Supply</p>
 							<p class="font-bold text-xl text-theme-interactive">
-								<PLtAmount
+								<PltAmount
 									:value="(pltTokenDataRef?.totalSupply ?? 0).toString()"
 									:decimals="pltTokenDataRef?.decimal ?? 0"
 									:format-number="true"
