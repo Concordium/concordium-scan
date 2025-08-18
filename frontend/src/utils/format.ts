@@ -259,3 +259,46 @@ export const calculateActualValue = (value: string, decimals: number) => {
 	// return the actual value as a string
 	return actualValue
 }
+
+/**
+ * Calculates percentage for BigInt values with 2 decimal precision
+ *
+ * Since BigInt division truncates decimals,this is a scaling technique:
+ * 1. Multiply numerator by 10000 to preserve 4 decimal places in division
+ * 2. Split result into integer and fractional parts
+ * 3. Format as percentage with 2 decimal places
+ *
+ * @param value - The numerator value as BigInt
+ * @param total - The denominator value as BigInt
+ * @returns Percentage as string(bigint can not represent decimals) with 2 decimal places (e.g., "12.34")
+ *
+ * @example
+ * calculatePercentageforBigInt(25n, 100n) // returns "25.00"
+ * calculatePercentageforBigInt(1n, 3n)    // returns "33.33"
+ * calculatePercentageforBigInt(1n, 7n)    // returns "14.28"
+ */
+export const calculatePercentageforBigInt = (
+	value: bigint,
+	total: bigint
+): string => {
+	// Scale up by 10000 to preserve 4 decimal places during BigInt division
+	// This allows us to extract 2 decimal places for percentage display
+	const scaledResult = (value * BigInt(10000)) / total
+
+	// Convert to string to manually extract integer and decimal parts
+	const resultString = scaledResult.toString()
+	const DECIMAL_PLACES = 2
+
+	// Split the scaled result into integer and decimal parts
+	if (resultString.length <= DECIMAL_PLACES) {
+		// Handle small numbers: pad with leading zeros for decimal part
+		const integerPart = 0
+		const decimalPart = resultString.padStart(DECIMAL_PLACES, '0')
+		return `${integerPart}.${decimalPart}`
+	} else {
+		// Handle normal numbers: split at decimal position
+		const integerPart = resultString.slice(0, -DECIMAL_PLACES)
+		const decimalPart = resultString.slice(-DECIMAL_PLACES)
+		return `${integerPart}.${decimalPart}`
+	}
+}
