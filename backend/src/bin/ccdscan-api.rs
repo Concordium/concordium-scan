@@ -65,9 +65,6 @@ struct Cli {
     /// backend
     #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_PULL_FREQUENCY_SECS", default_value_t = 5)]
     node_collector_backend_pull_frequency_secs: u64,
-    /// Frequency in seconds of how often to update database metrics
-    #[arg(long, env = "CCDSCAN_API_UPDATE_DATABASE_METRICS_FREQUENCY_SECS", default_value_t = 1)]
-    database_metrics_update_frequency_secs: u64,
     /// Request timeout when awaiting response from the node collector backend
     /// in seconds.
     #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_CLIENT_TIMEOUT_SECS", default_value_t = 30)]
