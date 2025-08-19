@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-- Fixed transaction details for `TokenUpdate` not displaying decimal places properly.
+- Fixed transaction event details for `TokenUpdate` not displaying decimal places properly.
 
 ### Added
 
