@@ -98,7 +98,7 @@ ON plt_accounts (token_index, amount DESC);
 
 
 -- Create table for transfer metrics PLT with cumulative data
-CREATE TABLE metrics_specific_plt_transfer (
+CREATE TABLE metrics_plt_transfer (
 id BIGSERIAL PRIMARY KEY,
 event_timestamp TIMESTAMPTZ NOT NULL,
 token_index BIGINT NOT NULL,
@@ -106,12 +106,12 @@ cumulative_transfer_count BIGINT NOT NULL DEFAULT 0,
 cumulative_transfer_amount NUMERIC NOT NULL DEFAULT 0
 );
 
--- Create index on metrics_specific_plt_transfer for faster queries
+-- Create index on metrics_plt_transfer for faster queries
 CREATE INDEX IF NOT EXISTS idx_metrics_plt_transfer_token_time
-ON metrics_specific_plt_transfer (token_index, event_timestamp DESC)
+ON metrics_plt_transfer (token_index, event_timestamp DESC)
 INCLUDE (cumulative_transfer_count, cumulative_transfer_amount);
 
--- Backfill metrics_specific_plt_transfer table with cumulative data 
+-- Backfill metrics_plt_transfer table with cumulative data 
 DO $$
 DECLARE
     batch_size INTEGER := 50000; -- Larger batch for 
@@ -122,7 +122,7 @@ DECLARE
 BEGIN
     -- Get the maximum ID to know when to stop
     SELECT COALESCE(MAX(id), 0) INTO max_id FROM plt_events WHERE event_type = 'Transfer';
-    RAISE NOTICE 'Starting backfill of metrics_specific_plt_transfer. Processing IDs from % to %', min_id, max_id;
+    RAISE NOTICE 'Starting backfill of metrics_plt_transfer. Processing IDs from % to %', min_id, max_id;
 
     WHILE min_id < max_id LOOP
         WITH transfer_events AS (
@@ -164,13 +164,13 @@ BEGIN
             FROM cumulative_data cd
             LEFT JOIN LATERAL (
                 SELECT cumulative_transfer_count, cumulative_transfer_amount
-                FROM metrics_specific_plt_transfer ptm
+                FROM metrics_plt_transfer ptm
                 WHERE ptm.token_index = cd.token_index
                 ORDER BY ptm.event_timestamp DESC, ptm.id DESC
                 LIMIT 1
             ) prev ON true
         )
-        INSERT INTO metrics_specific_plt_transfer (
+        INSERT INTO metrics_plt_transfer (
             event_timestamp, token_index, 
             cumulative_transfer_count, cumulative_transfer_amount
         )
@@ -192,7 +192,7 @@ BEGIN
         PERFORM pg_sleep(0.1);
     END LOOP;
 
-    RAISE NOTICE 'Finished backfilling metrics_specific_plt_transfer. Total rows processed: %', total_processed;
+    RAISE NOTICE 'Finished backfilling metrics_plt_transfer. Total rows processed: %', total_processed;
 END $$;
 
 

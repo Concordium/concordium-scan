@@ -22,7 +22,7 @@ latest_per_bucket AS (
   FROM buckets b
   LEFT JOIN LATERAL (
     SELECT *
-    FROM metrics_specific_plt_transfer tm
+    FROM metrics_plt_transfer tm
     WHERE tm.event_timestamp <= b.bucket_start
       AND tm.token_index = $3::BIGINT
     ORDER BY tm.event_timestamp DESC

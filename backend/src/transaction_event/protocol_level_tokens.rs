@@ -815,7 +815,7 @@ impl PreparedTokenUpdate {
 
                     // METRICS UPDATE 2: Token-specific transfer statistics
                     //
-                    // Updates metrics_specific_plt_transfer table for per-token analytics:
+                    // Updates metrics_plt_transfer table for per-token analytics:
                     // - cumulative_transfer_count: Number of transfer events for this token_index
                     // - cumulative_transfer_amount: Raw amount sum for this token_index (preserves
                     //   decimals)
@@ -826,19 +826,19 @@ impl PreparedTokenUpdate {
                     // - Raw amount preserves original precision for token-specific calculations
                     sqlx::query!(
                         "
-                        INSERT INTO metrics_specific_plt_transfer (event_timestamp, token_index, \
+                        INSERT INTO metrics_plt_transfer (event_timestamp, token_index, \
                          cumulative_transfer_count, cumulative_transfer_amount)
                         SELECT 
                             $1,
                             $2,
                             COALESCE((
                                 SELECT cumulative_transfer_count FROM \
-                         metrics_specific_plt_transfer 
+                         metrics_plt_transfer 
                                 WHERE token_index = $2 ORDER BY event_timestamp DESC LIMIT 1
                             ), 0) + 1,
                             COALESCE((
                                 SELECT cumulative_transfer_amount FROM \
-                         metrics_specific_plt_transfer 
+                         metrics_plt_transfer 
                                 WHERE token_index = $2 ORDER BY event_timestamp DESC LIMIT 1
                             ), 0) + $3
                         ",
