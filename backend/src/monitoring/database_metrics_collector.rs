@@ -9,7 +9,7 @@ use prometheus_client::{
 use sqlx::PgPool;
 use tracing::debug;
 
-const ACTIVE_DATABASE_CONNECTIONS_METRIC_NAME: &str = "db_connections_active_gauge";
+const ACQUIRED_DATABASE_CONNECTIONS_METRIC_NAME: &str = "db_connections_acquired_gauge";
 const IDLE_DATABASE_CONNECTIONS_METRIC_NAME: &str = "db_connections_idle_gauge";
 const MAX_DATABASE_CONNECTIONS_METRIC_NAME: &str = "db_connections_max_gauge";
 
@@ -51,9 +51,9 @@ impl<DatabasePool> DatabaseMetricsCollector<DatabasePool> {
 
 /// Implements the Collector where its function `encode` is called each time the
 /// data is scraped for prometheus. Our pool reference is used to get the max db
-/// connections, the current pool size which is active + idle connections and
-/// finally the idle connections. Gauges are defined for metrics collection
-/// which are: max, active and idle connections.
+/// connections, the current pool size which is active(acquired) + idle
+/// connections and finally the idle connections. Gauges are defined for metrics
+/// collection which are: max, acquired and idle connections.
 /// send, sync and std::fmt::debug are required by bounds by the Collector and
 /// the 'static keyword is required because the of the Pools lifetime
 impl<Pool: DatabasePool + 'static + Send + Sync + std::fmt::Debug> Collector
@@ -64,16 +64,16 @@ impl<Pool: DatabasePool + 'static + Send + Sync + std::fmt::Debug> Collector
         let size_db_connections_count: u64 = self.pool.size().into();
         let idle_db_connections_count: u64 = u64::try_from(self.pool.num_idle())
             .expect("expected to convert idle connections to u64");
-        let active_db_connections_count = size_db_connections_count - idle_db_connections_count;
+        let acquired_db_connections_count = size_db_connections_count - idle_db_connections_count;
 
         debug!(
-            "db connection metrics now for pool. max: {}, active: {}, idle: {}",
-            &max_db_connections_count, &active_db_connections_count, &idle_db_connections_count
+            "db connection metrics now for pool. max: {}, acquired: {}, idle: {}",
+            &max_db_connections_count, &acquired_db_connections_count, &idle_db_connections_count
         );
 
         // Gauges
         let max_connections_gauge = ConstGauge::new(max_db_connections_count);
-        let active_connections_gauge = ConstGauge::new(active_db_connections_count);
+        let acquired_connections_gauge = ConstGauge::new(acquired_db_connections_count);
         let idle_connections_gauge = ConstGauge::new(idle_db_connections_count);
 
         max_connections_gauge.encode(encoder.encode_descriptor(
@@ -83,11 +83,11 @@ impl<Pool: DatabasePool + 'static + Send + Sync + std::fmt::Debug> Collector
             max_connections_gauge.metric_type(),
         )?)?;
 
-        active_connections_gauge.encode(encoder.encode_descriptor(
-            ACTIVE_DATABASE_CONNECTIONS_METRIC_NAME,
-            "active database connections",
+        acquired_connections_gauge.encode(encoder.encode_descriptor(
+            ACQUIRED_DATABASE_CONNECTIONS_METRIC_NAME,
+            "acquired database connections",
             None,
-            active_connections_gauge.metric_type(),
+            acquired_connections_gauge.metric_type(),
         )?)?;
 
         idle_connections_gauge.encode(encoder.encode_descriptor(
@@ -142,7 +142,7 @@ mod tests {
         let mut buf = String::new();
         prometheus_client::encoding::text::encode(&mut buf, &registry).unwrap();
 
-        assert!(buf.contains("db_connections_active_gauge 5"));
+        assert!(buf.contains("db_connections_acquired_gauge 5"));
         assert!(buf.contains("db_connections_idle_gauge 3"));
         assert!(buf.contains("db_connections_max_gauge 10"));
     }
