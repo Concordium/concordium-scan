@@ -1,8 +1,8 @@
-/// Contains the GraphQL query for PLT transfer metrics.
-/// This query retrieves metrics related to PLT token transfer events over a
-/// specified period for a specific token (token_id is mandatory). It provides
-/// bucketed data for visualizing transfer trends over time using pre-calculated
-/// cumulative metrics for optimal performance.
+//! Contains the GraphQL query for PLT transfer metrics.
+//! This query retrieves metrics related to PLT token transfer events over a
+//! specified period for a specific token (token_id is mandatory). It provides
+//! bucketed data for visualizing transfer trends over time using pre-calculated
+//! cumulative metrics for optimal performance.
 use std::sync::Arc;
 
 use async_graphql::{Context, Object, SimpleObject};

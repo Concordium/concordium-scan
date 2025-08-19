@@ -22,20 +22,6 @@
 						"
 					/>
 				</CarouselSlide>
-				<CarouselSlide class="w-full lg:h-full">
-					<!-- <Filter
-						v-model="topHolder"
-						:data="[
-							{ label: 'Top 10', value: TransactionFilterOption.Top10 },
-							{ label: 'Top 20', value: TransactionFilterOption.Top20 },
-						]"
-					/> -->
-					<!-- <StableCoinTokenDistributionByHolder
-						:token-transfer-data="pagedData"
-						:is-loading="pltHolderLoading"
-						:total-supply="props.totalSupply"
-					/> -->
-				</CarouselSlide>
 			</FtbCarousel>
 		</div>
 	</div>
@@ -50,22 +36,17 @@ import { usePltTransferMetricsQueryByTokenId } from '~/queries/usePltTransferMet
 import { MetricsPeriod } from '~/types/generated'
 import { ref, watch } from 'vue'
 
-// Define Props
 const props = defineProps<{
 	coinId: string
 	totalSupply: bigint
 }>()
-// Loading state
 
 const coinId = props.coinId
-// Loading state
 
 const days = ref(MetricsPeriod.Last7Days)
 watch(days, newValue => {
 	selectedMetricsPeriod.value = newValue
 })
-
-// Handle undefined props
 
 const selectedMetricsPeriod = ref(MetricsPeriod.Last24Hours)
 

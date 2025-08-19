@@ -15,6 +15,7 @@ use crate::{
     },
 };
 use anyhow::Context;
+use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
     base::{
         contracts_common::HashSet,
@@ -169,7 +170,11 @@ impl PreparedBlockItem {
         })
     }
 
-    pub async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
+    pub async fn save(
+        &self,
+        tx: &mut sqlx::PgTransaction<'_>,
+        slot_time: DateTime<Utc>,
+    ) -> anyhow::Result<()> {
         let reject = if let Some(reason) = &self.reject {
             Some(reason.process(tx).await?)
         } else {
@@ -247,7 +252,7 @@ impl PreparedBlockItem {
         .await?
         .ensure_affected_rows(self.affected_accounts.len().try_into()?)
         .context("Failed incrementing num_txs for account")?;
-        self.prepared_event.save(tx, tx_idx).await.with_context(|| {
+        self.prepared_event.save(tx, tx_idx, slot_time).await.with_context(|| {
             format!(
                 "Failed processing block item event from {:?} transaction",
                 self.transaction_type
@@ -311,16 +316,19 @@ impl PreparedBlockItemEvent {
         &self,
         tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
+        slot_time: DateTime<Utc>,
     ) -> anyhow::Result<()> {
         match self {
             PreparedBlockItemEvent::AccountCreation(event) => {
                 event.save(tx, transaction_index).await
             }
             PreparedBlockItemEvent::AccountTransaction(account_transaction_event) => {
-                account_transaction_event.save(tx, transaction_index).await
+                account_transaction_event.save(tx, transaction_index, slot_time).await
             }
             PreparedBlockItemEvent::ChainUpdate => Ok(()),
-            PreparedBlockItemEvent::TokenCreation(event) => event.save(tx, transaction_index).await,
+            PreparedBlockItemEvent::TokenCreation(event) => {
+                event.save(tx, transaction_index, slot_time).await
+            }
         }
     }
 }

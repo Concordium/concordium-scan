@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO plt_events (\n                id,\n                transaction_index,\n                event_type,\n                token_module_type,\n                token_index,\n                token_event,\n                event_timestamp,\n                amount_value,\n                amount_decimals\n            )\n            VALUES (\n                (SELECT COALESCE(MAX(id) + 1, 0) FROM plt_events),\n                $1,\n                 $2,\n                 $3,\n                (SELECT index FROM plt_tokens WHERE token_id = $4),\n                $5,\n                (SELECT slot_time from blocks WHERE height = (SELECT block_height FROM transactions WHERE index = $1)), \n                $6,\n                $7)\n            ",
+  "query": "\n            INSERT INTO plt_events (\n                id,\n                transaction_index,\n                event_type,\n                token_module_type,\n                token_index,\n                token_event,\n                event_timestamp,\n                amount_value,\n                amount_decimals\n            )\n            VALUES (\n                (SELECT COALESCE(MAX(id) + 1, 0) FROM plt_events),\n                $1,\n                 $2,\n                 $3,\n                (SELECT index FROM plt_tokens WHERE token_id = $4),\n                $5,\n                $6,\n                $7,\n                $8)\n            ",
   "describe": {
     "columns": [],
     "parameters": {
@@ -36,11 +36,12 @@
         },
         "Text",
         "Jsonb",
+        "Timestamptz",
         "Numeric",
         "Int4"
       ]
     },
     "nullable": []
   },
-  "hash": "9a19a994714d3ddf98f24d81ffaa89a417c7521ffdb38ff7efcbe789b47252fe"
+  "hash": "df89e4f5f2300c9b6409761d096bb8f709bc134a614064191323ecf9e7dd5940"
 }

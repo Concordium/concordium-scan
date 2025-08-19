@@ -274,7 +274,7 @@ impl PreparedBlock {
             migration.save(tx).await?;
         }
         for item in self.prepared_block_items.iter() {
-            item.save(tx).await.with_context(|| {
+            item.save(tx, self.slot_time).await.with_context(|| {
                 format!(
                     "Failed processing block item with hash {} for block height {}",
                     item.block_item_hash, item.block_height
