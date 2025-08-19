@@ -832,13 +832,11 @@ impl PreparedTokenUpdate {
                             $1,
                             $2,
                             COALESCE((
-                                SELECT cumulative_transfer_count FROM \
-                         metrics_plt_transfer 
+                                SELECT cumulative_transfer_count FROM metrics_plt_transfer 
                                 WHERE token_index = $2 ORDER BY event_timestamp DESC LIMIT 1
                             ), 0) + 1,
                             COALESCE((
-                                SELECT cumulative_transfer_amount FROM \
-                         metrics_plt_transfer 
+                                SELECT cumulative_transfer_amount FROM metrics_plt_transfer 
                                 WHERE token_index = $2 ORDER BY event_timestamp DESC LIMIT 1
                             ), 0) + $3
                         ",
