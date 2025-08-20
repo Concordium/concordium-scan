@@ -15,7 +15,6 @@ const PltMetricsQuery = gql<PltMetricsQueryResponse>`
 		globalPltMetrics(period: $period) {
 			eventCount
 			transferVolume
-			
 		}
 	}
 `
@@ -35,7 +34,10 @@ export type PltTransferMetricsQueryResponse = {
 }
 
 const PltTransferMetricsQueryByTokenId = gql<PltTransferMetricsQueryResponse>`
-	query PltTransferMetricsByTokenId($period: MetricsPeriod!, $tokenId: String!) {
+	query PltTransferMetricsByTokenId(
+		$period: MetricsPeriod!
+		$tokenId: String!
+	) {
 		pltTransferMetricsByTokenId(period: $period, tokenId: $tokenId) {
 			transferCount
 			transferVolume

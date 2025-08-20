@@ -18,7 +18,8 @@
 						:is-loading="isLoading"
 						:transfer-summary="pltTransferMetricsDataRef"
 						:decimals="
-							pltTransferMetricsDataRef?.pltTransferMetricsByTokenId.decimal || 0
+							pltTransferMetricsDataRef?.pltTransferMetricsByTokenId.decimal ||
+							0
 						"
 					/>
 				</CarouselSlide>

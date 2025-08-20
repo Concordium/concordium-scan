@@ -62,49 +62,55 @@ const props = defineProps<{
 
 // Computed Properties
 const chartLabels = computed(() => {
-	const interval = props.transferSummary?.pltTransferMetricsByTokenId.buckets.bucketWidth
+	const interval =
+		props.transferSummary?.pltTransferMetricsByTokenId.buckets.bucketWidth
 	switch (interval) {
 		case 'PT1H':
 			return (
-				props.transferSummary?.pltTransferMetricsByTokenId.buckets['x_Time'].map(
-					(item: string) =>
-						new Date(item).toLocaleDateString('en-UK', {
-							hour: '2-digit',
-							minute: '2-digit',
-							month: 'short',
-							day: 'numeric',
-							year: 'numeric',
-						})
+				props.transferSummary?.pltTransferMetricsByTokenId.buckets[
+					'x_Time'
+				].map((item: string) =>
+					new Date(item).toLocaleDateString('en-UK', {
+						hour: '2-digit',
+						minute: '2-digit',
+						month: 'short',
+						day: 'numeric',
+						year: 'numeric',
+					})
 				) || []
 			)
 
 		case 'PT6H':
 			return (
-				props.transferSummary?.pltTransferMetricsByTokenId.buckets['x_Time'].map(
-					(item: string) =>
-						new Date(item).toLocaleDateString('en-UK', {
-							hour: '2-digit',
-							minute: '2-digit',
-							month: 'short',
-							day: 'numeric',
-							year: 'numeric',
-						})
+				props.transferSummary?.pltTransferMetricsByTokenId.buckets[
+					'x_Time'
+				].map((item: string) =>
+					new Date(item).toLocaleDateString('en-UK', {
+						hour: '2-digit',
+						minute: '2-digit',
+						month: 'short',
+						day: 'numeric',
+						year: 'numeric',
+					})
 				) || []
 			)
 		case 'P1D':
 			return (
-				props.transferSummary?.pltTransferMetricsByTokenId.buckets['x_Time'].map(
-					(item: string) =>
-						new Date(item).toLocaleDateString('en-UK', {
-							month: 'short',
-							day: 'numeric',
-							year: 'numeric',
-						})
+				props.transferSummary?.pltTransferMetricsByTokenId.buckets[
+					'x_Time'
+				].map((item: string) =>
+					new Date(item).toLocaleDateString('en-UK', {
+						month: 'short',
+						day: 'numeric',
+						year: 'numeric',
+					})
 				) || []
 			)
 		case 'P3D':
 			return (
-				props.transferSummary?.pltTransferMetricsByTokenId.buckets['x_Time'].map(
+				props.transferSummary?.pltTransferMetricsByTokenId.buckets[
+					'x_Time'
+				].map(
 					(item: string) =>
 						new Date(item).toLocaleDateString('en-UK', {
 							day: 'numeric',
@@ -121,7 +127,9 @@ const chartLabels = computed(() => {
 			)
 		case 'P15D':
 			return (
-				props.transferSummary?.pltTransferMetricsByTokenId.buckets['x_Time'].map(
+				props.transferSummary?.pltTransferMetricsByTokenId.buckets[
+					'x_Time'
+				].map(
 					(item: string) =>
 						new Date(item).toLocaleDateString('en-UK', {
 							day: 'numeric',
@@ -142,7 +150,9 @@ const chartLabels = computed(() => {
 })
 
 const barGraphValues = computed<number[]>(
-	() => props.transferSummary?.pltTransferMetricsByTokenId.buckets.y_TransferCount ?? []
+	() =>
+		props.transferSummary?.pltTransferMetricsByTokenId.buckets
+			.y_TransferCount ?? []
 )
 
 const lineGraphValues = computed<number[]>(
