@@ -660,25 +660,19 @@ impl PreparedTokenUpdate {
         match self.event_type {
             TokenUpdateEventType::Mint => {
                 if let Some(ref target) = self.target {
-                    let account_exists = self.check_if_account_exists(tx, target).await?;
                     self.update_total_minted(tx).await?;
                     self.update_account_balance(tx, target, &self.plt_amount_change).await?;
-                    tracing::debug!(
-                        "Mint: target={}, amount={}, new_account={}",
-                        target,
-                        self.plt_amount_change,
-                        !account_exists
-                    );
-                    if !account_exists {
-                        self.update_metrics_plt_unique_account_count(tx, slot_time).await?;
-                    }
+
+                    self.update_metrics_plt_unique_account_count(tx, slot_time).await?;
                 }
             }
             TokenUpdateEventType::Burn => {
                 if let Some(ref target) = self.target {
                     self.update_total_burned(tx).await?;
-                    self.update_account_balance(tx, target, &(-&self.plt_amount_change)).await?;
-                    tracing::debug!("Burn: target={}, amount={}", target, self.plt_amount_change);
+                    let final_balance = self.update_account_balance_and_check_zero(tx, target, &(-&self.plt_amount_change)).await?;
+                    if final_balance == BigDecimal::from(0) {
+                        self.update_metrics_plt_unique_account_count_decrement(tx, slot_time).await?;
+                    }
                 }
             }
             TokenUpdateEventType::Transfer => {
@@ -722,7 +716,7 @@ impl PreparedTokenUpdate {
                             FROM account_checks
                             ON CONFLICT (account_index, token_index) DO UPDATE
                             SET amount = plt_accounts.amount + $4
-                            RETURNING 1
+                            RETURNING amount as from_balance
                         ),
                         to_balance_updates AS (
                             INSERT INTO plt_accounts (account_index, token_index, amount, decimal)
@@ -734,9 +728,14 @@ impl PreparedTokenUpdate {
                             FROM account_checks
                             ON CONFLICT (account_index, token_index) DO UPDATE
                             SET amount = plt_accounts.amount + $5
-                            RETURNING 1
+                            RETURNING amount as to_balance
                         )
-                        SELECT token_idx, from_existed, to_existed FROM account_checks
+                        SELECT 
+                            token_idx, 
+                            from_existed, 
+                            to_existed,
+                            COALESCE((SELECT from_balance FROM balance_updates), 0) as from_final_balance
+                        FROM account_checks
                         ",
                         from,
                         to,
@@ -749,19 +748,18 @@ impl PreparedTokenUpdate {
 
                     let from_existed = result.from_existed.unwrap_or(false);
                     let to_existed = result.to_existed.unwrap_or(false);
-                    let new_accounts = (!from_existed as i64) + (!to_existed as i64);
+                    let from_final_balance = result.from_final_balance.unwrap_or_else(|| BigDecimal::from(0));
+                    
+                    // Calculate unique account changes: +1 for new accounts, -1 for zero balances
+                    let mut new_accounts = 0i64;
+                    if !from_existed { new_accounts += 1; }
+                    if !to_existed { new_accounts += 1; }
+                    if from_existed && from_final_balance == BigDecimal::from(0) { new_accounts -= 1; }
+                    
                     let token_idx = result
                         .token_idx
                         .ok_or_else(|| anyhow::anyhow!("Token not found: {}", self.token_id))?;
 
-                    tracing::debug!(
-                        "Transfer: from={}, to={}, amount={}, new_from={}, new_to={}",
-                        from,
-                        to,
-                        self.plt_amount_change,
-                        !from_existed,
-                        !to_existed
-                    );
 
                     let normalized_amount = self.plt_amount_change.clone()
                         / BigDecimal::from(10u64.pow(self.amount_decimals as u32));
@@ -789,7 +787,7 @@ impl PreparedTokenUpdate {
                         )
                         INSERT INTO metrics_plt (event_timestamp, cumulative_event_count, \
                          cumulative_transfer_amount, unique_account_count)
-                        SELECT $1, prev_events, prev_transfers + $2, prev_unique + $3
+                        SELECT $1, prev_events, prev_transfers + $2, GREATEST(prev_unique + $3, 0)
                         FROM latest_metrics
                         ON CONFLICT (event_timestamp) DO UPDATE SET
                             cumulative_transfer_amount = \
@@ -805,13 +803,6 @@ impl PreparedTokenUpdate {
                     .execute(tx.as_mut())
                     .await?;
 
-                    tracing::debug!(
-                        "Transfer metrics updated: event_timestamp={}, \
-                         cumulative_transfer_amount={}, unique_account_count={}",
-                        slot_time,
-                        normalized_amount,
-                        new_accounts
-                    );
 
                     // METRICS UPDATE 2: Token-specific transfer statistics
                     //
@@ -846,13 +837,7 @@ impl PreparedTokenUpdate {
                     )
                     .execute(tx.as_mut())
                     .await?;
-                    tracing::debug!(
-                        "Transfer metrics updated for token_index={}, event_timestamp={}, \
-                         cumulative_transfer_amount={}",
-                        token_idx,
-                        slot_time,
-                        self.plt_amount_change
-                    );
+
                 }
             }
             TokenUpdateEventType::TokenModule => {}
@@ -953,23 +938,6 @@ impl PreparedTokenUpdate {
         Ok(())
     }
 
-    async fn check_if_account_exists(
-        &self,
-        tx: &mut sqlx::PgTransaction<'_>,
-        account: &str,
-    ) -> anyhow::Result<bool> {
-        let exists = sqlx::query!(
-            "SELECT EXISTS(SELECT 1 FROM plt_accounts WHERE account_index = (SELECT index FROM \
-             accounts WHERE address = $1))",
-            account,
-        )
-        .fetch_one(tx.as_mut())
-        .await?
-        .exists
-        .unwrap_or(false);
-        Ok(exists)
-    }
-
     async fn update_total_minted(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         sqlx::query!(
             "UPDATE plt_tokens SET total_minted = total_minted + $1 WHERE token_id = $2",
@@ -1016,6 +984,63 @@ impl PreparedTokenUpdate {
         )
         .execute(tx.as_mut())
         .await?;
+        Ok(())
+    }
+
+    async fn update_account_balance_and_check_zero(
+        &self,
+        tx: &mut sqlx::PgTransaction<'_>,
+        account: &str,
+        amount: &BigDecimal,
+    ) -> anyhow::Result<BigDecimal> {
+        let final_balance = sqlx::query_scalar!(
+            "INSERT INTO plt_accounts (account_index, token_index, amount, decimal)
+             VALUES ((SELECT index FROM accounts WHERE address = $1), (SELECT index FROM plt_tokens WHERE token_id = $2), $3, (SELECT decimal FROM plt_tokens WHERE token_id = $2))
+             ON CONFLICT (account_index, token_index) DO UPDATE SET amount = plt_accounts.amount + $3
+             RETURNING amount",
+            account, self.token_id, amount
+        ).fetch_optional(tx.as_mut()).await?.flatten().unwrap_or_else(|| BigDecimal::from(0));
+        
+        Ok(final_balance)
+    }
+
+    async fn update_metrics_plt_unique_account_count_decrement(
+        &self,
+        tx: &mut sqlx::PgTransaction<'_>,
+        event_timestamp: chrono::DateTime<chrono::Utc>,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            "
+            WITH latest_metrics AS (
+                SELECT 
+                    COALESCE(cumulative_event_count, 0) AS prev_event_count,
+                    COALESCE(cumulative_transfer_amount, 0) AS prev_transfer_amount,
+                    COALESCE(unique_account_count, 0) AS prev_unique_count
+                FROM metrics_plt 
+                ORDER BY event_timestamp DESC 
+                LIMIT 1
+            )
+            INSERT INTO metrics_plt (
+                event_timestamp, 
+                cumulative_event_count,
+                cumulative_transfer_amount,
+                unique_account_count
+            )
+            SELECT 
+                $1,
+                lm.prev_event_count,
+                lm.prev_transfer_amount,
+                GREATEST(lm.prev_unique_count - 1, 0)
+            FROM latest_metrics lm
+            ON CONFLICT (event_timestamp) DO UPDATE SET
+                unique_account_count = GREATEST(metrics_plt.unique_account_count, \
+             EXCLUDED.unique_account_count)
+            ",
+            event_timestamp
+        )
+        .execute(tx.as_mut())
+        .await?;
+
         Ok(())
     }
 }

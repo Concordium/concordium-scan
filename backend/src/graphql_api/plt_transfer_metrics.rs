@@ -14,17 +14,18 @@ use crate::{
 };
 
 #[derive(Default)]
-pub(crate) struct QueryPltTransferMetrics;
+pub(crate) struct QueryPltTransferMetricsByTokenId;
 
 /// This struct is used to define the GraphQL query for PLT transfer metrics.
 #[derive(SimpleObject)]
-struct PltTransferMetrics {
+struct PltTransferMetricsByTokenId {
     // Total number of transfers in the requested period.
     transfer_count:  i64,
     // Total volume of transfers in the requested period.
     transfer_volume: f64,
-    // Buckets for the PLT transfer metrics.
+    // Decimal places of the token
     decimal:         i32,
+    // Buckets for the PLT transfer metrics.
     buckets:         PltTransferMetricsBuckets,
 }
 /// This struct is used to define the buckets for PLT transfer metrics.
@@ -49,13 +50,13 @@ struct PltTransferMetricsBuckets {
 /// bucketed data for analysis using pre-calculated cumulative transfer metrics
 /// for optimal performance and focuses exclusively on transfer analytics.
 #[Object]
-impl QueryPltTransferMetrics {
-    async fn plt_transfer_metrics(
+impl QueryPltTransferMetricsByTokenId {
+    async fn plt_transfer_metrics_by_token_id(
         &self,
         ctx: &Context<'_>,
         period: MetricsPeriod,
         token_id: TokenId,
-    ) -> ApiResult<PltTransferMetrics> {
+    ) -> ApiResult<PltTransferMetricsByTokenId> {
         let pool = get_pool(ctx)?;
 
         let period_interval: PgInterval = period
@@ -84,13 +85,6 @@ impl QueryPltTransferMetrics {
         )
         .fetch_all(pool)
         .await?;
-        // Remove the first element from the rows if it exists, as it can have redundant
-        // data
-        let rows = if rows.is_empty() {
-            &[]
-        } else {
-            &rows[1..]
-        };
 
         let mut x_time = Vec::with_capacity(rows.len());
         let mut y_transfer_count = Vec::with_capacity(rows.len());
@@ -119,7 +113,7 @@ impl QueryPltTransferMetrics {
             y_transfer_volume.push(transfer_volume);
         }
 
-        Ok(PltTransferMetrics {
+        Ok(PltTransferMetricsByTokenId {
             transfer_count:  total_transfer_count,
             transfer_volume: total_transfer_volume,
             decimal:         plt_token_decimal,
@@ -135,19 +129,26 @@ impl QueryPltTransferMetrics {
 }
 
 #[derive(Default)]
+pub(crate) struct QueryGlobalPltMetrics;
 
-pub(crate) struct QueryPltMetrics;
 
+/// Represents protocol-level token (PLT) metrics for a given period.
+///
+/// This struct is returned by the GraphQL API and provides summary statistics
+/// for PLT token activity over a specified time window.
 #[derive(SimpleObject)]
-struct PltMetrics {
-    transaction_count: i64,
+struct GlobalPltMetrics {
+    /// Total number of PLT events (transfers, mints, burns, etc.) in the period.
+    event_count: i64,
+    /// Total volume(amount) of PLT tokens transferred in the period.
     transfer_volume:   f64,
-    unique_accounts:   i64,
+
 }
 
 #[Object]
-impl QueryPltMetrics {
-    async fn plt_metrics(&self, ctx: &Context<'_>, period: MetricsPeriod) -> ApiResult<PltMetrics> {
+impl QueryGlobalPltMetrics {
+    // Query for PLT metrics over a specified time period.
+    async fn global_plt_metrics(&self, ctx: &Context<'_>, period: MetricsPeriod) -> ApiResult<GlobalPltMetrics> {
         let pool = get_pool(ctx)?;
         let period_interval: PgInterval = period
             .as_duration()
@@ -155,29 +156,42 @@ impl QueryPltMetrics {
             .map_err(|e| ApiError::DurationOutOfRange(Arc::new(e)))?;
 
         let row = sqlx::query!(
-            "SELECT cumulative_event_count, cumulative_transfer_amount, unique_account_count
-            FROM metrics_plt
-            WHERE event_timestamp >= NOW() - $1::interval
-            ORDER BY event_timestamp DESC
-            LIMIT 1",
+            "WITH
+                start_row AS (
+                    SELECT cumulative_event_count, cumulative_transfer_amount
+                    FROM metrics_plt
+                    WHERE event_timestamp < NOW() - $1::interval
+                    ORDER BY event_timestamp DESC
+                    LIMIT 1
+                ),
+                end_row AS (
+                    SELECT cumulative_event_count, cumulative_transfer_amount
+                    FROM metrics_plt
+                    WHERE event_timestamp >= NOW() - $1::interval
+                    ORDER BY event_timestamp DESC
+                    LIMIT 1
+                )
+                SELECT
+               GREATEST(COALESCE((SELECT cumulative_event_count FROM end_row), 0) - COALESCE((SELECT cumulative_event_count FROM start_row), 0), 0) AS event_count,
+               GREATEST(COALESCE((SELECT cumulative_transfer_amount FROM end_row), 0) - COALESCE((SELECT cumulative_transfer_amount FROM start_row), 0), 0) AS transfer_volume;",
             period_interval
         )
         .fetch_optional(pool)
         .await?;
 
-        let (transaction_count, transfer_volume, unique_accounts) = if let Some(row) = row {
-            let transfer_volume =
-                row.cumulative_transfer_amount.to_string().parse::<f64>().unwrap_or(0.0);
+        let (event_count, transfer_volume) = if let Some(row) = row {
 
-            (row.cumulative_event_count, transfer_volume, row.unique_account_count)
+
+            (row.event_count.unwrap_or(0), row.transfer_volume .as_ref()
+                    .and_then(num_traits::ToPrimitive::to_f64)
+                    .unwrap_or(0.0))
         } else {
-            (0, 0.0, 0)
+            (0, 0.0)
         };
 
-        Ok(PltMetrics {
+        Ok(GlobalPltMetrics {
             transfer_volume,
-            transaction_count,
-            unique_accounts,
+            event_count
         })
     }
 }

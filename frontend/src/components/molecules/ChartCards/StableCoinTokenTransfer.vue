@@ -62,11 +62,11 @@ const props = defineProps<{
 
 // Computed Properties
 const chartLabels = computed(() => {
-	const interval = props.transferSummary?.pltTransferMetrics.buckets.bucketWidth
+	const interval = props.transferSummary?.pltTransferMetricsByTokenId.buckets.bucketWidth
 	switch (interval) {
 		case 'PT1H':
 			return (
-				props.transferSummary?.pltTransferMetrics.buckets['x_Time'].map(
+				props.transferSummary?.pltTransferMetricsByTokenId.buckets['x_Time'].map(
 					(item: string) =>
 						new Date(item).toLocaleDateString('en-UK', {
 							hour: '2-digit',
@@ -80,7 +80,7 @@ const chartLabels = computed(() => {
 
 		case 'PT6H':
 			return (
-				props.transferSummary?.pltTransferMetrics.buckets['x_Time'].map(
+				props.transferSummary?.pltTransferMetricsByTokenId.buckets['x_Time'].map(
 					(item: string) =>
 						new Date(item).toLocaleDateString('en-UK', {
 							hour: '2-digit',
@@ -93,7 +93,7 @@ const chartLabels = computed(() => {
 			)
 		case 'P1D':
 			return (
-				props.transferSummary?.pltTransferMetrics.buckets['x_Time'].map(
+				props.transferSummary?.pltTransferMetricsByTokenId.buckets['x_Time'].map(
 					(item: string) =>
 						new Date(item).toLocaleDateString('en-UK', {
 							month: 'short',
@@ -104,7 +104,7 @@ const chartLabels = computed(() => {
 			)
 		case 'P3D':
 			return (
-				props.transferSummary?.pltTransferMetrics.buckets['x_Time'].map(
+				props.transferSummary?.pltTransferMetricsByTokenId.buckets['x_Time'].map(
 					(item: string) =>
 						new Date(item).toLocaleDateString('en-UK', {
 							day: 'numeric',
@@ -121,7 +121,7 @@ const chartLabels = computed(() => {
 			)
 		case 'P15D':
 			return (
-				props.transferSummary?.pltTransferMetrics.buckets['x_Time'].map(
+				props.transferSummary?.pltTransferMetricsByTokenId.buckets['x_Time'].map(
 					(item: string) =>
 						new Date(item).toLocaleDateString('en-UK', {
 							day: 'numeric',
@@ -142,12 +142,12 @@ const chartLabels = computed(() => {
 })
 
 const barGraphValues = computed<number[]>(
-	() => props.transferSummary?.pltTransferMetrics.buckets.y_TransferCount ?? []
+	() => props.transferSummary?.pltTransferMetricsByTokenId.buckets.y_TransferCount ?? []
 )
 
 const lineGraphValues = computed<number[]>(
 	() =>
-		props.transferSummary?.pltTransferMetrics.buckets.y_TransferVolume.map(
+		props.transferSummary?.pltTransferMetricsByTokenId.buckets.y_TransferVolume.map(
 			(item: number) => item / Math.pow(10, props.decimals)
 		) ?? []
 )

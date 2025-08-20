@@ -33,18 +33,17 @@ latest_per_bucket AS (
 delta AS (
   SELECT
     bucket_interval_start,
-    token_index,
     cumulative_transfer_count,
     cumulative_transfer_amount,
-    LAG(cumulative_transfer_count) OVER (PARTITION BY token_index ORDER BY bucket_interval_start) AS prev_cumulative_transfer_count,
-    LAG(cumulative_transfer_amount) OVER (PARTITION BY token_index ORDER BY bucket_interval_start) AS prev_cumulative_transfer_amount
+    LAG(cumulative_transfer_count) OVER (ORDER BY bucket_interval_start) AS prev_cumulative_transfer_count,
+    LAG(cumulative_transfer_amount) OVER (ORDER BY bucket_interval_start) AS prev_cumulative_transfer_amount
   FROM latest_per_bucket
 )
 
 SELECT
   bucket_interval_start AS "bucket_time!",
-  COALESCE(token_index, $3::BIGINT) AS "token_index!",
   COALESCE(cumulative_transfer_count - COALESCE(prev_cumulative_transfer_count, 0), 0) AS transfer_count,
   COALESCE(cumulative_transfer_amount - COALESCE(prev_cumulative_transfer_amount, 0), 0) AS transfer_volume
 FROM delta
+WHERE prev_cumulative_transfer_count IS NOT NULL
 ORDER BY bucket_interval_start;

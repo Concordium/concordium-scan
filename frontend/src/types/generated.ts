@@ -1495,6 +1495,20 @@ export type GasRewardsCpv2Update = {
   chainUpdate: Scalars['Decimal'];
 };
 
+/**
+ * Represents protocol-level token (PLT) metrics for a given period.
+ *
+ * This struct is returned by the GraphQL API and provides summary statistics
+ * for PLT token activity over a specified time window.
+ */
+export type GlobalPltMetrics = {
+  __typename?: 'GlobalPltMetrics';
+  /** Total number of PLT events (transfers, mints, burns, etc.) in the period. */
+  eventCount: Scalars['Int'];
+  /** Total volume(amount) of PLT tokens transferred in the period. */
+  transferVolume: Scalars['Float'];
+};
+
 export type HoldingResponse = {
   __typename?: 'HoldingResponse';
   address: Scalars['String'];
@@ -2310,13 +2324,6 @@ export type PltEventEdge = {
   node: PltEvent;
 };
 
-export type PltMetrics = {
-  __typename?: 'PltMetrics';
-  transactionCount: Scalars['Int'];
-  transferVolume: Scalars['Float'];
-  uniqueAccounts: Scalars['Int'];
-};
-
 export type PltToken = {
   __typename?: 'PltToken';
   block: Block;
@@ -2354,15 +2361,6 @@ export type PltTokenEdge = {
   node: PltToken;
 };
 
-/** This struct is used to define the GraphQL query for PLT transfer metrics. */
-export type PltTransferMetrics = {
-  __typename?: 'PltTransferMetrics';
-  buckets: PltTransferMetricsBuckets;
-  decimal: Scalars['Int'];
-  transferCount: Scalars['Int'];
-  transferVolume: Scalars['Float'];
-};
-
 /** This struct is used to define the buckets for PLT transfer metrics. */
 export type PltTransferMetricsBuckets = {
   __typename?: 'PltTransferMetricsBuckets';
@@ -2370,6 +2368,15 @@ export type PltTransferMetricsBuckets = {
   x_Time: Array<Scalars['DateTime']>;
   y_TransferCount: Array<Scalars['Int']>;
   y_TransferVolume: Array<Scalars['Float']>;
+};
+
+/** This struct is used to define the GraphQL query for PLT transfer metrics. */
+export type PltTransferMetricsByTokenId = {
+  __typename?: 'PltTransferMetricsByTokenId';
+  buckets: PltTransferMetricsBuckets;
+  decimal: Scalars['Int'];
+  transferCount: Scalars['Int'];
+  transferVolume: Scalars['Float'];
 };
 
 export type PoolApy = {
@@ -2461,6 +2468,7 @@ export type Query = {
   blocks: BlockConnection;
   contract: Contract;
   contracts: ContractConnection;
+  globalPltMetrics: GlobalPltMetrics;
   importState: ImportState;
   latestChainParameters: LatestChainParameters;
   latestTransactions?: Maybe<Array<LatestTransactionResponse>>;
@@ -2475,10 +2483,9 @@ export type Query = {
   pltEventByTransactionIndex: PltEvent;
   pltEvents: PltEventConnection;
   pltEventsByTokenId: PltEventConnection;
-  pltMetrics: PltMetrics;
   pltToken: PltToken;
   pltTokens: PltTokenConnection;
-  pltTransferMetrics: PltTransferMetrics;
+  pltTransferMetricsByTokenId: PltTransferMetricsByTokenId;
   pltUniqueAccounts: Scalars['Int'];
   poolRewardMetricsForBakerPool: PoolRewardMetrics;
   poolRewardMetricsForPassiveDelegation: PoolRewardMetrics;
@@ -2588,6 +2595,11 @@ export type QueryContractsArgs = {
 };
 
 
+export type QueryGlobalPltMetricsArgs = {
+  period: MetricsPeriod;
+};
+
+
 export type QueryLatestTransactionsArgs = {
   limit?: InputMaybe<Scalars['Int']>;
 };
@@ -2655,11 +2667,6 @@ export type QueryPltEventsByTokenIdArgs = {
 };
 
 
-export type QueryPltMetricsArgs = {
-  period: MetricsPeriod;
-};
-
-
 export type QueryPltTokenArgs = {
   id: Scalars['ID'];
 };
@@ -2673,7 +2680,7 @@ export type QueryPltTokensArgs = {
 };
 
 
-export type QueryPltTransferMetricsArgs = {
+export type QueryPltTransferMetricsByTokenIdArgs = {
   period: MetricsPeriod;
   tokenId: Scalars['String'];
 };

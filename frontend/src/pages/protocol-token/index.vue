@@ -60,10 +60,10 @@
 						:y-values="[[null]]"
 						:is-loading="pltEventMetricsLoading"
 					>
-						<template #title># of Txs (24h)</template>
+						<template #title># of Tx Events (24h)</template>
 						<template #value>
 							<p class="font-bold text-2xl mt-2">
-								{{ pltEventMetricsDataRef?.pltMetrics.transactionCount }}
+								{{ pltEventMetricsDataRef?.globalPltMetrics.eventCount }}
 							</p>
 						</template>
 					</KeyValueChartCard>
@@ -79,7 +79,7 @@
 							<p class="font-bold text-2xl mt-2">
 								{{
 									numberFormatter(
-										pltEventMetricsDataRef?.pltMetrics.transferVolume
+										pltEventMetricsDataRef?.globalPltMetrics.transferVolume
 									)
 								}}
 							</p>
