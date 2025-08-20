@@ -669,9 +669,16 @@ impl PreparedTokenUpdate {
             TokenUpdateEventType::Burn => {
                 if let Some(ref target) = self.target {
                     self.update_total_burned(tx).await?;
-                    let final_balance = self.update_account_balance_and_check_zero(tx, target, &(-&self.plt_amount_change)).await?;
+                    let final_balance = self
+                        .update_account_balance_and_check_zero(
+                            tx,
+                            target,
+                            &(-&self.plt_amount_change),
+                        )
+                        .await?;
                     if final_balance == BigDecimal::from(0) {
-                        self.update_metrics_plt_unique_account_count_decrement(tx, slot_time).await?;
+                        self.update_metrics_plt_unique_account_count_decrement(tx, slot_time)
+                            .await?;
                     }
                 }
             }
@@ -734,7 +741,8 @@ impl PreparedTokenUpdate {
                             token_idx, 
                             from_existed, 
                             to_existed,
-                            COALESCE((SELECT from_balance FROM balance_updates), 0) as from_final_balance
+                            COALESCE((SELECT from_balance FROM balance_updates), 0) as \
+                         from_final_balance
                         FROM account_checks
                         ",
                         from,
@@ -748,18 +756,24 @@ impl PreparedTokenUpdate {
 
                     let from_existed = result.from_existed.unwrap_or(false);
                     let to_existed = result.to_existed.unwrap_or(false);
-                    let from_final_balance = result.from_final_balance.unwrap_or_else(|| BigDecimal::from(0));
-                    
+                    let from_final_balance =
+                        result.from_final_balance.unwrap_or_else(|| BigDecimal::from(0));
+
                     // Calculate unique account changes: +1 for new accounts, -1 for zero balances
                     let mut new_accounts = 0i64;
-                    if !from_existed { new_accounts += 1; }
-                    if !to_existed { new_accounts += 1; }
-                    if from_existed && from_final_balance == BigDecimal::from(0) { new_accounts -= 1; }
-                    
+                    if !from_existed {
+                        new_accounts += 1;
+                    }
+                    if !to_existed {
+                        new_accounts += 1;
+                    }
+                    if from_existed && from_final_balance == BigDecimal::from(0) {
+                        new_accounts -= 1;
+                    }
+
                     let token_idx = result
                         .token_idx
                         .ok_or_else(|| anyhow::anyhow!("Token not found: {}", self.token_id))?;
-
 
                     let normalized_amount = self.plt_amount_change.clone()
                         / BigDecimal::from(10u64.pow(self.amount_decimals as u32));
@@ -803,7 +817,6 @@ impl PreparedTokenUpdate {
                     .execute(tx.as_mut())
                     .await?;
 
-
                     // METRICS UPDATE 2: Token-specific transfer statistics
                     //
                     // Updates metrics_plt_transfer table for per-token analytics:
@@ -837,7 +850,6 @@ impl PreparedTokenUpdate {
                     )
                     .execute(tx.as_mut())
                     .await?;
-
                 }
             }
             TokenUpdateEventType::TokenModule => {}
@@ -995,12 +1007,21 @@ impl PreparedTokenUpdate {
     ) -> anyhow::Result<BigDecimal> {
         let final_balance = sqlx::query_scalar!(
             "INSERT INTO plt_accounts (account_index, token_index, amount, decimal)
-             VALUES ((SELECT index FROM accounts WHERE address = $1), (SELECT index FROM plt_tokens WHERE token_id = $2), $3, (SELECT decimal FROM plt_tokens WHERE token_id = $2))
-             ON CONFLICT (account_index, token_index) DO UPDATE SET amount = plt_accounts.amount + $3
+             VALUES ((SELECT index FROM accounts WHERE address = $1), (SELECT index FROM \
+             plt_tokens WHERE token_id = $2), $3, (SELECT decimal FROM plt_tokens WHERE token_id \
+             = $2))
+             ON CONFLICT (account_index, token_index) DO UPDATE SET amount = plt_accounts.amount + \
+             $3
              RETURNING amount",
-            account, self.token_id, amount
-        ).fetch_optional(tx.as_mut()).await?.flatten().unwrap_or_else(|| BigDecimal::from(0));
-        
+            account,
+            self.token_id,
+            amount
+        )
+        .fetch_optional(tx.as_mut())
+        .await?
+        .flatten()
+        .unwrap_or_else(|| BigDecimal::from(0));
+
         Ok(final_balance)
     }
 

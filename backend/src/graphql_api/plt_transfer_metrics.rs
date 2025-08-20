@@ -131,24 +131,27 @@ impl QueryPltTransferMetricsByTokenId {
 #[derive(Default)]
 pub(crate) struct QueryGlobalPltMetrics;
 
-
 /// Represents protocol-level token (PLT) metrics for a given period.
 ///
 /// This struct is returned by the GraphQL API and provides summary statistics
 /// for PLT token activity over a specified time window.
 #[derive(SimpleObject)]
 struct GlobalPltMetrics {
-    /// Total number of PLT events (transfers, mints, burns, etc.) in the period.
-    event_count: i64,
+    /// Total number of PLT events (transfers, mints, burns, etc.) in the
+    /// period.
+    event_count:     i64,
     /// Total volume(amount) of PLT tokens transferred in the period.
-    transfer_volume:   f64,
-
+    transfer_volume: f64,
 }
 
 #[Object]
 impl QueryGlobalPltMetrics {
     // Query for PLT metrics over a specified time period.
-    async fn global_plt_metrics(&self, ctx: &Context<'_>, period: MetricsPeriod) -> ApiResult<GlobalPltMetrics> {
+    async fn global_plt_metrics(
+        &self,
+        ctx: &Context<'_>,
+        period: MetricsPeriod,
+    ) -> ApiResult<GlobalPltMetrics> {
         let pool = get_pool(ctx)?;
         let period_interval: PgInterval = period
             .as_duration()
@@ -172,26 +175,31 @@ impl QueryGlobalPltMetrics {
                     LIMIT 1
                 )
                 SELECT
-               GREATEST(COALESCE((SELECT cumulative_event_count FROM end_row), 0) - COALESCE((SELECT cumulative_event_count FROM start_row), 0), 0) AS event_count,
-               GREATEST(COALESCE((SELECT cumulative_transfer_amount FROM end_row), 0) - COALESCE((SELECT cumulative_transfer_amount FROM start_row), 0), 0) AS transfer_volume;",
+               GREATEST(COALESCE((SELECT cumulative_event_count FROM end_row), 0) - \
+             COALESCE((SELECT cumulative_event_count FROM start_row), 0), 0) AS event_count,
+               GREATEST(COALESCE((SELECT cumulative_transfer_amount FROM end_row), 0) - \
+             COALESCE((SELECT cumulative_transfer_amount FROM start_row), 0), 0) AS \
+             transfer_volume;",
             period_interval
         )
         .fetch_optional(pool)
         .await?;
 
         let (event_count, transfer_volume) = if let Some(row) = row {
-
-
-            (row.event_count.unwrap_or(0), row.transfer_volume .as_ref()
+            (
+                row.event_count.unwrap_or(0),
+                row.transfer_volume
+                    .as_ref()
                     .and_then(num_traits::ToPrimitive::to_f64)
-                    .unwrap_or(0.0))
+                    .unwrap_or(0.0),
+            )
         } else {
             (0, 0.0)
         };
 
         Ok(GlobalPltMetrics {
             transfer_volume,
-            event_count
+            event_count,
         })
     }
 }
