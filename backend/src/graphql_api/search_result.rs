@@ -47,7 +47,7 @@ const MIN_HASH_QUERY_LENGTH: usize = 6;
 const HASH_DUMMY_QUERY: &str = "$";
 
 /// Regular expression matching 256-bit hash in hexadecimal representation.
-const HASH_256_REGEX: LazyLock<Regex> =
+static HASH_256_REGEX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^[a-fA-F0-9]{1,64}$").expect("invalid regex"));
 
 #[Object]
