@@ -1,6 +1,6 @@
 use super::{
-    baker::Baker, get_config, get_pool, token::AccountToken, AccountStatementEntryType, ApiError,
-    ApiResult, ConnectionQuery, InternalError, OrderDir,
+    baker::Baker, get_config, get_pool, plt::PltByAccountAddress, token::AccountToken,
+    AccountStatementEntryType, ApiError, ApiResult, ConnectionQuery, InternalError, OrderDir,
 };
 use crate::{
     address::AccountAddress,
@@ -1231,6 +1231,88 @@ impl Account {
         AccountReleaseSchedule {
             account_index: self.index,
         }
+    }
+
+    async fn plts(
+        &self,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        before: Option<String>,
+    ) -> ApiResult<connection::Connection<String, PltByAccountAddress>> {
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+
+        let query = ConnectionQuery::<DescendingI64>::new(
+            first,
+            after,
+            last,
+            before,
+            config.plt_by_account_address_connection_limit,
+        )?;
+
+        let mut row_stream = sqlx::query_as!(
+            PltByAccountAddress,
+            r#"
+            SELECT plt_tokens.name as token_name, plt_tokens.token_id, pa.amount, plt_tokens.decimal, pa.token_index
+                FROM public.plt_accounts AS pa
+                INNER JOIN plt_tokens 
+                    ON pa.token_index = plt_tokens.index
+                WHERE account_index = $1 
+                    AND amount > 0 
+                    AND $3 < pa.token_index AND pa.token_index < $2
+                ORDER BY 
+                    CASE WHEN $5 THEN pa.token_index END ASC,
+                    CASE WHEN NOT $5 THEN pa.token_index END DESC
+                LIMIT $4
+            "#,
+            self.index,
+            i64::from(query.from),
+            i64::from(query.to),
+            query.limit,
+            query.is_last,
+        )
+        .fetch(pool);
+
+        let mut connection = connection::Connection::new(false, false);
+        let mut min_index = None;
+        let mut max_index = None;
+
+        while let Some(plt) = row_stream.try_next().await? {
+            min_index = Some(match min_index {
+                Some(current_min) => std::cmp::min(current_min, plt.token_index),
+                None => plt.token_index,
+            });
+
+            max_index = Some(match max_index {
+                Some(current_max) => std::cmp::max(current_max, plt.token_index),
+                None => plt.token_index,
+            });
+
+            connection.edges.push(connection::Edge::new(plt.token_index.to_string(), plt));
+        }
+
+        if let (Some(page_min_id), Some(page_max_id)) = (min_index, max_index) {
+            let result = sqlx::query!(
+                "SELECT MAX(pa.token_index) AS max_index, MIN(pa.token_index) AS min_index 
+                FROM plt_accounts pa
+                INNER JOIN plt_tokens ON pa.token_index = plt_tokens.index
+                WHERE account_index = $1 
+                    AND amount > 0",
+                self.index
+            )
+            .fetch_one(pool)
+            .await?;
+
+            connection.has_previous_page =
+                result.max_index.is_some_and(|db_max| db_max > page_max_id);
+            connection.has_next_page = result.min_index.is_some_and(|db_min| db_min < page_min_id);
+        }
+
+        Ok(connection)
     }
 }
 

@@ -46,6 +46,7 @@ export type Account = {
    * optimization if intended to be used.
    */
   nonce: Scalars['Int'];
+  plts: PltByAccountAddressConnection;
   releaseSchedule: AccountReleaseSchedule;
   rewards: AccountRewardConnection;
   tokens: AccountTokenConnection;
@@ -59,6 +60,14 @@ export type Account = {
 
 
 export type AccountAccountStatementArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type AccountPltsArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
@@ -2276,6 +2285,33 @@ export type PltAccountAmountEdge = {
   cursor: Scalars['String'];
   /** The item at the end of the edge */
   node: PltAccountAmount;
+};
+
+export type PltByAccountAddress = {
+  __typename?: 'PltByAccountAddress';
+  amount: Scalars['Int'];
+  decimal: Scalars['Int'];
+  tokenId: Scalars['String'];
+  tokenName: Scalars['String'];
+};
+
+export type PltByAccountAddressConnection = {
+  __typename?: 'PltByAccountAddressConnection';
+  /** A list of edges. */
+  edges: Array<PltByAccountAddressEdge>;
+  /** A list of nodes. */
+  nodes: Array<PltByAccountAddress>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type PltByAccountAddressEdge = {
+  __typename?: 'PltByAccountAddressEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: PltByAccountAddress;
 };
 
 export type PltEvent = {

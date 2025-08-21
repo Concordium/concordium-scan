@@ -61,6 +61,16 @@ type Account {
 		before: String
 	): AccountRewardConnection!
 	releaseSchedule: AccountReleaseSchedule!
+	plts(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): PltByAccountAddressConnection!
 }
 
 type AccountAddress {
@@ -1981,6 +1991,30 @@ type PltAccountAmountConnection {
 type PltAccountAmountEdge {
 	"The item at the end of the edge"
 	node: PltAccountAmount!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+type PltByAccountAddress {
+	tokenName: String!
+	tokenId: String!
+	decimal: Int!
+	amount: Int!
+}
+
+type PltByAccountAddressConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [PltByAccountAddressEdge!]!
+	"A list of nodes."
+	nodes: [PltByAccountAddress!]!
+}
+
+"An edge in a connection."
+type PltByAccountAddressEdge {
+	"The item at the end of the edge"
+	node: PltByAccountAddress!
 	"A cursor for use in pagination"
 	cursor: String!
 }

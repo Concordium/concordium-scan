@@ -110,6 +110,18 @@
 					/>
 				</template>
 			</Accordion>
+			<Accordion
+				v-if="account.plts?.nodes?.length && account.plts?.nodes?.length > 0"
+			>
+				Protocol Level Tokens
+				<template #content>
+					<AccountDetailsPlts
+						:go-to-page="goToPagePlt"
+						:account-tokens="account.plts.nodes || []"
+						:page-info="account.plts.pageInfo"
+					/>
+				</template>
+			</Accordion>
 		</DrawerContent>
 	</div>
 </template>
@@ -120,6 +132,7 @@ import AccountDetailsHeader from './AccountDetailsHeader.vue'
 import AccountDetailsAmounts from './AccountDetailsAmounts.vue'
 import AccountDetailsTransactions from './AccountDetailsTransactions.vue'
 import AccountDetailsToken from './AccountDetailsToken.vue'
+import AccountDetailsPlts from './AccountDetailsPlts.vue'
 import AccountDetailsReleaseScheduleTransactions from './AccountDetailsReleaseScheduleTransactions.vue'
 import AccountDetailsAccountStatement from './AccountDetailsAccountStatement.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
@@ -148,6 +161,7 @@ type Props = {
 	) => (target: PaginationTarget) => void
 	goToPageAccountRewards: (page: PageInfo) => (target: PaginationTarget) => void
 	goToPageAccountTokens: (page: PageInfo) => (target: PaginationTarget) => void
+	goToPagePlt: (page: PageInfo) => (target: PaginationTarget) => void
 }
 
 defineProps<Props>()
