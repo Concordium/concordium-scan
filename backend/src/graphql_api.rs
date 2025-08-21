@@ -9,6 +9,7 @@ mod baker_metrics;
 mod block;
 mod block_metrics;
 mod contract;
+mod db;
 mod module_reference_event;
 pub mod node_status;
 mod passive_delegation;
