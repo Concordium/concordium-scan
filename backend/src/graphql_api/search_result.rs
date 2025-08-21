@@ -27,11 +27,37 @@ use async_graphql::{
 use concordium_rust_sdk::base::contracts_common::schema::VersionedModuleSchema;
 use futures::TryStreamExt;
 use regex::Regex;
+use sqlx::{pool::PoolConnection, PgPool, Postgres};
+use std::future::Future;
 use std::str::FromStr;
+use std::sync::{LazyLock, OnceLock};
 
 pub struct SearchResult {
     pub query: String,
 }
+
+
+async fn with_force_custom_plan<T, F, Fut>(pool: &PgPool, execute: F) -> ApiResult<T>
+where
+    F: FnOnce(&mut PoolConnection<Postgres>) -> Fut,
+    Fut: Future<Output = ApiResult<T>>,
+{
+    let mut connection = pool.acquire().await?;
+    // "plan_cache_mode = force_custom_plan"
+    let result = execute(&mut connection).await;
+
+    result
+}
+
+/// Minimum query length we accept for searching for hashes by prefix.
+const MIN_HASH_QUERY_LENGTH: usize = 6;
+
+/// Query string that can be applied to columns containing hash values using
+/// the condition `starts_with(hash_column, HASH_DUMMY_QUERY)` which will then always
+/// be false. Combined with `force_custom_plan` (<https://www.postgresql.org/docs/current/sql-prepare.html>),
+/// Postgres will be able to see that the condition is almost certainly false via
+/// its bucket statistics and hence choose the best plan.
+const HASH_DUMMY_QUERY: &str =  "$";
 
 #[Object]
 impl SearchResult {
@@ -42,7 +68,9 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, contract::Contract>> {
         let contract_index_regex: Regex = Regex::new("^[0-9]+$")
@@ -177,7 +205,9 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, ModuleReferenceEvent>> {
         let mut connection = connection::Connection::new(false, false);
@@ -366,7 +396,9 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Block>> {
         let block_hash_regex: Regex = Regex::new(r"^[a-fA-F0-9]{1,64}$")
@@ -379,10 +411,19 @@ impl SearchResult {
         if !block_hash_regex.is_match(&self.query) {
             return Ok(connection);
         }
-        let lower_case_query = self.query.to_lowercase();
-        let mut rows = sqlx::query_as!(
-            Block,
-            "SELECT * FROM (
+
+        let query_lowercase = self.query.to_lowercase();
+        let hash_query = if query_lowercase.len() <= MIN_HASH_QUERY_LENGTH {
+            &query_lowercase
+        } else {
+            HASH_DUMMY_QUERY
+        };
+        let height_query = self.query.parse::<i64>().ok();
+
+        with_force_custom_plan(pool, |db_connection| async move {
+            let mut rows = sqlx::query_as!(
+                Block,
+                "SELECT * FROM (
                 SELECT
                     hash,
                     height,
@@ -402,42 +443,44 @@ impl SearchResult {
                     (CASE WHEN NOT $4 THEN height END) DESC
                 LIMIT $3
             ) ORDER BY height DESC",
-            query.from,
-            query.to,
-            query.limit,
-            query.is_last,
-            lower_case_query.parse::<i64>().ok(),
-            lower_case_query
-        )
-        .fetch(pool);
+                query.from,
+                query.to,
+                query.limit,
+                query.is_last,
+                height_query,
+                hash_query
+            )
+            .fetch(db_connection);
 
-        while let Some(block) = rows.try_next().await? {
-            connection.edges.push(connection::Edge::new(block.height.to_string(), block));
-        }
+            while let Some(block) = rows.try_next().await? {
+                connection.edges.push(connection::Edge::new(block.height.to_string(), block));
+            }
 
-        if let (Some(page_min_height), Some(page_max_height)) =
-            (connection.edges.first(), connection.edges.last())
-        {
-            let result = sqlx::query!(
-                "
+            if let (Some(page_min_height), Some(page_max_height)) =
+                (connection.edges.first(), connection.edges.last())
+            {
+                let result = sqlx::query!(
+                    "
                     SELECT MAX(height) as max_height, MIN(height) as min_height
                     FROM blocks
                     WHERE
                         height = $1
                         OR starts_with(hash, $2)
                 ",
-                lower_case_query.parse::<i64>().ok(),
-                lower_case_query,
-            )
-            .fetch_one(pool)
-            .await?;
+                    height_query,
+                    hash_query,
+                )
+                .fetch_one(db_connection)
+                .await?;
 
-            connection.has_previous_page =
-                result.max_height.is_some_and(|db_max| db_max > page_max_height.node.height);
-            connection.has_next_page =
-                result.min_height.is_some_and(|db_min| db_min < page_min_height.node.height);
-        }
-        Ok(connection)
+                connection.has_previous_page =
+                    result.max_height.is_some_and(|db_max| db_max > page_max_height.node.height);
+                connection.has_next_page =
+                    result.min_height.is_some_and(|db_min| db_min < page_min_height.node.height);
+            }
+            Ok(connection)
+        })
+        .await
     }
 
     async fn transactions(
@@ -447,7 +490,9 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Transaction>> {
         let transaction_hash_regex: Regex = Regex::new(r"^[a-fA-F0-9]{1,64}$")
@@ -526,7 +571,9 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Token>> {
         // Base58 characters
@@ -606,7 +653,9 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Account>> {
         let account_address_regex: Regex = Regex::new(r"^[1-9A-HJ-NP-Za-km-z]{1,50}$")
@@ -709,7 +758,9 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, baker::Baker>> {
         let baker_index_regex: Regex = Regex::new("^[0-9]+$")
@@ -812,7 +863,9 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<usize>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, NodeStatus>> {
         let handler = ctx.data::<NodeInfoReceiver>().map_err(InternalError::NoReceiver)?;
