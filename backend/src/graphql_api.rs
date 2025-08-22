@@ -868,12 +868,6 @@ struct CollectionSegmentInfo {
     has_previous_page: bool,
 }
 
-#[derive(SimpleObject)]
-struct Ranking {
-    rank:  i32,
-    total: i32,
-}
-
 #[derive(Enum, Clone, Copy, PartialEq, Eq)]
 enum ApyPeriod {
     #[graphql(name = "LAST7_DAYS")]
