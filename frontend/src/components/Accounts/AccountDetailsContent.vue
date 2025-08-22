@@ -113,7 +113,7 @@
 			<Accordion
 				v-if="account.plts?.nodes?.length && account.plts?.nodes?.length > 0"
 			>
-				Protocol Level Tokens
+				Protocol-Level Tokens
 				<template #content>
 					<AccountDetailsPlts
 						:go-to-page="goToPagePlt"

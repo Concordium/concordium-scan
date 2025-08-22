@@ -3,8 +3,8 @@
 		<Table>
 			<TableHead>
 				<TableRow>
-					<TableTh>Name</TableTh>
-					<TableTh v-if="breakpoint >= Breakpoint.LG">Plt Id</TableTh>
+					<TableTh>Token Name</TableTh>
+					<TableTh v-if="breakpoint >= Breakpoint.LG">Symbol</TableTh>
 					<TableTh align="right">Balance</TableTh>
 				</TableRow>
 			</TableHead>
@@ -14,7 +14,7 @@
 						{{ plt.tokenName }}
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.LG">
-						<TokenId :token-id="plt.tokenId" />
+						<PltTokenId :token-id="plt.tokenId" />
 					</TableTd>
 					<TableTd align="right" class="numerical">
 						<PltAmount :value="plt.amount.toString()" :decimals="plt.decimal" />
