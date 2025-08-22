@@ -17,6 +17,10 @@ type AccountQueryVariables = {
 	beforeAccountStatement: QueryVariables['before']
 	firstAccountStatement: QueryVariables['first']
 	lastAccountStatement: QueryVariables['last']
+	afterPlt: QueryVariables['after']
+	beforePlt: QueryVariables['before']
+	firstPlt: QueryVariables['first']
+	lastPlt: QueryVariables['last']
 }
 
 type AccountByIdResponse = {
@@ -47,6 +51,27 @@ const AccountQueryFragment = `
 			amount
 		}
 	}
+
+plts(
+		after: $afterPlt
+		before: $beforePlt
+		first: $firstPlt
+		last: $lastPlt) {
+		pageInfo {
+			hasNextPage
+			hasPreviousPage
+			startCursor
+			endCursor
+			__typename
+		}
+		nodes {
+			tokenName
+            tokenId
+            decimal
+            amount
+		}
+	}
+
 	tokens(
 		after: $afterAccountToken
 		before: $beforeAccountToken
@@ -242,6 +267,10 @@ const AccountQuery = gql<AccountByIdResponse>`
 		$beforeAccountToken: String
 		$firstAccountToken: Int
 		$lastAccountToken: Int
+		$afterPlt: String
+		$beforePlt: String
+		$firstPlt: Int
+		$lastPlt: Int
 	) {
 		account(id: $id) {
 			${AccountQueryFragment}
@@ -272,6 +301,10 @@ const AccountQueryByAddress = gql<AccountByAddressResponse>`
 		$beforeAccountToken: String
 		$firstAccountToken: Int
 		$lastAccountToken: Int
+		$afterPlt: String
+		$beforePlt: String
+		$firstPlt: Int
+		$lastPlt: Int
 	) {
 		accountByAddress(accountAddress: $address) {
 			${AccountQueryFragment}
