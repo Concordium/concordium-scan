@@ -156,7 +156,7 @@ async fn main() -> anyhow::Result<()> {
                 .options([("statement_timeout", format!("{}s", cli.statement_timeout_secs))]),
         )
         .await
-        .context("Failed constructing database connection pool")?;
+        .context("Failed constructing database connection pool test")?;
 
     // Ensure the database schema is compatible with supported schema version.
     migrations::ensure_compatible_schema_version(
