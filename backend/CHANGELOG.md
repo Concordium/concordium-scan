@@ -22,6 +22,7 @@ Database schema version: 40
 ### Changed
 
 - Updated query `pltAccountsByTokenId` to fetch accounts holding PLT tokens by token ID.
+- The `node_response_time_seconds` prometheus gauge metric counts time both during the fetching and preparing the block.
 
 ## [2.0.17] - 2025-07-24
 
