@@ -45,8 +45,6 @@ jobs:
 
   test:
     name: test
-    # Don't run on draft pull requests
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
