@@ -7,8 +7,6 @@ on:
         - backend/**
         - .github/**
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review, edited]
-    branches: [ main ]
     paths:
         - backend/**
         - .github/**
