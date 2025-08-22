@@ -1355,23 +1355,6 @@ struct Delegation {
 }
 
 #[derive(Union)]
-enum PendingDelegationChange {
-    PendingDelegationRemoval(PendingDelegationRemoval),
-    PendingDelegationReduceStake(PendingDelegationReduceStake),
-}
-
-#[derive(SimpleObject)]
-struct PendingDelegationRemoval {
-    effective_time: DateTime,
-}
-
-#[derive(SimpleObject)]
-struct PendingDelegationReduceStake {
-    new_staked_amount: Amount,
-    effective_time:    DateTime,
-}
-
-#[derive(Union)]
 enum BlockOrTransaction {
     Transaction(Transaction),
     Block(Block),

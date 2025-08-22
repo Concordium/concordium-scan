@@ -22,13 +22,6 @@ pub struct PaydayPoolRewardAmounts {
     pub delegators_amount: u64,
 }
 
-#[derive(SimpleObject, Clone)]
-pub struct PaydayPoolRewards {
-    pub transaction_fees:   PaydayPoolRewardAmounts,
-    pub block_finalization: PaydayPoolRewardAmounts,
-    pub block_baking:       PaydayPoolRewardAmounts,
-}
-
 pub struct PaydayPoolReward {
     pub block_height: BlockHeight,
     pub slot_time: DateTime,

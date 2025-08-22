@@ -18,6 +18,7 @@ Database schema version: 40
   has at least 6 characters. Also fixed a bug in the `transaction` search paging info. 
   Optimized the two queries and their paging info queries also by setting `'plan_cache_mode = force_custom_plan'`
   while executing the queries.
+- Changed Rust version to 1.89
 
 ### Changed
 
