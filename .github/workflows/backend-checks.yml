@@ -10,6 +10,7 @@ on:
     paths:
         - backend/**
         - .github/**
+  workflow_dispatch: # allows manual trigger
 
 env:
   RUST_FMT: "nightly-2023-04-01"
