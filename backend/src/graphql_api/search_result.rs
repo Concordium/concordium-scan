@@ -25,7 +25,7 @@ use async_graphql::{
     Context, Object,
 };
 use concordium_rust_sdk::base::contracts_common::schema::VersionedModuleSchema;
-use futures::{FutureExt, TryStreamExt};
+use futures::TryStreamExt;
 use regex::Regex;
 use sqlx::{pool::PoolConnection, Postgres};
 use std::{borrow::Cow, str::FromStr, sync::LazyLock};
@@ -409,11 +409,10 @@ impl SearchResult {
             HASH_DUMMY_QUERY.into()
         };
 
-        db::with_force_custom_plan(pool, |db_connection: &mut PoolConnection<Postgres>| {
-            async move {
-                let mut rows = sqlx::query_as!(
-                    Block,
-                    "SELECT * FROM (
+        db::with_force_custom_plan(pool, async |db_connection: &mut PoolConnection<Postgres>| {
+            let mut rows = sqlx::query_as!(
+                Block,
+                "SELECT * FROM (
                 SELECT
                     hash,
                     height,
@@ -433,47 +432,43 @@ impl SearchResult {
                     (CASE WHEN NOT $4 THEN height END) DESC
                 LIMIT $3
             ) ORDER BY height DESC",
-                    query.from,
-                    query.to,
-                    query.limit,
-                    query.is_last,
-                    height_query,
-                    hash_query.as_ref()
-                )
-                .fetch(db_connection.as_mut());
+                query.from,
+                query.to,
+                query.limit,
+                query.is_last,
+                height_query,
+                hash_query.as_ref()
+            )
+            .fetch(db_connection.as_mut());
 
-                while let Some(block) = rows.try_next().await? {
-                    connection.edges.push(connection::Edge::new(block.height.to_string(), block));
-                }
-                drop(rows);
+            while let Some(block) = rows.try_next().await? {
+                connection.edges.push(connection::Edge::new(block.height.to_string(), block));
+            }
+            drop(rows);
 
-                if let (Some(page_min_height), Some(page_max_height)) =
-                    (connection.edges.first(), connection.edges.last())
-                {
-                    let result = sqlx::query!(
-                        "
+            if let (Some(page_min_height), Some(page_max_height)) =
+                (connection.edges.first(), connection.edges.last())
+            {
+                let result = sqlx::query!(
+                    "
                     SELECT MAX(height) as max_height, MIN(height) as min_height
                     FROM blocks
                     WHERE
                         height = $1
                         OR starts_with(hash, $2)
                 ",
-                        height_query,
-                        hash_query.as_ref(),
-                    )
-                    .fetch_one(db_connection.as_mut())
-                    .await?;
+                    height_query,
+                    hash_query.as_ref(),
+                )
+                .fetch_one(db_connection.as_mut())
+                .await?;
 
-                    connection.has_previous_page = result
-                        .max_height
-                        .is_some_and(|db_max| db_max > page_max_height.node.height);
-                    connection.has_next_page = result
-                        .min_height
-                        .is_some_and(|db_min| db_min < page_min_height.node.height);
-                }
-                Ok(connection)
+                connection.has_previous_page =
+                    result.max_height.is_some_and(|db_max| db_max > page_max_height.node.height);
+                connection.has_next_page =
+                    result.min_height.is_some_and(|db_min| db_min < page_min_height.node.height);
             }
-            .boxed()
+            Ok(connection)
         })
         .await
     }
@@ -503,7 +498,7 @@ impl SearchResult {
         }
         let lower_case_query = self.query.to_lowercase();
 
-        db::with_force_custom_plan(pool, |db_connection| async move {
+        db::with_force_custom_plan(pool, async |db_connection| {
             let mut row_stream = sqlx::query_as!(
                 Transaction,
                 r#"SELECT * FROM (
@@ -561,7 +556,7 @@ impl SearchResult {
                     result.max_id.is_some_and(|db_max| db_max > page_max.node.index);
             }
             Ok(connection)
-        }.boxed()).await
+        }).await
     }
 
     async fn tokens(
