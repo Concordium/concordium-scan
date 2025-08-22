@@ -137,16 +137,19 @@ pub(crate) struct QueryGlobalPltMetrics;
 /// for PLT token activity over a specified time window.
 #[derive(SimpleObject)]
 struct GlobalPltMetrics {
-    /// Total number of PLT events (transfers, mints, burns, etc.) in the
-    /// period.
+    // Total number of PLT events (transfers, mints, burns, etc.) in the
+    // period.
     event_count:     i64,
-    /// Total volume(amount) of PLT tokens transferred in the period.
+    // Total volume(amount) of PLT tokens transferred in the period.
     transfer_volume: f64,
 }
 
 #[Object]
 impl QueryGlobalPltMetrics {
-    // Query for PLT metrics over a specified time period.
+    /// Query for PLT metrics over a specified time period. (across all plts)
+    /// returns GlobalPltMetrics plt event_count (Mint/Burn/Transfer etc)
+    /// and transfer_volume (the total volume of transfers normalized across all
+    /// plts by their respective decimals)
     async fn global_plt_metrics(
         &self,
         ctx: &Context<'_>,

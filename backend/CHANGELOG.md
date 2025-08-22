@@ -10,8 +10,8 @@ Database schema version: 40
 
 - TokenModuleRejectReason enum to proper serialization and deserialization of the `TokenModuleReject` event.
 - Query `PltUniqueAccounts` to fetch unique accounts holding PLT tokens.
-- Added query `PltTransferMetrics` to fetch metrics related to plt token transfer events such as `transfer_count` and `transfer_volume` for one given `token_id`.
-- Added query `PltMetrics` to fetch plt metrics such as total event count, unique accounts, and transfer volume.
+- Added query `PltTransferMetricsByTokenId` to fetch metrics related to plt token transfer events such as `transfer_count` and `transfer_volume` for one given `token_id`.
+- Added query `GlobalPltMetrics` to fetch plt metrics such as total event count, unique accounts, and transfer volume.
 - Added two new tables for plt metrics:
     - `metrics_plt_transfer` to store plt transfer metrics (the data is being stored as cumulative increments by timestamp).
     - `metrics_plt` to store plt metrics (the data is being stored as cumulative increments by timestamp).

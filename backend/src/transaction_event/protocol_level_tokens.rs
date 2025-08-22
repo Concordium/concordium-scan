@@ -774,13 +774,13 @@ impl PreparedTokenUpdate {
                     let token_idx = result
                         .token_idx
                         .ok_or_else(|| anyhow::anyhow!("Token not found: {}", self.token_id))?;
-
+                    // normalize amount for cross-token consistency
                     let normalized_amount = self.plt_amount_change.clone()
                         / BigDecimal::from(10u64.pow(self.amount_decimals as u32));
 
                     // METRICS UPDATE 1: Global PLT transfer aggregation
                     //
-                    // Updates metrics_plt table with cross-token transfer statistics:
+                    // Updates metrics_plt table with  transfer data:
                     // - cumulative_transfer_amount: Running sum of normalized transfer volumes
                     // - unique_account_count: Count of distinct accounts across all PLT tokens
                     //
