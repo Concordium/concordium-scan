@@ -15,8 +15,8 @@ Database schema version: 40
 - Added `db_connections_acquired_gauge`, `db_connections_idle_gauge` and `db_connections_max_gauge` as prometheus gauge metrics so we can easily see statistics related to database connections.
 - GraphQL API: Optimized the query that fetches paging information for the `blocks` query
 - GraphQL API: Changed the `query` searches `blocks` and `transactions` to only search if the hash we search for
-  has at least 6 characters. Also fixed a bug in the `tranaction` search paging info. 
-  Optimized the two queries and their paging info queries also by setting `plan_cache_mode = force_custom_plan`
+  has at least 6 characters. Also fixed a bug in the `transaction` search paging info. 
+  Optimized the two queries and their paging info queries also by setting `'plan_cache_mode = force_custom_plan'`
   while executing the queries.
 
 ### Changed

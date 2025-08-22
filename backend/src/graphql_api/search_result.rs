@@ -40,10 +40,13 @@ pub struct SearchResult {
 const MIN_HASH_QUERY_LENGTH: usize = 6;
 
 /// Query string that can be applied to columns containing hash values using
-/// the condition `starts_with(hash_column, HASH_DUMMY_QUERY)` which will then
-/// always be false. Combined with `force_custom_plan` (<https://www.postgresql.org/docs/current/sql-prepare.html>),
-/// Postgres will be able to see that the condition is almost certainly false
-/// via its bucket statistics and hence choose the best plan.
+/// the condition `starts_with(hash_column, HASH_DUMMY_QUERY)` and which will
+/// make the condition always be false.
+///
+/// Should be combined with `force_custom_plan` (<https://www.postgresql.org/docs/current/sql-prepare.html>),
+/// such that Postgres will be able to see that the condition is almost
+/// certainly false via its bucket statistics and hence choose a plan that takes
+/// this into account.
 const HASH_DUMMY_QUERY: &str = "$";
 
 /// Regular expression matching 256-bit hash in hexadecimal representation.
