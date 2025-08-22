@@ -24,9 +24,8 @@ jobs:
       - name: Check formatting
         working-directory: backend
         run: |
-          rustup default ${{ env.RUST_FMT }}
-          rustup component add rustfmt
-          cargo fmt -- --color=always --check
+          rustup +${{ env.RUST_FMT }} component add rustfmt
+          cargo +${{ env.RUST_FMT }} fmt -- --color=always --check
 
   clippy:
     name: clippy
