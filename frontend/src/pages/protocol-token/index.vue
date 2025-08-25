@@ -111,7 +111,7 @@
 				</CarouselSlide>
 			</FtbCarousel>
 			<header class="flex justify-between items-center mb-4">
-				<h1 class="text-xl">Transactions</h1>
+				<h1 class="text-xl">Activities</h1>
 			</header>
 			<Table>
 				<TableHead>
