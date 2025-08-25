@@ -10,7 +10,8 @@ use crate::{
         ModuleReference, PltIndex, TokenId, TokenIndex, TransactionHash, TransactionIndex,
     },
     transaction_event::protocol_level_tokens::{
-        TokenAmount, TokenEventDetails, TokenUpdateEventType, TokenUpdateModuleType,
+        TokenAmount, TokenCreationDetails, TokenEventDetails, TokenUpdateEventType,
+        TokenUpdateModuleType,
     },
 };
 
@@ -465,6 +466,38 @@ impl PltToken {
             .len() as i64;
 
         Ok(unique_holder)
+    }
+
+    async fn token_creation_details(&self, ctx: &Context<'_>) -> ApiResult<TokenCreationDetails> {
+        let result = sqlx::query!(
+            "SELECT events FROM transactions WHERE index = $1",
+            self.transaction_index
+        )
+        .fetch_one(get_pool(ctx)?)
+        .await?;
+
+        // Parse the events JSON to extract token creation details
+        let events_json: serde_json::Value = result.events.ok_or(ApiError::NotFound)?;
+
+        // Parse events array and find TokenCreationDetails
+        let events: Vec<crate::transaction_event::Event> = serde_json::from_value(events_json)
+            .map_err(|e| {
+                ApiError::InternalServerError(InternalError::InternalError(format!(
+                    "Failed to parse transaction events: {}",
+                    e
+                )))
+            })?;
+
+        // Find the TokenCreationDetails event
+        for event in events {
+            if let crate::transaction_event::Event::TokenCreationDetails(token_creation_details) =
+                event
+            {
+                return Ok(token_creation_details);
+            }
+        }
+
+        Err(ApiError::NotFound)
     }
 }
 

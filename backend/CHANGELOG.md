@@ -19,6 +19,7 @@ Database schema version: 40
   Optimized the two queries and their paging info queries also by setting `'plan_cache_mode = force_custom_plan'`
   while executing the queries.
 - Changed Rust version to 1.89
+- Query `PltTokens` now returns `token_creation_details`.
 
 ### Changed
 
