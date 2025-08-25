@@ -40,7 +40,6 @@
 								{{ pltTokenDataRef?.totalUniqueHolders }}
 							</p>
 						</div>
-
 					</div>
 				</div>
 			</CarouselSlide>
@@ -115,7 +114,12 @@
 								</Tooltip>
 							</div>
 							<p class="font-bold text-xl text-theme-interactive">
-								{{ pltTokenDataRef?.tokenCreationDetails?.createPlt?.initializationParameters?.mintable ? 'True' : 'False' }}
+								{{
+									pltTokenDataRef?.tokenCreationDetails?.createPlt
+										?.initializationParameters?.mintable
+										? 'True'
+										: 'False'
+								}}
 							</p>
 						</div>
 						<div class="flex justify-between pt-4">
@@ -133,7 +137,12 @@
 								</Tooltip>
 							</div>
 							<p class="font-bold text-xl text-theme-interactive">
-								{{ pltTokenDataRef?.tokenCreationDetails?.createPlt?.initializationParameters?.burnable ? 'True' : 'False' }}
+								{{
+									pltTokenDataRef?.tokenCreationDetails?.createPlt
+										?.initializationParameters?.burnable
+										? 'True'
+										: 'False'
+								}}
 							</p>
 						</div>
 						<div class="flex justify-between pt-4">
@@ -151,7 +160,12 @@
 								</Tooltip>
 							</div>
 							<p class="font-bold text-xl text-theme-interactive">
-								{{ pltTokenDataRef?.tokenCreationDetails?.createPlt?.initializationParameters?.allowList ? 'True' : 'False' }}
+								{{
+									pltTokenDataRef?.tokenCreationDetails?.createPlt
+										?.initializationParameters?.allowList
+										? 'True'
+										: 'False'
+								}}
 							</p>
 						</div>
 						<div class="flex justify-between pt-4">
@@ -169,7 +183,12 @@
 								</Tooltip>
 							</div>
 							<p class="font-bold text-xl text-theme-interactive">
-								{{ pltTokenDataRef?.tokenCreationDetails?.createPlt?.initializationParameters?.denyList ? 'True' : 'False' }}
+								{{
+									pltTokenDataRef?.tokenCreationDetails?.createPlt
+										?.initializationParameters?.denyList
+										? 'True'
+										: 'False'
+								}}
 							</p>
 						</div>
 					</div>

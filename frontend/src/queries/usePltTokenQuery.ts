@@ -87,15 +87,15 @@ const PLT_TOKEN_QUERY_BY_ID = gql<PltTokenQueryByTokenIdResponse>`
 				asString
 			}
 			tokenCreationDetails {
-            	createPlt {
-                	initializationParameters {
-                    	allowList
-                    	denyList
-                    	mintable
-                    	burnable
-                	}
-            	}
-        	}	
+				createPlt {
+					initializationParameters {
+						allowList
+						denyList
+						mintable
+						burnable
+					}
+				}
+			}
 		}
 	}
 `
