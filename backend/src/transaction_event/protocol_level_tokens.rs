@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crate::address::AccountAddress;
 use async_graphql::{Enum, SimpleObject, Union};
 use bigdecimal::BigDecimal;
@@ -691,14 +693,23 @@ impl PreparedTokenUpdate {
     async fn update_account_balance(
         &self,
         tx: &mut sqlx::PgTransaction<'_>,
-        account: &str,
+        address: &String,
         amount: &BigDecimal,
     ) -> anyhow::Result<()> {
+        let account_address =
+            concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(address.as_str())
+                .map_err(|_| {
+                    anyhow::anyhow!(
+                        "Failed to convert string into account address type: {}",
+                        address
+                    )
+                })?;
+        let canonical_address = account_address.get_canonical_address();
         sqlx::query!(
             "
             INSERT INTO plt_accounts (account_index, token_index, amount, decimal)
             VALUES (
-                (SELECT index FROM accounts WHERE address = $1),
+                (SELECT index FROM accounts WHERE canonical_address = $1::bytea),
                 (SELECT index FROM plt_tokens WHERE token_id = $2),
                 $3,
                 (SELECT decimal FROM plt_tokens WHERE token_id = $2)
@@ -706,7 +717,7 @@ impl PreparedTokenUpdate {
             ON CONFLICT (account_index, token_index) DO UPDATE
             SET amount = plt_accounts.amount + $3
             ",
-            account,
+            canonical_address.0.as_slice(),
             self.token_id,
             amount
         )

@@ -3,8 +3,8 @@ use axum::{http::StatusCode, Json};
 use clap::Parser;
 use concordium_scan::{
     graphql_api::{self, node_status::NodeInfoReceiver},
-    migrations,
-    migrations::SchemaVersion,
+    migrations::{self, SchemaVersion},
+    monitoring::database_metrics_collector::DatabaseMetricsCollector,
     rest_api, router,
 };
 use prometheus_client::{
@@ -147,6 +147,7 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::registry().with(tracing_subscriber::fmt::layer()).with(filter).init();
 
     let connection_options: PgConnectOptions = cli.database_url.parse()?;
+
     let pool = PgPoolOptions::new()
         .min_connections(cli.min_connections)
         .max_connections(cli.max_connections)
@@ -156,6 +157,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .await
         .context("Failed constructing database connection pool")?;
+
     // Ensure the database schema is compatible with supported schema version.
     migrations::ensure_compatible_schema_version(
         &pool,
@@ -188,6 +190,9 @@ async fn main() -> anyhow::Result<()> {
         "Timestamp of starting up the API service (Unix time in milliseconds)",
         prometheus_client::metrics::gauge::ConstGauge::new(chrono::Utc::now().timestamp_millis()),
     );
+
+    // register db metrics collector
+    registry.register_collector(Box::new(DatabaseMetricsCollector::new(pool.clone())));
 
     let (subscription, subscription_listener) =
         graphql_api::Subscription::new(cli.database_retry_delay_secs);

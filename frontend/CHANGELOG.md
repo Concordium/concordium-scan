@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - Fixed transaction event details for `TokenUpdate` not displaying decimal places properly.
+- Fixed tooltip label formatting in the doughnut chart to only show the percentage (two decimal places).
 
 ### Added
 
