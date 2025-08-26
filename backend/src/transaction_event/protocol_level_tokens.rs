@@ -4,10 +4,7 @@ use crate::address::AccountAddress;
 use async_graphql::{Enum, SimpleObject, Union};
 use bigdecimal::BigDecimal;
 
-use concordium_rust_sdk::{
-    base::contracts_common::CanonicalAccountAddress,
-    protocol_level_tokens::{self},
-};
+use concordium_rust_sdk::protocol_level_tokens::{self};
 use serde::{Deserialize, Serialize};
 
 const CONCORDIUM_SLIP_0044_CODE: u64 = 919;
@@ -649,73 +646,20 @@ impl PreparedTokenUpdate {
         match self.event_type {
             TokenUpdateEventType::Mint => {
                 if let Some(ref target) = self.target {
-                    let account_address =
-                        concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(
-                            target.as_str(),
-                        )
-                        .map_err(|_| {
-                            anyhow::anyhow!(
-                                "Failed to convert account address to canonical address: {}",
-                                target
-                            )
-                        })?;
-                    let canonical_address = account_address.get_canonical_address();
                     self.update_total_minted(tx).await?;
-                    self.update_account_balance(tx, canonical_address, &self.plt_amount_change)
-                        .await?;
+                    self.update_account_balance(tx, target, &self.plt_amount_change).await?;
                 }
             }
             TokenUpdateEventType::Burn => {
                 if let Some(ref target) = self.target {
-                    let account_address =
-                        concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(
-                            target.as_str(),
-                        )
-                        .map_err(|_| {
-                            anyhow::anyhow!(
-                                "Failed to convert account address to canonical address: {}",
-                                target
-                            )
-                        })?;
-                    let canonical_address = account_address.get_canonical_address();
                     self.update_total_burned(tx).await?;
-                    self.update_account_balance(tx, canonical_address, &(-&self.plt_amount_change))
-                        .await?;
+                    self.update_account_balance(tx, target, &(-&self.plt_amount_change)).await?;
                 }
             }
             TokenUpdateEventType::Transfer => {
                 if let (Some(ref from), Some(ref to)) = (&self.from, &self.to) {
-                    let from_account_address =
-                        concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(
-                            from.as_str(),
-                        )
-                        .map_err(|_| {
-                            anyhow::anyhow!(
-                                "Failed to convert from_account_address to canonical address: {}",
-                                from
-                            )
-                        })?;
-                    let from_canonical_address = from_account_address.get_canonical_address();
-                    let to_account_address =
-                        concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(
-                            to.as_str(),
-                        )
-                        .map_err(|_| {
-                            anyhow::anyhow!(
-                                "Failed to convert to_account_address to canonical address: {}",
-                                to
-                            )
-                        })?;
-                    let to_canonical_address = to_account_address.get_canonical_address();
-
-                    self.update_account_balance(
-                        tx,
-                        from_canonical_address,
-                        &(-&self.plt_amount_change),
-                    )
-                    .await?;
-                    self.update_account_balance(tx, to_canonical_address, &self.plt_amount_change)
-                        .await?;
+                    self.update_account_balance(tx, from, &(-&self.plt_amount_change)).await?;
+                    self.update_account_balance(tx, to, &self.plt_amount_change).await?;
                 }
             }
             TokenUpdateEventType::TokenModule => {}
@@ -749,9 +693,18 @@ impl PreparedTokenUpdate {
     async fn update_account_balance(
         &self,
         tx: &mut sqlx::PgTransaction<'_>,
-        canonical_address: CanonicalAccountAddress,
+        address: &String,
         amount: &BigDecimal,
     ) -> anyhow::Result<()> {
+        let account_address =
+            concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(address.as_str())
+                .map_err(|_| {
+                    anyhow::anyhow!(
+                        "Failed to convert string into account address type: {}",
+                        address
+                    )
+                })?;
+        let canonical_address = account_address.get_canonical_address();
         sqlx::query!(
             "
             INSERT INTO plt_accounts (account_index, token_index, amount, decimal)
