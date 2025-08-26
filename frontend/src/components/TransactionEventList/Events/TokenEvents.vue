@@ -1,7 +1,12 @@
 <template>
 	<span v-if="event.event.__typename === 'TokenTransferEvent'">
 		<span>
-			Transferred {{ event.event.amount.value }} <b>{{ event.tokenId }}</b>
+			Transferred
+			<PltAmount
+				:value="event.event.amount.value"
+				:decimals="Number(event.event.amount.decimals)"
+			/>
+			<b>{{ event.tokenId }}</b>
 			From
 
 			<AccountLink :address="event.event.from.address.asString" />
@@ -14,7 +19,12 @@
 
 	<span v-else-if="event.event.__typename === 'MintEvent'">
 		<span>
-			Minted {{ event.event.amount.value }} <b>{{ event.tokenId }}</b>
+			Minted
+			<PltAmount
+				:value="event.event.amount.value"
+				:decimals="Number(event.event.amount.decimals)"
+			/>
+			<b>{{ event.tokenId }}</b>
 
 			To
 			<AccountLink :address="event.event.target.address.asString" />
@@ -22,7 +32,12 @@
 	</span>
 	<span v-else-if="event.event.__typename === 'BurnEvent'">
 		<span>
-			Burned {{ event.event.amount.value }} <b>{{ event.tokenId }}</b>
+			Burned
+			<PltAmount
+				:value="event.event.amount.value"
+				:decimals="Number(event.event.amount.decimals)"
+			/>
+			<b>{{ event.tokenId }}</b>
 
 			From
 			<AccountLink :address="event.event.target.address.asString" />
