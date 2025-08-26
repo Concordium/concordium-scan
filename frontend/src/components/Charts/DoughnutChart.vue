@@ -108,7 +108,7 @@ const defaultOptions: ChartOptions<'doughnut'> = {
 
 					return props.labelFormatter
 						? props.labelFormatter(context)
-						: `${context.label}: ${context.parsed} (${percentage})`
+						: `${context.label}: ${percentage}`
 				},
 			},
 		},
