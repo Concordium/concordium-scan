@@ -79,7 +79,7 @@
 							<p class="font-bold text-2xl mt-2">
 								{{
 									numberFormatter(
-										pltEventMetricsDataRef?.globalPltMetrics.transferVolume
+										pltEventMetricsDataRef?.globalPltMetrics.transferAmount
 									)
 								}}
 							</p>

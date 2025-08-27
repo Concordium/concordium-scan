@@ -42,8 +42,10 @@ delta AS (
 
 SELECT
   bucket_interval_start AS "bucket_time!",
-  COALESCE(cumulative_transfer_count - COALESCE(prev_cumulative_transfer_count, 0), 0) AS transfer_count,
-  COALESCE(cumulative_transfer_amount - COALESCE(prev_cumulative_transfer_amount, 0), 0) AS transfer_volume
+  COALESCE(cumulative_transfer_count, 0) AS cumulative_transfer_count,
+  COALESCE(cumulative_transfer_amount, 0) AS cumulative_transfer_amount,
+  COALESCE(prev_cumulative_transfer_count, 0) AS prev_cumulative_transfer_count,
+  COALESCE(prev_cumulative_transfer_amount, 0) AS prev_cumulative_transfer_amount
 FROM delta
-WHERE prev_cumulative_transfer_count IS NOT NULL
+
 ORDER BY bucket_interval_start;

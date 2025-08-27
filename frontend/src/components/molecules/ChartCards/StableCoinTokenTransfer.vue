@@ -56,7 +56,7 @@ const hoverColors = [
 
 // Define Props
 const props = defineProps<{
-	transferSummary?: PltTransferMetricsQueryResponse
+	transferSummary: PltTransferMetricsQueryResponse
 	decimals: number
 }>()
 
@@ -70,7 +70,7 @@ const chartLabels = computed(() => {
 				props.transferSummary?.pltTransferMetricsByTokenId.buckets[
 					'x_Time'
 				].map((item: string) =>
-					new Date(item).toLocaleDateString('en-UK', {
+					new Date(item).toLocaleDateString(undefined, {
 						hour: '2-digit',
 						minute: '2-digit',
 						month: 'short',
@@ -85,7 +85,7 @@ const chartLabels = computed(() => {
 				props.transferSummary?.pltTransferMetricsByTokenId.buckets[
 					'x_Time'
 				].map((item: string) =>
-					new Date(item).toLocaleDateString('en-UK', {
+					new Date(item).toLocaleDateString(undefined, {
 						hour: '2-digit',
 						minute: '2-digit',
 						month: 'short',
@@ -99,7 +99,7 @@ const chartLabels = computed(() => {
 				props.transferSummary?.pltTransferMetricsByTokenId.buckets[
 					'x_Time'
 				].map((item: string) =>
-					new Date(item).toLocaleDateString('en-UK', {
+					new Date(item).toLocaleDateString(undefined, {
 						month: 'short',
 						day: 'numeric',
 						year: 'numeric',
@@ -107,16 +107,20 @@ const chartLabels = computed(() => {
 				) || []
 			)
 		case 'P3D':
+			// For P3D (3-day bucket), we add 2 days to the start date to get the end date of the bucket.
+			// This produces a label like 'Aug 1 - Aug 3' for each bucket, covering 3 full days.
+			// The calculation: 24 * 2 * 60 * 60 * 1000 = 2 days in milliseconds (start + 2 days = end of 3rd day).
 			return (
 				props.transferSummary?.pltTransferMetricsByTokenId.buckets[
 					'x_Time'
 				].map(
 					(item: string) =>
-						new Date(item).toLocaleDateString('en-UK', {
+						new Date(item).toLocaleDateString(undefined, {
 							day: 'numeric',
 						}) +
 						' - ' +
 						new Date(
+							// 24 * 2 * 60 * 60 * 1000 = 2 days in milliseconds
 							new Date(item).getTime() + 24 * 2 * 60 * 60 * 1000
 						).toLocaleDateString('en-UK', {
 							month: 'short',
@@ -126,18 +130,22 @@ const chartLabels = computed(() => {
 				) || []
 			)
 		case 'P15D':
+			// For P15D (15-day bucket), we add 14 days to the start date to get the end date of the bucket.
+			// This produces a label like 'Aug 1 - Aug 15' for each bucket, covering 15 full days.
+			// The calculation: 24 * 14 * 60 * 60 * 1000 = 14 days in milliseconds (start + 14 days = end of 15th day).
 			return (
 				props.transferSummary?.pltTransferMetricsByTokenId.buckets[
 					'x_Time'
 				].map(
 					(item: string) =>
-						new Date(item).toLocaleDateString('en-UK', {
+						new Date(item).toLocaleDateString(undefined, {
 							day: 'numeric',
 						}) +
 						' - ' +
+						// 24 * 14 * 60 * 60 * 1000 = 14 days in milliseconds
 						new Date(
 							new Date(item).getTime() + 24 * 14 * 60 * 60 * 1000
-						).toLocaleDateString('en-UK', {
+						).toLocaleDateString(undefined, {
 							month: 'short',
 							day: 'numeric',
 							year: 'numeric',
@@ -157,7 +165,7 @@ const barGraphValues = computed<number[]>(
 
 const lineGraphValues = computed<number[]>(
 	() =>
-		props.transferSummary?.pltTransferMetricsByTokenId.buckets.y_TransferVolume.map(
+		props.transferSummary?.pltTransferMetricsByTokenId.buckets.y_TransferAmount.map(
 			(item: number) => item / Math.pow(10, props.decimals)
 		) ?? []
 )

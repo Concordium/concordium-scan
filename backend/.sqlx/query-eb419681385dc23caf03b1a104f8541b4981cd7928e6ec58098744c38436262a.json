@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT cumulative_event_count, cumulative_transfer_amount\n             FROM metrics_plt\n             WHERE event_timestamp >= NOW() - $1::interval\n             ORDER BY event_timestamp DESC\n             LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "cumulative_event_count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "cumulative_transfer_amount",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Interval"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "eb419681385dc23caf03b1a104f8541b4981cd7928e6ec58098744c38436262a"
+}

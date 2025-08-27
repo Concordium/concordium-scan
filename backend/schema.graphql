@@ -1332,10 +1332,8 @@ This struct is returned by the GraphQL API and provides summary statistics
 for PLT token activity over a specified time window.
 """
 type GlobalPltMetrics {
-	"Total number of PLT events (transfers, mints, burns, etc.) in the period."
 	eventCount: Int!
-	"Total volume(amount) of PLT tokens transferred in the period."
-	transferVolume: Float!
+	transferAmount: Float!
 }
 
 type HoldingResponse {
@@ -2066,13 +2064,13 @@ type PltTransferMetricsBuckets {
 	bucketWidth: TimeSpan!
 	x_Time: [DateTime!]!
 	y_TransferCount: [Int!]!
-	y_TransferVolume: [Float!]!
+	y_TransferAmount: [Float!]!
 }
 
 "This struct is used to define the GraphQL query for PLT transfer metrics."
 type PltTransferMetricsByTokenId {
 	transferCount: Int!
-	transferVolume: Float!
+	transferAmount: Float!
 	decimal: Int!
 	buckets: PltTransferMetricsBuckets!
 }
@@ -2248,6 +2246,12 @@ type Query {
 	poolRewardMetricsForPassiveDelegation(period: MetricsPeriod!): PoolRewardMetrics!
 	blockMetrics(period: MetricsPeriod!): BlockMetrics!
 	transactionMetrics(period: MetricsPeriod!): TransactionMetrics!
+	"""
+	Query for PLT metrics over a specified time period. (across all plts)
+	returns GlobalPltMetrics plt event_count (Mint/Burn/Transfer etc)
+	and transfer_volume (the total volume of transfers normalized across all
+	plts by their respective decimals)
+	"""
 	globalPltMetrics(period: MetricsPeriod!): GlobalPltMetrics!
 	pltTransferMetricsByTokenId(period: MetricsPeriod!, tokenId: String!): PltTransferMetricsByTokenId!
 	pltEvent(id: ID!): PltEvent!

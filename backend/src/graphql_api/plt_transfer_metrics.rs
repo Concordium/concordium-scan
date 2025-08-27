@@ -1,11 +1,21 @@
-//! Contains the GraphQL query for PLT transfer metrics.
-//! This query retrieves metrics related to PLT token transfer events over a
-//! specified period for a specific token (token_id is mandatory). It provides
-//! bucketed data for visualizing transfer trends over time using pre-calculated
-//! cumulative metrics for optimal performance.
+//! Contains the GraphQL query for PLT transfer metrics
+//! `QueryPltTransferMetricsByTokenId` and `GlobalPltMetrics`.
+//!
+//! The query `QueryPltTransferMetricsByTokenId` retrieves metrics related to
+//! PLT token transfer events over a specified period for a specific token
+//! (token_id is mandatory). It provides bucketed data for visualizing transfer
+//! trends over time using pre-calculated cumulative metrics for optimal
+//! performance.
+//!
+//! The query `GlobalPltMetrics` provides aggregated PLT metrics across all
+//! protocol-level tokens for a specified time period. It returns total event
+//! counts (including transfers, mints, burns, etc.) and normalized transfer
+//! volumes across all PLT tokens.
+
 use std::sync::Arc;
 
 use async_graphql::{Context, Object, SimpleObject};
+use bigdecimal::BigDecimal;
 use sqlx::postgres::types::PgInterval;
 
 use crate::{
@@ -21,8 +31,8 @@ pub(crate) struct QueryPltTransferMetricsByTokenId;
 struct PltTransferMetricsByTokenId {
     // Total number of transfers in the requested period.
     transfer_count:  i64,
-    // Total volume of transfers in the requested period.
-    transfer_volume: f64,
+    // Total amount of transfers in the requested period.
+    transfer_amount: f64,
     // Decimal places of the token
     decimal:         i32,
     // Buckets for the PLT transfer metrics.
@@ -39,9 +49,9 @@ struct PltTransferMetricsBuckets {
     // The transfer counts for each bucket.
     #[graphql(name = "y_TransferCount")]
     y_transfer_count:  Vec<i64>,
-    // The transfer volumes for each bucket.
-    #[graphql(name = "y_TransferVolume")]
-    y_transfer_volume: Vec<f64>,
+    // The transfer amounts for each bucket.
+    #[graphql(name = "y_TransferAmount")]
+    y_transfer_amount: Vec<f64>,
 }
 
 /// Implementation of the GraphQL query for PLT transfer metrics.
@@ -88,41 +98,48 @@ impl QueryPltTransferMetricsByTokenId {
 
         let mut x_time = Vec::with_capacity(rows.len());
         let mut y_transfer_count = Vec::with_capacity(rows.len());
-        let mut y_transfer_volume = Vec::with_capacity(rows.len());
+        let mut y_transfer_amount = Vec::with_capacity(rows.len());
 
         let mut total_transfer_count = 0;
-        let mut total_transfer_volume = 0.0;
+        let mut total_transfer_amount = 0.0;
 
         // Iterate through the rows and populate the transfer metrics.
         // Each row corresponds to a time bucket with transfer counts and volumes.
-        for row in rows {
+        // first row is redundant because of the way cumulative metrics are calculated,
+        // the first row is out of the interval it can have residual values from
+        // the previous interval so we can skip it
+        for row in rows.iter().skip(1) {
             x_time.push(row.bucket_time);
 
-            let transfer_count = row.transfer_count.unwrap_or(0);
-            let transfer_volume = row
-                .transfer_volume
-                .as_ref()
-                .and_then(num_traits::ToPrimitive::to_f64)
-                .unwrap_or(0.0);
-            total_transfer_count += transfer_count;
-            total_transfer_volume += transfer_volume;
+            let transfer_count = row.cumulative_transfer_count.unwrap_or(0)
+                - row.prev_cumulative_transfer_count.unwrap_or(0);
 
-            // Push the counts and volumes into their respective vectors for
+            let prev_amount =
+                row.prev_cumulative_transfer_amount.clone().unwrap_or(BigDecimal::from(0));
+            let curr_amount = row.cumulative_transfer_amount.clone().unwrap_or(BigDecimal::from(0));
+            let transfer_amount_bigdecimal = &curr_amount - &prev_amount;
+            let transfer_amount =
+                num_traits::ToPrimitive::to_f64(&transfer_amount_bigdecimal).unwrap_or(0.0);
+
+            total_transfer_count += transfer_count;
+            total_transfer_amount += transfer_amount;
+
+            // Push the counts and amounts into their respective vectors for
             // each bucket for transfer trend visualization.
             y_transfer_count.push(transfer_count);
-            y_transfer_volume.push(transfer_volume);
+            y_transfer_amount.push(transfer_amount);
         }
 
         Ok(PltTransferMetricsByTokenId {
             transfer_count:  total_transfer_count,
-            transfer_volume: total_transfer_volume,
+            transfer_amount: total_transfer_amount,
             decimal:         plt_token_decimal,
 
             buckets: PltTransferMetricsBuckets {
                 bucket_width: TimeSpan(bucket_width),
                 x_time,
                 y_transfer_count,
-                y_transfer_volume,
+                y_transfer_amount,
             },
         })
     }
@@ -141,7 +158,9 @@ struct GlobalPltMetrics {
     // period.
     event_count:     i64,
     // Total volume(amount) of PLT tokens transferred in the period.
-    transfer_volume: f64,
+    // Sum of all transfer amounts normalized by token decimals, then aggregated across different
+    // tokens. Example: 1.5 Token1 + 234.3 Token2 = 235.8 (decimal-normalized amounts summed).
+    transfer_amount: f64,
 }
 
 #[Object]
@@ -161,47 +180,52 @@ impl QueryGlobalPltMetrics {
             .try_into()
             .map_err(|e| ApiError::DurationOutOfRange(Arc::new(e)))?;
 
-        let row = sqlx::query!(
-            "WITH
-                start_row AS (
-                    SELECT cumulative_event_count, cumulative_transfer_amount
-                    FROM metrics_plt
-                    WHERE event_timestamp < NOW() - $1::interval
-                    ORDER BY event_timestamp DESC
-                    LIMIT 1
-                ),
-                end_row AS (
-                    SELECT cumulative_event_count, cumulative_transfer_amount
-                    FROM metrics_plt
-                    WHERE event_timestamp >= NOW() - $1::interval
-                    ORDER BY event_timestamp DESC
-                    LIMIT 1
-                )
-                SELECT
-               GREATEST(COALESCE((SELECT cumulative_event_count FROM end_row), 0) - \
-             COALESCE((SELECT cumulative_event_count FROM start_row), 0), 0) AS event_count,
-               GREATEST(COALESCE((SELECT cumulative_transfer_amount FROM end_row), 0) - \
-             COALESCE((SELECT cumulative_transfer_amount FROM start_row), 0), 0) AS \
-             transfer_volume;",
+        // Get start row
+        let start_row = sqlx::query!(
+            "SELECT cumulative_event_count, cumulative_transfer_amount
+             FROM metrics_plt
+             WHERE event_timestamp < NOW() - $1::interval
+             ORDER BY event_timestamp DESC
+             LIMIT 1",
             period_interval
         )
         .fetch_optional(pool)
         .await?;
 
-        let (event_count, transfer_volume) = if let Some(row) = row {
-            (
-                row.event_count.unwrap_or(0),
-                row.transfer_volume
-                    .as_ref()
-                    .and_then(num_traits::ToPrimitive::to_f64)
-                    .unwrap_or(0.0),
-            )
-        } else {
-            (0, 0.0)
+        // Get end row
+        let end_row = sqlx::query!(
+            "SELECT cumulative_event_count, cumulative_transfer_amount
+             FROM metrics_plt
+             WHERE event_timestamp >= NOW() - $1::interval
+             ORDER BY event_timestamp DESC
+             LIMIT 1",
+            period_interval
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        let (event_count, transfer_amount) = match (start_row, end_row) {
+            (Some(start_row), Some(end_row)) => {
+                let event_count = end_row.cumulative_event_count - start_row.cumulative_event_count;
+                let transfer_amount_bigdecimal =
+                    end_row.cumulative_transfer_amount - start_row.cumulative_transfer_amount;
+                let transfer_amount =
+                    num_traits::ToPrimitive::to_f64(&transfer_amount_bigdecimal).unwrap_or(0.0);
+                (event_count, transfer_amount)
+            }
+            (None, Some(end_row)) => {
+                // Handle case where start_row is None but end_row exists
+                let event_count = end_row.cumulative_event_count;
+                let transfer_amount =
+                    num_traits::ToPrimitive::to_f64(&end_row.cumulative_transfer_amount)
+                        .unwrap_or(0.0);
+                (event_count, transfer_amount)
+            }
+            _ => (0, 0.0),
         };
 
         Ok(GlobalPltMetrics {
-            transfer_volume,
+            transfer_amount,
             event_count,
         })
     }

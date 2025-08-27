@@ -1,0 +1,49 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        WITH token_info AS (\n                            SELECT index AS token_idx FROM plt_tokens WHERE token_id = $3\n                        ),\n                        account_checks AS (\n                            SELECT token_idx,\n                                COALESCE((SELECT amount FROM plt_accounts WHERE account_index = (SELECT index FROM accounts WHERE address = $1) AND token_index = token_idx), 0) AS from_balance,\n                                COALESCE((SELECT amount FROM plt_accounts WHERE account_index = (SELECT index FROM accounts WHERE address = $2) AND token_index = token_idx), 0) AS to_balance\n                            FROM token_info\n                        ),\n                        from_balance_updates AS (\n                            INSERT INTO plt_accounts (account_index, token_index, amount, decimal)\n                            SELECT \n                                (SELECT index FROM accounts WHERE address = $1),\n                                token_idx,\n                                $4,\n                                (SELECT decimal FROM plt_tokens WHERE token_id = $3)\n                            FROM account_checks\n                            ON CONFLICT (account_index, token_index) DO UPDATE\n                            SET amount = plt_accounts.amount - $4\n                            RETURNING amount as from_final_balance\n                        ),\n                        to_balance_updates AS (\n                            INSERT INTO plt_accounts (account_index, token_index, amount, decimal)\n                            SELECT \n                                (SELECT index FROM accounts WHERE address = $2),\n                                token_idx,\n                                $4,\n                                (SELECT decimal FROM plt_tokens WHERE token_id = $3)\n                            FROM account_checks\n                            ON CONFLICT (account_index, token_index) DO UPDATE\n                            SET amount = plt_accounts.amount + $4\n                            RETURNING amount as to_final_balance\n                        )\n                        SELECT \n                            token_idx, \n                            from_balance, \n                            to_balance,\n                            COALESCE((SELECT from_final_balance FROM from_balance_updates), 0) as from_final_balance,\n                            COALESCE((SELECT to_final_balance FROM to_balance_updates), 0) as to_final_balance\n                        FROM account_checks\n                        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "token_idx",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "from_balance",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 2,
+        "name": "to_balance",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "from_final_balance",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "to_final_balance",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Numeric"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "c36dd98b3d910596d6055ea88efc7ba1f75db3258677e88a065688954809d1b8"
+}

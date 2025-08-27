@@ -14,7 +14,7 @@ const PltMetricsQuery = gql<PltMetricsQueryResponse>`
 	query GlobalPltMetrics($period: MetricsPeriod!) {
 		globalPltMetrics(period: $period) {
 			eventCount
-			transferVolume
+			transferAmount
 		}
 	}
 `
@@ -40,13 +40,13 @@ const PltTransferMetricsQueryByTokenId = gql<PltTransferMetricsQueryResponse>`
 	) {
 		pltTransferMetricsByTokenId(period: $period, tokenId: $tokenId) {
 			transferCount
-			transferVolume
+			transferAmount
 			decimal
 			buckets {
 				bucketWidth
 				x_Time
 				y_TransferCount
-				y_TransferVolume
+				y_TransferAmount
 			}
 		}
 	}

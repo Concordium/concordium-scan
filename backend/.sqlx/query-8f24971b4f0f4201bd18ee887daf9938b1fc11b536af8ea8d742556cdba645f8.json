@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        WITH latest_metrics AS (\n                            SELECT \n                                COALESCE(MAX(cumulative_event_count), 0) as prev_events,\n                                COALESCE(MAX(cumulative_transfer_amount), 0) as prev_transfers,\n                                COALESCE(MAX(unique_account_count), 0) as prev_unique\n                            FROM metrics_plt\n                        )\n                        INSERT INTO metrics_plt (event_timestamp, cumulative_event_count, cumulative_transfer_amount, unique_account_count)\n                        SELECT $1, prev_events, prev_transfers + $2, GREATEST(prev_unique + $3, 0)\n                        FROM latest_metrics\n                        ON CONFLICT (event_timestamp) DO UPDATE SET\n                            cumulative_transfer_amount = GREATEST(metrics_plt.cumulative_transfer_amount, EXCLUDED.cumulative_transfer_amount),\n                            unique_account_count = GREATEST(metrics_plt.unique_account_count, EXCLUDED.unique_account_count)\n                        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Numeric",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8f24971b4f0f4201bd18ee887daf9938b1fc11b536af8ea8d742556cdba645f8"
+}

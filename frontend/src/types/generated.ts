@@ -1503,10 +1503,8 @@ export type GasRewardsCpv2Update = {
  */
 export type GlobalPltMetrics = {
   __typename?: 'GlobalPltMetrics';
-  /** Total number of PLT events (transfers, mints, burns, etc.) in the period. */
   eventCount: Scalars['Int'];
-  /** Total volume(amount) of PLT tokens transferred in the period. */
-  transferVolume: Scalars['Float'];
+  transferAmount: Scalars['Float'];
 };
 
 export type HoldingResponse = {
@@ -2366,8 +2364,8 @@ export type PltTransferMetricsBuckets = {
   __typename?: 'PltTransferMetricsBuckets';
   bucketWidth: Scalars['TimeSpan'];
   x_Time: Array<Scalars['DateTime']>;
+  y_TransferAmount: Array<Scalars['Float']>;
   y_TransferCount: Array<Scalars['Int']>;
-  y_TransferVolume: Array<Scalars['Float']>;
 };
 
 /** This struct is used to define the GraphQL query for PLT transfer metrics. */
@@ -2375,8 +2373,8 @@ export type PltTransferMetricsByTokenId = {
   __typename?: 'PltTransferMetricsByTokenId';
   buckets: PltTransferMetricsBuckets;
   decimal: Scalars['Int'];
+  transferAmount: Scalars['Float'];
   transferCount: Scalars['Int'];
-  transferVolume: Scalars['Float'];
 };
 
 export type PoolApy = {
@@ -2468,6 +2466,12 @@ export type Query = {
   blocks: BlockConnection;
   contract: Contract;
   contracts: ContractConnection;
+  /**
+   * Query for PLT metrics over a specified time period. (across all plts)
+   * returns GlobalPltMetrics plt event_count (Mint/Burn/Transfer etc)
+   * and transfer_volume (the total volume of transfers normalized across all
+   * plts by their respective decimals)
+   */
   globalPltMetrics: GlobalPltMetrics;
   importState: ImportState;
   latestChainParameters: LatestChainParameters;
