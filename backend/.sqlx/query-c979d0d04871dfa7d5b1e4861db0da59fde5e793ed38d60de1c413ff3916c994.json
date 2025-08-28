@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT SUM(amount) as amount FROM plt_accounts WHERE account_index = (SELECT index FROM accounts WHERE address = $1)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "amount",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "c979d0d04871dfa7d5b1e4861db0da59fde5e793ed38d60de1c413ff3916c994"
+}

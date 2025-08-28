@@ -6,7 +6,7 @@ ON plt_accounts (token_index, amount DESC);
 
 
 -- Create table for transfer metrics PLT with cumulative data
-CREATE TABLE metrics_plt_transfer (
+CREATE TABLE IF NOT EXISTS metrics_plt_transfer (
 id BIGSERIAL PRIMARY KEY,
 event_timestamp TIMESTAMPTZ NOT NULL,
 token_index BIGINT NOT NULL,
@@ -19,6 +19,12 @@ cumulative_transfer_amount NUMERIC NOT NULL DEFAULT 0
 CREATE INDEX IF NOT EXISTS idx_metrics_plt_transfer_token_time
 ON metrics_plt_transfer (token_index, event_timestamp DESC)
 INCLUDE (cumulative_transfer_count, cumulative_transfer_amount);
+
+-- Add unique constraint for event_timestamp and token_index
+-- This ensures that there are no duplicate entries for the same event and token combination
+ALTER TABLE metrics_plt_transfer
+ADD CONSTRAINT metrics_plt_transfer_event_token_unique
+UNIQUE (event_timestamp, token_index);
 
 
 

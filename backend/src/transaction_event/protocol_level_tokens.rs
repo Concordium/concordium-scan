@@ -376,7 +376,6 @@ pub struct PreparedTokenUpdate {
     pub target:            Option<String>,
     pub to:                Option<String>,
     pub from:              Option<String>,
-    pub amount_decimals:   i32,
 }
 
 #[derive(Union, Serialize, Deserialize, Clone, Debug)]
@@ -528,7 +527,7 @@ impl TryFrom<TokenUpdate> for PreparedTokenUpdate {
         let mut plt_amount_change = BigDecimal::from(0u64);
         let event: TokenEventDetails = update.event.clone();
 
-        let (event_type, amount_decimals) = match &update.event {
+        let event_type = match &update.event {
             TokenEventDetails::Module(e) => {
                 token_module_type = match e.event_type.as_str() {
                     "addAllowList" => Some(TokenUpdateModuleType::AddAllowList),
@@ -539,7 +538,7 @@ impl TryFrom<TokenUpdate> for PreparedTokenUpdate {
                     "unpause" => Some(TokenUpdateModuleType::Unpause),
                     _ => None,
                 };
-                (TokenUpdateEventType::TokenModule, 0i32)
+                TokenUpdateEventType::TokenModule
             }
             TokenEventDetails::Transfer(e) => {
                 from = Some(e.from.address.to_string());
@@ -548,12 +547,8 @@ impl TryFrom<TokenUpdate> for PreparedTokenUpdate {
                     BigDecimal::from(e.amount.value.parse::<u64>().map_err(|e| {
                         anyhow::anyhow!("Failed to parse transfer amount value: {}", e)
                     })?);
-                (
-                    TokenUpdateEventType::Transfer,
-                    e.amount.decimals.parse::<i32>().map_err(|e| {
-                        anyhow::anyhow!("Failed to parse transfer amount decimals: {}", e)
-                    })?,
-                )
+
+                TokenUpdateEventType::Transfer
             }
             TokenEventDetails::Mint(e) => {
                 target = Some(e.target.address.to_string());
@@ -561,12 +556,8 @@ impl TryFrom<TokenUpdate> for PreparedTokenUpdate {
                     BigDecimal::from(e.amount.value.parse::<u64>().map_err(|e| {
                         anyhow::anyhow!("Failed to parse mint amount value: {}", e)
                     })?);
-                (
-                    TokenUpdateEventType::Mint,
-                    e.amount.decimals.parse::<i32>().map_err(|e| {
-                        anyhow::anyhow!("Failed to parse mint amount decimals: {}", e)
-                    })?,
-                )
+
+                TokenUpdateEventType::Mint
             }
             TokenEventDetails::Burn(e) => {
                 target = Some(e.target.address.to_string());
@@ -574,12 +565,8 @@ impl TryFrom<TokenUpdate> for PreparedTokenUpdate {
                     BigDecimal::from(e.amount.value.parse::<u64>().map_err(|e| {
                         anyhow::anyhow!("Failed to parse burn amount value: {}", e)
                     })?);
-                (
-                    TokenUpdateEventType::Burn,
-                    e.amount.decimals.parse::<i32>().map_err(|e| {
-                        anyhow::anyhow!("Failed to parse burn amount decimals: {}", e)
-                    })?,
-                )
+
+                TokenUpdateEventType::Burn
             }
         };
 
@@ -592,7 +579,6 @@ impl TryFrom<TokenUpdate> for PreparedTokenUpdate {
             to,
             plt_amount_change,
             event,
-            amount_decimals,
         })
     }
 }
@@ -636,15 +622,21 @@ impl PreparedTokenUpdate {
         .execute(tx.as_mut())
         .await?;
 
+        // Update cumulative event count metrics (metrics_plt table)
         self.update_metrics_plt_cumulative_event_count(tx, slot_time).await?;
 
         match self.event_type {
             TokenUpdateEventType::Mint => {
                 if let Some(ref target) = self.target {
-                    let account_exists = self.check_if_account_exists(tx, target).await?;
+                    let previous_amount =
+                        self.plt_amount_accross_tokens_by_account(tx, target).await?;
                     self.update_total_minted(tx).await?;
                     self.update_account_balance(tx, target, &self.plt_amount_change).await?;
-                    if !account_exists {
+                    let current_amount =
+                        self.plt_amount_accross_tokens_by_account(tx, target).await?;
+                    if previous_amount == BigDecimal::from(0)
+                        && current_amount > BigDecimal::from(0)
+                    {
                         self.update_metrics_plt_unique_account_count_delta(tx, slot_time, 1)
                             .await?;
                     }
@@ -652,15 +644,16 @@ impl PreparedTokenUpdate {
             }
             TokenUpdateEventType::Burn => {
                 if let Some(ref target) = self.target {
+                    let previous_amount =
+                        self.plt_amount_accross_tokens_by_account(tx, target).await?;
+
                     self.update_total_burned(tx).await?;
-                    let final_balance = self
-                        .update_account_balance_and_return_final_balance(
-                            tx,
-                            target,
-                            &(-&self.plt_amount_change),
-                        )
-                        .await?;
-                    if final_balance == BigDecimal::from(0) {
+                    self.update_account_balance(tx, target, &(-&self.plt_amount_change)).await?;
+                    let current_amount =
+                        self.plt_amount_accross_tokens_by_account(tx, target).await?;
+                    if previous_amount > BigDecimal::from(0)
+                        && current_amount == BigDecimal::from(0)
+                    {
                         self.update_metrics_plt_unique_account_count_delta(tx, slot_time, -1)
                             .await?;
                     }
@@ -668,138 +661,40 @@ impl PreparedTokenUpdate {
             }
             TokenUpdateEventType::Transfer => {
                 if let (Some(ref from), Some(ref to)) = (&self.from, &self.to) {
-                    // TRANSFER OPERATION: CTE query performing account existence checks and balance
-                    // updates
-                    //
-                    // - Checks if sender and receiver accounts exist in plt_accounts table
-                    // - Updates sender account balance (subtracts transfer amount)
-                    // - Updates receiver account balance (adds transfer amount)
-                    // - Returns existence flags and token_index for metrics calculations
-                    //
-                    // CTE structure:
-                    // - account_checks: EXISTS() subqueries return boolean flags for account
-                    //   presence
-                    // - from_balance_updates: INSERT with ON CONFLICT for sender account balance
-                    //   modification
-                    // - to_balance_updates: INSERT with ON CONFLICT for receiver account balance
-                    //   modification
-                    //
-                    // Existence booleans are required for metrics_plt.unique_account_count
-                    // calculations. ON CONFLICT (account_index, token_index)
-                    // handles both insert-if-new and update-if-exists cases.
-                    let result = sqlx::query!(
-                        "
-                        WITH token_info AS (
-                            SELECT index AS token_idx FROM plt_tokens WHERE token_id = $3
-                        ),
-                        account_checks AS (
-                            SELECT token_idx,
-                                COALESCE((SELECT amount FROM plt_accounts WHERE account_index = \
-                         (SELECT index FROM accounts WHERE address = $1) AND token_index = \
-                         token_idx), 0) AS from_balance,
-                                COALESCE((SELECT amount FROM plt_accounts WHERE account_index = \
-                         (SELECT index FROM accounts WHERE address = $2) AND token_index = \
-                         token_idx), 0) AS to_balance
-                            FROM token_info
-                        ),
-                        from_balance_updates AS (
-                            INSERT INTO plt_accounts (account_index, token_index, amount, decimal)
-                            SELECT 
-                                (SELECT index FROM accounts WHERE address = $1),
-                                token_idx,
-                                $4,
-                                (SELECT decimal FROM plt_tokens WHERE token_id = $3)
-                            FROM account_checks
-                            ON CONFLICT (account_index, token_index) DO UPDATE
-                            SET amount = plt_accounts.amount - $4
-                            RETURNING amount as from_final_balance
-                        ),
-                        to_balance_updates AS (
-                            INSERT INTO plt_accounts (account_index, token_index, amount, decimal)
-                            SELECT 
-                                (SELECT index FROM accounts WHERE address = $2),
-                                token_idx,
-                                $4,
-                                (SELECT decimal FROM plt_tokens WHERE token_id = $3)
-                            FROM account_checks
-                            ON CONFLICT (account_index, token_index) DO UPDATE
-                            SET amount = plt_accounts.amount + $4
-                            RETURNING amount as to_final_balance
-                        )
-                        SELECT 
-                            token_idx, 
-                            from_balance, 
-                            to_balance,
-                            COALESCE((SELECT from_final_balance FROM from_balance_updates), 0) as \
-                         from_final_balance,
-                            COALESCE((SELECT to_final_balance FROM to_balance_updates), 0) as \
-                         to_final_balance
-                        FROM account_checks
-                        ",
-                        from,
-                        to,
-                        self.token_id,
-                        self.plt_amount_change //  amount change
-                    )
-                    .fetch_one(tx.as_mut())
-                    .await?;
+                    let previous_from_amount =
+                        self.plt_amount_accross_tokens_by_account(tx, from).await?;
+                    let previous_to_amount =
+                        self.plt_amount_accross_tokens_by_account(tx, to).await?;
+                    self.update_transfer_balances(tx, from, to, &self.plt_amount_change).await?;
 
-                    let from_balance = result.from_balance.unwrap_or(BigDecimal::from(0));
-                    let to_balance = result.to_balance.unwrap_or(BigDecimal::from(0));
-                    let from_final_balance =
-                        result.from_final_balance.unwrap_or(BigDecimal::from(0));
-                    let to_final_balance = result.to_final_balance.unwrap_or(BigDecimal::from(0));
-
-                    // Calculate unique account changes:
-                    // +1 if to account had zero balance and now has positive balance
-                    // -1 if from account had positive balance and now has zero
-                    let mut new_accounts = 0i64;
-                    if (to_balance == BigDecimal::from(0))
-                        && (to_final_balance > BigDecimal::from(0))
-                    {
-                        new_accounts += 1;
-                    }
-                    if (from_balance > BigDecimal::from(0))
-                        && (from_final_balance == BigDecimal::from(0))
-                    {
-                        new_accounts -= 1;
-                    }
-
-                    let token_idx = result.token_idx;
-                    // normalize amount for cross-token consistency
-                    let normalized_amount = self.plt_amount_change.clone()
-                        / BigDecimal::from(10u64.pow(self.amount_decimals as u32));
-
-                    // METRICS UPDATE 1: Global PLT transfer aggregation
-                    //
-                    // Updates metrics_plt table with transfer data:
-                    // - cumulative_transfer_amount: Running sum of normalized transfer volumes
-                    // - unique_account_count: Count of distinct accounts across all PLT tokens
-                    //
-                    // Query execution:
-                    // - CTE fetches previous metric values from latest row
-                    // - For the first PLT event in a block, a new row is inserted in metrics_plt
-                    //   (unique event_timestamp).
-                    // - For further PLT events in the same block, the row is updated instead of
-                    //   inserting a new one.
-                    // - This ensures only one row per block/event_timestamp is created and updated
-                    //   for all PLT events in that block.
-                    // - GREATEST() ensures values only increase.
-                    // - normalized_amount = raw_amount / (10^decimals) for cross-token consistency
-
+                    // This SQL block updates the global PLT metrics table (metrics_plt) for a
+                    // transfer event:
+                    // It fetches the latest cumulative transfer amount and unique account count.
+                    // Inserts a new row for the current event timestamp, incrementing the transfer
+                    // amount by the transferred value. If a row for the
+                    // timestamp already exists, it updates the cumulative transfer amount using the
+                    // maximum value (to ensure monotonic increase). The unique
+                    // account count is preserved and not changed by this query.
                     sqlx::query!(
                         "
                         WITH latest_metrics AS (
                             SELECT 
-                                COALESCE(MAX(cumulative_event_count), 0) as prev_events,
-                                COALESCE(MAX(cumulative_transfer_amount), 0) as prev_transfers,
-                                COALESCE(MAX(unique_account_count), 0) as prev_unique
-                            FROM metrics_plt
+                                COALESCE(cumulative_transfer_amount, 0) AS prev_transfer_amount,
+                                COALESCE(unique_account_count, 0) AS prev_unique_count
+                            FROM metrics_plt 
+                            ORDER BY event_timestamp DESC 
+                            LIMIT 1
                         )
-                        INSERT INTO metrics_plt (event_timestamp, cumulative_event_count, \
-                         cumulative_transfer_amount, unique_account_count)
-                        SELECT $1, prev_events, prev_transfers + $2, GREATEST(prev_unique + $3, 0)
-                        FROM latest_metrics
+                        INSERT INTO metrics_plt (
+                            event_timestamp, 
+                            cumulative_transfer_amount,
+                            unique_account_count
+                        )
+                        SELECT 
+                            $1,
+                            lm.prev_transfer_amount + $2,
+                            lm.prev_unique_count
+                        FROM latest_metrics lm
                         ON CONFLICT (event_timestamp) DO UPDATE SET
                             cumulative_transfer_amount = \
                          GREATEST(metrics_plt.cumulative_transfer_amount, \
@@ -808,62 +703,89 @@ impl PreparedTokenUpdate {
                          EXCLUDED.unique_account_count)
                         ",
                         slot_time,
-                        normalized_amount,
-                        new_accounts
+                        self.plt_amount_change
                     )
                     .execute(tx.as_mut())
                     .await?;
-                    println!(
-                        "Updated global PLT metrics: token_idx={}, normalized_amount={}, \
-                         new_accounts={}",
-                        token_idx, normalized_amount, new_accounts
-                    );
-                    println!(
-                        "Updated global PLT metrics: slot_time={}, token_idx={}, \
-                         plt_amount_change={}",
-                        slot_time,
-                        token_idx,
-                        self.plt_amount_change.clone()
-                    );
-                    // METRICS UPDATE 2: Token-specific transfer statistics
-                    //
-                    // Updates metrics_plt_transfer table for per-token analytics:
-                    // - cumulative_transfer_count: Number of transfer events for this token_index
-                    // - cumulative_transfer_amount: Raw amount sum for this token_index (preserves
-                    //   decimals)
-                    //
-                    // Query execution:
-                    // - Subqueries fetch latest metric values for this token_index
-                    // - INSERT creates new row (id is auto-incrementing BIGSERIAL primary key)
-                    // - Raw amount preserves original precision for token-specific calculations
+
+                    // This SQL block updates the per-token transfer metrics table
+                    // (metrics_plt_transfer) for a transfer event:
+                    // It inserts a new row for the current event timestamp and token, incrementing
+                    // the transfer count and amount by 1 and the transferred value, respectively.
+                    // If a row for the same timestamp and token already exists, it updates the
+                    // cumulative transfer count and amount using the maximum value (ensuring
+                    // monotonic increase). This query tracks how many transfers
+                    // and how much value has been transferred for each token, per block.
                     sqlx::query!(
                         "
-                        INSERT INTO metrics_plt_transfer (event_timestamp, token_index, \
-                         cumulative_transfer_count, cumulative_transfer_amount)
-                        SELECT 
-                            $1,
-                            $2,
-                            COALESCE((
-                                SELECT cumulative_transfer_count FROM metrics_plt_transfer 
-                                WHERE token_index = $2 ORDER BY event_timestamp DESC LIMIT 1
-                            ), 0) + 1,
-                            COALESCE((
-                                SELECT cumulative_transfer_amount FROM metrics_plt_transfer 
-                                WHERE token_index = $2 ORDER BY event_timestamp DESC LIMIT 1
-                            ), 0) + $3
-                        ",
+                    INSERT INTO metrics_plt_transfer (
+                        event_timestamp, 
+                        token_index,
+                        cumulative_transfer_count,
+                        cumulative_transfer_amount
+                    )
+                    SELECT 
+                        $1,
+                        (SELECT index FROM plt_tokens WHERE token_id = $2),
+                        COALESCE((SELECT cumulative_transfer_count FROM metrics_plt_transfer WHERE \
+                         token_index = (SELECT index FROM plt_tokens WHERE token_id = $2) ORDER \
+                         BY event_timestamp DESC LIMIT 1), 0) + 1,
+                        COALESCE((SELECT cumulative_transfer_amount FROM metrics_plt_transfer \
+                         WHERE token_index = (SELECT index FROM plt_tokens WHERE token_id = $2) \
+                         ORDER BY event_timestamp DESC LIMIT 1), 0) + $3
+                    ON CONFLICT (event_timestamp, token_index) DO UPDATE SET
+                        cumulative_transfer_count = \
+                         GREATEST(metrics_plt_transfer.cumulative_transfer_count, \
+                         EXCLUDED.cumulative_transfer_count),
+                        cumulative_transfer_amount = \
+                         GREATEST(metrics_plt_transfer.cumulative_transfer_amount, \
+                         EXCLUDED.cumulative_transfer_amount)
+                    ",
                         slot_time,
-                        token_idx,
-                        self.plt_amount_change.clone()
+                        self.token_id,
+                        self.plt_amount_change
                     )
                     .execute(tx.as_mut())
                     .await?;
+
+                    let current_from_amount =
+                        self.plt_amount_accross_tokens_by_account(tx, from).await?;
+                    let current_to_amount =
+                        self.plt_amount_accross_tokens_by_account(tx, to).await?;
+
+                    if previous_from_amount > BigDecimal::from(0)
+                        && current_from_amount == BigDecimal::from(0)
+                    {
+                        self.update_metrics_plt_unique_account_count_delta(tx, slot_time, -1)
+                            .await?;
+                    }
+                    if previous_to_amount > BigDecimal::from(0)
+                        && current_to_amount == BigDecimal::from(0)
+                    {
+                        self.update_metrics_plt_unique_account_count_delta(tx, slot_time, -1)
+                            .await?;
+                    }
                 }
             }
             TokenUpdateEventType::TokenModule => {}
         }
 
         Ok(())
+    }
+
+    async fn plt_amount_accross_tokens_by_account(
+        &self,
+        tx: &mut sqlx::PgTransaction<'_>,
+        account_address: &str,
+    ) -> anyhow::Result<BigDecimal> {
+        let row = sqlx::query!(
+            "SELECT SUM(amount) as amount FROM plt_accounts WHERE account_index = (SELECT index \
+             FROM accounts WHERE address = $1)",
+            account_address
+        )
+        .fetch_one(tx.as_mut())
+        .await?;
+        Ok(row.amount.unwrap_or(BigDecimal::from(0)))
     }
 
     // METRICS UPDATE: PLT event counter increment
@@ -942,6 +864,42 @@ impl PreparedTokenUpdate {
         Ok(())
     }
 
+    async fn update_transfer_balances(
+        &self,
+        tx: &mut sqlx::PgTransaction<'_>,
+        from: &str,
+        to: &str,
+        amount: &BigDecimal,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            r#"
+        INSERT INTO plt_accounts (account_index, token_index, amount, decimal)
+        VALUES
+            ( (SELECT index FROM accounts WHERE address = $1),
+              (SELECT index FROM plt_tokens WHERE token_id = $3),
+              $4,
+              (SELECT decimal FROM plt_tokens WHERE token_id = $3)
+            ),
+            ( (SELECT index FROM accounts WHERE address = $2),
+              (SELECT index FROM plt_tokens WHERE token_id = $3),
+              $5,
+              (SELECT decimal FROM plt_tokens WHERE token_id = $3)
+            )
+        ON CONFLICT (account_index, token_index) DO UPDATE
+        SET amount = plt_accounts.amount + EXCLUDED.amount
+        "#,
+            from,
+            to,
+            self.token_id,
+            amount,
+            -amount
+        )
+        .execute(tx.as_mut())
+        .await?;
+
+        Ok(())
+    }
+
     async fn update_account_balance(
         &self,
         tx: &mut sqlx::PgTransaction<'_>,
@@ -967,51 +925,6 @@ impl PreparedTokenUpdate {
         .execute(tx.as_mut())
         .await?;
         Ok(())
-    }
-
-    async fn update_account_balance_and_return_final_balance(
-        &self,
-        tx: &mut sqlx::PgTransaction<'_>,
-        account: &str,
-        amount: &BigDecimal,
-    ) -> anyhow::Result<BigDecimal> {
-        let final_balance = sqlx::query_scalar!(
-            "INSERT INTO plt_accounts (account_index, token_index, amount, decimal)
-                VALUES (
-                    (SELECT index FROM accounts WHERE address = $1), 
-                    (SELECT index FROM plt_tokens WHERE token_id = $2), 
-                    $3, 
-                    (SELECT decimal FROM plt_tokens WHERE token_id = $2)
-                )
-            ON CONFLICT (account_index, token_index) 
-                DO UPDATE SET amount = plt_accounts.amount + $3
-            RETURNING amount",
-            account,
-            self.token_id,
-            amount
-        )
-        .fetch_optional(tx.as_mut())
-        .await?
-        .flatten()
-        .unwrap_or_else(|| BigDecimal::from(0));
-
-        Ok(final_balance)
-    }
-
-    async fn check_if_account_exists(
-        &self,
-        tx: &mut sqlx::PgTransaction<'_>,
-        account: &str,
-    ) -> anyhow::Result<bool> {
-        let exists = sqlx::query_scalar!(
-            "SELECT EXISTS(SELECT 1 FROM plt_accounts WHERE account_index = (SELECT index FROM \
-             accounts WHERE address = $1))",
-            account,
-        )
-        .fetch_one(tx.as_mut())
-        .await?
-        .unwrap_or(false);
-        Ok(exists)
     }
 
     /// Updates the unique_account_count in metrics_plt by incrementing or
