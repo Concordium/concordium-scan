@@ -1495,6 +1495,18 @@ export type GasRewardsCpv2Update = {
   chainUpdate: Scalars['Decimal'];
 };
 
+/**
+ * Represents protocol-level token (PLT) metrics for a given period.
+ *
+ * This struct is returned by the GraphQL API and provides summary statistics
+ * for PLT token activity over a specified time window.
+ */
+export type GlobalPltMetrics = {
+  __typename?: 'GlobalPltMetrics';
+  eventCount: Scalars['Int'];
+  transferAmount: Scalars['Float'];
+};
+
 export type HoldingResponse = {
   __typename?: 'HoldingResponse';
   address: Scalars['String'];
@@ -2252,59 +2264,34 @@ export type PendingBakerRemoval = {
   effectiveTime: Scalars['DateTime'];
 };
 
-export type PltMetrics = {
-  __typename?: 'PltMetrics';
-  transactionCount: Scalars['Int'];
-  transferVolume: Scalars['Float'];
-  uniqueAccounts: Scalars['Int'];
-};
-
-/** This struct is used to define the GraphQL query for PLT transfer metrics. */
-export type PltTransferMetrics = {
-  __typename?: 'PltTransferMetrics';
-  buckets: PltTransferMetricsBuckets;
-  decimal: Scalars['Int'];
-  transferCount: Scalars['Int'];
-  transferVolume: Scalars['Float'];
-};
-
-/** This struct is used to define the buckets for PLT transfer metrics. */
-export type PltTransferMetricsBuckets = {
-  __typename?: 'PltTransferMetricsBuckets';
-  bucketWidth: Scalars['TimeSpan'];
-  x_Time: Array<Scalars['DateTime']>;
-  y_TransferCount: Array<Scalars['Int']>;
-  y_TransferVolume: Array<Scalars['Float']>;
-};
-
-export type PltaccountAmount = {
-  __typename?: 'PltaccountAmount';
+export type PltAccountAmount = {
+  __typename?: 'PltAccountAmount';
   accountAddress: AccountAddress;
   amount: TokenAmount;
   tokenId: Scalars['String'];
 };
 
-export type PltaccountAmountConnection = {
-  __typename?: 'PltaccountAmountConnection';
+export type PltAccountAmountConnection = {
+  __typename?: 'PltAccountAmountConnection';
   /** A list of edges. */
-  edges: Array<PltaccountAmountEdge>;
+  edges: Array<PltAccountAmountEdge>;
   /** A list of nodes. */
-  nodes: Array<PltaccountAmount>;
+  nodes: Array<PltAccountAmount>;
   /** Information to aid in pagination. */
   pageInfo: PageInfo;
 };
 
 /** An edge in a connection. */
-export type PltaccountAmountEdge = {
-  __typename?: 'PltaccountAmountEdge';
+export type PltAccountAmountEdge = {
+  __typename?: 'PltAccountAmountEdge';
   /** A cursor for use in pagination */
   cursor: Scalars['String'];
   /** The item at the end of the edge */
-  node: PltaccountAmount;
+  node: PltAccountAmount;
 };
 
-export type Pltevent = {
-  __typename?: 'Pltevent';
+export type PltEvent = {
+  __typename?: 'PltEvent';
   block: Block;
   eventType?: Maybe<TokenUpdateEventType>;
   id: Scalars['Int'];
@@ -2316,27 +2303,27 @@ export type Pltevent = {
   transactionIndex: Scalars['Int'];
 };
 
-export type PlteventConnection = {
-  __typename?: 'PlteventConnection';
+export type PltEventConnection = {
+  __typename?: 'PltEventConnection';
   /** A list of edges. */
-  edges: Array<PlteventEdge>;
+  edges: Array<PltEventEdge>;
   /** A list of nodes. */
-  nodes: Array<Pltevent>;
+  nodes: Array<PltEvent>;
   /** Information to aid in pagination. */
   pageInfo: PageInfo;
 };
 
 /** An edge in a connection. */
-export type PlteventEdge = {
-  __typename?: 'PlteventEdge';
+export type PltEventEdge = {
+  __typename?: 'PltEventEdge';
   /** A cursor for use in pagination */
   cursor: Scalars['String'];
   /** The item at the end of the edge */
-  node: Pltevent;
+  node: PltEvent;
 };
 
-export type Plttoken = {
-  __typename?: 'Plttoken';
+export type PltToken = {
+  __typename?: 'PltToken';
   block: Block;
   decimal?: Maybe<Scalars['Int']>;
   index: Scalars['Int'];
@@ -2353,23 +2340,41 @@ export type Plttoken = {
   transactionHash: Scalars['String'];
 };
 
-export type PlttokenConnection = {
-  __typename?: 'PlttokenConnection';
+export type PltTokenConnection = {
+  __typename?: 'PltTokenConnection';
   /** A list of edges. */
-  edges: Array<PlttokenEdge>;
+  edges: Array<PltTokenEdge>;
   /** A list of nodes. */
-  nodes: Array<Plttoken>;
+  nodes: Array<PltToken>;
   /** Information to aid in pagination. */
   pageInfo: PageInfo;
 };
 
 /** An edge in a connection. */
-export type PlttokenEdge = {
-  __typename?: 'PlttokenEdge';
+export type PltTokenEdge = {
+  __typename?: 'PltTokenEdge';
   /** A cursor for use in pagination */
   cursor: Scalars['String'];
   /** The item at the end of the edge */
-  node: Plttoken;
+  node: PltToken;
+};
+
+/** This struct is used to define the buckets for PLT transfer metrics. */
+export type PltTransferMetricsBuckets = {
+  __typename?: 'PltTransferMetricsBuckets';
+  bucketWidth: Scalars['TimeSpan'];
+  x_Time: Array<Scalars['DateTime']>;
+  y_TransferAmount: Array<Scalars['Float']>;
+  y_TransferCount: Array<Scalars['Int']>;
+};
+
+/** This struct is used to define the GraphQL query for PLT transfer metrics. */
+export type PltTransferMetricsByTokenId = {
+  __typename?: 'PltTransferMetricsByTokenId';
+  buckets: PltTransferMetricsBuckets;
+  decimal: Scalars['Int'];
+  transferAmount: Scalars['Float'];
+  transferCount: Scalars['Int'];
 };
 
 export type PoolApy = {
@@ -2461,6 +2466,13 @@ export type Query = {
   blocks: BlockConnection;
   contract: Contract;
   contracts: ContractConnection;
+  /**
+   * Query for PLT metrics over a specified time period. (across all plts)
+   * returns GlobalPltMetrics plt event_count (Mint/Burn/Transfer etc)
+   * and transfer_volume (the total volume of transfers normalized across all
+   * plts by their respective decimals)
+   */
+  globalPltMetrics: GlobalPltMetrics;
   importState: ImportState;
   latestChainParameters: LatestChainParameters;
   latestTransactions?: Maybe<Array<LatestTransactionResponse>>;
@@ -2469,16 +2481,15 @@ export type Query = {
   nodeStatuses: NodeStatusConnection;
   passiveDelegation: PassiveDelegation;
   paydayStatus: PaydayStatus;
-  pltAccounts?: Maybe<PltaccountAmount>;
-  pltAccountsByTokenId: PltaccountAmountConnection;
-  pltEvent: Pltevent;
-  pltEventByTransactionIndex: Pltevent;
-  pltEvents: PlteventConnection;
-  pltEventsByTokenId: PlteventConnection;
-  pltMetrics: PltMetrics;
-  pltToken: Plttoken;
-  pltTokens: PlttokenConnection;
-  pltTransferMetrics: PltTransferMetrics;
+  pltAccountByTokenId?: Maybe<PltAccountAmount>;
+  pltAccountsByTokenId: PltAccountAmountConnection;
+  pltEvent: PltEvent;
+  pltEventByTransactionIndex: PltEvent;
+  pltEvents: PltEventConnection;
+  pltEventsByTokenId: PltEventConnection;
+  pltToken: PltToken;
+  pltTokens: PltTokenConnection;
+  pltTransferMetricsByTokenId: PltTransferMetricsByTokenId;
   pltUniqueAccounts: Scalars['Int'];
   poolRewardMetricsForBakerPool: PoolRewardMetrics;
   poolRewardMetricsForPassiveDelegation: PoolRewardMetrics;
@@ -2588,6 +2599,11 @@ export type QueryContractsArgs = {
 };
 
 
+export type QueryGlobalPltMetricsArgs = {
+  period: MetricsPeriod;
+};
+
+
 export type QueryLatestTransactionsArgs = {
   limit?: InputMaybe<Scalars['Int']>;
 };
@@ -2613,7 +2629,7 @@ export type QueryNodeStatusesArgs = {
 };
 
 
-export type QueryPltAccountsArgs = {
+export type QueryPltAccountByTokenIdArgs = {
   account: Scalars['ID'];
   tokenId: Scalars['ID'];
 };
@@ -2623,8 +2639,8 @@ export type QueryPltAccountsByTokenIdArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
-  id: Scalars['ID'];
   last?: InputMaybe<Scalars['Int']>;
+  tokenId: Scalars['ID'];
 };
 
 
@@ -2655,11 +2671,6 @@ export type QueryPltEventsByTokenIdArgs = {
 };
 
 
-export type QueryPltMetricsArgs = {
-  period: MetricsPeriod;
-};
-
-
 export type QueryPltTokenArgs = {
   id: Scalars['ID'];
 };
@@ -2673,7 +2684,7 @@ export type QueryPltTokensArgs = {
 };
 
 
-export type QueryPltTransferMetricsArgs = {
+export type QueryPltTransferMetricsByTokenIdArgs = {
   period: MetricsPeriod;
   tokenId: Scalars['String'];
 };

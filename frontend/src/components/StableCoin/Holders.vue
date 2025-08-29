@@ -25,21 +25,19 @@
 									<AccountLink :address="coin.accountAddress.asString" />
 								</TableTd>
 								<TableTd>
-									<PLtAmount
+									<PltAmount
 										:value="coin.amount.value"
 										:decimals="Number(coin.amount.decimals)"
 									/>
 								</TableTd>
 								<TableTd>
-									<PLtAmount
+									<PltAmountPercentage
 										:value="
-											fractionalQuantity(
-												coin.amount.value,
+											calculatePercentageforBigInt(
+												BigInt(coin.amount.value),
 												totalSupply
-											).toString()
+											)
 										"
-										:decimals="2"
-										:symbol="'%'"
 									/>
 								</TableTd>
 							</TableRow>
@@ -56,7 +54,7 @@ import CarouselSlide from '~/components/molecules/CarouselSlide.vue'
 import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
 import Filter from '~/components/StableCoin/Filter.vue'
 import { usePltTokenHolderQuery } from '~/queries/usePltTokenHolderQuery'
-import type { PltaccountAmount } from '~/types/generated'
+import type { PltAccountAmount } from '~/types/generated'
 import { usePagedData } from '~/composables/usePagedData'
 
 import {
@@ -67,17 +65,17 @@ import { ref, watch } from 'vue'
 
 // Define Props
 const props = defineProps<{
-	coinId?: string
-	totalSupply?: bigint
+	coinId: string
+	totalSupply: bigint
 }>()
 
 // Loading state
 const lastNTransactions = ref(TransactionFilterOption.Top20)
 
-const coinId = props.coinId ?? ''
-const totalSupply = props.totalSupply ?? BigInt(0)
+const coinId = props.coinId
+const totalSupply = props.totalSupply
 
-const { pagedData, addPagedData } = usePagedData<PltaccountAmount>(
+const { pagedData, addPagedData } = usePagedData<PltAccountAmount>(
 	[],
 	lastNTransactions.value,
 	lastNTransactions.value
@@ -110,16 +108,4 @@ watch(
 	},
 	{ immediate: true }
 )
-
-const fractionalQuantity = (value: string, total: bigint) => {
-	// value is bigint in string format
-	const valueBigInt = BigInt(value)
-
-	if (total === 0n) return 0 // Avoid division by zero
-
-	// Calculate percentage as (value / total) * 100
-	// For better precision, multiply by 10000 first, then divide by 100 to get 2 decimal places
-	const percentage = (valueBigInt * BigInt(10000)) / total
-	return percentage
-}
 </script>

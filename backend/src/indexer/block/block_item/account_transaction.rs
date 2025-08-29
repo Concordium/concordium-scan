@@ -18,6 +18,7 @@ use crate::{
     },
 };
 use anyhow::{Context, Ok};
+use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
     base::transactions::{BlockItem, EncodedPayload},
     id::types::AccountAddress,
@@ -75,9 +76,10 @@ impl PreparedAccountTransaction {
         &self,
         tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
+        slot_time: DateTime<Utc>,
     ) -> anyhow::Result<()> {
         self.fee.save(tx, Some(transaction_index)).await?;
-        self.event.save(tx, transaction_index).await
+        self.event.save(tx, transaction_index, slot_time).await
     }
 }
 
@@ -113,8 +115,13 @@ impl PreparedEventEnvelope {
         })
     }
 
-    async fn save(&self, tx: &mut sqlx::PgTransaction<'_>, tx_idx: i64) -> anyhow::Result<()> {
-        self.event.save(tx, tx_idx, self.metadata.protocol_version).await
+    async fn save(
+        &self,
+        tx: &mut sqlx::PgTransaction<'_>,
+        tx_idx: i64,
+        slot_time: DateTime<Utc>,
+    ) -> anyhow::Result<()> {
+        self.event.save(tx, tx_idx, self.metadata.protocol_version, slot_time).await
     }
 }
 
@@ -363,6 +370,7 @@ impl PreparedEvent {
         tx: &mut sqlx::PgTransaction<'_>,
         tx_idx: i64,
         protocol_version: ProtocolVersion,
+        slot_time: DateTime<Utc>,
     ) -> anyhow::Result<()> {
         match self {
             PreparedEvent::CcdTransfer(event) => event
@@ -402,7 +410,7 @@ impl PreparedEvent {
                 .await
                 .context("Failed processing block item event with rejected event"),
             PreparedEvent::TokenUpdateEvents(event) => event
-                .save(tx, tx_idx)
+                .save(tx, tx_idx, slot_time)
                 .await
                 .context("Failed processing block item event with token update events"),
             PreparedEvent::NoOperation => Ok(()),

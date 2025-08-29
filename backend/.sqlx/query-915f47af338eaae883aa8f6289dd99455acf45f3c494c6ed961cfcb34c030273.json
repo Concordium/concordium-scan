@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH latest_metrics AS (\n            SELECT \n                COALESCE(cumulative_event_count, 0) AS prev_event_count,\n                COALESCE(cumulative_transfer_amount, 0) AS prev_transfer_amount,\n                COALESCE(unique_account_count, 0) AS prev_unique_count\n            FROM metrics_plt \n            ORDER BY event_timestamp DESC \n            LIMIT 1\n        ),\n        upsert AS (\n            INSERT INTO metrics_plt (\n                event_timestamp, \n                cumulative_event_count,\n                cumulative_transfer_amount,\n                unique_account_count\n            )\n            SELECT \n                $1,\n                lm.prev_event_count,\n                lm.prev_transfer_amount,\n                lm.prev_unique_count + $2\n            FROM latest_metrics lm\n            ON CONFLICT (event_timestamp) DO UPDATE SET\n                unique_account_count = EXCLUDED.unique_account_count\n            RETURNING unique_account_count\n        )\n        SELECT unique_account_count FROM upsert\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "unique_account_count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "915f47af338eaae883aa8f6289dd99455acf45f3c494c6ed961cfcb34c030273"
+}

@@ -1,29 +1,29 @@
 import { useQuery, gql } from '@urql/vue'
-import type { PageInfo, PltaccountAmount, Scalars } from '~/types/generated'
+import type { PageInfo, PltAccountAmount, Scalars } from '~/types/generated'
 
 import type { QueryVariables } from '~/types/queryVariables'
 
-export type PLTTokenHolderQueryResponse = {
+export type PltTokenHolderQueryResponse = {
 	pltAccountsByTokenId: {
-		nodes: PltaccountAmount[]
+		nodes: PltAccountAmount[]
 		pageInfo: PageInfo
 	}
 }
 
-const PLT_HOLDER_BY_TOKEN_ID = gql<PLTTokenHolderQueryResponse>`
+const PLT_HOLDER_BY_TOKEN_ID = gql<PltTokenHolderQueryResponse>`
 	query (
 		$after: String
 		$before: String
 		$first: Int
 		$last: Int
-		$id: String
+		$tokenId: String
 	) {
 		pltAccountsByTokenId(
 			first: $first
 			last: $last
 			after: $after
 			before: $before
-			id: $id
+			tokenId: $tokenId
 		) {
 			nodes {
 				accountAddress {
@@ -46,14 +46,14 @@ const PLT_HOLDER_BY_TOKEN_ID = gql<PLTTokenHolderQueryResponse>`
 `
 
 export const usePltTokenHolderQuery = (
-	id: Scalars['ID'],
+	tokenId: Scalars['ID'],
 	eventsVariables?: Partial<QueryVariables>
 ) => {
 	const { data, fetching, error } = useQuery({
 		query: PLT_HOLDER_BY_TOKEN_ID,
 		requestPolicy: 'network-only',
 		variables: {
-			id,
+			tokenId: tokenId,
 			...eventsVariables,
 		},
 	})

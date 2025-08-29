@@ -35,7 +35,7 @@ pub struct PreparedBlock {
     /// Absolute height of the block.
     pub height: i64,
     /// Block slot time (UTC).
-    slot_time: DateTime<Utc>,
+    pub slot_time: DateTime<Utc>,
     /// Id of the validator which constructed the block. Is only None for the
     /// genesis block.
     baker_id: Option<i64>,
@@ -274,10 +274,10 @@ impl PreparedBlock {
             migration.save(tx).await?;
         }
         for item in self.prepared_block_items.iter() {
-            item.save(tx).await.with_context(|| {
+            item.save(tx, self.slot_time).await.with_context(|| {
                 format!(
-                    "Failed processing block item with hash {} for block height {}",
-                    item.block_item_hash, item.block_height
+                    "Failed processing block item with hash {} for block height {} in block {}",
+                    item.block_item_hash, item.block_height, self.hash
                 )
             })?;
         }

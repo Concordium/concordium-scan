@@ -9,6 +9,7 @@ mod baker_metrics;
 mod block;
 mod block_metrics;
 mod contract;
+mod db;
 mod module_reference_event;
 pub mod node_status;
 mod passive_delegation;
@@ -169,6 +170,12 @@ pub struct ApiServiceConfig {
         default_value = "100"
     )]
     plt_token_events_collection_limit: u64,
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_PLT_ACCOUNT_AMOUNT_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
+    plt_account_amount_connection_limit: u64,
 }
 
 #[derive(MergedObject, Default)]
@@ -190,11 +197,11 @@ pub struct Query(
     reward_metrics::QueryRewardMetrics,
     block_metrics::QueryBlockMetrics,
     transaction_metrics::QueryTransactionMetrics,
-    plt::QueryPLTEvent,
-    plt::QueryPLT,
-    plt::QueryPLTAccountAmount,
-    plt_transfer_metrics::QueryPltTransferMetrics,
-    plt_transfer_metrics::QueryPltMetrics,
+    plt_transfer_metrics::QueryGlobalPltMetrics,
+    plt_transfer_metrics::QueryPltTransferMetricsByTokenId,
+    plt::QueryPltEvent,
+    plt::QueryPlt,
+    plt::QueryPltAccountAmount,
 );
 
 pub struct Service {
@@ -490,6 +497,8 @@ pub enum ApiError {
     InvalidContractVersion(#[from] InvalidContractVersionError),
     #[error("Service unavailable: {0}")]
     Unavailable(String),
+    #[error("Invalid ID format: {0}")]
+    InvalidIdFormat(String),
 }
 
 impl From<sqlx::Error> for InternalError {
@@ -858,12 +867,6 @@ struct CollectionSegmentInfo {
     /// Indicates whether more items exist prior the set defined by the clients
     /// arguments.
     has_previous_page: bool,
-}
-
-#[derive(SimpleObject)]
-struct Ranking {
-    rank:  i32,
-    total: i32,
 }
 
 #[derive(Enum, Clone, Copy, PartialEq, Eq)]

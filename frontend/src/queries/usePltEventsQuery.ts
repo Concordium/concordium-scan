@@ -1,16 +1,16 @@
 import { useQuery, gql } from '@urql/vue'
-import type { PageInfo, Pltevent, Scalars } from '~/types/generated'
+import type { PageInfo, PltEvent, Scalars } from '~/types/generated'
 
 import type { QueryVariables } from '~/types/queryVariables'
 
-export type PLTEventsQueryResponse = {
+export type PltEventsQueryResponse = {
 	pltEvents: {
-		nodes: Pltevent[]
+		nodes: PltEvent[]
 		pageInfo: PageInfo
 	}
 }
 
-const PLT_TOKEN_QUERY = gql<PLTEventsQueryResponse>`
+const PLT_TOKEN_QUERY = gql<PltEventsQueryResponse>`
 	query ($after: String, $before: String, $first: Int, $last: Int) {
 		pltEvents(first: $first, last: $last, after: $after, before: $before) {
 			nodes {
@@ -98,14 +98,14 @@ export const usePltEventsQuery = (
 	}
 }
 
-export type PLTEventsByTokenIdQueryResponse = {
+export type PltEventsByTokenIdQueryResponse = {
 	pltEventsByTokenId: {
-		nodes: Pltevent[]
+		nodes: PltEvent[]
 		pageInfo: PageInfo
 	}
 }
 
-const PLT_EVENT_BY_ID_QUERY = gql<PLTEventsByTokenIdQueryResponse>`
+const PLT_EVENT_BY_ID_QUERY = gql<PltEventsByTokenIdQueryResponse>`
 	query (
 		$after: String
 		$before: String

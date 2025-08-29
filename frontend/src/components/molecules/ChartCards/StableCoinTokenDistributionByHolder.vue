@@ -14,10 +14,10 @@
 import { ref, watchEffect, defineProps } from 'vue'
 import DistributionByHolder from '~/components/molecules/DistributionByHolder.vue'
 import { shortenHash } from '~/utils/format'
-import type { PltaccountAmount } from '~/types/generated'
+import type { PltAccountAmount } from '~/types/generated'
 
 type Props = {
-	tokenTransferData?: PltaccountAmount[]
+	tokenTransferData?: PltAccountAmount[]
 	totalSupply?: bigint
 }
 

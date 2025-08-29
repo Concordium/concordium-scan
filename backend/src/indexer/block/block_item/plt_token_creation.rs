@@ -45,6 +45,7 @@ impl PreparedTokenCreationDetails {
         &self,
         tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
+        slot_time: chrono::DateTime<chrono::Utc>,
     ) -> anyhow::Result<()> {
         let token_id = self.create_plt.token_id.to_string();
         let name = self.create_plt.initialization_parameters.name.clone();
@@ -99,7 +100,7 @@ impl PreparedTokenCreationDetails {
         .await?;
 
         for event in &self.events {
-            event.save(tx, transaction_index).await?;
+            event.save(tx, transaction_index, slot_time).await?;
         }
 
         Ok(())
