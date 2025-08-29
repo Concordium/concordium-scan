@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-# Fixed
+### Fixed
 
 - fix build failure due to the bigint literal in es2019
 
