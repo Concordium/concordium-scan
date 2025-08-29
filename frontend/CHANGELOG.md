@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [1.7.23] - 2025-08-26
+
 ### Fixed
 
 - Fixed transaction event details for `TokenUpdate` not displaying decimal places properly.
