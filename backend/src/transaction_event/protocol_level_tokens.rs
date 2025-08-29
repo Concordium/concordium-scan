@@ -707,7 +707,6 @@ impl PreparedTokenUpdate {
                     )
                     .execute(tx.as_mut())
                     .await?;
-
                     // This SQL block updates the per-token transfer metrics table
                     // (metrics_plt_transfer) for a transfer event:
                     // It inserts a new row for the current event timestamp and token, incrementing
@@ -759,10 +758,10 @@ impl PreparedTokenUpdate {
                         self.update_metrics_plt_unique_account_count_delta(tx, slot_time, -1)
                             .await?;
                     }
-                    if previous_to_amount > BigDecimal::from(0)
-                        && current_to_amount == BigDecimal::from(0)
+                    if previous_to_amount == BigDecimal::from(0)
+                        && current_to_amount > BigDecimal::from(0)
                     {
-                        self.update_metrics_plt_unique_account_count_delta(tx, slot_time, -1)
+                        self.update_metrics_plt_unique_account_count_delta(tx, slot_time, 1)
                             .await?;
                     }
                 }
@@ -779,13 +778,16 @@ impl PreparedTokenUpdate {
         account_address: &str,
     ) -> anyhow::Result<BigDecimal> {
         let row = sqlx::query!(
-            "SELECT SUM(amount) as amount FROM plt_accounts WHERE account_index = (SELECT index \
-             FROM accounts WHERE address = $1)",
+            "SELECT COALESCE(
+                (SELECT total_amount FROM public.plt_accounts_sum_amounts WHERE account_index = 
+                (SELECT index FROM accounts WHERE address = $1)
+                ), 0) 
+                AS total_amount;",
             account_address
         )
         .fetch_one(tx.as_mut())
         .await?;
-        Ok(row.amount.unwrap_or(BigDecimal::from(0)))
+        Ok(row.total_amount.unwrap_or(BigDecimal::from(0)))
     }
 
     // METRICS UPDATE: PLT event counter increment
@@ -871,28 +873,36 @@ impl PreparedTokenUpdate {
         to: &str,
         amount: &BigDecimal,
     ) -> anyhow::Result<()> {
+        // to Avoid two separate queries, we use a CTE approach
         sqlx::query!(
-            r#"
-        INSERT INTO plt_accounts (account_index, token_index, amount, decimal)
-        VALUES
-            ( (SELECT index FROM accounts WHERE address = $1),
-              (SELECT index FROM plt_tokens WHERE token_id = $3),
-              $4,
-              (SELECT decimal FROM plt_tokens WHERE token_id = $3)
-            ),
-            ( (SELECT index FROM accounts WHERE address = $2),
-              (SELECT index FROM plt_tokens WHERE token_id = $3),
-              $5,
-              (SELECT decimal FROM plt_tokens WHERE token_id = $3)
+            "WITH updated_accounts AS (
+                INSERT INTO plt_accounts (account_index, token_index, amount, decimal)
+                VALUES
+                    ( (SELECT index FROM accounts WHERE address = $1),
+                    (SELECT index FROM plt_tokens WHERE token_id = $3),
+                    -$4::numeric,
+                    (SELECT decimal FROM plt_tokens WHERE token_id = $3)
+                    ),
+                    ( (SELECT index FROM accounts WHERE address = $2),
+                    (SELECT index FROM plt_tokens WHERE token_id = $3),
+                    $4::numeric,
+                    (SELECT decimal FROM plt_tokens WHERE token_id = $3)
+                    )
+                ON CONFLICT (account_index, token_index) DO UPDATE
+                SET amount = plt_accounts.amount + EXCLUDED.amount
+                RETURNING account_index
             )
-        ON CONFLICT (account_index, token_index) DO UPDATE
-        SET amount = plt_accounts.amount + EXCLUDED.amount
-        "#,
+            INSERT INTO plt_accounts_sum_amounts (account_index, total_amount)
+            VALUES
+                ( (SELECT index FROM accounts WHERE address = $1), -$4::numeric ),
+                ( (SELECT index FROM accounts WHERE address = $2),  $4::numeric )
+            ON CONFLICT (account_index) DO UPDATE
+            SET total_amount = plt_accounts_sum_amounts.total_amount + EXCLUDED.total_amount;
+            ",
             from,
             to,
             self.token_id,
             amount,
-            -amount
         )
         .execute(tx.as_mut())
         .await?;
@@ -907,23 +917,33 @@ impl PreparedTokenUpdate {
         amount: &BigDecimal,
     ) -> anyhow::Result<()> {
         sqlx::query!(
-            "
-            INSERT INTO plt_accounts (account_index, token_index, amount, decimal)
-            VALUES (
-                (SELECT index FROM accounts WHERE address = $1),
-                (SELECT index FROM plt_tokens WHERE token_id = $2),
-                $3,
-                (SELECT decimal FROM plt_tokens WHERE token_id = $2)
-            )
-            ON CONFLICT (account_index, token_index) DO UPDATE
-            SET amount = plt_accounts.amount + $3
-            ",
+            "WITH 
+                acc AS (
+                    SELECT index AS account_index FROM accounts WHERE address = $1
+                ),
+                tok AS (
+                    SELECT index AS token_index, decimal FROM plt_tokens WHERE token_id = $2
+                ),
+                upsert_token AS (
+                    INSERT INTO plt_accounts (account_index, token_index, amount, decimal)
+                    SELECT acc.account_index, tok.token_index, $3, tok.decimal
+                    FROM acc, tok
+                    ON CONFLICT (account_index, token_index) DO UPDATE
+                    SET amount = plt_accounts.amount + $3
+                    RETURNING account_index
+                )
+                INSERT INTO plt_accounts_sum_amounts (account_index, total_amount)
+                SELECT acc.account_index, $3 FROM acc
+                ON CONFLICT (account_index) DO UPDATE
+                SET total_amount = plt_accounts_sum_amounts.total_amount + EXCLUDED.total_amount;
+                ",
             account,
             self.token_id,
             amount
         )
         .execute(tx.as_mut())
         .await?;
+
         Ok(())
     }
 
