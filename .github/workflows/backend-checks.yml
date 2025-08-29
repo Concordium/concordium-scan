@@ -7,15 +7,13 @@ on:
         - backend/**
         - .github/**
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review, edited]
-    branches: [ main ]
     paths:
         - backend/**
         - .github/**
+  workflow_dispatch: # allows manual trigger
 
 env:
   RUST_FMT: "nightly-2023-04-01"
-  RUST_VERSION: "1.85"
 
 jobs:
   rustfmt:
@@ -27,9 +25,8 @@ jobs:
       - name: Check formatting
         working-directory: backend
         run: |
-          rustup default ${{ env.RUST_FMT }}
-          rustup component add rustfmt
-          cargo fmt -- --color=always --check
+          rustup +${{ env.RUST_FMT }} component add rustfmt
+          cargo +${{ env.RUST_FMT }} fmt -- --color=always --check
 
   clippy:
     name: clippy
@@ -41,17 +38,14 @@ jobs:
           submodules: recursive
       - name: Setup Rust
         run: |
-          rustup default ${{ env.RUST_VERSION }}
           rustup component add clippy
       - name: Run clippy
         working-directory: backend
         run: |
-          cargo clippy --locked --color=always --tests -- -D warnings
+          cargo clippy --locked --color=always --all-targets --all-features -- -D warnings
 
   test:
     name: test
-    # Don't run on draft pull requests
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -61,8 +55,7 @@ jobs:
       - name: Run unit tests
         working-directory: backend
         run: |
-          rustup default ${{ env.RUST_VERSION }}
-          cargo test --locked
+          cargo test --all-features --locked
 
   schema-diff:
     name: GraphQL schema diff
@@ -77,7 +70,6 @@ jobs:
       - name: Build ccdscan-api and output schema
         working-directory: backend
         run: |
-          rustup default ${{ env.RUST_VERSION }}
           cargo run --bin ccdscan-api -- --schema-out $RUNNER_TEMP/schema.graphql
       - name: Compare schemas
         working-directory: backend

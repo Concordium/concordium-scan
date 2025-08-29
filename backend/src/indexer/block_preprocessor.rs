@@ -239,8 +239,6 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
                 get_items,
                 get_special_items
             )?;
-            let node_response_time = start_fetching.elapsed();
-            self.node_response_time.get_or_create(label).observe(node_response_time.as_secs_f64());
             let data = BlockData {
                 finalized_block_info: fbi,
                 block_info,
@@ -257,6 +255,8 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
             let prepared_block = PreparedBlock::prepare(&mut client, &data)
                 .await
                 .map_err(v2::RPCError::ParseError)?;
+            let node_response_time = start_fetching.elapsed();
+            self.node_response_time.get_or_create(label).observe(node_response_time.as_secs_f64());
             Ok(prepared_block)
         }
         .await;

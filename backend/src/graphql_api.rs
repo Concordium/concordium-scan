@@ -9,6 +9,7 @@ mod baker_metrics;
 mod block;
 mod block_metrics;
 mod contract;
+mod db;
 mod module_reference_event;
 pub mod node_status;
 mod passive_delegation;
@@ -866,12 +867,6 @@ struct CollectionSegmentInfo {
     /// Indicates whether more items exist prior the set defined by the clients
     /// arguments.
     has_previous_page: bool,
-}
-
-#[derive(SimpleObject)]
-struct Ranking {
-    rank:  i32,
-    total: i32,
 }
 
 #[derive(Enum, Clone, Copy, PartialEq, Eq)]

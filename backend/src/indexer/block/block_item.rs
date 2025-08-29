@@ -272,7 +272,7 @@ enum PreparedBlockItemEvent {
     /// Chain update transaction event.
     ChainUpdate,
     /// Token creation transaction event
-    TokenCreation(plt_token_creation::PreparedTokenCreationDetails),
+    TokenCreation(Box<plt_token_creation::PreparedTokenCreationDetails>),
 }
 
 impl PreparedBlockItemEvent {
@@ -303,11 +303,11 @@ impl PreparedBlockItemEvent {
             }
             BlockItemSummaryDetails::Update(_) => Ok(PreparedBlockItemEvent::ChainUpdate),
             BlockItemSummaryDetails::TokenCreationDetails(token_creation_details) => {
-                Ok(PreparedBlockItemEvent::TokenCreation(
+                Ok(PreparedBlockItemEvent::TokenCreation(Box::new(
                     plt_token_creation::PreparedTokenCreationDetails::prepare(
                         token_creation_details,
                     )?,
-                ))
+                )))
             }
         }
     }

@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT MAX(index) as max_id, MIN(index) as min_id \n                                FROM transactions \n                                WHERE starts_with(hash, $1)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "max_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "min_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "ca0e8fe1aba1d2bd2a6499780a4de039eac244f9627f178115e2142edb80bae4"
+}

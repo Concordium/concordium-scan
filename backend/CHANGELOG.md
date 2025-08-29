@@ -16,11 +16,18 @@ Database schema version: 40
     - `metrics_plt_transfer` to store plt transfer metrics (the data is being stored as cumulative increments by timestamp).
     - `metrics_plt` to store plt metrics (the data is being stored as cumulative increments by timestamp).
 - Added `last_processed_block_height` and `last_processed_block_slot_time` prometheus gauge metrics so that we can easily see if we have caught up and are processing the latest blocks from the chain.
+- Added `db_connections_acquired_gauge`, `db_connections_idle_gauge` and `db_connections_max_gauge` as prometheus gauge metrics so we can easily see statistics related to database connections.
 - GraphQL API: Optimized the query that fetches paging information for the `blocks` query
+- GraphQL API: Changed the `query` searches `blocks` and `transactions` to only search if the hash we search for
+  has at least 6 characters. Also fixed a bug in the `transaction` search paging info. 
+  Optimized the two queries and their paging info queries also by setting `'plan_cache_mode = force_custom_plan'`
+  while executing the queries.
+- Changed Rust version to 1.89
 
 ### Changed
 
 - Updated query `pltAccountsByTokenId` to fetch accounts holding PLT tokens by token ID.
+- The `node_response_time_seconds` prometheus gauge metric counts time both during the fetching and preparing the block.
 
 ## [2.0.17] - 2025-07-24
 

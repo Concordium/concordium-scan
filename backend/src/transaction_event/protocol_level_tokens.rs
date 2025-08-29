@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crate::address::AccountAddress;
 use async_graphql::{Enum, SimpleObject, Union};
 use bigdecimal::BigDecimal;
@@ -914,6 +916,7 @@ impl PreparedTokenUpdate {
                 ON CONFLICT (account_index, token_index) DO UPDATE
                 SET amount = plt_accounts.amount + EXCLUDED.amount
                 RETURNING account_index
+
             )
             INSERT INTO plt_accounts_sum_amounts (account_index, total_amount)
             VALUES
@@ -969,6 +972,7 @@ impl PreparedTokenUpdate {
                 ON CONFLICT (account_index) DO UPDATE
                 SET total_amount = plt_accounts_sum_amounts.total_amount + EXCLUDED.total_amount;
                 ",
+
             canonical_address.0.as_slice(),
             self.token_id,
             amount
