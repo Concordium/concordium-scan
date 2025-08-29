@@ -20,10 +20,10 @@ const props = defineProps<Props>()
 
 const numberFormatter = (significantBigInt: bigint, decimals: number) => {
 	const units = [
-		{ threshold: 1000000000000n, suffix: 'T' },
-		{ threshold: 1000000000n, suffix: 'B' },
-		{ threshold: 1000000n, suffix: 'M' },
-		{ threshold: 1000n, suffix: 'K' },
+		{ threshold: BigInt(1000000000000), suffix: 'T' },
+		{ threshold: BigInt(1000000000), suffix: 'B' },
+		{ threshold: BigInt(1000000), suffix: 'M' },
+		{ threshold: BigInt(1000), suffix: 'K' },
 	]
 
 	const unit = units.find(u => significantBigInt >= u.threshold)
