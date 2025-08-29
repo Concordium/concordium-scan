@@ -18,6 +18,7 @@ export type Transfers = {
 
 // types.ts
 export enum TransactionFilterOption {
+	Top10 = 10,
 	Top20 = 20,
 	Top50 = 50,
 	Top100 = 100,

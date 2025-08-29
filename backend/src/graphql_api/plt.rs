@@ -697,12 +697,17 @@ impl PltAccountAmount {
         Ok(result)
     }
 
+    // unique_accounts means all the accounts that currently hold a non zero
+    // balance of any plt token Union of all accounts with a non zero balance
+    // across all plt tokens
     pub async fn query_unique_accounts(pool: &PgPool) -> ApiResult<i64> {
-        let result =
-            sqlx::query!("SELECT COUNT(DISTINCT account_index) as count FROM plt_accounts")
-                .fetch_one(pool)
-                .await?;
-        Ok(result.count.unwrap_or(0))
+        let unique_account_count = sqlx::query_scalar!(
+            "SELECT unique_account_count FROM metrics_plt
+            ORDER BY event_timestamp DESC LIMIT 1"
+        )
+        .fetch_one(pool)
+        .await?;
+        Ok(unique_account_count)
     }
 }
 

@@ -10,7 +10,11 @@ Database schema version: 40
 
 - TokenModuleRejectReason enum to proper serialization and deserialization of the `TokenModuleReject` event.
 - Query `PltUniqueAccounts` to fetch unique accounts holding PLT tokens.
-- Added query `PltEventMetrics` to fetch metrics related to plt token events.
+- Added query `PltTransferMetricsByTokenId` to fetch metrics related to plt token transfer events such as `transfer_count` and `transfer_volume` for one given `token_id`.
+- Added query `GlobalPltMetrics` to fetch plt metrics such as total event count, unique accounts, and transfer volume.
+- Added two new tables for plt metrics:
+    - `metrics_plt_transfer` to store plt transfer metrics (the data is being stored as cumulative increments by timestamp).
+    - `metrics_plt` to store plt metrics (the data is being stored as cumulative increments by timestamp).
 - Added `last_processed_block_height` and `last_processed_block_slot_time` prometheus gauge metrics so that we can easily see if we have caught up and are processing the latest blocks from the chain.
 - Added `db_connections_acquired_gauge`, `db_connections_idle_gauge` and `db_connections_max_gauge` as prometheus gauge metrics so we can easily see statistics related to database connections.
 - GraphQL API: Optimized the query that fetches paging information for the `blocks` query

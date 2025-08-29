@@ -5,6 +5,7 @@
 </template>
 
 <script lang="ts" setup>
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import {
 	Chart,
 	registerables,
@@ -36,7 +37,7 @@ const chartData = computed<ChartData<'bar' | 'line', number[], unknown>>(
 		datasets: [
 			{
 				type: 'bar',
-				label: 'No of Transfer',
+				label: 'No of Transfers',
 				data: props.barData || [],
 				backgroundColor: '#2AE8B8',
 				yAxisID: 'left-axis',
@@ -45,7 +46,7 @@ const chartData = computed<ChartData<'bar' | 'line', number[], unknown>>(
 			},
 			{
 				type: 'line',
-				label: 'Total Transfer Value ($)',
+				label: 'Total Transfer Volume',
 				data: props.lineData || [],
 				borderColor: '#FFA3D7',
 				borderWidth: 2,
@@ -122,12 +123,28 @@ const defaultOptions: ChartOptions<'bar' | 'line'> = {
 		'right-axis': {
 			position: 'right',
 			ticks: {
-				callback: value => `${Number(value) / 1_000_000_000}B`,
+				callback: value => {
+					const num = Number(value)
+					if (isNaN(num)) return value.toString()
+
+					const format = (val: number, suffix: string) =>
+						val % 1 === 0 ? `${val}${suffix}` : `${val.toFixed(1)}${suffix}`
+
+					return num >= 1e12
+						? format(num / 1e12, 'T')
+						: num >= 1e9
+						? format(num / 1e9, 'B')
+						: num >= 1e6
+						? format(num / 1e6, 'M')
+						: num >= 1e3
+						? format(num / 1e3, 'K')
+						: num.toString()
+				},
 				color: '#d1d5db',
 			},
 			title: {
 				display: true,
-				text: 'Total Transfer Value ($)', // Label for left Y-axis
+				text: 'Total Transfer Volume', // Label for left Y-axis
 				color: '#d1d5db',
 				font: { size: 12, weight: 'bold' },
 			},
