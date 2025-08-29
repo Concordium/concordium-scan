@@ -1,8 +1,9 @@
 use crate::address::AccountAddress;
 use async_graphql::{Enum, SimpleObject, Union};
 use bigdecimal::BigDecimal;
+use std::str::FromStr;
 
-use concordium_rust_sdk::protocol_level_tokens::{self};
+use concordium_rust_sdk::protocol_level_tokens;
 use serde::{Deserialize, Serialize};
 
 const CONCORDIUM_SLIP_0044_CODE: u64 = 919;
@@ -777,13 +778,22 @@ impl PreparedTokenUpdate {
         tx: &mut sqlx::PgTransaction<'_>,
         account_address: &str,
     ) -> anyhow::Result<BigDecimal> {
+        let account_address =
+            concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(account_address)
+                .map_err(|_| {
+                    anyhow::anyhow!(
+                        "Failed to convert string into account address type: {}",
+                        account_address
+                    )
+                })?;
+        let canonical_address = account_address.get_canonical_address();
         let row = sqlx::query!(
             "SELECT COALESCE(
                 (SELECT total_amount FROM public.plt_accounts_sum_amounts WHERE account_index = 
-                (SELECT index FROM accounts WHERE address = $1)
+                (SELECT index FROM accounts WHERE canonical_address = $1::bytea)
                 ), 0) 
                 AS total_amount;",
-            account_address
+            canonical_address.0.as_slice(),
         )
         .fetch_one(tx.as_mut())
         .await?;
@@ -869,21 +879,34 @@ impl PreparedTokenUpdate {
     async fn update_transfer_balances(
         &self,
         tx: &mut sqlx::PgTransaction<'_>,
-        from: &str,
-        to: &str,
+        from: &String,
+        to: &String,
         amount: &BigDecimal,
     ) -> anyhow::Result<()> {
+        let to_account_address =
+            concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(to.as_str())
+                .map_err(|_| {
+                    anyhow::anyhow!("Failed to convert string into account address type: {}", to)
+                })?;
+        let to_canonical_address = to_account_address.get_canonical_address();
+
+        let from_account_address =
+            concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(from).map_err(
+                |_| anyhow::anyhow!("Failed to convert string into account address type: {}", from),
+            )?;
+        let from_canonical_address = from_account_address.get_canonical_address();
+
         // to Avoid two separate queries, we use a CTE approach
         sqlx::query!(
             "WITH updated_accounts AS (
                 INSERT INTO plt_accounts (account_index, token_index, amount, decimal)
                 VALUES
-                    ( (SELECT index FROM accounts WHERE address = $1),
+                    ( (SELECT index FROM accounts WHERE canonical_address = $1::bytea),
                     (SELECT index FROM plt_tokens WHERE token_id = $3),
                     -$4::numeric,
                     (SELECT decimal FROM plt_tokens WHERE token_id = $3)
                     ),
-                    ( (SELECT index FROM accounts WHERE address = $2),
+                    ( (SELECT index FROM accounts WHERE canonical_address = $2::bytea),
                     (SELECT index FROM plt_tokens WHERE token_id = $3),
                     $4::numeric,
                     (SELECT decimal FROM plt_tokens WHERE token_id = $3)
@@ -894,13 +917,13 @@ impl PreparedTokenUpdate {
             )
             INSERT INTO plt_accounts_sum_amounts (account_index, total_amount)
             VALUES
-                ( (SELECT index FROM accounts WHERE address = $1), -$4::numeric ),
-                ( (SELECT index FROM accounts WHERE address = $2),  $4::numeric )
+                ( (SELECT index FROM accounts WHERE canonical_address = $1::bytea), -$4::numeric ),
+                ( (SELECT index FROM accounts WHERE canonical_address = $2::bytea),  $4::numeric )
             ON CONFLICT (account_index) DO UPDATE
             SET total_amount = plt_accounts_sum_amounts.total_amount + EXCLUDED.total_amount;
             ",
-            from,
-            to,
+            from_canonical_address.0.as_slice(),
+            to_canonical_address.0.as_slice(),
             self.token_id,
             amount,
         )
@@ -913,13 +936,22 @@ impl PreparedTokenUpdate {
     async fn update_account_balance(
         &self,
         tx: &mut sqlx::PgTransaction<'_>,
-        account: &str,
+        account: &String,
         amount: &BigDecimal,
     ) -> anyhow::Result<()> {
+        let account_address =
+            concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(account.as_str())
+                .map_err(|_| {
+                    anyhow::anyhow!(
+                        "Failed to convert string into account address type: {}",
+                        account
+                    )
+                })?;
+        let canonical_address = account_address.get_canonical_address();
         sqlx::query!(
             "WITH 
                 acc AS (
-                    SELECT index AS account_index FROM accounts WHERE address = $1
+                    SELECT index AS account_index FROM accounts WHERE canonical_address = $1::bytea
                 ),
                 tok AS (
                     SELECT index AS token_index, decimal FROM plt_tokens WHERE token_id = $2
@@ -937,7 +969,7 @@ impl PreparedTokenUpdate {
                 ON CONFLICT (account_index) DO UPDATE
                 SET total_amount = plt_accounts_sum_amounts.total_amount + EXCLUDED.total_amount;
                 ",
-            account,
+            canonical_address.0.as_slice(),
             self.token_id,
             amount
         )
@@ -949,29 +981,27 @@ impl PreparedTokenUpdate {
 
     /// Updates the unique_account_count in metrics_plt by incrementing or
     /// decrementing. If `delta` is positive, increments; if negative,
-    /// decrements. Zero is a no-op.
     async fn update_metrics_plt_unique_account_count_delta(
         &self,
         tx: &mut sqlx::PgTransaction<'_>,
         event_timestamp: chrono::DateTime<chrono::Utc>,
         delta: i64,
     ) -> anyhow::Result<()> {
-        let adjustment = match delta.cmp(&0) {
-            std::cmp::Ordering::Greater => "lm.prev_unique_count + $2",
-            std::cmp::Ordering::Less => "GREATEST(lm.prev_unique_count + $2, 0)",
-            std::cmp::Ordering::Equal => "lm.prev_unique_count",
-        };
-
-        let query = format!(
-            "WITH latest_metrics AS (
-                SELECT 
-                    COALESCE(cumulative_event_count, 0) AS prev_event_count,
-                    COALESCE(cumulative_transfer_amount, 0) AS prev_transfer_amount,
-                    COALESCE(unique_account_count, 0) AS prev_unique_count
-                FROM metrics_plt 
-                ORDER BY event_timestamp DESC 
-                LIMIT 1
-            )
+        if delta == 0 {
+            return Ok(());
+        }
+        let unique_account_count = sqlx::query_scalar!(
+            "
+        WITH latest_metrics AS (
+            SELECT 
+                COALESCE(cumulative_event_count, 0) AS prev_event_count,
+                COALESCE(cumulative_transfer_amount, 0) AS prev_transfer_amount,
+                COALESCE(unique_account_count, 0) AS prev_unique_count
+            FROM metrics_plt 
+            ORDER BY event_timestamp DESC 
+            LIMIT 1
+        ),
+        upsert AS (
             INSERT INTO metrics_plt (
                 event_timestamp, 
                 cumulative_event_count,
@@ -982,13 +1012,23 @@ impl PreparedTokenUpdate {
                 $1,
                 lm.prev_event_count,
                 lm.prev_transfer_amount,
-                {adjustment}
+                lm.prev_unique_count + $2
             FROM latest_metrics lm
             ON CONFLICT (event_timestamp) DO UPDATE SET
-                unique_account_count = GREATEST(metrics_plt.unique_account_count, \
-             EXCLUDED.unique_account_count)"
-        );
-        sqlx::query(&query).bind(event_timestamp).bind(delta).execute(tx.as_mut()).await?;
+                unique_account_count = EXCLUDED.unique_account_count
+            RETURNING unique_account_count
+        )
+        SELECT unique_account_count FROM upsert
+        ",
+            event_timestamp,
+            delta
+        )
+        .fetch_one(tx.as_mut())
+        .await?;
+
+        if unique_account_count < 0 {
+           panic!("unique_account_count went negative: {}", unique_account_count);
+        }
         Ok(())
     }
 }
