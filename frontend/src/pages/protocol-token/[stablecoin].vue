@@ -104,7 +104,7 @@
 						:selected-tab="selectedTab"
 						:on-click="handleSelectTab"
 					>
-						Transactions
+						Activities
 					</TabBarItem>
 					<TabBarItem
 						tab-id="holders"

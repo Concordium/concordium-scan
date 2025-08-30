@@ -17,6 +17,7 @@ import { prettyFormatBucketDuration } from '~/utils/format'
 type Props = {
 	xValues?: string[]
 	yValues?: (number | null)[]
+	tooltipTitles?: string[]
 	bucketWidth?: string
 	beginAtZero?: boolean
 	labelFormatter?: LabelFormatterFunc
@@ -39,7 +40,8 @@ const chartData = {
 			spanGaps: false,
 			borderRadius: 4,
 			pointRadius: 0, // Disables the small points
-			hoverBackgroundColor: '#FFFFFF',
+			hoverBackgroundColor: undefined, // Remove hover background to prevent glitches
+			hoverBorderWidth: 0,
 			backgroundColor: [
 				'#2AE8B8', // Bright Mint
 				'#3C8AFF', // Vivid Blue
@@ -81,9 +83,22 @@ const defaultOptions = ref<ChartOptions<'bar'>>({
 			display: false,
 		},
 		tooltip: {
+			enabled: true,
+			mode: 'index',
+			intersect: false,
+			position: 'nearest',
+			backgroundColor: 'rgba(0, 0, 0, 0.8)',
+			titleColor: '#ffffff',
+			bodyColor: '#ffffff',
+			borderColor: 'rgba(255, 255, 255, 0.1)',
+			borderWidth: 1,
+			cornerRadius: 6,
+			displayColors: false,
 			callbacks: {
 				title(context: TooltipItem<'bar'>[]) {
-					return context[0].label
+					const index = context[0].dataIndex
+					// Show custom title if available, otherwise show label
+					return props.tooltipTitles?.[index] || context[0].label
 				},
 				beforeBody() {
 					if (props.bucketWidth)
@@ -102,6 +117,8 @@ const defaultOptions = ref<ChartOptions<'bar'>>({
 	elements: {
 		bar: {
 			borderWidth: 2,
+			hoverBorderWidth: 2,
+			hoverBackgroundColor: undefined, // Prevent color changes on hover
 		},
 	},
 	maintainAspectRatio: false,
@@ -109,8 +126,8 @@ const defaultOptions = ref<ChartOptions<'bar'>>({
 		padding: { left: 40, right: 50, top: 10, bottom: 10 },
 	},
 	interaction: {
-		mode: 'nearest',
-		axis: 'x',
+		mode: 'index',
+		axis: 'y',
 		intersect: false,
 	},
 	scales: {

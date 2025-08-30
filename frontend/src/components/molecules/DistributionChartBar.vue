@@ -14,6 +14,7 @@
 				class="h-28 w-full"
 				:y-values="chartData"
 				:x-values="chartLabels"
+				:tooltip-titles="tokenNames"
 				:begin-at-zero="true"
 				:type="chartType"
 				:show-sign="showSign"
@@ -43,6 +44,11 @@ const props = defineProps<{
 const chartLabels = computed(() => {
 	const coins = props.stableCoinsData?.slice(0, 10) ?? []
 	return coins.map(item => item.tokenId ?? '')
+})
+
+const tokenNames = computed(() => {
+	const coins = props.stableCoinsData?.slice(0, 10) ?? []
+	return coins.map(item => item.name ?? '')
 })
 
 const chartData = computed(() => {
