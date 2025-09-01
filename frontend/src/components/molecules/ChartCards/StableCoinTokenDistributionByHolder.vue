@@ -26,6 +26,8 @@ const distributionValues = ref<
 	{ address: string; percentage: string; symbol: string }[]
 >([])
 
+// Transforms tokenTransferData into chart-ready format according to props data.
+// Calculates percentage ownership and shortens addresses for display.
 watchEffect(() => {
 	distributionValues.value =
 		props.tokenTransferData.map(item => {
