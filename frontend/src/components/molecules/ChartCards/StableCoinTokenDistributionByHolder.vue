@@ -13,7 +13,7 @@
 <script lang="ts" setup>
 import { ref, watchEffect, defineProps } from 'vue'
 import DistributionByHolder from '~/components/molecules/DistributionByHolder.vue'
-import { shortenHash } from '~/utils/format'
+import { calculatePercentageforBigInt, shortenHash } from '~/utils/format'
 import type { PltAccountAmount } from '~/types/generated'
 
 type Props = {
@@ -29,17 +29,18 @@ const distributionValues = ref<
 >([])
 
 watchEffect(() => {
-	distributionValues.value = []
-	props.tokenTransferData?.map(item => {
-		const address = item.accountAddress.asString
-		const amount = BigInt(item.amount.value)
-		const percentage = (Number(amount) / Number(props.totalSupply ?? 0n)) * 100
-		const symbol = item.tokenId ?? ''
-		distributionValues.value.push({
-			address: shortenHash(address),
-			percentage: `${percentage}`,
-			symbol,
-		})
-	})
+	distributionValues.value =
+		props.tokenTransferData?.map(item => {
+			const address = item.accountAddress.asString
+			const amount = BigInt(item.amount.value)
+			const supply = props.totalSupply ?? BigInt(0)
+			const percentage = calculatePercentageforBigInt(amount, supply)
+			const symbol = item.tokenId ?? ''
+			return {
+				address: shortenHash(address),
+				percentage: `${percentage}`,
+				symbol,
+			}
+		}) ?? []
 })
 </script>
