@@ -13,7 +13,9 @@ pub async fn run(
     endpoints: &[v2::Endpoint],
     next_schema_version: SchemaVersion,
 ) -> anyhow::Result<SchemaVersion> {
-    tx.as_mut().execute(sqlx::raw_sql(include_str!("m0014-baker-metrics.sql"))).await?;
+    tx.as_mut()
+        .execute(sqlx::raw_sql(include_str!("m0014-baker-metrics.sql")))
+        .await?;
     let endpoint = endpoints.first().context(format!(
         "Migration '{}' must be provided access to a Concordium node",
         next_schema_version
@@ -24,11 +26,14 @@ pub async fn run(
         .await?
         .is_some();
     if is_genesis_created {
-        let block_identifier = BlockIdentifier::AbsoluteHeight(AbsoluteBlockHeight {
-            height: 0,
-        });
-        let genesis_bakers_count: i64 =
-            client.get_baker_list(block_identifier).await?.response.count().await.try_into()?;
+        let block_identifier = BlockIdentifier::AbsoluteHeight(AbsoluteBlockHeight { height: 0 });
+        let genesis_bakers_count: i64 = client
+            .get_baker_list(block_identifier)
+            .await?
+            .response
+            .count()
+            .await
+            .try_into()?;
         sqlx::query(
             "
             INSERT INTO metrics_bakers (

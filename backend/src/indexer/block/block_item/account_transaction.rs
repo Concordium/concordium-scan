@@ -38,7 +38,7 @@ mod transfer_events;
 pub struct PreparedAccountTransaction {
     /// Update the balance of the sender account with the cost (transaction
     /// fee).
-    fee:   PreparedUpdateAccountBalance,
+    fee: PreparedUpdateAccountBalance,
     /// Updates based on the events of the account transaction.
     event: PreparedEventEnvelope,
 }
@@ -66,10 +66,7 @@ impl PreparedAccountTransaction {
             statistics,
         )
         .await?;
-        Ok(Self {
-            fee,
-            event,
-        })
+        Ok(Self { fee, event })
     }
 
     pub async fn save(
@@ -92,7 +89,7 @@ impl PreparedAccountTransaction {
 #[derive(Debug)]
 struct PreparedEventEnvelope {
     metadata: EventMetadata,
-    event:    PreparedEvent,
+    event: PreparedEvent,
 }
 
 impl PreparedEventEnvelope {
@@ -109,10 +106,7 @@ impl PreparedEventEnvelope {
         let metadata = EventMetadata {
             protocol_version: data.block_info.protocol_version,
         };
-        Ok(PreparedEventEnvelope {
-            metadata,
-            event,
-        })
+        Ok(PreparedEventEnvelope { metadata, event })
     }
 
     async fn save(
@@ -121,7 +115,9 @@ impl PreparedEventEnvelope {
         tx_idx: i64,
         slot_time: DateTime<Utc>,
     ) -> anyhow::Result<()> {
-        self.event.save(tx, tx_idx, self.metadata.protocol_version, slot_time).await
+        self.event
+            .save(tx, tx_idx, self.metadata.protocol_version, slot_time)
+            .await
     }
 }
 
@@ -179,43 +175,37 @@ impl PreparedEvent {
                     item,
                 )?)
             }
-            AccountTransactionEffects::ModuleDeployed {
-                module_ref,
-            } => PreparedEvent::ModuleDeployed(
-                module_events::PreparedModuleDeployed::prepare(node_client, *module_ref).await?,
-            ),
-            AccountTransactionEffects::ContractInitialized {
-                data: event_data,
-            } => PreparedEvent::ContractInitialized(
-                contract_events::PreparedContractInitialized::prepare(
-                    node_client,
-                    data,
-                    event_data,
-                    sender,
+            AccountTransactionEffects::ModuleDeployed { module_ref } => {
+                PreparedEvent::ModuleDeployed(
+                    module_events::PreparedModuleDeployed::prepare(node_client, *module_ref)
+                        .await?,
                 )
-                .await?,
-            ),
-            AccountTransactionEffects::ContractUpdateIssued {
-                effects,
-            } => PreparedEvent::ContractUpdate(
-                contract_events::PreparedContractUpdates::prepare(node_client, data, effects)
-                    .await?,
-            ),
-            AccountTransactionEffects::AccountTransfer {
-                amount,
-                to,
             }
-            | AccountTransactionEffects::AccountTransferWithMemo {
-                amount,
-                to,
-                ..
-            } => PreparedEvent::CcdTransfer(transfer_events::PreparedCcdTransferEvent::prepare(
-                sender, to, *amount, height,
-            )?),
+            AccountTransactionEffects::ContractInitialized { data: event_data } => {
+                PreparedEvent::ContractInitialized(
+                    contract_events::PreparedContractInitialized::prepare(
+                        node_client,
+                        data,
+                        event_data,
+                        sender,
+                    )
+                    .await?,
+                )
+            }
+            AccountTransactionEffects::ContractUpdateIssued { effects } => {
+                PreparedEvent::ContractUpdate(
+                    contract_events::PreparedContractUpdates::prepare(node_client, data, effects)
+                        .await?,
+                )
+            }
+            AccountTransactionEffects::AccountTransfer { amount, to }
+            | AccountTransactionEffects::AccountTransferWithMemo { amount, to, .. } => {
+                PreparedEvent::CcdTransfer(transfer_events::PreparedCcdTransferEvent::prepare(
+                    sender, to, *amount, height,
+                )?)
+            }
 
-            AccountTransactionEffects::BakerAdded {
-                data: event_data,
-            } => {
+            AccountTransactionEffects::BakerAdded { data: event_data } => {
                 let event = concordium_rust_sdk::types::BakerEvent::BakerAdded {
                     data: event_data.clone(),
                 };
@@ -224,9 +214,7 @@ impl PreparedEvent {
                     events: vec![prepared],
                 })
             }
-            AccountTransactionEffects::BakerRemoved {
-                baker_id,
-            } => {
+            AccountTransactionEffects::BakerRemoved { baker_id } => {
                 let event = concordium_rust_sdk::types::BakerEvent::BakerRemoved {
                     baker_id: *baker_id,
                 };
@@ -235,9 +223,7 @@ impl PreparedEvent {
                     events: vec![prepared],
                 })
             }
-            AccountTransactionEffects::BakerStakeUpdated {
-                data: update,
-            } => {
+            AccountTransactionEffects::BakerStakeUpdated { data: update } => {
                 let Some(update) = update else {
                     // No change in baker stake
                     return Ok(PreparedEvent::NoOperation);
@@ -245,12 +231,12 @@ impl PreparedEvent {
 
                 let event = if update.increased {
                     concordium_rust_sdk::types::BakerEvent::BakerStakeIncreased {
-                        baker_id:  update.baker_id,
+                        baker_id: update.baker_id,
                         new_stake: update.new_stake,
                     }
                 } else {
                     concordium_rust_sdk::types::BakerEvent::BakerStakeDecreased {
-                        baker_id:  update.baker_id,
+                        baker_id: update.baker_id,
                         new_stake: update.new_stake,
                     }
                 };
@@ -266,54 +252,47 @@ impl PreparedEvent {
             } => {
                 let events = vec![baker_events::PreparedBakerEvent::prepare(
                     &concordium_rust_sdk::types::BakerEvent::BakerRestakeEarningsUpdated {
-                        baker_id:         *baker_id,
+                        baker_id: *baker_id,
                         restake_earnings: *restake_earnings,
                     },
                     statistics,
                 )?];
+                PreparedEvent::BakerEvents(baker_events::PreparedBakerEvents { events })
+            }
+            AccountTransactionEffects::BakerKeysUpdated { .. } => PreparedEvent::NoOperation,
+            AccountTransactionEffects::BakerConfigured { data: events } => {
                 PreparedEvent::BakerEvents(baker_events::PreparedBakerEvents {
-                    events,
+                    events: events
+                        .iter()
+                        .map(|event| baker_events::PreparedBakerEvent::prepare(event, statistics))
+                        .collect::<anyhow::Result<Vec<_>>>()?,
                 })
             }
-            AccountTransactionEffects::BakerKeysUpdated {
-                ..
-            } => PreparedEvent::NoOperation,
-            AccountTransactionEffects::BakerConfigured {
-                data: events,
-            } => PreparedEvent::BakerEvents(baker_events::PreparedBakerEvents {
-                events: events
-                    .iter()
-                    .map(|event| baker_events::PreparedBakerEvent::prepare(event, statistics))
-                    .collect::<anyhow::Result<Vec<_>>>()?,
-            }),
 
-            AccountTransactionEffects::EncryptedAmountTransferred {
-                ..
+            AccountTransactionEffects::EncryptedAmountTransferred { .. }
+            | AccountTransactionEffects::EncryptedAmountTransferredWithMemo { .. } => {
+                PreparedEvent::NoOperation
             }
-            | AccountTransactionEffects::EncryptedAmountTransferredWithMemo {
-                ..
-            } => PreparedEvent::NoOperation,
-            AccountTransactionEffects::TransferredToEncrypted {
-                data,
-            } => PreparedEvent::EncryptedBalance(
-                transfer_events::PreparedUpdateEncryptedBalance::prepare(
-                    sender,
-                    data.amount,
-                    height,
-                    transfer_events::CryptoOperation::Encrypt,
-                )?,
-            ),
-            AccountTransactionEffects::TransferredToPublic {
-                amount,
-                ..
-            } => PreparedEvent::EncryptedBalance(
-                transfer_events::PreparedUpdateEncryptedBalance::prepare(
-                    sender,
-                    *amount,
-                    height,
-                    transfer_events::CryptoOperation::Decrypt,
-                )?,
-            ),
+            AccountTransactionEffects::TransferredToEncrypted { data } => {
+                PreparedEvent::EncryptedBalance(
+                    transfer_events::PreparedUpdateEncryptedBalance::prepare(
+                        sender,
+                        data.amount,
+                        height,
+                        transfer_events::CryptoOperation::Encrypt,
+                    )?,
+                )
+            }
+            AccountTransactionEffects::TransferredToPublic { amount, .. } => {
+                PreparedEvent::EncryptedBalance(
+                    transfer_events::PreparedUpdateEncryptedBalance::prepare(
+                        sender,
+                        *amount,
+                        height,
+                        transfer_events::CryptoOperation::Decrypt,
+                    )?,
+                )
+            }
             AccountTransactionEffects::TransferredWithSchedule {
                 to,
                 amount: scheduled_releases,
@@ -330,37 +309,31 @@ impl PreparedEvent {
                     height,
                 )?,
             ),
-            AccountTransactionEffects::CredentialKeysUpdated {
-                ..
+            AccountTransactionEffects::CredentialKeysUpdated { .. }
+            | AccountTransactionEffects::CredentialsUpdated { .. }
+            | AccountTransactionEffects::DataRegistered { .. } => PreparedEvent::NoOperation,
+            AccountTransactionEffects::DelegationConfigured { data: events } => {
+                PreparedEvent::AccountDelegationEvents(
+                    delegation_events::PreparedAccountDelegationEvents {
+                        events: events
+                            .iter()
+                            .map(|event| {
+                                delegation_events::PreparedAccountDelegationEvent::prepare(
+                                    event, statistics,
+                                )
+                            })
+                            .collect::<anyhow::Result<Vec<_>>>()?,
+                    },
+                )
             }
-            | AccountTransactionEffects::CredentialsUpdated {
-                ..
-            }
-            | AccountTransactionEffects::DataRegistered {
-                ..
-            } => PreparedEvent::NoOperation,
-            AccountTransactionEffects::DelegationConfigured {
-                data: events,
-            } => PreparedEvent::AccountDelegationEvents(
-                delegation_events::PreparedAccountDelegationEvents {
+            AccountTransactionEffects::TokenUpdate { events } => {
+                PreparedEvent::TokenUpdateEvents(PreparedTokenEvents {
                     events: events
                         .iter()
-                        .map(|event| {
-                            delegation_events::PreparedAccountDelegationEvent::prepare(
-                                event, statistics,
-                            )
-                        })
+                        .map(PreparedTokenEvent::prepare)
                         .collect::<anyhow::Result<Vec<_>>>()?,
-                },
-            ),
-            AccountTransactionEffects::TokenUpdate {
-                events,
-            } => PreparedEvent::TokenUpdateEvents(PreparedTokenEvents {
-                events: events
-                    .iter()
-                    .map(PreparedTokenEvent::prepare)
-                    .collect::<anyhow::Result<Vec<_>>>()?,
-            }),
+                })
+            }
         };
         Ok(prepared_event)
     }

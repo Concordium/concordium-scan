@@ -17,7 +17,9 @@ pub async fn run(
     next_schema_version: SchemaVersion,
 ) -> anyhow::Result<SchemaVersion> {
     // Run database migration first to add the new table.
-    tx.as_mut().execute(sqlx::raw_sql(include_str!("./m0015-pool-rewards.sql"))).await?;
+    tx.as_mut()
+        .execute(sqlx::raw_sql(include_str!("./m0015-pool-rewards.sql")))
+        .await?;
 
     let endpoint = endpoints.first().context(format!(
         "Migration '{}' must be provided access to a Concordium node",
@@ -95,8 +97,9 @@ pub async fn run(
                     baker_reward,
                     finalization_reward,
                 } => {
-                    let pool_owner =
-                        pool_owner.map(|baker_id| baker_id.id.index.try_into()).transpose()?;
+                    let pool_owner = pool_owner
+                        .map(|baker_id| baker_id.id.index.try_into())
+                        .transpose()?;
 
                     total_rewards_pool_owners.push(pool_owner);
                     total_transaction_rewards.push(transaction_fees.micro_ccd.try_into()?);

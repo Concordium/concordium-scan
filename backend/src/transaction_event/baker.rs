@@ -8,12 +8,12 @@ use async_graphql::{ComplexObject, Context, Enum, SimpleObject};
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 #[graphql(complex)]
 pub struct BakerAdded {
-    pub staked_amount:    Amount,
+    pub staked_amount: Amount,
     pub restake_earnings: bool,
-    pub baker_id:         BakerId,
-    pub sign_key:         String,
-    pub election_key:     String,
-    pub aggregation_key:  String,
+    pub baker_id: BakerId,
+    pub sign_key: String,
+    pub election_key: String,
+    pub aggregation_key: String,
 }
 #[ComplexObject]
 impl BakerAdded {
@@ -25,9 +25,9 @@ impl BakerAdded {
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 #[graphql(complex)]
 pub struct BakerKeysUpdated {
-    pub baker_id:        BakerId,
-    pub sign_key:        String,
-    pub election_key:    String,
+    pub baker_id: BakerId,
+    pub sign_key: String,
+    pub election_key: String,
     pub aggregation_key: String,
 }
 #[ComplexObject]
@@ -52,7 +52,7 @@ impl BakerRemoved {
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 #[graphql(complex)]
 pub struct BakerSetRestakeEarnings {
-    pub baker_id:         BakerId,
+    pub baker_id: BakerId,
     pub restake_earnings: bool,
 }
 #[ComplexObject]
@@ -65,7 +65,7 @@ impl BakerSetRestakeEarnings {
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 #[graphql(complex)]
 pub struct BakerStakeDecreased {
-    pub baker_id:          BakerId,
+    pub baker_id: BakerId,
     pub new_staked_amount: Amount,
 }
 #[ComplexObject]
@@ -78,7 +78,7 @@ impl BakerStakeDecreased {
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 #[graphql(complex)]
 pub struct BakerStakeIncreased {
-    pub baker_id:          BakerId,
+    pub baker_id: BakerId,
     pub new_staked_amount: Amount,
 }
 #[ComplexObject]
@@ -90,8 +90,8 @@ impl BakerStakeIncreased {
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct BakerSetBakingRewardCommission {
-    pub baker_id:                 BakerId,
-    pub account_address:          AccountAddress,
+    pub baker_id: BakerId,
+    pub account_address: AccountAddress,
     pub baking_reward_commission: Decimal,
 }
 
@@ -104,40 +104,40 @@ pub struct BakerSetFinalizationRewardCommission {
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct BakerSetTransactionFeeCommission {
-    pub baker_id:                   BakerId,
-    pub account_address:            AccountAddress,
+    pub baker_id: BakerId,
+    pub account_address: AccountAddress,
     pub transaction_fee_commission: Decimal,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct BakerSetMetadataURL {
-    pub baker_id:        BakerId,
+    pub baker_id: BakerId,
     pub account_address: AccountAddress,
-    pub metadata_url:    String,
+    pub metadata_url: String,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct BakerSetOpenStatus {
-    pub baker_id:        BakerId,
+    pub baker_id: BakerId,
     pub account_address: AccountAddress,
-    pub open_status:     BakerPoolOpenStatus,
+    pub open_status: BakerPoolOpenStatus,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct BakerDelegationRemoved {
-    pub delegator_id:    AccountIndex,
+    pub delegator_id: AccountIndex,
     pub account_address: AccountAddress,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct BakerSuspended {
-    pub baker_id:        BakerId,
+    pub baker_id: BakerId,
     pub account_address: AccountAddress,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct BakerResumed {
-    pub baker_id:        BakerId,
+    pub baker_id: BakerId,
     pub account_address: AccountAddress,
 }
 

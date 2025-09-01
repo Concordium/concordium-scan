@@ -53,8 +53,9 @@ impl QueryAccountMetrics {
         let bucket_width = period.bucket_width();
 
         // The bucket interval, e.g. 6 hours.
-        let bucket_interval: PgInterval =
-            bucket_width.try_into().map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))?;
+        let bucket_interval: PgInterval = bucket_width
+            .try_into()
+            .map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))?;
 
         let rows = sqlx::query_file!(
             "src/graphql_api/account_metrics.sql",

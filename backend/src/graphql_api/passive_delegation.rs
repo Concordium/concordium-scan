@@ -46,10 +46,10 @@ impl QueryPassiveDelegation {
 }
 
 struct PassiveDelegation {
-    delegator_count:                Option<i64>,
-    delegated_stake:                Option<BigDecimal>,
-    payday_transaction_commission:  Option<i64>,
-    payday_baking_commission:       Option<i64>,
+    delegator_count: Option<i64>,
+    delegated_stake: Option<BigDecimal>,
+    payday_transaction_commission: Option<i64>,
+    payday_baking_commission: Option<i64>,
     payday_finalization_commission: Option<i64>,
     //
     // Query:
@@ -68,7 +68,9 @@ impl PassiveDelegation {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<DescendingI64, PaydayPoolReward>> {
         let pool = get_pool(ctx)?;
@@ -112,7 +114,9 @@ impl PassiveDelegation {
 
         let mut connection = connection::Connection::new(false, false);
         while let Some(rewards) = row_stream.try_next().await? {
-            connection.edges.push(connection::Edge::new(rewards.block_height.into(), rewards));
+            connection
+                .edges
+                .push(connection::Edge::new(rewards.block_height.into(), rewards));
         }
 
         if let (Some(edge_min_index), Some(edge_max_index)) =
@@ -130,10 +134,12 @@ impl PassiveDelegation {
             .fetch_one(pool)
             .await?;
 
-            connection.has_previous_page =
-                result.max_index.is_some_and(|db_max| db_max > edge_max_index.node.block_height);
-            connection.has_next_page =
-                result.min_index.is_some_and(|db_min| db_min < edge_min_index.node.block_height);
+            connection.has_previous_page = result
+                .max_index
+                .is_some_and(|db_max| db_max > edge_max_index.node.block_height);
+            connection.has_next_page = result
+                .min_index
+                .is_some_and(|db_min| db_min < edge_min_index.node.block_height);
         }
 
         Ok(connection)
@@ -147,7 +153,9 @@ impl PassiveDelegation {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<
         connection::Connection<
@@ -227,9 +235,10 @@ impl PassiveDelegation {
                 outer: delegator.staked_amount.into(),
                 inner: delegator.index.into(),
             };
-            connection.edges.push(connection::Edge::new(cursor, PassiveDelegationSummary {
-                summary: delegator,
-            }));
+            connection.edges.push(connection::Edge::new(
+                cursor,
+                PassiveDelegationSummary { summary: delegator },
+            ));
         }
 
         let (Some(last_item), Some(first_item)) =
@@ -295,10 +304,14 @@ impl PassiveDelegation {
         Ok(connection)
     }
 
-    async fn delegator_count(&self) -> ApiResult<i64> { Ok(self.delegator_count.unwrap_or(0i64)) }
+    async fn delegator_count(&self) -> ApiResult<i64> {
+        Ok(self.delegator_count.unwrap_or(0i64))
+    }
 
     async fn delegated_stake(&self) -> ApiResult<BigInteger> {
-        Ok(BigInteger::from(self.delegated_stake.clone().unwrap_or_default()))
+        Ok(BigInteger::from(
+            self.delegated_stake.clone().unwrap_or_default(),
+        ))
     }
 
     /// Total passively delegated stake as a percentage of all CCDs in
@@ -350,8 +363,8 @@ impl PassiveDelegation {
             .transpose()?
             .map(|c| AmountFraction::new_unchecked(c).into());
         Ok(CommissionRates {
-            transaction_commission:  payday_transaction_commission,
-            baking_commission:       payday_baking_commission,
+            transaction_commission: payday_transaction_commission,
+            baking_commission: payday_baking_commission,
             finalization_commission: payday_finalization_commission,
         })
     }

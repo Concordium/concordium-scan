@@ -30,10 +30,7 @@ impl EnsureAffectedRows for sqlx::postgres::PgQueryResult {
     fn ensure_affected_rows(self, expected: u64) -> Result<Self, EnsureAffectedRowsExactError> {
         let affected = self.rows_affected();
         if affected != expected {
-            Err(EnsureAffectedRowsExactError {
-                affected,
-                expected,
-            })
+            Err(EnsureAffectedRowsExactError { affected, expected })
         } else {
             Ok(self)
         }
@@ -45,10 +42,7 @@ impl EnsureAffectedRows for sqlx::postgres::PgQueryResult {
     ) -> Result<Self, EnsureAffectedRowsInRangeError> {
         let affected = self.rows_affected();
         if !expected.contains(&affected) {
-            Err(EnsureAffectedRowsInRangeError {
-                affected,
-                expected,
-            })
+            Err(EnsureAffectedRowsInRangeError { affected, expected })
         } else {
             Ok(self)
         }

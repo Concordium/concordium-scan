@@ -73,8 +73,12 @@ impl PreparedBlock {
             None
         };
         let mut statistics = Statistics::new(height, slot_time);
-        let total_amount =
-            i64::try_from(data.tokenomics_info.common_reward_data().total_amount.micro_ccd())?;
+        let total_amount = i64::try_from(
+            data.tokenomics_info
+                .common_reward_data()
+                .total_amount
+                .micro_ccd(),
+        )?;
         let total_staked = i64::try_from(data.total_staked.micro_ccd())?;
         let mut prepared_block_items = Vec::new();
         for (item_summary, item) in data.events.iter().zip(data.items.iter()) {

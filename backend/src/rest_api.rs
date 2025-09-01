@@ -25,14 +25,14 @@ pub struct Service {
     /// Layer adding monitoring for the routes.
     monitor_layer: monitor::MonitorLayer,
     /// State shared between handlers.
-    state:         RouterState,
+    state: RouterState,
 }
 
 /// State shared between handlers.
 #[derive(Debug, Clone)]
 struct RouterState {
     /// Database connection pool.
-    pool:   PgPool,
+    pool: PgPool,
     /// Configurations for the API.
     config: Arc<ApiServiceConfig>,
 }
@@ -40,22 +40,25 @@ struct RouterState {
 impl Service {
     pub fn new(pool: PgPool, config: Arc<ApiServiceConfig>, registry: &mut Registry) -> Self {
         Self {
-            state:         RouterState {
-                pool,
-                config,
-            },
+            state: RouterState { pool, config },
             monitor_layer: monitor::MonitorLayer::new(registry.sub_registry_with_prefix("rest")),
         }
     }
 
     pub fn as_router(self) -> Router {
         let cors_layer = CorsLayer::new()
-            .allow_origin(Any)  // Open access to selected route
+            .allow_origin(Any) // Open access to selected route
             .allow_methods(Any)
             .allow_headers(Any);
         Router::new()
-            .route("/rest/balance-statistics/latest", get(Self::latest_balance_statistics))
-            .route("/rest/export/statement", get(Self::export_account_statements))
+            .route(
+                "/rest/balance-statistics/latest",
+                get(Self::latest_balance_statistics),
+            )
+            .route(
+                "/rest/export/statement",
+                get(Self::export_account_statements),
+            )
             .layer(cors_layer)
             .layer(self.monitor_layer)
             .with_state(self.state)
@@ -143,16 +146,13 @@ impl Service {
         let mut csv = String::from("Time,Amount (CCD),Balance (CCD),Label\n");
         while let Some(row) = rows.try_next().await? {
             let account_balance = Amount::from_micro_ccd(row.account_balance.try_into()?);
-            let amount_sign = if row.amount.is_negative() {
-                "-"
-            } else {
-                ""
-            };
+            let amount_sign = if row.amount.is_negative() { "-" } else { "" };
             let amount = Amount::from_micro_ccd(row.amount.abs().try_into()?);
             csv.push_str(
                 format!(
                     "{},{}{},{},{}\n",
-                    row.timestamp.to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+                    row.timestamp
+                        .to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
                     amount_sign,
                     amount,
                     account_balance,
@@ -168,7 +168,10 @@ impl Service {
             to.to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
         );
         let headers = AppendHeaders([
-            (axum::http::header::CONTENT_TYPE, "text/csv; charset=utf-8".to_string()),
+            (
+                axum::http::header::CONTENT_TYPE,
+                "text/csv; charset=utf-8".to_string(),
+            ),
             (
                 axum::http::header::CONTENT_DISPOSITION,
                 format!("attachment; filename=\"{}\"", filename),
@@ -182,15 +185,15 @@ impl Service {
 #[serde(rename_all = "camelCase")]
 struct ExportAccountStatement {
     account_address: AccountAddress,
-    from_time:       Option<DateTime<Utc>>,
-    to_time:         Option<DateTime<Utc>>,
+    from_time: Option<DateTime<Utc>>,
+    to_time: Option<DateTime<Utc>>,
 }
 
 struct ExportAccountStatementEntry {
-    timestamp:       DateTime<Utc>,
-    amount:          i64,
+    timestamp: DateTime<Utc>,
+    amount: i64,
     account_balance: i64,
-    entry_type:      AccountStatementEntryType,
+    entry_type: AccountStatementEntryType,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -198,12 +201,14 @@ struct ExportAccountStatementEntry {
 struct LatestBalanceStatistics {
     field: Balance,
     #[serde(default = "default_balance_statistics_unit_microccd")]
-    unit:  Unit,
+    unit: Unit,
 }
 
 /// default unit for balance statistics to support backwards compatibility for
 /// callers
-fn default_balance_statistics_unit_microccd() -> Unit { Unit::MicroCcd }
+fn default_balance_statistics_unit_microccd() -> Unit {
+    Unit::MicroCcd
+}
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -242,7 +247,9 @@ enum ApiError {
     InvalidInt(#[from] std::num::TryFromIntError),
 }
 impl From<sqlx::Error> for ApiError {
-    fn from(value: sqlx::Error) -> Self { ApiError::FailedDatabaseQuery(Arc::new(value)) }
+    fn from(value: sqlx::Error) -> Self {
+        ApiError::FailedDatabaseQuery(Arc::new(value))
+    }
 }
 
 type ApiResult<A> = Result<A, ApiError>;
@@ -284,9 +291,7 @@ mod monitor {
                 "Duration of seconds for responding to requests for the separate REST API",
                 requests.clone(),
             );
-            Self {
-                requests,
-            }
+            Self { requests }
         }
     }
 
@@ -305,7 +310,7 @@ mod monitor {
     #[derive(Debug, Clone)]
     pub struct MonitorService<S> {
         /// The inner service.
-        inner:   S,
+        inner: S,
         /// The metrics being tracked.
         metrics: MonitorLayer,
     }
@@ -315,7 +320,7 @@ mod monitor {
     #[derive(Debug, Clone, EncodeLabelSet, PartialEq, Eq, Hash)]
     struct QueryLabels {
         /// Path in the request.
-        path:   String,
+        path: String,
         /// Query parameters after the path in the request.
         params: Option<String>,
         /// The response status code.

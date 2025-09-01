@@ -8,7 +8,7 @@ use concordium_rust_sdk::base::contracts_common::CanonicalAccountAddress;
 #[derive(Debug)]
 pub struct PreparedAccountCreation {
     /// The base58check representation of the canonical account address.
-    account_address:   String,
+    account_address: String,
     canonical_address: CanonicalAccountAddress,
 }
 
@@ -17,7 +17,7 @@ impl PreparedAccountCreation {
         details: &concordium_rust_sdk::types::AccountCreationDetails,
     ) -> anyhow::Result<Self> {
         Ok(Self {
-            account_address:   details.address.to_string(),
+            account_address: details.address.to_string(),
             canonical_address: details.address.get_canonical_address(),
         })
     }
