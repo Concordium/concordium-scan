@@ -29,7 +29,7 @@
 														String(coin?.totalSupply),
 														Number(coin?.decimal)
 													),
-												0n
+												BigInt(0)
 											)
 											.toString()
 									"
