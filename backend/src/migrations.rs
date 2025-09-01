@@ -266,17 +266,15 @@ pub enum SchemaVersion {
     CreatePltTokenAndEventTables,
     #[display("0040: Alter PLT events add event_timestamp and index")]
     AlterPltEventsAddEventTimestampAndIndex,
-    #[display("0041: m0041_fix_token_module_reject_reasons")]
-    FixTokenModuleRejectReasons,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking (destructive) database schema versions
     /// have been introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
-        SchemaVersion::AlterPltEventsAddEventTimestampAndIndex;
+        SchemaVersion::CreatePltTokenAndEventTables;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::FixTokenModuleRejectReasons;
+    const LATEST: SchemaVersion = SchemaVersion::AlterPltEventsAddEventTimestampAndIndex;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -336,7 +334,6 @@ impl SchemaVersion {
             SchemaVersion::BakerApyQueryUpdateProtectAgainstOverflow => false,
             SchemaVersion::CreatePltTokenAndEventTables => false,
             SchemaVersion::AlterPltEventsAddEventTimestampAndIndex => false,
-            SchemaVersion::FixTokenModuleRejectReasons => false,
         }
     }
 
@@ -387,7 +384,6 @@ impl SchemaVersion {
             SchemaVersion::BakerApyQueryUpdateProtectAgainstOverflow => false,
             SchemaVersion::CreatePltTokenAndEventTables => false,
             SchemaVersion::AlterPltEventsAddEventTimestampAndIndex => false,
-            SchemaVersion::FixTokenModuleRejectReasons => false,
         }
     }
 
@@ -648,16 +644,8 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::AlterPltEventsAddEventTimestampAndIndex
             }
-            SchemaVersion::AlterPltEventsAddEventTimestampAndIndex => {
-                tx.as_mut()
-                    .execute(sqlx::raw_sql(include_str!(
-                        "./migrations/m0041_fix_token_module_reject_reasons.sql"
-                    )))
-                    .await?;
-                SchemaVersion::FixTokenModuleRejectReasons
-            }
 
-            SchemaVersion::FixTokenModuleRejectReasons => unimplemented!(
+            SchemaVersion::AlterPltEventsAddEventTimestampAndIndex => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
