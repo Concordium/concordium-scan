@@ -26,10 +26,14 @@ impl QueryNodeStatus {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<usize>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, NodeStatus>> {
-        let handler = ctx.data::<NodeInfoReceiver>().map_err(InternalError::NoReceiver)?;
+        let handler = ctx
+            .data::<NodeInfoReceiver>()
+            .map_err(InternalError::NoReceiver)?;
         let mut statuses = if let Some(statuses) = handler.borrow().clone() {
             statuses
         } else {
@@ -40,16 +44,19 @@ impl QueryNodeStatus {
 
         statuses.sort_by(|a, b| {
             let ordering = match sort_field {
-                NodeSortField::AveragePing => {
-                    a.external.average_ping.partial_cmp(&b.external.average_ping)
-                }
-                NodeSortField::BlocksReceivedCount => {
-                    a.external.blocks_received_count.partial_cmp(&b.external.blocks_received_count)
-                }
+                NodeSortField::AveragePing => a
+                    .external
+                    .average_ping
+                    .partial_cmp(&b.external.average_ping),
+                NodeSortField::BlocksReceivedCount => a
+                    .external
+                    .blocks_received_count
+                    .partial_cmp(&b.external.blocks_received_count),
                 NodeSortField::ClientVersion => a.external.client.partial_cmp(&b.external.client),
-                NodeSortField::ConsensusBakerId => {
-                    a.external.consensus_baker_id.partial_cmp(&b.external.consensus_baker_id)
-                }
+                NodeSortField::ConsensusBakerId => a
+                    .external
+                    .consensus_baker_id
+                    .partial_cmp(&b.external.consensus_baker_id),
                 NodeSortField::FinalizedBlockHeight => a
                     .external
                     .finalized_block_height
@@ -74,12 +81,17 @@ impl QueryNodeStatus {
         ctx: &Context<'_>,
         #[graphql(desc = "Return node with corresponding id")] id: types::ID,
     ) -> ApiResult<Option<NodeStatus>> {
-        let handler = ctx.data::<NodeInfoReceiver>().map_err(InternalError::NoReceiver)?;
+        let handler = ctx
+            .data::<NodeInfoReceiver>()
+            .map_err(InternalError::NoReceiver)?;
         let statuses_ref = handler.borrow();
         let statuses = statuses_ref.as_ref().ok_or_else(|| {
             InternalError::InternalError("Node collector backend has not responded".to_string())
         })?;
-        let node = statuses.iter().find(|x| x.external.node_id == id.0).cloned();
+        let node = statuses
+            .iter()
+            .find(|x| x.external.node_id == id.0)
+            .cloned();
         Ok(node)
     }
 }
@@ -258,69 +270,103 @@ pub struct ExternalNodeStatus {
 
 #[ComplexObject]
 impl ExternalNodeStatus {
-    async fn id(&self) -> types::ID { types::ID::from(&self.node_id) }
+    async fn id(&self) -> types::ID {
+        types::ID::from(&self.node_id)
+    }
 
-    async fn client_version(&self) -> &str { &self.client }
+    async fn client_version(&self) -> &str {
+        &self.client
+    }
 
-    async fn block_arrive_latency_ema(&self) -> Option<f64> { self.block_arrive_latency_EMA }
+    async fn block_arrive_latency_ema(&self) -> Option<f64> {
+        self.block_arrive_latency_EMA
+    }
 
-    async fn block_arrive_latency_emsd(&self) -> Option<f64> { self.block_arrive_latency_EMSD }
+    async fn block_arrive_latency_emsd(&self) -> Option<f64> {
+        self.block_arrive_latency_EMSD
+    }
 
-    async fn block_arrive_period_ema(&self) -> Option<f64> { self.block_arrive_period_EMA }
+    async fn block_arrive_period_ema(&self) -> Option<f64> {
+        self.block_arrive_period_EMA
+    }
 
-    async fn block_arrive_period_emsd(&self) -> Option<f64> { self.block_arrive_period_EMSD }
+    async fn block_arrive_period_emsd(&self) -> Option<f64> {
+        self.block_arrive_period_EMSD
+    }
 
-    async fn block_receive_latency_ema(&self) -> Option<f64> { self.block_receive_latency_EMA }
+    async fn block_receive_latency_ema(&self) -> Option<f64> {
+        self.block_receive_latency_EMA
+    }
 
-    async fn block_receive_latency_emsd(&self) -> Option<f64> { self.block_receive_latency_EMSD }
+    async fn block_receive_latency_emsd(&self) -> Option<f64> {
+        self.block_receive_latency_EMSD
+    }
 
-    async fn block_receive_period_ema(&self) -> Option<f64> { self.block_receive_period_EMA }
+    async fn block_receive_period_ema(&self) -> Option<f64> {
+        self.block_receive_period_EMA
+    }
 
-    async fn block_receive_period_emsd(&self) -> Option<f64> { self.block_receive_period_EMSD }
+    async fn block_receive_period_emsd(&self) -> Option<f64> {
+        self.block_receive_period_EMSD
+    }
 
-    async fn finalization_period_ema(&self) -> Option<f64> { self.finalization_period_EMA }
+    async fn finalization_period_ema(&self) -> Option<f64> {
+        self.finalization_period_EMA
+    }
 
-    async fn finalization_period_emsd(&self) -> Option<f64> { self.finalization_period_EMSD }
+    async fn finalization_period_emsd(&self) -> Option<f64> {
+        self.finalization_period_EMSD
+    }
 
-    async fn transactions_per_block_ema(&self) -> Option<f64> { self.transactions_per_block_EMA }
+    async fn transactions_per_block_ema(&self) -> Option<f64> {
+        self.transactions_per_block_EMA
+    }
 
-    async fn transactions_per_block_emsd(&self) -> Option<f64> { self.transactions_per_block_EMSD }
+    async fn transactions_per_block_emsd(&self) -> Option<f64> {
+        self.transactions_per_block_EMSD
+    }
 }
 
 #[derive(SimpleObject, Clone)]
 #[graphql(complex)]
 struct Peer {
     node_name: String,
-    node_id:   String,
+    node_id: String,
 }
 
 #[ComplexObject]
 impl Peer {
-    async fn id(&self) -> types::ID { types::ID::from(&self.node_id) }
+    async fn id(&self) -> types::ID {
+        types::ID::from(&self.node_id)
+    }
 }
 
 #[derive(Clone)]
 struct PeerReference {
     node_status: Option<Peer>,
-    node_id:     String,
+    node_id: String,
 }
 #[Object]
 impl PeerReference {
-    async fn node_status(&self) -> &Option<Peer> { &self.node_status }
+    async fn node_status(&self) -> &Option<Peer> {
+        &self.node_status
+    }
 
-    async fn node_id(&self) -> &str { &self.node_id }
+    async fn node_id(&self) -> &str {
+        &self.node_id
+    }
 }
 
 #[derive(SimpleObject, Clone)]
 pub struct NodeStatus {
     #[graphql(flatten)]
     pub(crate) external: ExternalNodeStatus,
-    peers_list:          Vec<PeerReference>,
+    peers_list: Vec<PeerReference>,
 }
 
 struct NodeCollectorBackendClient {
-    client:             Client,
-    url:                String,
+    client: Client,
+    url: String,
     max_content_length: u64,
 }
 
@@ -342,7 +388,10 @@ impl NodeCollectorBackendClient {
             .map_err(|err| anyhow::anyhow!("Failed to send request: {:?}", err))?;
 
         if response.status() != StatusCode::OK {
-            return Err(anyhow::anyhow!("Invalid status code, HTTP Status: {}", response.status()));
+            return Err(anyhow::anyhow!(
+                "Invalid status code, HTTP Status: {}",
+                response.status()
+            ));
         }
 
         if let Some(content_length) = response.content_length() {

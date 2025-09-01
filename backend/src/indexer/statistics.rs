@@ -15,10 +15,10 @@ pub(crate) enum BakerField {
 /// BakerStatistics holds baker-related counters and tracks whether a change has
 /// occurred.
 pub(crate) struct BakerStatistics {
-    baker_is_changed:    bool,
-    baker_added_count:   i64,
+    baker_is_changed: bool,
+    baker_added_count: i64,
     baker_removed_count: i64,
-    block_height:        i64,
+    block_height: i64,
 }
 
 impl BakerStatistics {
@@ -48,7 +48,10 @@ impl BakerStatistics {
     /// row exists, it inserts a new row.
     pub(crate) async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> Result<()> {
         if !self.baker_is_changed {
-            debug!("No change in baker count at block_height: {}", self.block_height);
+            debug!(
+                "No change in baker count at block_height: {}",
+                self.block_height
+            );
             return Ok(());
         }
         let result = sqlx::query!(
@@ -100,7 +103,7 @@ impl BakerStatistics {
 /// RewardStatistics holds rewards for individual accounts
 pub(crate) struct RewardStatistics {
     account_rewards: HashMap<CanonicalAccountAddress, i64>,
-    block_height:    i64,
+    block_height: i64,
     block_slot_time: DateTime,
 }
 
@@ -151,14 +154,14 @@ impl RewardStatistics {
 
 /// Composite Statistics that holds different types of statistics
 pub(crate) struct Statistics {
-    pub baker_stats:  BakerStatistics,
+    pub baker_stats: BakerStatistics,
     pub reward_stats: RewardStatistics,
 }
 
 impl Statistics {
     pub(crate) fn new(block_height: i64, slot_time: DateTime) -> Self {
         Self {
-            baker_stats:  BakerStatistics::new(block_height),
+            baker_stats: BakerStatistics::new(block_height),
             reward_stats: RewardStatistics::new(block_height, slot_time),
         }
     }

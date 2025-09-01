@@ -42,9 +42,10 @@ impl ProtocolUpdateMigration {
 
     pub async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         match self {
-            Self::P4(migration) => {
-                migration.save(tx).await.context("Failed Protocol version 4 data migration")
-            }
+            Self::P4(migration) => migration
+                .save(tx)
+                .await
+                .context("Failed Protocol version 4 data migration"),
         }
     }
 }
@@ -57,11 +58,11 @@ impl ProtocolUpdateMigration {
 /// block of protocol version 4
 #[derive(Debug)]
 pub struct P4ProtocolUpdateMigration {
-    baker_ids:                     Vec<i64>,
-    open_statuses:                 Vec<BakerPoolOpenStatus>,
-    metadata_urls:                 Vec<String>,
-    transaction_commission_rates:  Vec<i64>,
-    baking_commission_rates:       Vec<i64>,
+    baker_ids: Vec<i64>,
+    open_statuses: Vec<BakerPoolOpenStatus>,
+    metadata_urls: Vec<String>,
+    transaction_commission_rates: Vec<i64>,
+    baking_commission_rates: Vec<i64>,
     finalization_commission_rates: Vec<i64>,
 }
 impl P4ProtocolUpdateMigration {
@@ -109,7 +110,10 @@ impl P4ProtocolUpdateMigration {
                         validator_id,
                         (
                             status,
-                            (metadata_url, (transaction_rate, (baking_rate, finalization_rate))),
+                            (
+                                metadata_url,
+                                (transaction_rate, (baking_rate, finalization_rate)),
+                            ),
                         ),
                     ))
                 }

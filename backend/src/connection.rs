@@ -37,12 +37,18 @@ pub fn connection_from_slice<T: AsRef<[A]>, A: async_graphql::OutputType + Clone
         if first_count == 0 {
             return Ok(connection::Connection::new(false, false));
         }
-        (after_cursor_index, min(after_cursor_index + first_count, length))
+        (
+            after_cursor_index,
+            min(after_cursor_index + first_count, length),
+        )
     } else if let Some(last_count) = last {
         if last_count == 0 {
             return Ok(connection::Connection::new(false, false));
         }
-        (before_cursor_index.saturating_sub(last_count), before_cursor_index)
+        (
+            before_cursor_index.saturating_sub(last_count),
+            before_cursor_index,
+        )
     } else {
         (after_cursor_index, before_cursor_index)
     };
@@ -50,7 +56,9 @@ pub fn connection_from_slice<T: AsRef<[A]>, A: async_graphql::OutputType + Clone
     let slice = &collection[range.clone()];
     let mut connection = connection::Connection::new(start > 0, end < collection.len());
     for (i, item) in range.zip(slice.iter().cloned()) {
-        connection.edges.push(connection::Edge::new(i.encode_cursor(), item))
+        connection
+            .edges
+            .push(connection::Edge::new(i.encode_cursor(), item))
     }
     Ok(connection)
 }
@@ -75,11 +83,15 @@ impl ConnectionBounds for i64 {
 pub type DescendingI64 = Reversed<i64>;
 
 impl From<DescendingI64> for i64 {
-    fn from(value: DescendingI64) -> Self { value.into_inner() }
+    fn from(value: DescendingI64) -> Self {
+        value.into_inner()
+    }
 }
 
 impl From<i64> for DescendingI64 {
-    fn from(value: i64) -> Self { Reversed::new(value) }
+    fn from(value: i64) -> Self {
+        Reversed::new(value)
+    }
 }
 
 /// GraphQL Connection Cursor representing a collection where the pages are
@@ -93,12 +105,12 @@ pub struct Reversed<Cursor> {
 }
 impl<C> Reversed<C> {
     pub const fn new(cursor: C) -> Self {
-        Self {
-            cursor,
-        }
+        Self { cursor }
     }
 
-    pub fn into_inner(self) -> C { self.cursor }
+    pub fn into_inner(self) -> C {
+        self.cursor
+    }
 }
 
 impl<C> ConnectionBounds for Reversed<C>
@@ -118,7 +130,9 @@ where
         C::decode_cursor(s).map(Reversed::new)
     }
 
-    fn encode_cursor(&self) -> String { self.cursor.encode_cursor() }
+    fn encode_cursor(&self) -> String {
+        self.cursor.encode_cursor()
+    }
 }
 
 impl<C> PartialOrd for Reversed<C>
@@ -126,7 +140,9 @@ where
     C: PartialOrd,
 {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.cursor.partial_cmp(&other.cursor).map(|ord| ord.reverse())
+        self.cursor
+            .partial_cmp(&other.cursor)
+            .map(|ord| ord.reverse())
     }
 }
 
@@ -134,7 +150,9 @@ impl<C> Ord for Reversed<C>
 where
     C: Ord,
 {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering { self.cursor.cmp(&other.cursor).reverse() }
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.cursor.cmp(&other.cursor).reverse()
+    }
 }
 
 /// Construct for combining two connection cursors into one, where the two
@@ -217,7 +235,9 @@ where
                     Snd::decode_cursor(after).map_err(ConcatCursorDecodeError::SecondError)?;
                 Ok(ConcatCursor::Second(cursor))
             }
-            otherwise => Err(ConcatCursorDecodeError::UnexpectedPrefix(otherwise.to_string())),
+            otherwise => Err(ConcatCursorDecodeError::UnexpectedPrefix(
+                otherwise.to_string(),
+            )),
         }
     }
 
@@ -307,14 +327,15 @@ where
         let after = &after[1..];
         let outer = Outer::decode_cursor(before).map_err(NestedCursorDecodeError::OuterError)?;
         let inner = Inner::decode_cursor(after).map_err(NestedCursorDecodeError::InnerError)?;
-        Ok(Self {
-            outer,
-            inner,
-        })
+        Ok(Self { outer, inner })
     }
 
     fn encode_cursor(&self) -> String {
-        format!("({}:{})", self.outer.encode_cursor(), self.inner.encode_cursor())
+        format!(
+            "({}:{})",
+            self.outer.encode_cursor(),
+            self.inner.encode_cursor()
+        )
     }
 }
 
@@ -390,7 +411,9 @@ impl connection::CursorType for UnitCursor {
         }
     }
 
-    fn encode_cursor(&self) -> String { "unit".to_string() }
+    fn encode_cursor(&self) -> String {
+        "unit".to_string()
+    }
 }
 #[derive(Debug, thiserror::Error)]
 #[error("Expected value 'unit' instead got {unexpected}")]
@@ -419,9 +442,7 @@ pub struct F64Cursor {
 }
 impl F64Cursor {
     pub const fn new(value: f64) -> Self {
-        Self {
-            value,
-        }
+        Self { value }
     }
 }
 impl connection::CursorType for F64Cursor {
@@ -429,32 +450,34 @@ impl connection::CursorType for F64Cursor {
 
     fn decode_cursor(s: &str) -> Result<Self, Self::Error> {
         let value = f64::decode_cursor(s)?;
-        Ok(Self {
-            value,
-        })
+        Ok(Self { value })
     }
 
-    fn encode_cursor(&self) -> String { self.value.encode_cursor() }
+    fn encode_cursor(&self) -> String {
+        self.value.encode_cursor()
+    }
 }
 impl ConnectionBounds for F64Cursor {
-    const END_BOUND: Self = Self {
-        value: f64::MAX,
-    };
-    const START_BOUND: Self = Self {
-        value: f64::MIN,
-    };
+    const END_BOUND: Self = Self { value: f64::MAX };
+    const START_BOUND: Self = Self { value: f64::MIN };
 }
 
 impl PartialEq for F64Cursor {
-    fn eq(&self, other: &Self) -> bool { self.value.total_cmp(&other.value).is_eq() }
+    fn eq(&self, other: &Self) -> bool {
+        self.value.total_cmp(&other.value).is_eq()
+    }
 }
 impl Eq for F64Cursor {}
 
 impl PartialOrd for F64Cursor {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) }
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 impl Ord for F64Cursor {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering { self.value.total_cmp(&other.value) }
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.value.total_cmp(&other.value)
+    }
 }
 
 /// Prepared query arguments for SQL query, based on arguments from a GraphQL
@@ -462,11 +485,11 @@ impl Ord for F64Cursor {
 #[derive(Debug)]
 pub struct ConnectionQuery<A> {
     /// The non-inclusive starting bound to use for the SQL sub-query.
-    pub from:    A,
+    pub from: A,
     /// The non-inclusive end bound to use for the SQL sub-query.
-    pub to:      A,
+    pub to: A,
     /// The limit to use for the SQL sub-query.
-    pub limit:   i64,
+    pub limit: i64,
     /// If the `last` elements are requested instead of the `first` elements
     /// (indicated by the `last` key being set when creating a new
     /// `ConnectionQuery`), the edges/nodes should first be ordered in reverse
@@ -486,7 +509,8 @@ impl<Cursor> ConnectionQuery<Cursor> {
     ) -> ApiResult<Self>
     where
         Cursor: connection::CursorType<Error = Error> + ConnectionBounds,
-        Error: Into<ApiError>, {
+        Error: Into<ApiError>,
+    {
         if first.is_some() && last.is_some() {
             return Err(ApiError::QueryConnectionFirstLast);
         }
@@ -503,8 +527,10 @@ impl<Cursor> ConnectionQuery<Cursor> {
             Cursor::END_BOUND
         };
 
-        let limit =
-            first.or(last).map_or(connection_limit, |limit| connection_limit.min(limit)) as i64;
+        let limit = first
+            .or(last)
+            .map_or(connection_limit, |limit| connection_limit.min(limit))
+            as i64;
 
         Ok(Self {
             from,
@@ -520,7 +546,8 @@ impl<Fst, Snd> ConnectionQuery<ConcatCursor<Fst, Snd>> {
     /// level query.
     pub fn subquery_first(&self) -> Option<ConnectionQuery<Fst>>
     where
-        Fst: ConnectionBounds + Clone, {
+        Fst: ConnectionBounds + Clone,
+    {
         self.subquery_first_with_limit(self.limit)
     }
 
@@ -528,14 +555,16 @@ impl<Fst, Snd> ConnectionQuery<ConcatCursor<Fst, Snd>> {
     /// level query.
     pub fn subquery_second(&self) -> Option<ConnectionQuery<Snd>>
     where
-        Snd: ConnectionBounds + Clone, {
+        Snd: ConnectionBounds + Clone,
+    {
         self.subquery_second_with_limit(self.limit)
     }
 
     /// Construct query for the first collection using the provided limit.
     pub fn subquery_first_with_limit(&self, limit: i64) -> Option<ConnectionQuery<Fst>>
     where
-        Fst: ConnectionBounds + Clone, {
+        Fst: ConnectionBounds + Clone,
+    {
         let from = self.from.first()?.clone();
         let to = self.to.first().cloned().unwrap_or(Fst::END_BOUND);
         Some(ConnectionQuery {
@@ -549,7 +578,8 @@ impl<Fst, Snd> ConnectionQuery<ConcatCursor<Fst, Snd>> {
     /// Construct query for the second collection using the provided limit.
     pub fn subquery_second_with_limit(&self, limit: i64) -> Option<ConnectionQuery<Snd>>
     where
-        Snd: ConnectionBounds + Clone, {
+        Snd: ConnectionBounds + Clone,
+    {
         let second = self.to.second()?.clone();
         let to = second;
         let from = self.from.second().cloned().unwrap_or(Snd::START_BOUND);
@@ -568,30 +598,30 @@ mod tests {
 
     #[derive(Clone, Debug, PartialEq, async_graphql::SimpleObject)]
     struct TestNode {
-        id:   i32,
+        id: i32,
         name: String,
     }
 
     fn setup_data() -> Vec<TestNode> {
         vec![
             TestNode {
-                id:   1,
+                id: 1,
                 name: "A".to_string(),
             },
             TestNode {
-                id:   2,
+                id: 2,
                 name: "B".to_string(),
             },
             TestNode {
-                id:   3,
+                id: 3,
                 name: "C".to_string(),
             },
             TestNode {
-                id:   4,
+                id: 4,
                 name: "D".to_string(),
             },
             TestNode {
-                id:   5,
+                id: 5,
                 name: "E".to_string(),
             },
         ]
@@ -769,15 +799,11 @@ mod tests {
                     value: 5.7180665077013275,
                 },
             }),
-            inner: Reversed {
-                cursor: 204,
-            },
+            inner: Reversed { cursor: 204 },
         };
         let last: Cursor = NestedCursor {
             outer: ConcatCursor::Second(UnitCursor),
-            inner: Reversed {
-                cursor: 10,
-            },
+            inner: Reversed { cursor: 10 },
         };
         assert!(last > first);
         assert!(first == first);
@@ -793,15 +819,11 @@ mod tests {
                     value: 5.7180665077013275,
                 },
             }),
-            inner: Reversed {
-                cursor: 204,
-            },
+            inner: Reversed { cursor: 204 },
         };
         let last: Cursor = NestedCursor {
             outer: ConcatCursor::Second(UnitCursor),
-            inner: Reversed {
-                cursor: 10,
-            },
+            inner: Reversed { cursor: 10 },
         };
 
         let first_encode_decode = Cursor::decode_cursor(first.encode_cursor().as_str())

@@ -52,8 +52,9 @@ impl QueryTransactionMetrics {
             .map_err(|e| ApiError::DurationOutOfRange(Arc::new(e)))?;
         // The bucket interval, e.g. 6 hours.
         let bucket_width = period.bucket_width();
-        let bucket_interval: PgInterval =
-            bucket_width.try_into().map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))?;
+        let bucket_interval: PgInterval = bucket_width
+            .try_into()
+            .map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))?;
         let rows = sqlx::query_file!(
             "src/graphql_api/transaction_metrics.sql",
             period_interval,
@@ -74,7 +75,10 @@ impl QueryTransactionMetrics {
                 let x_time = row.bucket_time;
                 let y_last_cumulative_transaction_count = row.end_cumulative_num_txs;
                 let y_transaction_count = row.end_cumulative_num_txs - row.start_cumulative_num_txs;
-                (x_time, (y_last_cumulative_transaction_count, y_transaction_count))
+                (
+                    x_time,
+                    (y_last_cumulative_transaction_count, y_transaction_count),
+                )
             })
             .collect();
         Ok(TransactionMetrics {

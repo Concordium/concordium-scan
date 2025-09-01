@@ -93,12 +93,12 @@ pub struct ModuleHashAlreadyExists {
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct InvalidInitMethod {
     module_ref: String,
-    init_name:  String,
+    init_name: String,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct InvalidReceiveMethod {
-    module_ref:   String,
+    module_ref: String,
     receive_name: String,
 }
 
@@ -130,7 +130,7 @@ pub struct RuntimeFailure {
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct AmountTooLarge {
     address: Address,
-    amount:  Amount,
+    amount: Amount,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
@@ -162,21 +162,21 @@ pub struct RejectedInit {
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct RejectedReceive {
     /// Reject reason code produced by the smart contract instance.
-    reject_reason:          i32,
+    reject_reason: i32,
     /// Address of the smart contract instance which rejected the update.
-    contract_address:       ContractAddress,
+    contract_address: ContractAddress,
     /// The name of the entry point called in the smart contract instance (in
     /// ReceiveName format '<contract_name>.<entrypoint>').
-    receive_name:           String,
+    receive_name: String,
     /// The HEX representation of the message provided for the smart contract
     /// instance as parameter.
-    message_as_hex:         String,
+    message_as_hex: String,
     /// The JSON representation of the message provided for the smart contract
     /// instance as parameter. Decoded using the smart contract module
     /// schema if present otherwise undefined. Failing to parse the message
     /// will result in this being undefined and `message_parsing_status`
     /// representing the error.
-    message:                Option<String>,
+    message: Option<String>,
     /// The status of parsing `message` into its JSON representation using the
     /// smart contract module schema.
     message_parsing_status: InstanceMessageParsingStatus,
@@ -580,11 +580,11 @@ pub struct NonExistentTokenId {
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct TokenModuleReject {
     /// The unique symbol of the token, which produced this event.
-    pub token_id:    String,
+    pub token_id: String,
     /// The type of event produced.
     pub reason_type: String,
     /// The details of the event produced, in the raw byte encoded form.
-    pub details:     serde_json::Value,
+    pub details: serde_json::Value,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
@@ -625,117 +625,99 @@ impl PreparedTransactionRejectReason {
             }));
         }
         let reason = match sdk_reject_reason {
-            RejectReason::RejectedReceive {
-                ..
-            } => anyhow::bail!(
+            RejectReason::RejectedReceive { .. } => anyhow::bail!(
                 "Unexpected RejectedReceive. This reject reason needs further processing, and \
                  should be handled above"
             ),
-            RejectReason::ModuleNotWF => TransactionRejectReason::ModuleNotWf(ModuleNotWf {
-                dummy: true,
-            }),
-            RejectReason::ModuleHashAlreadyExists {
-                contents,
-            } => TransactionRejectReason::ModuleHashAlreadyExists(ModuleHashAlreadyExists {
-                module_ref: contents.to_string(),
-            }),
-            RejectReason::InvalidAccountReference {
-                contents,
-            } => TransactionRejectReason::InvalidAccountReference(InvalidAccountReference {
-                account_address: contents.into(),
-            }),
-            RejectReason::InvalidInitMethod {
-                contents,
-            } => TransactionRejectReason::InvalidInitMethod(InvalidInitMethod {
-                module_ref: contents.0.to_string(),
-                init_name:  contents.1.to_string(),
-            }),
-            RejectReason::InvalidReceiveMethod {
-                contents,
-            } => TransactionRejectReason::InvalidReceiveMethod(InvalidReceiveMethod {
-                module_ref:   contents.0.to_string(),
-                receive_name: contents.1.to_string(),
-            }),
-            RejectReason::InvalidModuleReference {
-                contents,
-            } => TransactionRejectReason::InvalidModuleReference(InvalidModuleReference {
-                module_ref: contents.to_string(),
-            }),
-            RejectReason::InvalidContractAddress {
-                contents,
-            } => TransactionRejectReason::InvalidContractAddress(InvalidContractAddress {
-                contract_address: contents.into(),
-            }),
+            RejectReason::ModuleNotWF => {
+                TransactionRejectReason::ModuleNotWf(ModuleNotWf { dummy: true })
+            }
+            RejectReason::ModuleHashAlreadyExists { contents } => {
+                TransactionRejectReason::ModuleHashAlreadyExists(ModuleHashAlreadyExists {
+                    module_ref: contents.to_string(),
+                })
+            }
+            RejectReason::InvalidAccountReference { contents } => {
+                TransactionRejectReason::InvalidAccountReference(InvalidAccountReference {
+                    account_address: contents.into(),
+                })
+            }
+            RejectReason::InvalidInitMethod { contents } => {
+                TransactionRejectReason::InvalidInitMethod(InvalidInitMethod {
+                    module_ref: contents.0.to_string(),
+                    init_name: contents.1.to_string(),
+                })
+            }
+            RejectReason::InvalidReceiveMethod { contents } => {
+                TransactionRejectReason::InvalidReceiveMethod(InvalidReceiveMethod {
+                    module_ref: contents.0.to_string(),
+                    receive_name: contents.1.to_string(),
+                })
+            }
+            RejectReason::InvalidModuleReference { contents } => {
+                TransactionRejectReason::InvalidModuleReference(InvalidModuleReference {
+                    module_ref: contents.to_string(),
+                })
+            }
+            RejectReason::InvalidContractAddress { contents } => {
+                TransactionRejectReason::InvalidContractAddress(InvalidContractAddress {
+                    contract_address: contents.into(),
+                })
+            }
             RejectReason::RuntimeFailure => {
-                TransactionRejectReason::RuntimeFailure(RuntimeFailure {
-                    dummy: true,
+                TransactionRejectReason::RuntimeFailure(RuntimeFailure { dummy: true })
+            }
+            RejectReason::AmountTooLarge { contents } => {
+                TransactionRejectReason::AmountTooLarge(AmountTooLarge {
+                    address: contents.0.into(),
+                    amount: contents.1.micro_ccd().into(),
                 })
             }
-            RejectReason::AmountTooLarge {
-                contents,
-            } => TransactionRejectReason::AmountTooLarge(AmountTooLarge {
-                address: contents.0.into(),
-                amount:  contents.1.micro_ccd().into(),
-            }),
             RejectReason::SerializationFailure => {
-                TransactionRejectReason::SerializationFailure(SerializationFailure {
-                    dummy: true,
+                TransactionRejectReason::SerializationFailure(SerializationFailure { dummy: true })
+            }
+            RejectReason::OutOfEnergy => {
+                TransactionRejectReason::OutOfEnergy(OutOfEnergy { dummy: true })
+            }
+            RejectReason::RejectedInit { reject_reason } => {
+                TransactionRejectReason::RejectedInit(RejectedInit { reject_reason })
+            }
+            RejectReason::InvalidProof => {
+                TransactionRejectReason::InvalidProof(InvalidProof { dummy: true })
+            }
+            RejectReason::AlreadyABaker { contents } => {
+                TransactionRejectReason::AlreadyABaker(AlreadyABaker {
+                    baker_id: contents.id.index.try_into()?,
                 })
             }
-            RejectReason::OutOfEnergy => TransactionRejectReason::OutOfEnergy(OutOfEnergy {
-                dummy: true,
-            }),
-            RejectReason::RejectedInit {
-                reject_reason,
-            } => TransactionRejectReason::RejectedInit(RejectedInit {
-                reject_reason,
-            }),
-            RejectReason::InvalidProof => TransactionRejectReason::InvalidProof(InvalidProof {
-                dummy: true,
-            }),
-            RejectReason::AlreadyABaker {
-                contents,
-            } => TransactionRejectReason::AlreadyABaker(AlreadyABaker {
-                baker_id: contents.id.index.try_into()?,
-            }),
-            RejectReason::NotABaker {
-                contents,
-            } => TransactionRejectReason::NotABaker(NotABaker {
+            RejectReason::NotABaker { contents } => TransactionRejectReason::NotABaker(NotABaker {
                 account_address: contents.into(),
             }),
             RejectReason::InsufficientBalanceForBakerStake => {
                 TransactionRejectReason::InsufficientBalanceForBakerStake(
-                    InsufficientBalanceForBakerStake {
-                        dummy: true,
-                    },
+                    InsufficientBalanceForBakerStake { dummy: true },
                 )
             }
             RejectReason::StakeUnderMinimumThresholdForBaking => {
                 TransactionRejectReason::StakeUnderMinimumThresholdForBaking(
-                    StakeUnderMinimumThresholdForBaking {
-                        dummy: true,
-                    },
+                    StakeUnderMinimumThresholdForBaking { dummy: true },
                 )
             }
             RejectReason::BakerInCooldown => {
-                TransactionRejectReason::BakerInCooldown(BakerInCooldown {
-                    dummy: true,
+                TransactionRejectReason::BakerInCooldown(BakerInCooldown { dummy: true })
+            }
+            RejectReason::DuplicateAggregationKey { contents } => {
+                TransactionRejectReason::DuplicateAggregationKey(DuplicateAggregationKey {
+                    aggregation_key: serde_json::to_string(&contents)?,
                 })
             }
-            RejectReason::DuplicateAggregationKey {
-                contents,
-            } => TransactionRejectReason::DuplicateAggregationKey(DuplicateAggregationKey {
-                aggregation_key: serde_json::to_string(&contents)?,
-            }),
             RejectReason::NonExistentCredentialID => {
                 TransactionRejectReason::NonExistentCredentialId(NonExistentCredentialId {
                     dummy: true,
                 })
             }
             RejectReason::KeyIndexAlreadyInUse => {
-                TransactionRejectReason::KeyIndexAlreadyInUse(KeyIndexAlreadyInUse {
-                    dummy: true,
-                })
+                TransactionRejectReason::KeyIndexAlreadyInUse(KeyIndexAlreadyInUse { dummy: true })
             }
             RejectReason::InvalidAccountThreshold => {
                 TransactionRejectReason::InvalidAccountThreshold(InvalidAccountThreshold {
@@ -744,43 +726,31 @@ impl PreparedTransactionRejectReason {
             }
             RejectReason::InvalidCredentialKeySignThreshold => {
                 TransactionRejectReason::InvalidCredentialKeySignThreshold(
-                    InvalidCredentialKeySignThreshold {
-                        dummy: true,
-                    },
+                    InvalidCredentialKeySignThreshold { dummy: true },
                 )
             }
             RejectReason::InvalidEncryptedAmountTransferProof => {
                 TransactionRejectReason::InvalidEncryptedAmountTransferProof(
-                    InvalidEncryptedAmountTransferProof {
-                        dummy: true,
-                    },
+                    InvalidEncryptedAmountTransferProof { dummy: true },
                 )
             }
             RejectReason::InvalidTransferToPublicProof => {
                 TransactionRejectReason::InvalidTransferToPublicProof(
-                    InvalidTransferToPublicProof {
-                        dummy: true,
-                    },
+                    InvalidTransferToPublicProof { dummy: true },
                 )
             }
-            RejectReason::EncryptedAmountSelfTransfer {
-                contents,
-            } => {
+            RejectReason::EncryptedAmountSelfTransfer { contents } => {
                 TransactionRejectReason::EncryptedAmountSelfTransfer(EncryptedAmountSelfTransfer {
                     account_address: contents.into(),
                 })
             }
             RejectReason::InvalidIndexOnEncryptedTransfer => {
                 TransactionRejectReason::InvalidIndexOnEncryptedTransfer(
-                    InvalidIndexOnEncryptedTransfer {
-                        dummy: true,
-                    },
+                    InvalidIndexOnEncryptedTransfer { dummy: true },
                 )
             }
             RejectReason::ZeroScheduledAmount => {
-                TransactionRejectReason::ZeroScheduledAmount(ZeroScheduledAmount {
-                    dummy: true,
-                })
+                TransactionRejectReason::ZeroScheduledAmount(ZeroScheduledAmount { dummy: true })
             }
             RejectReason::NonIncreasingSchedule => {
                 TransactionRejectReason::NonIncreasingSchedule(NonIncreasingSchedule {
@@ -789,31 +759,33 @@ impl PreparedTransactionRejectReason {
             }
             RejectReason::FirstScheduledReleaseExpired => {
                 TransactionRejectReason::FirstScheduledReleaseExpired(
-                    FirstScheduledReleaseExpired {
-                        dummy: true,
-                    },
+                    FirstScheduledReleaseExpired { dummy: true },
                 )
             }
-            RejectReason::ScheduledSelfTransfer {
-                contents,
-            } => TransactionRejectReason::ScheduledSelfTransfer(ScheduledSelfTransfer {
-                account_address: contents.into(),
-            }),
-            RejectReason::InvalidCredentials => {
-                TransactionRejectReason::InvalidCredentials(InvalidCredentials {
-                    dummy: true,
+            RejectReason::ScheduledSelfTransfer { contents } => {
+                TransactionRejectReason::ScheduledSelfTransfer(ScheduledSelfTransfer {
+                    account_address: contents.into(),
                 })
             }
-            RejectReason::DuplicateCredIDs {
-                contents,
-            } => TransactionRejectReason::DuplicateCredIds(DuplicateCredIds {
-                cred_ids: contents.into_iter().map(|cred_id| cred_id.to_string()).collect(),
-            }),
-            RejectReason::NonExistentCredIDs {
-                contents,
-            } => TransactionRejectReason::NonExistentCredIds(NonExistentCredIds {
-                cred_ids: contents.into_iter().map(|cred_id| cred_id.to_string()).collect(),
-            }),
+            RejectReason::InvalidCredentials => {
+                TransactionRejectReason::InvalidCredentials(InvalidCredentials { dummy: true })
+            }
+            RejectReason::DuplicateCredIDs { contents } => {
+                TransactionRejectReason::DuplicateCredIds(DuplicateCredIds {
+                    cred_ids: contents
+                        .into_iter()
+                        .map(|cred_id| cred_id.to_string())
+                        .collect(),
+                })
+            }
+            RejectReason::NonExistentCredIDs { contents } => {
+                TransactionRejectReason::NonExistentCredIds(NonExistentCredIds {
+                    cred_ids: contents
+                        .into_iter()
+                        .map(|cred_id| cred_id.to_string())
+                        .collect(),
+                })
+            }
             RejectReason::RemoveFirstCredential => {
                 TransactionRejectReason::RemoveFirstCredential(RemoveFirstCredential {
                     dummy: true,
@@ -826,16 +798,12 @@ impl PreparedTransactionRejectReason {
             }
             RejectReason::NotAllowedMultipleCredentials => {
                 TransactionRejectReason::NotAllowedMultipleCredentials(
-                    NotAllowedMultipleCredentials {
-                        dummy: true,
-                    },
+                    NotAllowedMultipleCredentials { dummy: true },
                 )
             }
             RejectReason::NotAllowedToReceiveEncrypted => {
                 TransactionRejectReason::NotAllowedToReceiveEncrypted(
-                    NotAllowedToReceiveEncrypted {
-                        dummy: true,
-                    },
+                    NotAllowedToReceiveEncrypted { dummy: true },
                 )
             }
             RejectReason::NotAllowedToHandleEncrypted => {
@@ -850,42 +818,30 @@ impl PreparedTransactionRejectReason {
             }
             RejectReason::FinalizationRewardCommissionNotInRange => {
                 TransactionRejectReason::FinalizationRewardCommissionNotInRange(
-                    FinalizationRewardCommissionNotInRange {
-                        dummy: true,
-                    },
+                    FinalizationRewardCommissionNotInRange { dummy: true },
                 )
             }
             RejectReason::BakingRewardCommissionNotInRange => {
                 TransactionRejectReason::BakingRewardCommissionNotInRange(
-                    BakingRewardCommissionNotInRange {
-                        dummy: true,
-                    },
+                    BakingRewardCommissionNotInRange { dummy: true },
                 )
             }
             RejectReason::TransactionFeeCommissionNotInRange => {
                 TransactionRejectReason::TransactionFeeCommissionNotInRange(
-                    TransactionFeeCommissionNotInRange {
-                        dummy: true,
-                    },
+                    TransactionFeeCommissionNotInRange { dummy: true },
                 )
             }
             RejectReason::AlreadyADelegator => {
-                TransactionRejectReason::AlreadyADelegator(AlreadyADelegator {
-                    dummy: true,
-                })
+                TransactionRejectReason::AlreadyADelegator(AlreadyADelegator { dummy: true })
             }
             RejectReason::InsufficientBalanceForDelegationStake => {
                 TransactionRejectReason::InsufficientBalanceForDelegationStake(
-                    InsufficientBalanceForDelegationStake {
-                        dummy: true,
-                    },
+                    InsufficientBalanceForDelegationStake { dummy: true },
                 )
             }
             RejectReason::MissingDelegationAddParameters => {
                 TransactionRejectReason::MissingDelegationAddParameters(
-                    MissingDelegationAddParameters {
-                        dummy: true,
-                    },
+                    MissingDelegationAddParameters { dummy: true },
                 )
             }
             RejectReason::InsufficientDelegationStake => {
@@ -894,37 +850,31 @@ impl PreparedTransactionRejectReason {
                 })
             }
             RejectReason::DelegatorInCooldown => {
-                TransactionRejectReason::DelegatorInCooldown(DelegatorInCooldown {
-                    dummy: true,
+                TransactionRejectReason::DelegatorInCooldown(DelegatorInCooldown { dummy: true })
+            }
+            RejectReason::NotADelegator { address } => {
+                TransactionRejectReason::NotADelegator(NotADelegator {
+                    account_address: address.into(),
                 })
             }
-            RejectReason::NotADelegator {
-                address,
-            } => TransactionRejectReason::NotADelegator(NotADelegator {
-                account_address: address.into(),
-            }),
-            RejectReason::DelegationTargetNotABaker {
-                target,
-            } => TransactionRejectReason::DelegationTargetNotABaker(DelegationTargetNotABaker {
-                baker_id: target.id.index.try_into()?,
-            }),
+            RejectReason::DelegationTargetNotABaker { target } => {
+                TransactionRejectReason::DelegationTargetNotABaker(DelegationTargetNotABaker {
+                    baker_id: target.id.index.try_into()?,
+                })
+            }
             RejectReason::StakeOverMaximumThresholdForPool => {
                 TransactionRejectReason::StakeOverMaximumThresholdForPool(
-                    StakeOverMaximumThresholdForPool {
-                        dummy: true,
-                    },
+                    StakeOverMaximumThresholdForPool { dummy: true },
                 )
             }
             RejectReason::PoolWouldBecomeOverDelegated => {
                 TransactionRejectReason::PoolWouldBecomeOverDelegated(
-                    PoolWouldBecomeOverDelegated {
-                        dummy: true,
-                    },
+                    PoolWouldBecomeOverDelegated { dummy: true },
                 )
             }
-            RejectReason::PoolClosed => TransactionRejectReason::PoolClosed(PoolClosed {
-                dummy: true,
-            }),
+            RejectReason::PoolClosed => {
+                TransactionRejectReason::PoolClosed(PoolClosed { dummy: true })
+            }
             RejectReason::NonExistentTokenId(token_id) => {
                 TransactionRejectReason::NonExistentTokenId(NonExistentTokenId {
                     token_id: token_id.clone().into(),
@@ -935,14 +885,12 @@ impl PreparedTransactionRejectReason {
                     TokenModuleRejectReason::decode_reject_reason(&token_module_reject_reason)
                         .context("Failed to decode token module transaction failure reason")?;
                 TransactionRejectReason::TokenUpdateTransactionFailed(TokenModuleReject {
-                    token_id:    token_module_reject_reason.token_id.clone().into(),
+                    token_id: token_module_reject_reason.token_id.clone().into(),
                     reason_type: token_module_reject_reason.clone().reason_type.into(),
-                    details:     serde_json::to_value::<TokenModuleRejectReasonType>(
-                        details.into(),
-                    )
-                    .context(
-                        "Failed to serialize token module transaction failure details to JSON",
-                    )?,
+                    details: serde_json::to_value::<TokenModuleRejectReasonType>(details.into())
+                        .context(
+                            "Failed to serialize token module transaction failure details to JSON",
+                        )?,
                 })
             }
         };
@@ -969,10 +917,10 @@ impl PreparedTransactionRejectReason {
 /// using the smart contract module schema before insertion.
 #[derive(Debug)]
 pub struct PreparedRejectedReceive {
-    reject_reason:    i32,
+    reject_reason: i32,
     contract_address: ContractAddress,
-    receive_name:     String,
-    message_as_hex:   String,
+    receive_name: String,
+    message_as_hex: String,
 }
 
 impl PreparedRejectedReceive {
@@ -1037,7 +985,10 @@ impl PreparedRejectedReceive {
                 return Ok((None, Status::ParamNotFound))
             }
             Err(err) => {
-                anyhow::bail!("Database bytes should be a valid VersionedModuleSchema: {}", err);
+                anyhow::bail!(
+                    "Database bytes should be a valid VersionedModuleSchema: {}",
+                    err
+                );
             }
         };
         let message = hex::decode(&self.message_as_hex)

@@ -20,9 +20,9 @@ pub struct BakerRemoved {
     /// Move delegators to the passive pool.
     move_delegators: MovePoolDelegatorsToPassivePool,
     /// Remove the baker from the bakers table.
-    remove_baker:    RemoveBaker,
+    remove_baker: RemoveBaker,
     /// Add the baker to the bakers_removed table.
-    insert_removed:  InsertRemovedBaker,
+    insert_removed: InsertRemovedBaker,
 }
 impl BakerRemoved {
     pub fn prepare(
@@ -32,8 +32,8 @@ impl BakerRemoved {
         statistics.baker_stats.increment(BakerField::Removed, 1);
         Ok(Self {
             move_delegators: MovePoolDelegatorsToPassivePool::prepare(baker_id)?,
-            remove_baker:    RemoveBaker::prepare(baker_id)?,
-            insert_removed:  InsertRemovedBaker::prepare(baker_id)?,
+            remove_baker: RemoveBaker::prepare(baker_id)?,
+            insert_removed: InsertRemovedBaker::prepare(baker_id)?,
         })
     }
 
@@ -86,44 +86,44 @@ impl PreparedBakerEvents {
 #[derive(Debug)]
 pub enum PreparedBakerEvent {
     Add {
-        baker_id:             i64,
-        staked:               i64,
-        restake_earnings:     bool,
+        baker_id: i64,
+        staked: i64,
+        restake_earnings: bool,
         delete_removed_baker: DeleteRemovedBakerWhenPresent,
     },
     Remove(BakerRemoved),
     StakeIncrease {
         baker_id: i64,
-        staked:   i64,
+        staked: i64,
     },
     StakeDecrease {
         baker_id: i64,
-        staked:   i64,
+        staked: i64,
     },
     SetRestakeEarnings {
-        baker_id:         i64,
+        baker_id: i64,
         restake_earnings: bool,
     },
     SetOpenStatus {
-        baker_id:        i64,
-        open_status:     BakerPoolOpenStatus,
+        baker_id: i64,
+        open_status: BakerPoolOpenStatus,
         /// When set to ClosedForAll move delegators to passive pool.
         move_delegators: Option<MovePoolDelegatorsToPassivePool>,
     },
     SetMetadataUrl {
-        baker_id:     i64,
+        baker_id: i64,
         metadata_url: String,
     },
     SetTransactionFeeCommission {
-        baker_id:   i64,
+        baker_id: i64,
         commission: i64,
     },
     SetBakingRewardCommission {
-        baker_id:   i64,
+        baker_id: i64,
         commission: i64,
     },
     SetFinalizationRewardCommission {
-        baker_id:   i64,
+        baker_id: i64,
         commission: i64,
     },
     RemoveDelegation {
@@ -144,46 +144,42 @@ impl PreparedBakerEvent {
     ) -> anyhow::Result<Self> {
         use concordium_rust_sdk::types::BakerEvent;
         let prepared = match event {
-            BakerEvent::BakerAdded {
-                data: details,
-            } => {
+            BakerEvent::BakerAdded { data: details } => {
                 statistics.baker_stats.increment(BakerField::Added, 1);
                 PreparedBakerEvent::Add {
-                    baker_id:             details.keys_event.baker_id.id.index.try_into()?,
-                    staked:               details.stake.micro_ccd().try_into()?,
-                    restake_earnings:     details.restake_earnings,
+                    baker_id: details.keys_event.baker_id.id.index.try_into()?,
+                    staked: details.stake.micro_ccd().try_into()?,
+                    restake_earnings: details.restake_earnings,
                     delete_removed_baker: DeleteRemovedBakerWhenPresent::prepare(
                         &details.keys_event.baker_id,
                     )?,
                 }
             }
-            BakerEvent::BakerRemoved {
-                baker_id,
-            } => PreparedBakerEvent::Remove(BakerRemoved::prepare(baker_id, statistics)?),
+            BakerEvent::BakerRemoved { baker_id } => {
+                PreparedBakerEvent::Remove(BakerRemoved::prepare(baker_id, statistics)?)
+            }
             BakerEvent::BakerStakeIncreased {
                 baker_id,
                 new_stake,
             } => PreparedBakerEvent::StakeIncrease {
                 baker_id: baker_id.id.index.try_into()?,
-                staked:   new_stake.micro_ccd().try_into()?,
+                staked: new_stake.micro_ccd().try_into()?,
             },
             BakerEvent::BakerStakeDecreased {
                 baker_id,
                 new_stake,
             } => PreparedBakerEvent::StakeDecrease {
                 baker_id: baker_id.id.index.try_into()?,
-                staked:   new_stake.micro_ccd().try_into()?,
+                staked: new_stake.micro_ccd().try_into()?,
             },
             BakerEvent::BakerRestakeEarningsUpdated {
                 baker_id,
                 restake_earnings,
             } => PreparedBakerEvent::SetRestakeEarnings {
-                baker_id:         baker_id.id.index.try_into()?,
+                baker_id: baker_id.id.index.try_into()?,
                 restake_earnings: *restake_earnings,
             },
-            BakerEvent::BakerKeysUpdated {
-                ..
-            } => PreparedBakerEvent::NoOperation,
+            BakerEvent::BakerKeysUpdated { .. } => PreparedBakerEvent::NoOperation,
             BakerEvent::BakerSetOpenStatus {
                 baker_id,
                 open_status,
@@ -204,14 +200,14 @@ impl PreparedBakerEvent {
                 baker_id,
                 metadata_url,
             } => PreparedBakerEvent::SetMetadataUrl {
-                baker_id:     baker_id.id.index.try_into()?,
+                baker_id: baker_id.id.index.try_into()?,
                 metadata_url: metadata_url.to_string(),
             },
             BakerEvent::BakerSetTransactionFeeCommission {
                 baker_id,
                 transaction_fee_commission,
             } => PreparedBakerEvent::SetTransactionFeeCommission {
-                baker_id:   baker_id.id.index.try_into()?,
+                baker_id: baker_id.id.index.try_into()?,
                 commission: u32::from(PartsPerHundredThousands::from(*transaction_fee_commission))
                     .into(),
             },
@@ -219,7 +215,7 @@ impl PreparedBakerEvent {
                 baker_id,
                 baking_reward_commission,
             } => PreparedBakerEvent::SetBakingRewardCommission {
-                baker_id:   baker_id.id.index.try_into()?,
+                baker_id: baker_id.id.index.try_into()?,
                 commission: u32::from(PartsPerHundredThousands::from(*baking_reward_commission))
                     .into(),
             },
@@ -227,25 +223,21 @@ impl PreparedBakerEvent {
                 baker_id,
                 finalization_reward_commission,
             } => PreparedBakerEvent::SetFinalizationRewardCommission {
-                baker_id:   baker_id.id.index.try_into()?,
+                baker_id: baker_id.id.index.try_into()?,
                 commission: u32::from(PartsPerHundredThousands::from(
                     *finalization_reward_commission,
                 ))
                 .into(),
             },
-            BakerEvent::DelegationRemoved {
-                delegator_id,
-            } => PreparedBakerEvent::RemoveDelegation {
-                delegator_id: delegator_id.id.index.try_into()?,
-            },
-            BakerEvent::BakerSuspended {
-                baker_id,
-            } => PreparedBakerEvent::Suspended {
+            BakerEvent::DelegationRemoved { delegator_id } => {
+                PreparedBakerEvent::RemoveDelegation {
+                    delegator_id: delegator_id.id.index.try_into()?,
+                }
+            }
+            BakerEvent::BakerSuspended { baker_id } => PreparedBakerEvent::Suspended {
                 baker_id: baker_id.id.index.try_into()?,
             },
-            BakerEvent::BakerResumed {
-                baker_id,
-            } => PreparedBakerEvent::Resumed {
+            BakerEvent::BakerResumed { baker_id } => PreparedBakerEvent::Resumed {
                 baker_id: baker_id.id.index.try_into()?,
             },
         };
@@ -286,19 +278,13 @@ impl PreparedBakerEvent {
             PreparedBakerEvent::Remove(baker_removed) => {
                 baker_removed.save(tx, transaction_index).await?;
             }
-            PreparedBakerEvent::StakeIncrease {
-                baker_id,
-                staked,
-            } => {
+            PreparedBakerEvent::StakeIncrease { baker_id, staked } => {
                 debug!(
                     "Stake increase event for baker: {:?}, staked amount: {:?}",
                     baker_id, staked
                 );
             }
-            PreparedBakerEvent::StakeDecrease {
-                baker_id,
-                staked,
-            } => {
+            PreparedBakerEvent::StakeDecrease { baker_id, staked } => {
                 debug!(
                     "Stake Decrease event for baker: {:?}, staked amount: {:?}",
                     baker_id, staked
@@ -402,9 +388,7 @@ impl PreparedBakerEvent {
                 .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed updating validator transaction fee commission")?;
             }
-            PreparedBakerEvent::RemoveDelegation {
-                delegator_id,
-            } => {
+            PreparedBakerEvent::RemoveDelegation { delegator_id } => {
                 // Update pool_delegator_count when we have a Removed Delegation event
                 sqlx::query!(
                     "UPDATE bakers
@@ -431,9 +415,7 @@ impl PreparedBakerEvent {
                 .ensure_affected_one_row()
                 .context("Failed update account to remove delegation")?;
             }
-            PreparedBakerEvent::Suspended {
-                baker_id,
-            } => {
+            PreparedBakerEvent::Suspended { baker_id } => {
                 sqlx::query!(
                     "UPDATE bakers
                      SET
@@ -448,9 +430,7 @@ impl PreparedBakerEvent {
                 .ensure_affected_rows_in_range(bakers_expected_affected_range)
                 .context("Failed update validator state to self-suspended")?;
             }
-            PreparedBakerEvent::Resumed {
-                baker_id,
-            } => {
+            PreparedBakerEvent::Resumed { baker_id } => {
                 sqlx::query!(
                     "UPDATE bakers
                      SET

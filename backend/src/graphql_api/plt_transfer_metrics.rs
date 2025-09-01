@@ -30,25 +30,25 @@ pub(crate) struct QueryPltTransferMetricsByTokenId;
 #[derive(SimpleObject)]
 struct PltTransferMetricsByTokenId {
     // Total number of transfers in the requested period.
-    transfer_count:  i64,
+    transfer_count: i64,
     // Total amount of transfers in the requested period.
     transfer_amount: f64,
     // Decimal places of the token
-    decimal:         i32,
+    decimal: i32,
     // Buckets for the PLT transfer metrics.
-    buckets:         PltTransferMetricsBuckets,
+    buckets: PltTransferMetricsBuckets,
 }
 /// This struct is used to define the buckets for PLT transfer metrics.
 #[derive(SimpleObject)]
 struct PltTransferMetricsBuckets {
     // The width (time interval) of each bucket.
-    bucket_width:      TimeSpan,
+    bucket_width: TimeSpan,
     // The time values for each bucket.
     #[graphql(name = "x_Time")]
-    x_time:            Vec<DateTime>,
+    x_time: Vec<DateTime>,
     // The transfer counts for each bucket.
     #[graphql(name = "y_TransferCount")]
-    y_transfer_count:  Vec<i64>,
+    y_transfer_count: Vec<i64>,
     // The transfer amounts for each bucket.
     #[graphql(name = "y_TransferAmount")]
     y_transfer_amount: Vec<f64>,
@@ -75,15 +75,18 @@ impl QueryPltTransferMetricsByTokenId {
             .map_err(|e| ApiError::DurationOutOfRange(Arc::new(e)))?;
 
         let bucket_width = period.bucket_width();
-        let bucket_interval: PgInterval =
-            bucket_width.try_into().map_err(|e| ApiError::DurationOutOfRange(Arc::new(e)))?;
+        let bucket_interval: PgInterval = bucket_width
+            .try_into()
+            .map_err(|e| ApiError::DurationOutOfRange(Arc::new(e)))?;
 
         // Get the token index for the provided token_id
-        let record =
-            sqlx::query!("SELECT index, decimal FROM plt_tokens WHERE token_id = $1", token_id)
-                .fetch_optional(pool)
-                .await?
-                .ok_or(ApiError::NotFound)?;
+        let record = sqlx::query!(
+            "SELECT index, decimal FROM plt_tokens WHERE token_id = $1",
+            token_id
+        )
+        .fetch_optional(pool)
+        .await?
+        .ok_or(ApiError::NotFound)?;
         let plt_token_index = record.index;
         let plt_token_decimal = record.decimal;
 
@@ -114,9 +117,14 @@ impl QueryPltTransferMetricsByTokenId {
             let transfer_count = row.cumulative_transfer_count.unwrap_or(0)
                 - row.prev_cumulative_transfer_count.unwrap_or(0);
 
-            let prev_amount =
-                row.prev_cumulative_transfer_amount.clone().unwrap_or(BigDecimal::from(0));
-            let curr_amount = row.cumulative_transfer_amount.clone().unwrap_or(BigDecimal::from(0));
+            let prev_amount = row
+                .prev_cumulative_transfer_amount
+                .clone()
+                .unwrap_or(BigDecimal::from(0));
+            let curr_amount = row
+                .cumulative_transfer_amount
+                .clone()
+                .unwrap_or(BigDecimal::from(0));
             let transfer_amount_bigdecimal = &curr_amount - &prev_amount;
             let transfer_amount =
                 num_traits::ToPrimitive::to_f64(&transfer_amount_bigdecimal).unwrap_or(0.0);
@@ -131,9 +139,9 @@ impl QueryPltTransferMetricsByTokenId {
         }
 
         Ok(PltTransferMetricsByTokenId {
-            transfer_count:  total_transfer_count,
+            transfer_count: total_transfer_count,
             transfer_amount: total_transfer_amount,
-            decimal:         plt_token_decimal,
+            decimal: plt_token_decimal,
 
             buckets: PltTransferMetricsBuckets {
                 bucket_width: TimeSpan(bucket_width),
@@ -156,7 +164,7 @@ pub(crate) struct QueryGlobalPltMetrics;
 struct GlobalPltMetrics {
     // Total number of PLT events (transfers, mints, burns, etc.) in the
     // period.
-    event_count:     i64,
+    event_count: i64,
     // Total volume(amount) of PLT tokens transferred in the period.
     // Sum of all transfer amounts normalized by token decimals, then aggregated across different
     // tokens. Example: 1.5 Token1 + 234.3 Token2 = 235.8 (decimal-normalized amounts summed).

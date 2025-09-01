@@ -16,7 +16,7 @@ pub struct PreparedUpdateAccountBalance {
     /// Address of the account.
     canonical_address: CanonicalAccountAddress,
     /// Difference in the balance.
-    change:            i64,
+    change: i64,
     /// Tracking the account statement causing the change in balance.
     account_statement: PreparedAccountStatement,
 }
@@ -84,9 +84,9 @@ impl PreparedUpdateAccountBalance {
 #[derive(Debug)]
 struct PreparedAccountStatement {
     canonical_address: CanonicalAccountAddress,
-    amount:            i64,
-    block_height:      i64,
-    transaction_type:  AccountStatementEntryType,
+    amount: i64,
+    block_height: i64,
+    transaction_type: AccountStatementEntryType,
 }
 
 impl PreparedAccountStatement {

@@ -12,53 +12,53 @@ pub type DateTime = chrono::DateTime<chrono::Utc>;
 
 #[derive(Clone, Deserialize, SimpleObject)]
 pub struct StableCoin {
-    name:                 String,
-    symbol:               String,
-    decimal:              u8,
+    name: String,
+    symbol: String,
+    decimal: u8,
     // Total supply = Created tokens – Burned tokens.
-    total_supply:         i64,
+    total_supply: i64,
     // Circulating supply = Tokens available on the market.
-    circulating_supply:   i64,
-    value_in_dollar:      f64,
+    circulating_supply: i64,
+    value_in_dollar: f64,
     total_unique_holders: Option<i64>,
-    transfers:            Option<Vec<Transfer>>, // Transfers sorted by date
-    holdings:             Option<Vec<HoldingResponse>>,
-    metadata:             Option<Metadata>,
-    transactions:         Option<Vec<TransactionMResponse>>, /* TransactionM type is only for
-                                                              * the mock dataset */
-    issuer:               String, // Keeping this issuer as string as reading from json
+    transfers: Option<Vec<Transfer>>, // Transfers sorted by date
+    holdings: Option<Vec<HoldingResponse>>,
+    metadata: Option<Metadata>,
+    transactions: Option<Vec<TransactionMResponse>>, /* TransactionM type is only for
+                                                      * the mock dataset */
+    issuer: String, // Keeping this issuer as string as reading from json
 }
 #[derive(Clone, Deserialize, SimpleObject)]
 pub struct TransactionM {
-    from:             AccountAddress,
-    to:               AccountAddress,
-    asset_name:       String,
-    date_time:        DateTime,
-    amount:           f64,
-    value:            f64,
+    from: AccountAddress,
+    to: AccountAddress,
+    asset_name: String,
+    date_time: DateTime,
+    amount: f64,
+    value: f64,
     transaction_hash: String,
 }
 #[derive(Clone, Deserialize, SimpleObject)]
 pub struct TransactionMResponse {
-    from:             String,
-    to:               String,
-    asset_name:       String,
-    date_time:        DateTime,
-    amount:           f64,
-    value:            f64,
+    from: String,
+    to: String,
+    asset_name: String,
+    date_time: DateTime,
+    amount: f64,
+    value: f64,
     transaction_hash: String,
 }
 
 #[derive(Clone, Deserialize, SimpleObject)]
 pub struct LatestTransactionResponse {
-    from:             String,
-    to:               String,
-    asset_name:       String,
-    date_time:        DateTime,
-    amount:           f64,
-    value:            f64,
+    from: String,
+    to: String,
+    asset_name: String,
+    date_time: DateTime,
+    amount: f64,
+    value: f64,
     transaction_hash: String,
-    asset_metadata:   Option<Metadata>,
+    asset_metadata: Option<Metadata>,
 }
 
 #[derive(Debug, Clone, Deserialize, SimpleObject)]
@@ -71,57 +71,57 @@ pub struct StableCoinOverview {
     // Total market cap = Total supply * Value in dollar
     // For Our mockdata we are skipping the calculation of market cap
     // and just using the total supply as market cap
-    total_marketcap:            f64,
+    total_marketcap: f64,
     // Number of unique holders = Number of unique addresses holding the token
-    number_of_unique_holders:   usize,
-    no_of_txn:                  usize,
-    values_transferred:         f64,
-    no_of_txn_last24h:          usize,
+    number_of_unique_holders: usize,
+    no_of_txn: usize,
+    values_transferred: f64,
+    no_of_txn_last24h: usize,
     values_transferred_last24h: f64,
 }
 
 #[derive(Clone, Deserialize, SimpleObject)]
 pub struct Transfer {
-    from:       AccountAddress,
-    to:         AccountAddress,
+    from: AccountAddress,
+    to: AccountAddress,
     asset_name: String,
-    date_time:  DateTime,
-    amount:     f64,
+    date_time: DateTime,
+    amount: f64,
 }
 
 #[derive(Debug, Clone, Deserialize, SimpleObject)]
 pub struct AssetInHold {
     asset_name: String,
-    quantity:   f64,
+    quantity: f64,
     percentage: f32,
 }
 
 #[derive(Clone, Deserialize, SimpleObject)]
 pub struct Holding {
-    address:  AccountAddress,
+    address: AccountAddress,
     holdings: Option<Vec<AssetInHold>>,
 }
 
 #[derive(Clone, Deserialize, SimpleObject)]
 pub struct HoldingResponse {
-    address:    String,
+    address: String,
     asset_name: String,
-    quantity:   f64,
+    quantity: f64,
     percentage: f32,
 }
 
 #[derive(Debug, Clone, SimpleObject)]
 pub struct TransferSummary {
-    date_time:         DateTime,
-    total_amount:      f64,
+    date_time: DateTime,
+    total_amount: f64,
     transaction_count: usize,
 }
 
 #[derive(Debug, Clone, SimpleObject)]
 pub struct TransferSummaryResponse {
-    daily_summary:   Vec<TransferSummary>,
+    daily_summary: Vec<TransferSummary>,
     total_txn_count: usize,
-    total_value:     f64,
+    total_value: f64,
 }
 
 impl StableCoin {
@@ -204,21 +204,26 @@ impl QueryStableCoins {
         transactions: Vec<TransactionM>,
     ) -> Vec<StableCoin> {
         for coin in &mut stablecoins {
-            coin.transfers =
-                Some(transfers.iter().filter(|t| t.asset_name == coin.symbol).cloned().collect());
+            coin.transfers = Some(
+                transfers
+                    .iter()
+                    .filter(|t| t.asset_name == coin.symbol)
+                    .cloned()
+                    .collect(),
+            );
 
             let relevant_holdings: Vec<HoldingResponse> = holdings
                 .iter()
                 .filter_map(|holding| {
                     holding.holdings.as_ref().and_then(|h| {
-                        h.iter().find(|asset| asset.asset_name == coin.symbol).map(|asset| {
-                            HoldingResponse {
-                                address:    holding.address.to_string(),
+                        h.iter()
+                            .find(|asset| asset.asset_name == coin.symbol)
+                            .map(|asset| HoldingResponse {
+                                address: holding.address.to_string(),
                                 asset_name: asset.asset_name.clone(),
-                                quantity:   asset.quantity,
+                                quantity: asset.quantity,
                                 percentage: asset.percentage,
-                            }
-                        })
+                            })
                     })
                 })
                 .collect();
@@ -230,8 +235,10 @@ impl QueryStableCoins {
             };
 
             // Compute unique holders
-            let unique_holders: HashSet<String> =
-                relevant_holdings.iter().map(|h| h.address.to_string()).collect();
+            let unique_holders: HashSet<String> = relevant_holdings
+                .iter()
+                .map(|h| h.address.to_string())
+                .collect();
 
             coin.total_unique_holders = Some(unique_holders.len() as i64);
             coin.transactions = Some(
@@ -239,12 +246,12 @@ impl QueryStableCoins {
                     .iter()
                     .filter(|t| t.asset_name == coin.symbol)
                     .map(|t| TransactionMResponse {
-                        from:             t.from.to_string(),
-                        to:               t.to.to_string(),
-                        asset_name:       t.asset_name.clone(),
-                        date_time:        t.date_time,
-                        amount:           t.amount,
-                        value:            t.value,
+                        from: t.from.to_string(),
+                        to: t.to.to_string(),
+                        asset_name: t.asset_name.clone(),
+                        date_time: t.date_time,
+                        amount: t.amount,
+                        value: t.value,
                         transaction_hash: t.transaction_hash.clone(),
                     })
                     .collect(),
@@ -270,7 +277,9 @@ impl QueryStableCoins {
             Self::load_holdings(),
             Self::load_transactions(),
         );
-        let coin = stablecoins.iter_mut().find(|coin: &&mut StableCoin| coin.symbol == symbol)?;
+        let coin = stablecoins
+            .iter_mut()
+            .find(|coin: &&mut StableCoin| coin.symbol == symbol)?;
         coin.holdings = coin.top_holders(limit, min_quantity);
         coin.transactions = coin.last_n_transactions(last_n_transactions);
         Some(coin.clone())
@@ -310,11 +319,7 @@ impl QueryStableCoins {
         let transfers = Self::load_transfers();
         let now: chrono::DateTime<Utc> = Utc::now();
         let days = days.unwrap_or(7);
-        let days = if days <= 7 {
-            6
-        } else {
-            days - 1
-        };
+        let days = if days <= 7 { 6 } else { days - 1 };
         let last_n_days = now - chrono::Duration::days(days);
         let mut summary: HashMap<DateTime, (f64, usize)> = HashMap::new();
         let mut total_value = 0.0;
@@ -336,11 +341,13 @@ impl QueryStableCoins {
 
         let mut summary_vec: Vec<TransferSummary> = summary
             .into_iter()
-            .map(|(date_time, (total_amount, transaction_count))| TransferSummary {
-                date_time,
-                total_amount,
-                transaction_count,
-            })
+            .map(
+                |(date_time, (total_amount, transaction_count))| TransferSummary {
+                    date_time,
+                    total_amount,
+                    transaction_count,
+                },
+            )
             .collect();
 
         // Sort in ascending order (earliest date first)
@@ -377,17 +384,19 @@ impl QueryStableCoins {
         let (values_transferred_last_24h, no_of_txn_last_24h) = transfers
             .iter()
             .filter(|t| t.date_time >= last_24h_str)
-            .fold((0.0, 0), |(total_val, count), t| (total_val + t.amount, count + 1));
+            .fold((0.0, 0), |(total_val, count), t| {
+                (total_val + t.amount, count + 1)
+            });
 
         StableCoinOverview {
-            total_marketcap:            stablecoins
+            total_marketcap: stablecoins
                 .iter()
                 .map(|coin| coin.total_supply as f64)
                 .sum(),
-            number_of_unique_holders:   unique_holders.len(),
-            no_of_txn:                  transfers.len(),
-            values_transferred:         transfers.iter().map(|t| t.amount).sum(),
-            no_of_txn_last24h:          no_of_txn_last_24h,
+            number_of_unique_holders: unique_holders.len(),
+            no_of_txn: transfers.len(),
+            values_transferred: transfers.iter().map(|t| t.amount).sum(),
+            no_of_txn_last24h: no_of_txn_last_24h,
             values_transferred_last24h: values_transferred_last_24h,
         }
     }
@@ -399,22 +408,24 @@ impl QueryStableCoins {
     ) -> Option<Vec<LatestTransactionResponse>> {
         let transactions = Self::load_transactions();
         let stablecoins = Self::load_data();
-        let stablecoins_metadata_map: HashMap<String, Option<Metadata>> =
-            stablecoins.into_iter().map(|s| (s.symbol, s.metadata)).collect();
+        let stablecoins_metadata_map: HashMap<String, Option<Metadata>> = stablecoins
+            .into_iter()
+            .map(|s| (s.symbol, s.metadata))
+            .collect();
         let effective_limit = limit.unwrap_or(10); // default to 10 if None
         let txn_summary: Option<Vec<LatestTransactionResponse>> = Some(
             transactions
                 .iter()
                 .take(effective_limit)
                 .map(|t| LatestTransactionResponse {
-                    from:             t.from.to_string(),
-                    to:               t.to.to_string(),
-                    asset_name:       t.asset_name.clone(),
-                    date_time:        t.date_time,
-                    amount:           t.amount,
-                    value:            t.value,
+                    from: t.from.to_string(),
+                    to: t.to.to_string(),
+                    asset_name: t.asset_name.clone(),
+                    date_time: t.date_time,
+                    amount: t.amount,
+                    value: t.value,
                     transaction_hash: t.transaction_hash.clone(),
-                    asset_metadata:   stablecoins_metadata_map
+                    asset_metadata: stablecoins_metadata_map
                         .get(&t.asset_name.clone())
                         .unwrap()
                         .clone(),

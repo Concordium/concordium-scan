@@ -28,23 +28,43 @@ struct Cli {
     /// command line arguments are visible across OS processes.
     #[arg(long, env = "CCDSCAN_API_DATABASE_URL")]
     database_url: String,
-    #[arg(long, env = "CCDSCAN_API_DATABASE_RETRY_DELAY_SECS", default_value_t = 5)]
+    #[arg(
+        long,
+        env = "CCDSCAN_API_DATABASE_RETRY_DELAY_SECS",
+        default_value_t = 5
+    )]
     database_retry_delay_secs: u64,
     /// Minimum number of connections in the pool.
-    #[arg(long, env = "CCDSCAN_API_DATABASE_MIN_CONNECTIONS", default_value_t = 5)]
+    #[arg(
+        long,
+        env = "CCDSCAN_API_DATABASE_MIN_CONNECTIONS",
+        default_value_t = 5
+    )]
     min_connections: u32,
     /// Maximum number of connections in the pool.
-    #[arg(long, env = "CCDSCAN_API_DATABASE_MAX_CONNECTIONS", default_value_t = 10)]
+    #[arg(
+        long,
+        env = "CCDSCAN_API_DATABASE_MAX_CONNECTIONS",
+        default_value_t = 10
+    )]
     max_connections: u32,
     /// Database statement timeout. Abort any statement that takes more than the
     /// specified amount of time. Set to 0 to disable.
-    #[arg(long, env = "CCDSCAN_API_DATABASE_STATEMENT_TIMEOUT_SECS", default_value_t = 30)]
+    #[arg(
+        long,
+        env = "CCDSCAN_API_DATABASE_STATEMENT_TIMEOUT_SECS",
+        default_value_t = 30
+    )]
     statement_timeout_secs: u64,
     /// Address to listen to for API requests.
     #[arg(long, env = "CCDSCAN_API_ADDRESS", default_value = "127.0.0.1:8000")]
     listen: SocketAddr,
     /// Address to listen for monitoring related requests
-    #[arg(long, env = "CCDSCAN_API_MONITORING_ADDRESS", default_value = "127.0.0.1:8003")]
+    #[arg(
+        long,
+        env = "CCDSCAN_API_MONITORING_ADDRESS",
+        default_value = "127.0.0.1:8003"
+    )]
     monitoring_listen: SocketAddr,
     #[command(flatten, next_help_heading = "Configuration")]
     api_config: graphql_api::ApiServiceConfig,
@@ -63,11 +83,19 @@ struct Cli {
     node_collector_backend_origin: String,
     /// Frequency in seconds in between each poll from the node collector
     /// backend
-    #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_PULL_FREQUENCY_SECS", default_value_t = 5)]
+    #[arg(
+        long,
+        env = "CCDSCAN_API_NODE_COLLECTOR_PULL_FREQUENCY_SECS",
+        default_value_t = 5
+    )]
     node_collector_backend_pull_frequency_secs: u64,
     /// Request timeout when awaiting response from the node collector backend
     /// in seconds.
-    #[arg(long, env = "CCDSCAN_API_NODE_COLLECTOR_CLIENT_TIMEOUT_SECS", default_value_t = 30)]
+    #[arg(
+        long,
+        env = "CCDSCAN_API_NODE_COLLECTOR_CLIENT_TIMEOUT_SECS",
+        default_value_t = 30
+    )]
     node_collector_timeout_secs: u64,
     /// Request connection timeout to the node collector backend in seconds.
     #[arg(
@@ -103,10 +131,14 @@ struct Cli {
 /// Allowing loading the provided file before parsing the remaining arguments
 /// and producing errors.
 #[derive(Parser)]
-#[command(ignore_errors = true, disable_help_flag = true, disable_version_flag = true)]
+#[command(
+    ignore_errors = true,
+    disable_help_flag = true,
+    disable_version_flag = true
+)]
 struct PreCli {
     #[arg(long)]
-    dotenv:     Option<PathBuf>,
+    dotenv: Option<PathBuf>,
     #[arg(long)]
     schema_out: Option<PathBuf>,
 }
@@ -144,17 +176,20 @@ async fn main() -> anyhow::Result<()> {
         let crate_name = env!("CARGO_CRATE_NAME");
         format!("info,{pkg_name}={0},{crate_name}={0}", cli.log_level).parse()?
     };
-    tracing_subscriber::registry().with(tracing_subscriber::fmt::layer()).with(filter).init();
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer())
+        .with(filter)
+        .init();
 
     let connection_options: PgConnectOptions = cli.database_url.parse()?;
 
     let pool = PgPoolOptions::new()
         .min_connections(cli.min_connections)
         .max_connections(cli.max_connections)
-        .connect_with(
-            connection_options
-                .options([("statement_timeout", format!("{}s", cli.statement_timeout_secs))]),
-        )
+        .connect_with(connection_options.options([(
+            "statement_timeout",
+            format!("{}s", cli.statement_timeout_secs),
+        )]))
         .await
         .context("Failed constructing database connection pool")?;
 
@@ -170,7 +205,9 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let client = Client::builder()
-        .connect_timeout(Duration::from_secs(cli.node_collector_connection_timeout_secs))
+        .connect_timeout(Duration::from_secs(
+            cli.node_collector_connection_timeout_secs,
+        ))
         .timeout(Duration::from_secs(cli.node_collector_timeout_secs))
         .build()?;
 
@@ -214,8 +251,9 @@ async fn main() -> anyhow::Result<()> {
             nodes_status_receiver,
         );
         let rest_service = rest_api::Service::new(pool.clone(), config, &mut registry);
-        let tcp_listener =
-            TcpListener::bind(cli.listen).await.context("Parsing TCP listener address failed")?;
+        let tcp_listener = TcpListener::bind(cli.listen)
+            .await
+            .context("Parsing TCP listener address failed")?;
         let stop_signal = cancel_token.child_token();
         info!("Server is running at {:?}", cli.listen);
         tokio::spawn(async move {
@@ -247,14 +285,23 @@ async fn main() -> anyhow::Result<()> {
             pool,
             node_status_receiver,
         };
-        let health_routes =
-            axum::Router::new().route("/", axum::routing::get(health)).with_state(state);
+        let health_routes = axum::Router::new()
+            .route("/", axum::routing::get(health))
+            .with_state(state);
         let tcp_listener = TcpListener::bind(cli.monitoring_listen)
             .await
             .context("Parsing TCP listener address failed")?;
         let stop_signal = cancel_token.child_token();
-        info!("Monitoring server is running at {:?}", cli.monitoring_listen);
-        tokio::spawn(router::serve(registry, tcp_listener, stop_signal, health_routes))
+        info!(
+            "Monitoring server is running at {:?}",
+            cli.monitoring_listen
+        );
+        tokio::spawn(router::serve(
+            registry,
+            tcp_listener,
+            stop_signal,
+            health_routes,
+        ))
     };
 
     // Await for signal to shutdown or any of the tasks to stop.
@@ -294,7 +341,12 @@ async fn main() -> anyhow::Result<()> {
     }
     info!("Shutting down");
     // Ensure all tasks have stopped
-    let _ = tokio::join!(monitoring_task, queries_task, pgnotify_listener, node_collector_task);
+    let _ = tokio::join!(
+        monitoring_task,
+        queries_task,
+        pgnotify_listener,
+        node_collector_task
+    );
     Ok(())
 }
 
@@ -304,7 +356,7 @@ async fn main() -> anyhow::Result<()> {
 /// system health and readiness.
 #[derive(Clone)]
 struct HealthState {
-    pool:                 sqlx::PgPool,
+    pool: sqlx::PgPool,
     node_status_receiver: NodeInfoReceiver,
 }
 

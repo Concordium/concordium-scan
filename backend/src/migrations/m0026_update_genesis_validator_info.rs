@@ -44,8 +44,13 @@ pub async fn run(
             return Ok(NEXT_SCHEMA_VERSION);
         }
     }
-    type UnzippedInfo =
-        (Vec<i64>, (Vec<BakerPoolOpenStatus>, (Vec<String>, (Vec<i64>, (Vec<i64>, Vec<i64>)))));
+    type UnzippedInfo = (
+        Vec<i64>,
+        (
+            Vec<BakerPoolOpenStatus>,
+            (Vec<String>, (Vec<i64>, (Vec<i64>, Vec<i64>))),
+        ),
+    );
 
     let (ids, (statuses, (metadata_urls, (transaction_rates, (baking_rates, finalization_rates))))): UnzippedInfo = sqlx::query_scalar(
         "SELECT

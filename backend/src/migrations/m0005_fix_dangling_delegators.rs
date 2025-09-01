@@ -72,7 +72,11 @@ pub async fn run(
     };
 
     // Run remaining migration as SQL.
-    tx.as_mut().execute(sqlx::raw_sql(include_str!("./m0005-fix-dangling-delegators.sql"))).await?;
+    tx.as_mut()
+        .execute(sqlx::raw_sql(include_str!(
+            "./m0005-fix-dangling-delegators.sql"
+        )))
+        .await?;
 
     Ok(SchemaVersion::FixDanglingDelegators)
 }
