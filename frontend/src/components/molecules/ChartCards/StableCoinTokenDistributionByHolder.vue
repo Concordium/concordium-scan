@@ -1,7 +1,6 @@
 <template>
 	<div>
 		<DistributionByHolder
-			:is-loading="isLoading"
 			:distribution-values="distributionValues"
 			:label-clickable="true"
 		>
@@ -17,23 +16,22 @@ import { calculatePercentageforBigInt, shortenHash } from '~/utils/format'
 import type { PltAccountAmount } from '~/types/generated'
 
 type Props = {
-	tokenTransferData?: PltAccountAmount[]
-	totalSupply?: bigint
+	tokenTransferData: PltAccountAmount[]
+	totalSupply: bigint
 }
 
 const props = defineProps<Props>()
 
-const isLoading = ref(true)
 const distributionValues = ref<
 	{ address: string; percentage: string; symbol: string }[]
 >([])
 
 watchEffect(() => {
 	distributionValues.value =
-		props.tokenTransferData?.map(item => {
+		props.tokenTransferData.map(item => {
 			const address = item.accountAddress.asString
 			const amount = BigInt(item.amount.value)
-			const supply = props.totalSupply ?? BigInt(0)
+			const supply = props.totalSupply
 			const percentage = calculatePercentageforBigInt(amount, supply)
 			const symbol = item.tokenId ?? ''
 			return {
