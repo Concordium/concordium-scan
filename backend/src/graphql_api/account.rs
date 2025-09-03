@@ -1299,7 +1299,9 @@ impl Account {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, PltByAccountAddress>> {
         let pool = get_pool(ctx)?;
@@ -1351,7 +1353,9 @@ impl Account {
                 None => plt.token_index,
             });
 
-            connection.edges.push(connection::Edge::new(plt.token_index.to_string(), plt));
+            connection
+                .edges
+                .push(connection::Edge::new(plt.token_index.to_string(), plt));
         }
 
         if let (Some(page_min_id), Some(page_max_id)) = (min_index, max_index) {
