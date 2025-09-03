@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Fixed
+
+- Fixed plt transfer memo was not visible.
+
 ## [1.7.24] - 2025-08-29
 
 ### Fixed
