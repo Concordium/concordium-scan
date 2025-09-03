@@ -119,7 +119,9 @@ impl PreparedPayDayBlock {
     pub async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
         // Save the commission rates to the database.
         self.baker_payday_commission_rates.save(tx).await?;
-        self.passive_delegation_payday_commission_rates.save(tx).await?;
+        self.passive_delegation_payday_commission_rates
+            .save(tx)
+            .await?;
 
         // Save the lottery_powers to the database.
         self.payday_bakers_lottery_powers.save(tx).await?;
@@ -151,8 +153,8 @@ impl PreparedPayDayBlock {
 /// Represents the payday pool commission rates to passive delegators captured
 /// from the `get_passive_delegation_info` node endpoint.
 struct PreparedPassiveDelegationPaydayCommissionRates {
-    transaction_commission:  Option<i64>,
-    baking_commission:       Option<i64>,
+    transaction_commission: Option<i64>,
+    baking_commission: Option<i64>,
     finalization_commission: Option<i64>,
 }
 
@@ -166,7 +168,9 @@ impl PreparedPassiveDelegationPaydayCommissionRates {
             }),
 
             baking_commission: passive_delegation_status.as_ref().map(|status| {
-                i64::from(u32::from(PartsPerHundredThousands::from(status.commission_rates.baking)))
+                i64::from(u32::from(PartsPerHundredThousands::from(
+                    status.commission_rates.baking,
+                )))
             }),
 
             finalization_commission: passive_delegation_status.as_ref().map(|status| {
@@ -184,8 +188,11 @@ impl PreparedPassiveDelegationPaydayCommissionRates {
             Some(transaction_commission),
             Some(baking_commission),
             Some(finalization_commission),
-        ) = (self.transaction_commission, self.baking_commission, self.finalization_commission)
-        {
+        ) = (
+            self.transaction_commission,
+            self.baking_commission,
+            self.finalization_commission,
+        ) {
             sqlx::query!(
                 "
                 INSERT INTO passive_delegation_payday_commission_rates (
@@ -214,9 +221,9 @@ impl PreparedPassiveDelegationPaydayCommissionRates {
 /// Represents the payday baker pool commission rates captured from
 /// the `get_bakers_reward_period` node endpoint.
 struct PreparedBakerPaydayCommissionRates {
-    baker_ids:                Vec<i64>,
-    transaction_commissions:  Vec<i64>,
-    baking_commissions:       Vec<i64>,
+    baker_ids: Vec<i64>,
+    transaction_commissions: Vec<i64>,
+    baking_commissions: Vec<i64>,
     finalization_commissions: Vec<i64>,
 }
 
@@ -284,9 +291,9 @@ impl PreparedBakerPaydayCommissionRates {
 /// Represents the payday lottery power updates for bakers captured from
 /// the `get_election_info` node endpoint.
 struct PreparedPaydayLotteryPowers {
-    baker_ids:             Vec<i64>,
+    baker_ids: Vec<i64>,
     bakers_lottery_powers: Vec<BigDecimal>,
-    ranks:                 Vec<i64>,
+    ranks: Vec<i64>,
 }
 
 impl PreparedPaydayLotteryPowers {
@@ -299,7 +306,10 @@ impl PreparedPaydayLotteryPowers {
         // Sort bakers by lottery power. The baker with the highest lottery power comes
         // first in the vector and gets rank 1.
         bakers.sort_by(|self_baker, other_baker| {
-            self_baker.baker_lottery_power.total_cmp(&other_baker.baker_lottery_power).reverse()
+            self_baker
+                .baker_lottery_power
+                .total_cmp(&other_baker.baker_lottery_power)
+                .reverse()
         });
 
         for (rank, baker) in bakers.iter().enumerate() {
@@ -351,9 +361,9 @@ impl PreparedPaydayLotteryPowers {
 }
 
 struct PreparedPaydayBakerPoolStakes {
-    block_height:     i64,
-    baker_ids:        Vec<i64>,
-    baker_stake:      Vec<i64>,
+    block_height: i64,
+    baker_ids: Vec<i64>,
+    baker_stake: Vec<i64>,
     delegators_stake: Vec<i64>,
 }
 
@@ -364,15 +374,18 @@ impl PreparedPaydayBakerPoolStakes {
     ) -> anyhow::Result<Self> {
         let capacity = bakers.len();
         let mut out = Self {
-            block_height:     block_height.height.try_into()?,
-            baker_ids:        Vec::with_capacity(capacity),
-            baker_stake:      Vec::with_capacity(capacity),
+            block_height: block_height.height.try_into()?,
+            baker_ids: Vec::with_capacity(capacity),
+            baker_stake: Vec::with_capacity(capacity),
             delegators_stake: Vec::with_capacity(capacity),
         };
         for baker in bakers.iter() {
-            out.baker_ids.push(baker.baker.baker_id.id.index.try_into()?);
-            out.baker_stake.push(baker.equity_capital.micro_ccd().try_into()?);
-            out.delegators_stake.push(baker.delegated_capital.micro_ccd().try_into()?);
+            out.baker_ids
+                .push(baker.baker.baker_id.id.index.try_into()?);
+            out.baker_stake
+                .push(baker.equity_capital.micro_ccd().try_into()?);
+            out.delegators_stake
+                .push(baker.delegated_capital.micro_ccd().try_into()?);
         }
         Ok(out)
     }
@@ -402,7 +415,7 @@ impl PreparedPaydayBakerPoolStakes {
 }
 
 struct PreparedPaydayPassivePoolStake {
-    block_height:     i64,
+    block_height: i64,
     delegators_stake: i64,
 }
 
@@ -411,8 +424,11 @@ impl PreparedPaydayPassivePoolStake {
         infos: &[DelegatorRewardPeriodInfo],
         block_height: AbsoluteBlockHeight,
     ) -> anyhow::Result<Self> {
-        let delegators_stake =
-            infos.iter().map(|info| info.stake.micro_ccd()).sum::<u64>().try_into()?;
+        let delegators_stake = infos
+            .iter()
+            .map(|info| info.stake.micro_ccd())
+            .sum::<u64>()
+            .try_into()?;
         Ok(Self {
             block_height: block_height.height.try_into()?,
             delegators_stake,

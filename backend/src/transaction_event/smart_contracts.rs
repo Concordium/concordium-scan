@@ -53,12 +53,12 @@ pub struct ContractModuleDeployed {
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 #[graphql(complex)]
 pub struct ContractInitialized {
-    pub module_ref:        String,
-    pub contract_address:  ContractAddress,
-    pub amount:            Amount,
-    pub init_name:         String,
-    pub version:           ContractVersion,
-    pub input_parameter:   Option<Vec<u8>>,
+    pub module_ref: String,
+    pub contract_address: ContractAddress,
+    pub amount: Amount,
+    pub init_name: String,
+    pub version: ContractVersion,
+    pub input_parameter: Option<Vec<u8>>,
     // All logged events by the smart contract during the transaction execution.
     pub contract_logs_raw: Vec<Vec<u8>>,
 }
@@ -99,7 +99,9 @@ impl ContractInitialized {
                 )
             })?;
 
-            versioned_schema.get_init_param_schema(&row.contract_name).ok()
+            versioned_schema
+                .get_init_param_schema(&row.contract_name)
+                .ok()
         } else {
             None
         };
@@ -116,9 +118,14 @@ impl ContractInitialized {
     async fn events_as_hex(&self) -> ApiResult<connection::Connection<String, String>> {
         let mut connection = connection::Connection::new(true, true);
 
-        self.contract_logs_raw.iter().enumerate().for_each(|(index, log)| {
-            connection.edges.push(connection::Edge::new(index.to_string(), hex::encode(log)));
-        });
+        self.contract_logs_raw
+            .iter()
+            .enumerate()
+            .for_each(|(index, log)| {
+                connection
+                    .edges
+                    .push(connection::Edge::new(index.to_string(), hex::encode(log)));
+            });
 
         // TODO: pagination info but not used at front-end currently (issue#318).
 
@@ -170,7 +177,9 @@ impl ContractInitialized {
                 SmartContractSchemaNames::Event,
             )?;
 
-            connection.edges.push(connection::Edge::new(index.to_string(), decoded_log));
+            connection
+                .edges
+                .push(connection::Edge::new(index.to_string(), decoded_log));
         }
 
         // TODO: pagination info but not used at front-end currently (issue#318).
@@ -182,19 +191,21 @@ impl ContractInitialized {
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 #[graphql(complex)]
 pub struct ContractUpdated {
-    pub contract_address:  ContractAddress,
-    pub instigator:        Address,
-    pub amount:            Amount,
-    pub receive_name:      String,
-    pub version:           ContractVersion,
+    pub contract_address: ContractAddress,
+    pub instigator: Address,
+    pub amount: Amount,
+    pub receive_name: String,
+    pub version: ContractVersion,
     // All logged events by the smart contract during this section of the transaction execution.
     pub contract_logs_raw: Vec<Vec<u8>>,
-    pub input_parameter:   Vec<u8>,
+    pub input_parameter: Vec<u8>,
 }
 
 #[ComplexObject]
 impl ContractUpdated {
-    async fn message_as_hex(&self) -> ApiResult<String> { Ok(hex::encode(&self.input_parameter)) }
+    async fn message_as_hex(&self) -> ApiResult<String> {
+        Ok(hex::encode(&self.input_parameter))
+    }
 
     async fn message<'a>(&self, ctx: &Context<'a>) -> ApiResult<Option<String>> {
         if self.input_parameter.is_empty() {
@@ -229,7 +240,9 @@ impl ContractUpdated {
             versioned_schema
                 .get_receive_param_schema(
                     &row.contract_name,
-                    ReceiveName::new_unchecked(&self.receive_name).entrypoint_name().into(),
+                    ReceiveName::new_unchecked(&self.receive_name)
+                        .entrypoint_name()
+                        .into(),
                 )
                 .ok()
         } else {
@@ -248,9 +261,14 @@ impl ContractUpdated {
     async fn events_as_hex(&self) -> ApiResult<connection::Connection<String, String>> {
         let mut connection = connection::Connection::new(true, true);
 
-        self.contract_logs_raw.iter().enumerate().for_each(|(index, log)| {
-            connection.edges.push(connection::Edge::new(index.to_string(), hex::encode(log)));
-        });
+        self.contract_logs_raw
+            .iter()
+            .enumerate()
+            .for_each(|(index, log)| {
+                connection
+                    .edges
+                    .push(connection::Edge::new(index.to_string(), hex::encode(log)));
+            });
 
         // TODO: pagination info but not used at front-end currently (issue#318).
 
@@ -302,7 +320,9 @@ impl ContractUpdated {
                 SmartContractSchemaNames::Event,
             )?;
 
-            connection.edges.push(connection::Edge::new(index.to_string(), decoded_log));
+            connection
+                .edges
+                .push(connection::Edge::new(index.to_string(), decoded_log));
         }
 
         // TODO: pagination info but not used at front-end currently (issue#318).
@@ -319,7 +339,7 @@ pub struct ContractCall {
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 #[graphql(complex)]
 pub struct ContractInterrupted {
-    pub contract_address:  ContractAddress,
+    pub contract_address: ContractAddress,
     // All logged events by the smart contract during this section of the transaction execution.
     pub contract_logs_raw: Vec<Vec<u8>>,
 }
@@ -329,9 +349,14 @@ impl ContractInterrupted {
     async fn events_as_hex(&self) -> ApiResult<connection::Connection<String, String>> {
         let mut connection = connection::Connection::new(true, true);
 
-        self.contract_logs_raw.iter().enumerate().for_each(|(index, log)| {
-            connection.edges.push(connection::Edge::new(index.to_string(), hex::encode(log)));
-        });
+        self.contract_logs_raw
+            .iter()
+            .enumerate()
+            .for_each(|(index, log)| {
+                connection
+                    .edges
+                    .push(connection::Edge::new(index.to_string(), hex::encode(log)));
+            });
 
         // TODO: pagination info but not used at front-end currently (issue#318).
 
@@ -383,7 +408,9 @@ impl ContractInterrupted {
                 SmartContractSchemaNames::Event,
             )?;
 
-            connection.edges.push(connection::Edge::new(index.to_string(), decoded_log));
+            connection
+                .edges
+                .push(connection::Edge::new(index.to_string(), decoded_log));
         }
 
         // TODO: pagination info but not used at front-end currently (issue#318).
@@ -395,18 +422,18 @@ impl ContractInterrupted {
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct ContractResumed {
     pub contract_address: ContractAddress,
-    pub success:          bool,
+    pub success: bool,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct ContractUpgraded {
     pub contract_address: ContractAddress,
-    pub from:             String,
-    pub to:               String,
+    pub from: String,
+    pub to: String,
 }
 
 struct SchemaName {
-    type_name:  &'static str,
+    type_name: &'static str,
     value_name: &'static str,
 }
 
@@ -418,15 +445,15 @@ enum SmartContractSchemaNames {
 
 impl SmartContractSchemaNames {
     pub const EVENT: SchemaName = SchemaName {
-        type_name:  "event",
+        type_name: "event",
         value_name: "contract log",
     };
     pub const INPUT_PARAMETER_INIT_FUNCTION: SchemaName = SchemaName {
-        type_name:  "init parameter",
+        type_name: "init parameter",
         value_name: "input parameter of init function",
     };
     pub const INPUT_PARAMETER_RECEIVE_FUNCTION: SchemaName = SchemaName {
-        type_name:  "receive parameter",
+        type_name: "receive parameter",
         value_name: "input parameter of receive function",
     };
 

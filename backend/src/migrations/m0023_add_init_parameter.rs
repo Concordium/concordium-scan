@@ -50,10 +50,7 @@ pub async fn run(
             let BlockItemSummaryDetails::AccountTransaction(details) = &summary.details else {
                 continue;
             };
-            let AccountTransactionEffects::ContractInitialized {
-                data: _,
-            } = details.effects
-            else {
+            let AccountTransactionEffects::ContractInitialized { data: _ } = details.effects else {
                 continue;
             };
 

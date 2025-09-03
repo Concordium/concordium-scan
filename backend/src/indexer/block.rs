@@ -73,8 +73,12 @@ impl PreparedBlock {
             None
         };
         let mut statistics = Statistics::new(height, slot_time);
-        let total_amount =
-            i64::try_from(data.tokenomics_info.common_reward_data().total_amount.micro_ccd())?;
+        let total_amount = i64::try_from(
+            data.tokenomics_info
+                .common_reward_data()
+                .total_amount
+                .micro_ccd(),
+        )?;
         let total_staked = i64::try_from(data.total_staked.micro_ccd())?;
         let mut prepared_block_items = Vec::new();
         for (item_summary, item) in data.events.iter().zip(data.items.iter()) {
@@ -274,10 +278,10 @@ impl PreparedBlock {
             migration.save(tx).await?;
         }
         for item in self.prepared_block_items.iter() {
-            item.save(tx).await.with_context(|| {
+            item.save(tx, self.slot_time).await.with_context(|| {
                 format!(
-                    "Failed processing block item with hash {} for block height {}",
-                    item.block_item_hash, item.block_height
+                    "Failed processing block item with hash {} for block height {} in block {}",
+                    item.block_item_hash, item.block_height, self.hash
                 )
             })?;
         }

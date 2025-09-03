@@ -37,7 +37,9 @@ pub(crate) struct QueryAccounts;
 impl QueryAccounts {
     async fn account<'a>(&self, ctx: &Context<'a>, id: types::ID) -> ApiResult<Account> {
         let index: i64 = id.try_into().map_err(ApiError::InvalidIdInt)?;
-        Account::query_by_index(get_pool(ctx)?, index).await?.ok_or(ApiError::NotFound)
+        Account::query_by_index(get_pool(ctx)?, index)
+            .await?
+            .ok_or(ApiError::NotFound)
     }
 
     async fn account_by_address<'a>(
@@ -45,7 +47,9 @@ impl QueryAccounts {
         ctx: &Context<'a>,
         account_address: String,
     ) -> ApiResult<Account> {
-        Account::query_by_address(get_pool(ctx)?, account_address).await?.ok_or(ApiError::NotFound)
+        Account::query_by_address(get_pool(ctx)?, account_address)
+            .await?
+            .ok_or(ApiError::NotFound)
     }
 
     async fn accounts(
@@ -57,7 +61,9 @@ impl QueryAccounts {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Account>> {
         let pool = get_pool(ctx)?;
@@ -181,7 +187,9 @@ impl QueryAccounts {
             while let Some(account) = accounts.try_next().await? {
                 let cursor = AccountFieldDescCursor::new(order.field, &account);
 
-                connection.edges.push(connection::Edge::new(cursor.encode_cursor(), account));
+                connection
+                    .edges
+                    .push(connection::Edge::new(cursor.encode_cursor(), account));
             }
 
             if let (Some(edge_min_index), Some(edge_max_index)) =
@@ -238,17 +246,20 @@ impl QueryAccounts {
                 .await?;
 
                 if let Some(bounds) = bounds {
-                    if let (Some(min_value), Some(max_value), max_index, min_index) =
-                        (bounds.min_value, bounds.max_value, bounds.max_index, bounds.min_index)
-                    {
+                    if let (Some(min_value), Some(max_value), max_index, min_index) = (
+                        bounds.min_value,
+                        bounds.max_value,
+                        bounds.max_index,
+                        bounds.min_index,
+                    ) {
                         let collection_start_cursor = AccountFieldDescCursor {
                             account_id: min_index,
-                            field:      min_value,
+                            field: min_value,
                         };
 
                         let collection_end_cursor = AccountFieldDescCursor {
                             account_id: max_index,
-                            field:      max_value,
+                            field: max_value,
                         };
 
                         let page_start_cursor =
@@ -379,7 +390,9 @@ impl QueryAccounts {
                     cursor: AccountFieldDescCursor::new(order.field, &account),
                 };
 
-                connection.edges.push(connection::Edge::new(cursor.encode_cursor(), account));
+                connection
+                    .edges
+                    .push(connection::Edge::new(cursor.encode_cursor(), account));
             }
 
             if let (Some(edge_min_index), Some(edge_max_index)) =
@@ -436,20 +449,23 @@ impl QueryAccounts {
                 .await?;
 
                 if let Some(bounds) = bounds {
-                    if let (Some(min_value), Some(max_value), max_index, min_index) =
-                        (bounds.min_value, bounds.max_value, bounds.max_index, bounds.min_index)
-                    {
+                    if let (Some(min_value), Some(max_value), max_index, min_index) = (
+                        bounds.min_value,
+                        bounds.max_value,
+                        bounds.max_index,
+                        bounds.min_index,
+                    ) {
                         let collection_start_cursor = Reversed::<AccountFieldDescCursor> {
                             cursor: AccountFieldDescCursor {
                                 account_id: min_index,
-                                field:      min_value,
+                                field: min_value,
                             },
                         };
 
                         let collection_end_cursor = Reversed::<AccountFieldDescCursor> {
                             cursor: AccountFieldDescCursor {
                                 account_id: max_index,
-                                field:      max_value,
+                                field: max_value,
                             },
                         };
 
@@ -474,24 +490,28 @@ impl QueryAccounts {
 #[graphql(complex)]
 pub struct AccountReward {
     #[graphql(skip)]
-    id:           i64,
+    id: i64,
     #[graphql(skip)]
     block_height: BlockHeight,
-    timestamp:    DateTime,
+    timestamp: DateTime,
     #[graphql(skip)]
-    entry_type:   AccountStatementEntryType,
+    entry_type: AccountStatementEntryType,
     #[graphql(skip)]
-    amount:       i64,
+    amount: i64,
 }
 #[ComplexObject]
 impl AccountReward {
-    async fn id(&self) -> types::ID { types::ID::from(self.id) }
+    async fn id(&self) -> types::ID {
+        types::ID::from(self.id)
+    }
 
     async fn block(&self, ctx: &Context<'_>) -> ApiResult<Block> {
         Block::query_by_height(get_pool(ctx)?, self.block_height).await
     }
 
-    async fn amount(&self) -> ApiResult<Amount> { Ok(self.amount.try_into()?) }
+    async fn amount(&self) -> ApiResult<Amount> {
+        Ok(self.amount.try_into()?)
+    }
 
     async fn reward_type(&self) -> ApiResult<RewardType> {
         let transaction: RewardType = self.entry_type.try_into().map_err(|_| {
@@ -535,26 +555,32 @@ impl TryFrom<AccountStatementEntryType> for RewardType {
 #[graphql(complex)]
 struct AccountStatementEntry {
     #[graphql(skip)]
-    id:              i64,
-    timestamp:       DateTime,
-    entry_type:      AccountStatementEntryType,
+    id: i64,
+    timestamp: DateTime,
+    entry_type: AccountStatementEntryType,
     #[graphql(skip)]
-    amount:          i64,
+    amount: i64,
     #[graphql(skip)]
     account_balance: i64,
     #[graphql(skip)]
-    transaction_id:  Option<TransactionIndex>,
+    transaction_id: Option<TransactionIndex>,
     #[graphql(skip)]
-    block_height:    BlockHeight,
+    block_height: BlockHeight,
 }
 
 #[ComplexObject]
 impl AccountStatementEntry {
-    async fn id(&self) -> types::ID { types::ID::from(self.id) }
+    async fn id(&self) -> types::ID {
+        types::ID::from(self.id)
+    }
 
-    async fn amount(&self) -> ApiResult<Long> { Ok(Long(self.amount)) }
+    async fn amount(&self) -> ApiResult<Long> {
+        Ok(Long(self.amount))
+    }
 
-    async fn account_balance(&self) -> ApiResult<Amount> { Ok(self.account_balance.try_into()?) }
+    async fn account_balance(&self) -> ApiResult<Amount> {
+        Ok(self.account_balance.try_into()?)
+    }
 
     async fn reference(&self, ctx: &Context<'_>) -> ApiResult<BlockOrTransaction> {
         if let Some(id) = self.transaction_id {
@@ -583,27 +609,31 @@ type AccountReleaseScheduleItemIndex = i64;
 struct AccountReleaseScheduleItem {
     /// Table index
     /// Used for the cursor in the connection
-    index:             AccountReleaseScheduleItemIndex,
+    index: AccountReleaseScheduleItemIndex,
     transaction_index: TransactionIndex,
-    timestamp:         DateTime,
-    amount:            i64,
+    timestamp: DateTime,
+    amount: i64,
 }
 #[Object]
 impl AccountReleaseScheduleItem {
     async fn transaction(&self, ctx: &Context<'_>) -> ApiResult<Transaction> {
-        Transaction::query_by_index(get_pool(ctx)?, self.transaction_index).await?.ok_or_else(
-            || {
+        Transaction::query_by_index(get_pool(ctx)?, self.transaction_index)
+            .await?
+            .ok_or_else(|| {
                 InternalError::InternalError(
                     "AccountReleaseScheduleItem: No transaction at transaction_index".to_string(),
                 )
                 .into()
-            },
-        )
+            })
     }
 
-    async fn timestamp(&self) -> DateTime { self.timestamp }
+    async fn timestamp(&self) -> DateTime {
+        self.timestamp
+    }
 
-    async fn amount(&self) -> ApiResult<Amount> { Ok(self.amount.try_into()?) }
+    async fn amount(&self) -> ApiResult<Amount> {
+        Ok(self.amount.try_into()?)
+    }
 }
 
 /// Cursor for `Query::accounts` when sorting by the account by some
@@ -611,35 +641,35 @@ impl AccountReleaseScheduleItem {
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 struct AccountFieldDescCursor {
     /// The cursor value of the relevant sorting field.
-    field:      i64,
+    field: i64,
     /// The account id of the cursor.
     account_id: i64,
 }
 impl AccountFieldDescCursor {
     fn delegated_stake(row: &Account) -> Self {
         AccountFieldDescCursor {
-            field:      row.delegated_stake,
+            field: row.delegated_stake,
             account_id: row.index,
         }
     }
 
     fn index(row: &Account) -> Self {
         AccountFieldDescCursor {
-            field:      row.index,
+            field: row.index,
             account_id: row.index,
         }
     }
 
     fn amount(row: &Account) -> Self {
         AccountFieldDescCursor {
-            field:      row.amount,
+            field: row.amount,
             account_id: row.index,
         }
     }
 
     fn transaction_count(row: &Account) -> Self {
         AccountFieldDescCursor {
-            field:      row.num_txs,
+            field: row.num_txs,
             account_id: row.index,
         }
     }
@@ -664,17 +694,22 @@ impl connection::CursorType for AccountFieldDescCursor {
     type Error = DecodeAccountFieldCursor;
 
     fn decode_cursor(s: &str) -> Result<Self, Self::Error> {
-        let (before, after) = s.split_once(':').ok_or(DecodeAccountFieldCursor::NoSemicolon)?;
-        let field: i64 = before.parse().map_err(DecodeAccountFieldCursor::ParseField)?;
-        let account_id: i64 = after.parse().map_err(DecodeAccountFieldCursor::ParseAccountId)?;
+        let (before, after) = s
+            .split_once(':')
+            .ok_or(DecodeAccountFieldCursor::NoSemicolon)?;
+        let field: i64 = before
+            .parse()
+            .map_err(DecodeAccountFieldCursor::ParseField)?;
+        let account_id: i64 = after
+            .parse()
+            .map_err(DecodeAccountFieldCursor::ParseAccountId)?;
 
-        Ok(Self {
-            field,
-            account_id,
-        })
+        Ok(Self { field, account_id })
     }
 
-    fn encode_cursor(&self) -> String { format!("{}:{}", self.field, self.account_id) }
+    fn encode_cursor(&self) -> String {
+        format!("{}:{}", self.field, self.account_id)
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -690,16 +725,18 @@ enum DecodeAccountFieldCursor {
 impl ConnectionBounds for AccountFieldDescCursor {
     const END_BOUND: Self = Self {
         account_id: i64::MIN,
-        field:      i64::MIN,
+        field: i64::MIN,
     };
     const START_BOUND: Self = Self {
         account_id: i64::MAX,
-        field:      i64::MAX,
+        field: i64::MAX,
     };
 }
 
 impl PartialOrd for AccountFieldDescCursor {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) }
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 /// The cursor contains a `field` to represent the `Age`, `Amount`,
@@ -788,13 +825,19 @@ impl Account {
 
 #[Object]
 impl Account {
-    pub async fn id(&self) -> types::ID { types::ID::from(self.index) }
+    pub async fn id(&self) -> types::ID {
+        types::ID::from(self.index)
+    }
 
     /// The address of the account in Base58Check.
-    pub async fn address(&self) -> &AccountAddress { &self.address }
+    pub async fn address(&self) -> &AccountAddress {
+        &self.address
+    }
 
     /// The total amount of CCD hold by the account.
-    pub async fn amount(&self) -> ApiResult<Amount> { Ok(self.amount.try_into()?) }
+    pub async fn amount(&self) -> ApiResult<Amount> {
+        Ok(self.amount.try_into()?)
+    }
 
     pub async fn baker(&self, ctx: &Context<'_>) -> ApiResult<Option<Baker>> {
         Ok(Baker::query_by_id(get_pool(ctx)?, self.index).await?)
@@ -802,20 +845,22 @@ impl Account {
 
     async fn delegation(&self) -> ApiResult<Option<Delegation>> {
         let staked_amount = self.delegated_stake.try_into()?;
-        Ok(self.delegated_restake_earnings.map(|restake_earnings| Delegation {
-            delegator_id: self.index,
-            restake_earnings,
-            staked_amount,
-            delegation_target: if let Some(target) = self.delegated_target_baker_id {
-                DelegationTarget::BakerDelegationTarget(BakerDelegationTarget {
-                    baker_id: target.into(),
-                })
-            } else {
-                DelegationTarget::PassiveDelegationTarget(PassiveDelegationTarget {
-                    dummy: false,
-                })
-            },
-        }))
+        Ok(self
+            .delegated_restake_earnings
+            .map(|restake_earnings| Delegation {
+                delegator_id: self.index,
+                restake_earnings,
+                staked_amount,
+                delegation_target: if let Some(target) = self.delegated_target_baker_id {
+                    DelegationTarget::BakerDelegationTarget(BakerDelegationTarget {
+                        baker_id: target.into(),
+                    })
+                } else {
+                    DelegationTarget::PassiveDelegationTarget(PassiveDelegationTarget {
+                        dummy: false,
+                    })
+                },
+            }))
     }
 
     /// Timestamp of the block where this account was created.
@@ -844,7 +889,9 @@ impl Account {
 
     /// Number of transactions the account has been involved in or
     /// affected by.
-    async fn transaction_count<'a>(&self) -> ApiResult<i64> { Ok(self.num_txs) }
+    async fn transaction_count<'a>(&self) -> ApiResult<i64> {
+        Ok(self.num_txs)
+    }
 
     /// Number of transactions where this account is the sender of the
     /// transaction. This is the `nonce` of the account. This value is
@@ -867,7 +914,9 @@ impl Account {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<DescendingI64, AccountToken>> {
         type Cursor = DescendingI64;
@@ -934,10 +983,12 @@ impl Account {
             )
             .fetch_one(pool)
             .await?;
-            connection.has_previous_page =
-                bounds.first_cursor.is_some_and(|db_first| Cursor::from(db_first) < first.cursor);
-            connection.has_next_page =
-                bounds.last_cursor.is_some_and(|db_last| Cursor::from(db_last) > last.cursor);
+            connection.has_previous_page = bounds
+                .first_cursor
+                .is_some_and(|db_first| Cursor::from(db_first) < first.cursor);
+            connection.has_next_page = bounds
+                .last_cursor
+                .is_some_and(|db_last| Cursor::from(db_last) > last.cursor);
         }
         Ok(connection)
     }
@@ -949,7 +1000,9 @@ impl Account {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, AccountTransactionRelation>> {
         let config = get_config(ctx)?;
@@ -1017,9 +1070,7 @@ impl Account {
             });
             connection.edges.push(connection::Edge::new(
                 transaction.index.to_string(),
-                AccountTransactionRelation {
-                    transaction,
-                },
+                AccountTransactionRelation { transaction },
             ));
         }
         if let (Some(page_min_id), Some(page_max_id)) = (min_index, max_index) {
@@ -1048,7 +1099,9 @@ impl Account {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, AccountStatementEntry>> {
         let config = get_config(ctx)?;
@@ -1112,7 +1165,9 @@ impl Account {
                 None => statement.id,
                 Some(current_max) => max(current_max, statement.id),
             });
-            connection.edges.push(connection::Edge::new(statement.id.to_string(), statement));
+            connection
+                .edges
+                .push(connection::Edge::new(statement.id.to_string(), statement));
         }
 
         if let (Some(page_min_id), Some(page_max_id)) = (min_index, max_index) {
@@ -1140,7 +1195,9 @@ impl Account {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, AccountReward>> {
         let config = get_config(ctx)?;
@@ -1204,7 +1261,9 @@ impl Account {
                 None => statement.id,
                 Some(current_max) => max(current_max, statement.id),
             });
-            connection.edges.push(connection::Edge::new(statement.id.to_string(), statement));
+            connection
+                .edges
+                .push(connection::Edge::new(statement.id.to_string(), statement));
         }
 
         if let (Some(page_min_id), Some(page_max_id)) = (min_index, max_index) {
@@ -1342,7 +1401,9 @@ impl AccountReleaseSchedule {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, AccountReleaseScheduleItem>> {
         let config = get_config(ctx)?;
@@ -1422,7 +1483,9 @@ impl AccountReleaseSchedule {
 
         let mut connection = connection::Connection::new(has_previous_page, has_next_page);
         for row in rows {
-            connection.edges.push(connection::Edge::new(row.index.to_string(), row));
+            connection
+                .edges
+                .push(connection::Edge::new(row.index.to_string(), row));
         }
         Ok(connection)
     }
@@ -1430,27 +1493,10 @@ impl AccountReleaseSchedule {
 
 #[derive(SimpleObject)]
 struct Delegation {
-    delegator_id:      i64,
-    staked_amount:     Amount,
-    restake_earnings:  bool,
+    delegator_id: i64,
+    staked_amount: Amount,
+    restake_earnings: bool,
     delegation_target: DelegationTarget,
-}
-
-#[derive(Union)]
-enum PendingDelegationChange {
-    PendingDelegationRemoval(PendingDelegationRemoval),
-    PendingDelegationReduceStake(PendingDelegationReduceStake),
-}
-
-#[derive(SimpleObject)]
-struct PendingDelegationRemoval {
-    effective_time: DateTime,
-}
-
-#[derive(SimpleObject)]
-struct PendingDelegationReduceStake {
-    new_staked_amount: Amount,
-    effective_time:    DateTime,
 }
 
 #[derive(Union)]
@@ -1475,7 +1521,7 @@ enum AccountSort {
 #[derive(Debug, Clone, Copy)]
 struct AccountOrder {
     field: AccountOrderField,
-    dir:   OrderDir,
+    dir: OrderDir,
 }
 
 impl From<AccountSort> for AccountOrder {
@@ -1483,35 +1529,35 @@ impl From<AccountSort> for AccountOrder {
         match sort {
             AccountSort::AgeAsc => Self {
                 field: AccountOrderField::Age,
-                dir:   OrderDir::Asc,
+                dir: OrderDir::Asc,
             },
             AccountSort::AgeDesc => Self {
                 field: AccountOrderField::Age,
-                dir:   OrderDir::Desc,
+                dir: OrderDir::Desc,
             },
             AccountSort::AmountAsc => Self {
                 field: AccountOrderField::Amount,
-                dir:   OrderDir::Asc,
+                dir: OrderDir::Asc,
             },
             AccountSort::AmountDesc => Self {
                 field: AccountOrderField::Amount,
-                dir:   OrderDir::Desc,
+                dir: OrderDir::Desc,
             },
             AccountSort::TransactionCountAsc => Self {
                 field: AccountOrderField::TransactionCount,
-                dir:   OrderDir::Asc,
+                dir: OrderDir::Asc,
             },
             AccountSort::TransactionCountDesc => Self {
                 field: AccountOrderField::TransactionCount,
-                dir:   OrderDir::Desc,
+                dir: OrderDir::Desc,
             },
             AccountSort::DelegatedStakeAsc => Self {
                 field: AccountOrderField::DelegatedStake,
-                dir:   OrderDir::Asc,
+                dir: OrderDir::Asc,
             },
             AccountSort::DelegatedStakeDesc => Self {
                 field: AccountOrderField::DelegatedStake,
-                dir:   OrderDir::Desc,
+                dir: OrderDir::Desc,
             },
         }
     }

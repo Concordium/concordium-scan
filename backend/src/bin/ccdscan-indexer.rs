@@ -26,7 +26,7 @@ struct Cli {
     /// Use an environment variable when the connection contains a password, as
     /// command line arguments are visible across OS processes.
     #[arg(long, env = "CCDSCAN_INDEXER_DATABASE_URL")]
-    database_url:      PgConnectOptions,
+    database_url: PgConnectOptions,
     /// gRPC interface of the node. Several can be provided.
     #[arg(
         long,
@@ -34,37 +34,45 @@ struct Cli {
         value_delimiter = ',',
         num_args = 1..
     )]
-    node:              Vec<v2::Endpoint>,
+    node: Vec<v2::Endpoint>,
     /// Address to listen for monitoring related requests
-    #[arg(long, env = "CCDSCAN_INDEXER_MONITORING_ADDRESS", default_value = "127.0.0.1:8001")]
+    #[arg(
+        long,
+        env = "CCDSCAN_INDEXER_MONITORING_ADDRESS",
+        default_value = "127.0.0.1:8001"
+    )]
     monitoring_listen: SocketAddr,
     #[command(flatten)]
-    indexer_config:    IndexerServiceConfig,
+    indexer_config: IndexerServiceConfig,
     /// The maximum log level. Possible values are: `trace`, `debug`, `info`,
     /// `warn`, and `error`.
     #[arg(long = "log-level", default_value = "info", env = "LOG_LEVEL")]
-    log_level:         tracing_subscriber::filter::LevelFilter,
+    log_level: tracing_subscriber::filter::LevelFilter,
     /// Run database schema migrations before the processing of blocks.
     #[arg(long, env = "CCDSCAN_INDEXER_MIGRATE")]
-    migrate:           bool,
+    migrate: bool,
     /// Run database schema migrations only and then exit.
     /// In production it is recommended to use this for first running the
     /// migrations with elevated privileges.
     #[arg(long, env = "CCDSCAN_INDEXER_MIGRATE_ONLY")]
-    migrate_only:      bool,
+    migrate_only: bool,
     /// Provide file to load environment variables from, instead of the default
     /// `.env`.
     // This is only part of this struct in order to generate help information.
     // This argument is actually handled before hand using `DotenvCli`.
     #[arg(long)]
-    dotenv:            Option<PathBuf>,
+    dotenv: Option<PathBuf>,
 }
 
 /// CLI argument parser first used for parsing only the --dotenv option.
 /// Allowing loading the provided file before parsing the remaining arguments
 /// and producing errors
 #[derive(Parser)]
-#[command(ignore_errors = true, disable_help_flag = true, disable_version_flag = true)]
+#[command(
+    ignore_errors = true,
+    disable_help_flag = true,
+    disable_version_flag = true
+)]
 struct DotenvCli {
     #[arg(long)]
     dotenv: Option<PathBuf>,
@@ -91,7 +99,10 @@ async fn main() -> anyhow::Result<()> {
         let crate_name = env!("CARGO_CRATE_NAME");
         format!("info,{pkg_name}={0},{crate_name}={0}", cli.log_level).parse()?
     };
-    tracing_subscriber::registry().with(tracing_subscriber::fmt::layer()).with(filter).init();
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer())
+        .with(filter)
+        .init();
     // Handle TLS configuration and set timeouts according to the configuration for
     // every endpoint.
     let endpoints: Vec<v2::Endpoint> = cli
@@ -99,7 +110,10 @@ async fn main() -> anyhow::Result<()> {
         .into_iter()
         .map(|mut endpoint| {
             // Enable TLS when using HTTPS
-            if endpoint.uri().scheme().is_some_and(|x| x == &concordium_rust_sdk::v2::Scheme::HTTPS)
+            if endpoint
+                .uri()
+                .scheme()
+                .is_some_and(|x| x == &concordium_rust_sdk::v2::Scheme::HTTPS)
             {
                 endpoint = endpoint
                     .tls_config(tonic::transport::ClientTlsConfig::new())
@@ -187,14 +201,23 @@ async fn main() -> anyhow::Result<()> {
         tokio::spawn(indexer.run(stop_signal))
     };
     let mut monitoring_task = {
-        let health_routes =
-            axum::Router::new().route("/", axum::routing::get(health)).with_state(cli.database_url);
+        let health_routes = axum::Router::new()
+            .route("/", axum::routing::get(health))
+            .with_state(cli.database_url);
         let tcp_listener = TcpListener::bind(cli.monitoring_listen)
             .await
             .context("Parsing TCP listener address failed")?;
         let stop_signal = cancel_token.child_token();
-        info!("Monitoring server is running at {:?}", cli.monitoring_listen);
-        tokio::spawn(router::serve(registry, tcp_listener, stop_signal, health_routes))
+        info!(
+            "Monitoring server is running at {:?}",
+            cli.monitoring_listen
+        );
+        tokio::spawn(router::serve(
+            registry,
+            tcp_listener,
+            stop_signal,
+            health_routes,
+        ))
     };
     // Await for signal to shutdown or any of the tasks to stop.
     tokio::select! {

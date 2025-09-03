@@ -1,7 +1,7 @@
 {
 	"name": "ccscan-frontend",
 	"description": "CCDScan frontend",
-	"version": "1.7.22",
+	"version": "1.7.24",
 	"engine": "16",
 	"type": "module",
 	"private": true,

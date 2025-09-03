@@ -25,7 +25,11 @@ pub async fn run(tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<SchemaVersi
                 concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(
                     &account_address,
                 )?;
-            let canonical_address = account_address.get_canonical_address().0.as_slice().to_vec();
+            let canonical_address = account_address
+                .get_canonical_address()
+                .0
+                .as_slice()
+                .to_vec();
             update_queries.push(
                 sqlx::query("UPDATE accounts SET canonical_address = $1 WHERE index = $2")
                     .bind(canonical_address)
@@ -40,7 +44,9 @@ pub async fn run(tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<SchemaVersi
     }
 
     tx.as_mut()
-        .execute(sqlx::raw_sql(include_str!("m0008-post-canonical-address-migration.sql")))
+        .execute(sqlx::raw_sql(include_str!(
+            "m0008-post-canonical-address-migration.sql"
+        )))
         .await?;
 
     Ok(SchemaVersion::AccountBaseAddress)

@@ -79,7 +79,9 @@ impl QueryContract {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Contract>> {
         let config = get_config(ctx)?;
@@ -134,13 +136,17 @@ impl QueryContract {
 
         while let Some(row) = row_stream.try_next().await? {
             let contract_address_index =
-                row.index.try_into().map_err(|e: <u64 as TryFrom<i64>>::Error| {
-                    InternalError::InternalError(e.to_string())
-                })?;
+                row.index
+                    .try_into()
+                    .map_err(|e: <u64 as TryFrom<i64>>::Error| {
+                        InternalError::InternalError(e.to_string())
+                    })?;
             let contract_address_sub_index =
-                row.sub_index.try_into().map_err(|e: <u64 as TryFrom<i64>>::Error| {
-                    InternalError::InternalError(e.to_string())
-                })?;
+                row.sub_index
+                    .try_into()
+                    .map_err(|e: <u64 as TryFrom<i64>>::Error| {
+                        InternalError::InternalError(e.to_string())
+                    })?;
 
             let snapshot = ContractSnapshot {
                 block_height: row.block_height,
@@ -174,9 +180,10 @@ impl QueryContract {
                 Some(current_min) => min(current_min, row.index),
             });
 
-            connection
-                .edges
-                .push(connection::Edge::new(contract.contract_address_index.to_string(), contract));
+            connection.edges.push(connection::Edge::new(
+                contract.contract_address_index.to_string(),
+                contract,
+            ));
         }
 
         if let (Some(page_min_id), Some(page_max_id)) = (page_min_index, page_max_index) {
@@ -189,10 +196,12 @@ impl QueryContract {
             .fetch_one(pool)
             .await?;
 
-            connection.has_previous_page =
-                result.db_max_index.is_some_and(|db_max| db_max > page_max_id);
-            connection.has_next_page =
-                result.db_min_index.is_some_and(|db_min| db_min < page_min_id);
+            connection.has_previous_page = result
+                .db_max_index
+                .is_some_and(|db_max| db_max > page_max_id);
+            connection.has_next_page = result
+                .db_min_index
+                .is_some_and(|db_min| db_min < page_min_id);
         }
 
         Ok(connection)
@@ -202,14 +211,14 @@ impl QueryContract {
 #[derive(SimpleObject)]
 #[graphql(complex)]
 pub struct Contract {
-    pub contract_address_index:     ContractIndex,
+    pub contract_address_index: ContractIndex,
     pub contract_address_sub_index: ContractIndex,
-    pub contract_address:           String,
-    pub creator:                    AccountAddress,
-    pub block_height:               BlockHeight,
-    pub transaction_hash:           String,
-    pub block_slot_time:            DateTime,
-    pub snapshot:                   ContractSnapshot,
+    pub contract_address: String,
+    pub creator: AccountAddress,
+    pub block_height: BlockHeight,
+    pub transaction_hash: String,
+    pub block_slot_time: DateTime,
+    pub snapshot: ContractSnapshot,
 }
 
 #[ComplexObject]
@@ -250,7 +259,9 @@ impl Contract {
         // Limit the number of events to be fetched from the `contract_events` table.
         let limit = std::cmp::min(
             take,
-            config.contract_events_collection_limit.saturating_sub(include_initial_event as u64),
+            config
+                .contract_events_collection_limit
+                .saturating_sub(include_initial_event as u64),
         );
 
         let mut contract_events = vec![];
@@ -303,7 +314,7 @@ impl Contract {
         for row in rows {
             let Some(events) = row.events else {
                 return Err(
-                    InternalError::InternalError("Missing events in database".to_string()).into()
+                    InternalError::InternalError("Missing events in database".to_string()).into(),
                 );
             };
 
@@ -384,7 +395,7 @@ impl Contract {
 
             let Some(events) = row.events else {
                 return Err(
-                    InternalError::InternalError("Missing events in database".to_string()).into()
+                    InternalError::InternalError("Missing events in database".to_string()).into(),
                 );
             };
 
@@ -417,11 +428,11 @@ impl Contract {
         }
 
         Ok(ContractEventsCollectionSegment {
-            page_info:   CollectionSegmentInfo {
+            page_info: CollectionSegmentInfo {
                 has_next_page,
                 has_previous_page: skip > 0,
             },
-            items:       contract_events,
+            items: contract_events,
             total_count: total_contract_events_count
                 + initial_contract_event_exists_in_database as u64,
         })
@@ -436,10 +447,11 @@ impl Contract {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
 
-        let limit =
-            i64::try_from(take.map_or(config.contract_reject_events_collection_limit, |t| {
+        let limit = i64::try_from(
+            take.map_or(config.contract_reject_events_collection_limit, |t| {
                 config.contract_reject_events_collection_limit.min(t)
-            }))?;
+            }),
+        )?;
 
         let total_count: u64 = sqlx::query_scalar!(
             "SELECT
@@ -481,10 +493,7 @@ impl Contract {
         .fetch_all(pool)
         .await?;
 
-        Ok(ContractRejectEventsCollectionSegment {
-            items,
-            total_count,
-        })
+        Ok(ContractRejectEventsCollectionSegment { items, total_count })
     }
 
     // This function fetches CIS2 tokens associated to a given contract, ordered by
@@ -544,10 +553,7 @@ impl Contract {
         .fetch_all(pool)
         .await?;
 
-        Ok(TokensCollectionSegment {
-            total_count,
-            items,
-        })
+        Ok(TokensCollectionSegment { total_count, items })
     }
 }
 
@@ -555,14 +561,14 @@ impl Contract {
 #[derive(SimpleObject)]
 struct ContractRejectEventsCollectionSegment {
     /// A flattened list of the items.
-    items:       Vec<ContractRejectEvent>,
+    items: Vec<ContractRejectEvent>,
     total_count: u64,
 }
 
 struct ContractRejectEvent {
-    rejected_event:   Option<sqlx::types::Json<TransactionRejectReason>>,
+    rejected_event: Option<sqlx::types::Json<TransactionRejectReason>>,
     transaction_hash: TransactionHash,
-    block_slot_time:  DateTime,
+    block_slot_time: DateTime,
 }
 #[Object]
 impl ContractRejectEvent {
@@ -577,28 +583,32 @@ impl ContractRejectEvent {
         }
     }
 
-    async fn transaction_hash(&self) -> &TransactionHash { &self.transaction_hash }
+    async fn transaction_hash(&self) -> &TransactionHash {
+        &self.transaction_hash
+    }
 
-    async fn block_slot_time(&self) -> &DateTime { &self.block_slot_time }
+    async fn block_slot_time(&self) -> &DateTime {
+        &self.block_slot_time
+    }
 }
 
 #[derive(SimpleObject)]
 pub struct ContractSnapshot {
-    pub block_height:               BlockHeight,
-    pub contract_address_index:     ContractIndex,
+    pub block_height: BlockHeight,
+    pub contract_address_index: ContractIndex,
     pub contract_address_sub_index: ContractIndex,
-    pub contract_name:              String,
-    pub module_reference:           String,
-    pub amount:                     Amount,
+    pub contract_name: String,
+    pub module_reference: String,
+    pub amount: Amount,
 }
 
 /// A segment of a collection.
 #[derive(SimpleObject)]
 struct ContractEventsCollectionSegment {
     /// Information to aid in pagination.
-    page_info:   CollectionSegmentInfo,
+    page_info: CollectionSegmentInfo,
     /// A flattened list of the items.
-    items:       Vec<ContractEvent>,
+    items: Vec<ContractEvent>,
     total_count: u64,
 }
 

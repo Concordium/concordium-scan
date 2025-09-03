@@ -27,7 +27,9 @@ pub struct QueryTransactions;
 impl QueryTransactions {
     async fn transaction(&self, ctx: &Context<'_>, id: types::ID) -> ApiResult<Transaction> {
         let index: i64 = id.try_into().map_err(ApiError::InvalidIdInt)?;
-        Transaction::query_by_index(get_pool(ctx)?, index).await?.ok_or(ApiError::NotFound)
+        Transaction::query_by_index(get_pool(ctx)?, index)
+            .await?
+            .ok_or(ApiError::NotFound)
     }
 
     async fn transaction_by_transaction_hash<'a>(
@@ -47,7 +49,9 @@ impl QueryTransactions {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Transaction>> {
         let config = get_config(ctx)?;
@@ -95,7 +99,9 @@ impl QueryTransactions {
         .fetch(pool);
         let mut connection = connection::Connection::new(false, false);
         while let Some(tx) = row_stream.try_next().await? {
-            connection.edges.push(connection::Edge::new(tx.index.to_string(), tx));
+            connection
+                .edges
+                .push(connection::Edge::new(tx.index.to_string(), tx));
         }
         if let (Some(page_min), Some(page_max)) =
             (connection.edges.last(), connection.edges.first())
@@ -104,10 +110,12 @@ impl QueryTransactions {
                 sqlx::query!("SELECT MAX(index) as max_id, MIN(index) as min_id FROM transactions")
                     .fetch_one(pool)
                     .await?;
-            connection.has_next_page =
-                result.min_id.is_some_and(|db_min| db_min < page_min.node.index);
-            connection.has_previous_page =
-                result.max_id.is_some_and(|db_max| db_max > page_max.node.index);
+            connection.has_next_page = result
+                .min_id
+                .is_some_and(|db_min| db_min < page_min.node.index);
+            connection.has_previous_page = result
+                .max_id
+                .is_some_and(|db_max| db_max > page_max.node.index);
         }
         Ok(connection)
     }
@@ -190,15 +198,25 @@ impl Transaction {
 #[Object]
 impl Transaction {
     /// Transaction index as a string.
-    async fn id(&self) -> types::ID { self.index.into() }
+    async fn id(&self) -> types::ID {
+        self.index.into()
+    }
 
-    async fn transaction_index(&self) -> TransactionIndex { self.index }
+    async fn transaction_index(&self) -> TransactionIndex {
+        self.index
+    }
 
-    async fn transaction_hash(&self) -> &TransactionHash { &self.hash }
+    async fn transaction_hash(&self) -> &TransactionHash {
+        &self.hash
+    }
 
-    async fn ccd_cost(&self) -> ApiResult<Amount> { Ok(self.ccd_cost.try_into()?) }
+    async fn ccd_cost(&self) -> ApiResult<Amount> {
+        Ok(self.ccd_cost.try_into()?)
+    }
 
-    async fn energy_cost(&self) -> Energy { self.energy_cost }
+    async fn energy_cost(&self) -> Energy {
+        self.energy_cost
+    }
 
     async fn block<'a>(&self, ctx: &Context<'a>) -> ApiResult<Block> {
         Block::query_by_height(get_pool(ctx)?, self.block_height).await
@@ -246,21 +264,15 @@ impl Transaction {
 
     async fn result(&self) -> ApiResult<TransactionResult<'_>> {
         if self.success {
-            let events = self
-                .events
-                .as_ref()
-                .ok_or(InternalError::InternalError("Success events is null".to_string()))?;
-            Ok(TransactionResult::Success(Success {
-                events,
-            }))
+            let events = self.events.as_ref().ok_or(InternalError::InternalError(
+                "Success events is null".to_string(),
+            ))?;
+            Ok(TransactionResult::Success(Success { events }))
         } else {
-            let reason = self
-                .reject
-                .as_ref()
-                .ok_or(InternalError::InternalError("Success events is null".to_string()))?;
-            Ok(TransactionResult::Rejected(Rejected {
-                reason,
-            }))
+            let reason = self.reject.as_ref().ok_or(InternalError::InternalError(
+                "Success events is null".to_string(),
+            ))?;
+            Ok(TransactionResult::Rejected(Rejected { reason }))
         }
     }
 }
@@ -287,7 +299,9 @@ impl Success<'_> {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<usize>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, &Event, AdditionalFields>> {
         if first.is_some() && last.is_some() {
@@ -322,9 +336,7 @@ impl Success<'_> {
             Connection::with_additional_fields(
                 start == 0,
                 end == self.events.len(),
-                AdditionalFields {
-                    total_count,
-                },
+                AdditionalFields { total_count },
             );
         connection.edges = edges;
         Ok(connection)

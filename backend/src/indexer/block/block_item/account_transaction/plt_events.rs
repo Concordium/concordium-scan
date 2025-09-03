@@ -3,6 +3,7 @@
 //! token events during block processing.
 
 use crate::transaction_event::protocol_level_tokens::TokenUpdate;
+use chrono::{DateTime, Utc};
 use concordium_rust_sdk::protocol_level_tokens::{self};
 
 /// Collection of prepared token holder events.
@@ -19,9 +20,10 @@ impl PreparedTokenEvents {
         &self,
         tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
+        slot_time: DateTime<Utc>,
     ) -> anyhow::Result<()> {
         for event in &self.events {
-            event.save(tx, transaction_index).await?;
+            event.save(tx, transaction_index, slot_time).await?;
         }
         Ok(())
     }
@@ -48,8 +50,9 @@ impl PreparedTokenEvent {
         &self,
         tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
+        slot_time: DateTime<Utc>,
     ) -> anyhow::Result<()> {
-        self.event.save(tx, transaction_index).await?;
+        self.event.save(tx, transaction_index, slot_time).await?;
         Ok(())
     }
 }

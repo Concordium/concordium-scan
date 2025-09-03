@@ -1335,6 +1335,17 @@ type GasRewardsCpv2Update {
 	chainUpdate: Decimal!
 }
 
+"""
+Represents protocol-level token (PLT) metrics for a given period.
+
+This struct is returned by the GraphQL API and provides summary statistics
+for PLT token activity over a specified time window.
+"""
+type GlobalPltMetrics {
+	eventCount: Int!
+	transferAmount: Float!
+}
+
 type HoldingResponse {
 	address: String!
 	assetName: String!
@@ -2048,33 +2059,6 @@ type PltEventEdge {
 	cursor: String!
 }
 
-"This struct is used to define the GraphQL query for PLT event metrics."
-type PltEventMetrics {
-	transferCount: Int!
-	transferVolume: Float!
-	mintCount: Int!
-	mintVolume: Float!
-	burnCount: Int!
-	burnVolume: Float!
-	tokenModuleCount: Int!
-	totalEventCount: Int!
-	buckets: PltEventMetricsBuckets!
-}
-
-"This struct is used to define the buckets for PLT event metrics."
-type PltEventMetricsBuckets {
-	bucketWidth: TimeSpan!
-	x_Time: [DateTime!]!
-	y_TransferCount: [Int!]!
-	y_TransferVolume: [Float!]!
-	y_MintCount: [Int!]!
-	y_MintVolume: [Float!]!
-	y_BurnCount: [Int!]!
-	y_BurnVolume: [Float!]!
-	y_TokenModuleCount: [Int!]!
-	y_TotalEventCount: [Int!]!
-}
-
 type PltToken {
 	name: String
 	tokenId: String!
@@ -2107,6 +2091,22 @@ type PltTokenEdge {
 	node: PltToken!
 	"A cursor for use in pagination"
 	cursor: String!
+}
+
+"This struct is used to define the buckets for PLT transfer metrics."
+type PltTransferMetricsBuckets {
+	bucketWidth: TimeSpan!
+	x_Time: [DateTime!]!
+	y_TransferCount: [Int!]!
+	y_TransferAmount: [Float!]!
+}
+
+"This struct is used to define the GraphQL query for PLT transfer metrics."
+type PltTransferMetricsByTokenId {
+	transferCount: Int!
+	transferAmount: Float!
+	decimal: Int!
+	buckets: PltTransferMetricsBuckets!
 }
 
 type PoolApy {
@@ -2280,6 +2280,14 @@ type Query {
 	poolRewardMetricsForPassiveDelegation(period: MetricsPeriod!): PoolRewardMetrics!
 	blockMetrics(period: MetricsPeriod!): BlockMetrics!
 	transactionMetrics(period: MetricsPeriod!): TransactionMetrics!
+	"""
+	Query for PLT metrics over a specified time period. (across all plts)
+	returns GlobalPltMetrics plt event_count (Mint/Burn/Transfer etc)
+	and transfer_volume (the total volume of transfers normalized across all
+	plts by their respective decimals)
+	"""
+	globalPltMetrics(period: MetricsPeriod!): GlobalPltMetrics!
+	pltTransferMetricsByTokenId(period: MetricsPeriod!, tokenId: String!): PltTransferMetricsByTokenId!
 	pltEvent(id: ID!): PltEvent!
 	pltEventByTransactionIndex(transactionIndex: ID!): PltEvent!
 	pltEvents(
@@ -2325,7 +2333,6 @@ type Query {
 		before: String
 	): PltAccountAmountConnection!
 	pltUniqueAccounts: Int!
-	pltEventMetrics(period: MetricsPeriod!, tokenId: String): PltEventMetrics!
 }
 
 """
