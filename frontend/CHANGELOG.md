@@ -2,7 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## Unreleased 
+
+### Fixed
+
+- Fixed issue with footer links not redirecting to proper telegram channel.
 
 ## [1.7.24] - 2025-08-29
 
