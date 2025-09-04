@@ -32,7 +32,7 @@
 						]"
 					/>
 					<StableCoinTokenDistributionByHolder
-						:token-transfer-data="pagedData"
+						:token-distribution-data="pagedData"
 						:is-loading="pltHolderLoading"
 						:total-supply="props.totalSupply"
 					/>

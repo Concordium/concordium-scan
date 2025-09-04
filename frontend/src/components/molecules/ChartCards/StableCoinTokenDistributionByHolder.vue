@@ -16,7 +16,7 @@ import { calculatePercentageforBigInt, shortenHash } from '~/utils/format'
 import type { PltAccountAmount } from '~/types/generated'
 
 type Props = {
-	tokenTransferData: PltAccountAmount[]
+	tokenDistributionData: PltAccountAmount[]
 	totalSupply: bigint
 }
 
@@ -30,12 +30,12 @@ const distributionValues = ref<
 // Calculates percentage ownership and shortens addresses for display.
 watchEffect(() => {
 	distributionValues.value =
-		props.tokenTransferData.map(item => {
+		props.tokenDistributionData.map(item => {
 			const address = item.accountAddress.asString
 			const amount = BigInt(item.amount.value)
 			const supply = props.totalSupply
 			const percentage = calculatePercentageforBigInt(amount, supply)
-			const symbol = item.tokenId ?? ''
+			const symbol = item.tokenId
 			return {
 				address: shortenHash(address),
 				percentage: `${percentage}`,
