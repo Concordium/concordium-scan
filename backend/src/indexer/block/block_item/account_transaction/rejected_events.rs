@@ -28,10 +28,8 @@ impl PreparedRejectedEvent {
     ) -> anyhow::Result<Self> {
         let event = match transaction_type.as_ref() {
             Some(&TransactionType::InitContract) | Some(&TransactionType::DeployModule) => {
-                if let RejectReason::ModuleNotWF
-                | RejectReason::InvalidModuleReference {
-                    ..
-                } = reject_reason
+                if let RejectReason::ModuleNotWF | RejectReason::InvalidModuleReference { .. } =
+                    reject_reason
                 {
                     // Trying to initialize a smart contract from invalid module
                     // reference or deploying invalid smart contract modules are not
@@ -46,12 +44,8 @@ impl PreparedRejectedEvent {
                         .decode()
                         .context("Failed decoding account transaction payload")?;
                     let module_reference = match decoded {
-                        Payload::InitContract {
-                            payload,
-                        } => payload.mod_ref,
-                        Payload::DeployModule {
-                            module,
-                        } => module.get_module_ref(),
+                        Payload::InitContract { payload } => payload.mod_ref,
+                        Payload::DeployModule { module } => module.get_module_ref(),
                         _ => anyhow::bail!(
                             "Payload did not match InitContract or DeployModule as expected"
                         ),
@@ -63,10 +57,7 @@ impl PreparedRejectedEvent {
                 }
             }
             Some(&TransactionType::Update) => {
-                if let RejectReason::InvalidContractAddress {
-                    ..
-                } = reject_reason
-                {
+                if let RejectReason::InvalidContractAddress { .. } = reject_reason {
                     // Updating a smart contract instances using invalid contract
                     // addresses, i.e. non existing
                     // instance, are not indexed further.
@@ -93,10 +84,7 @@ impl PreparedRejectedEvent {
                         .payload
                         .decode()
                         .context("Failed decoding account transaction payload")?;
-                    let Payload::Update {
-                        payload,
-                    } = payload
-                    else {
+                    let Payload::Update { payload } = payload else {
                         anyhow::bail!(
                             "Unexpected payload for transaction of type Update: {:?}",
                             payload
@@ -169,13 +157,13 @@ impl PreparedRejectModuleTransaction {
 
 #[derive(Debug)]
 pub struct PreparedRejectContractUpdateTransaction {
-    contract_index:     i64,
+    contract_index: i64,
     contract_sub_index: i64,
 }
 impl PreparedRejectContractUpdateTransaction {
     fn prepare(address: sdk_types::ContractAddress) -> anyhow::Result<Self> {
         Ok(Self {
-            contract_index:     i64::try_from(address.index)?,
+            contract_index: i64::try_from(address.index)?,
             contract_sub_index: i64::try_from(address.subindex)?,
         })
     }

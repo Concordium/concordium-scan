@@ -214,13 +214,13 @@
 					>
 						Holders
 					</TabBarItem>
-					<!-- <TabBarItem
+					<TabBarItem
 						tab-id="analytics"
 						:selected-tab="selectedTab"
 						:on-click="handleSelectTab"
 					>
 						Analytics
-					</TabBarItem> -->
+					</TabBarItem>
 				</TabBar>
 			</div>
 		</header>
@@ -233,7 +233,11 @@
 			v-else-if="selectedTab === 'transactions'"
 			:coin-id="coinId"
 		/>
-		<!-- <Analytics v-else :coin-id="coinId" /> -->
+		<Analytics
+			v-else
+			:coin-id="coinId"
+			:total-supply="BigInt(pltTokenDataRef?.totalSupply ?? 0)"
+		/>
 	</div>
 </template>
 <script lang="ts" setup>
@@ -248,6 +252,7 @@ import Transactions from '~/components/StableCoin/Transactions.vue'
 import { usePltTokenQueryById } from '~/queries/usePltTokenQuery'
 
 import { useRoute } from 'vue-router'
+import Analytics from '~/components/StableCoin/Analytics.vue'
 
 const route = useRoute()
 

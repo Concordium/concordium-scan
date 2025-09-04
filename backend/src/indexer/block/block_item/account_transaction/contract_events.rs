@@ -30,14 +30,14 @@ use futures::future::join_all;
 
 #[derive(Debug)]
 pub struct PreparedContractInitialized {
-    index:                i64,
-    sub_index:            i64,
-    module_reference:     String,
-    name:                 String,
-    amount:               i64,
-    module_link_event:    PreparedModuleLinkAction,
+    index: i64,
+    sub_index: i64,
+    module_reference: String,
+    name: String,
+    amount: i64,
+    module_link_event: PreparedModuleLinkAction,
     transfer_to_contract: PreparedUpdateAccountBalance,
-    cis2_token_events:    Vec<CisEvent>,
+    cis2_token_events: Vec<CisEvent>,
 }
 
 impl PreparedContractInitialized {
@@ -52,7 +52,11 @@ impl PreparedContractInitialized {
         let sub_index = i64::try_from(event.address.subindex)?;
         let module_reference = event.origin_ref;
         // We remove the `init_` prefix from the name to get the contract name.
-        let name = event.init_name.as_contract_name().contract_name().to_string();
+        let name = event
+            .init_name
+            .as_contract_name()
+            .contract_name()
+            .to_string();
         let amount = i64::try_from(event.amount.micro_ccd())?;
 
         let module_link_event = PreparedModuleLinkAction::prepare(
@@ -87,8 +91,11 @@ impl PreparedContractInitialized {
         // handled here while CIS2 events logged in the `ContractInterruptedEvent` and
         // `ContractUpdatedEvent` are handled at its corresponding
         // transaction type.
-        let potential_cis2_events =
-            event.events.iter().filter_map(|log| log.try_into().ok()).collect::<Vec<_>>();
+        let potential_cis2_events = event
+            .events
+            .iter()
+            .filter_map(|log| log.try_into().ok())
+            .collect::<Vec<_>>();
 
         // If the vector `potential_cis2_events` is not empty, we verify that the smart
         // contract supports the CIS2 standard before accepting the events as
@@ -107,7 +114,10 @@ impl PreparedContractInitialized {
             .is_ok_and(|r| r.response.is_support());
 
             if supports_cis2 {
-                potential_cis2_events.into_iter().map(|event: cis2::Event| event.into()).collect()
+                potential_cis2_events
+                    .into_iter()
+                    .map(|event: cis2::Event| event.into())
+                    .collect()
             } else {
                 // If contract does not support `CIS2`, don't consider the events as CIS2
                 // events.
@@ -162,7 +172,9 @@ impl PreparedContractInitialized {
                 .await
                 .context("Failed processing a CIS-2 event")?
         }
-        self.transfer_to_contract.save(tx, Some(transaction_index)).await?;
+        self.transfer_to_contract
+            .save(tx, Some(transaction_index))
+            .await?;
         Ok(())
     }
 }
@@ -180,21 +192,20 @@ impl PreparedContractUpdates {
         data: &BlockData,
         events: &[ContractTraceElement],
     ) -> anyhow::Result<Self> {
-        let trace_elements =
-            join_all(events.iter().enumerate().map(|(trace_element_index, effect)| {
+        let trace_elements = join_all(events.iter().enumerate().map(
+            |(trace_element_index, effect)| {
                 PreparedTraceElement::prepare(
                     node_client.clone(),
                     data,
                     effect,
                     trace_element_index,
                 )
-            }))
-            .await
-            .into_iter()
-            .collect::<Result<Vec<_>, anyhow::Error>>()?;
-        Ok(Self {
-            trace_elements,
-        })
+            },
+        ))
+        .await
+        .into_iter()
+        .collect::<Result<Vec<_>, anyhow::Error>>()?;
+        Ok(Self { trace_elements })
     }
 
     pub async fn save(
@@ -217,12 +228,12 @@ impl PreparedContractUpdates {
 
 #[derive(Debug)]
 struct PreparedTraceElement {
-    height:              i64,
-    contract_index:      i64,
-    contract_sub_index:  i64,
+    height: i64,
+    contract_index: i64,
+    contract_sub_index: i64,
     trace_element_index: i64,
-    cis2_token_events:   Vec<CisEvent>,
-    trace_event:         PreparedContractTraceEvent,
+    cis2_token_events: Vec<CisEvent>,
+    trace_event: PreparedContractTraceEvent,
 }
 
 impl PreparedTraceElement {
@@ -240,37 +251,30 @@ impl PreparedTraceElement {
         let sub_index = i64::try_from(contract_address.subindex)?;
 
         let trace_event = match event {
-            ContractTraceElement::Updated {
-                data: update,
-            } => PreparedContractTraceEvent::Update(PreparedTraceEventUpdate::prepare(
-                update.instigator,
-                update.address,
-                update.amount,
-                data.finalized_block_info.height,
-            )?),
-            ContractTraceElement::Transferred {
-                from,
-                amount,
-                to,
-            } => PreparedContractTraceEvent::Transfer(PreparedTraceEventTransfer::prepare(
-                *from,
-                to,
-                *amount,
-                data.finalized_block_info.height,
-            )?),
-            ContractTraceElement::Interrupted {
-                ..
+            ContractTraceElement::Updated { data: update } => {
+                PreparedContractTraceEvent::Update(PreparedTraceEventUpdate::prepare(
+                    update.instigator,
+                    update.address,
+                    update.amount,
+                    data.finalized_block_info.height,
+                )?)
             }
-            | ContractTraceElement::Resumed {
-                ..
-            } => PreparedContractTraceEvent::NoEvent,
-            ContractTraceElement::Upgraded {
-                address,
-                from,
-                to,
-            } => PreparedContractTraceEvent::Upgrade(PreparedTraceEventUpgrade::prepare(
-                *address, *from, *to,
-            )?),
+            ContractTraceElement::Transferred { from, amount, to } => {
+                PreparedContractTraceEvent::Transfer(PreparedTraceEventTransfer::prepare(
+                    *from,
+                    to,
+                    *amount,
+                    data.finalized_block_info.height,
+                )?)
+            }
+            ContractTraceElement::Interrupted { .. } | ContractTraceElement::Resumed { .. } => {
+                PreparedContractTraceEvent::NoEvent
+            }
+            ContractTraceElement::Upgraded { address, from, to } => {
+                PreparedContractTraceEvent::Upgrade(PreparedTraceEventUpgrade::prepare(
+                    *address, *from, *to,
+                )?)
+            }
         };
 
         // To track CIS2 tokens (e.g., token balances, total supply, token metadata
@@ -294,22 +298,18 @@ impl PreparedTraceElement {
         // `ContractInitializedEvent` are handled at its corresponding
         // transaction type.
         let potential_cis2_events = match event {
-            ContractTraceElement::Updated {
-                data,
-            } => data.events.iter().filter_map(|log| log.try_into().ok()).collect::<Vec<_>>(),
-            ContractTraceElement::Transferred {
-                ..
-            } => vec![],
-            ContractTraceElement::Interrupted {
-                events,
-                ..
-            } => events.iter().filter_map(|log| log.try_into().ok()).collect::<Vec<_>>(),
-            ContractTraceElement::Resumed {
-                ..
-            } => vec![],
-            ContractTraceElement::Upgraded {
-                ..
-            } => vec![],
+            ContractTraceElement::Updated { data } => data
+                .events
+                .iter()
+                .filter_map(|log| log.try_into().ok())
+                .collect::<Vec<_>>(),
+            ContractTraceElement::Transferred { .. } => vec![],
+            ContractTraceElement::Interrupted { events, .. } => events
+                .iter()
+                .filter_map(|log| log.try_into().ok())
+                .collect::<Vec<_>>(),
+            ContractTraceElement::Resumed { .. } => vec![],
+            ContractTraceElement::Upgraded { .. } => vec![],
         };
 
         // If the vector `potential_cis2_events` is not empty, we verify that the smart
@@ -337,7 +337,10 @@ impl PreparedTraceElement {
             .is_ok_and(|r| r.response.is_support());
 
             if supports_cis2 {
-                potential_cis2_events.into_iter().map(|event: cis2::Event| event.into()).collect()
+                potential_cis2_events
+                    .into_iter()
+                    .map(|event: cis2::Event| event.into())
+                    .collect()
             } else {
                 // If contract does not support `CIS2`, don't consider the events as CIS2
                 // events.
@@ -440,8 +443,8 @@ impl PreparedContractTraceEvent {
 
 #[derive(Debug)]
 struct PreparedTraceEventUpgrade {
-    module_removed:        PreparedModuleLinkAction,
-    module_added:          PreparedModuleLinkAction,
+    module_removed: PreparedModuleLinkAction,
+    module_added: PreparedModuleLinkAction,
     contract_last_upgrade: PreparedUpdateContractLastUpgrade,
 }
 
@@ -452,12 +455,12 @@ impl PreparedTraceEventUpgrade {
         to: sdk_types::hashes::ModuleReference,
     ) -> anyhow::Result<Self> {
         Ok(Self {
-            module_removed:        PreparedModuleLinkAction::prepare(
+            module_removed: PreparedModuleLinkAction::prepare(
                 from,
                 address,
                 ModuleReferenceContractLinkAction::Removed,
             )?,
-            module_added:          PreparedModuleLinkAction::prepare(
+            module_added: PreparedModuleLinkAction::prepare(
                 to,
                 address,
                 ModuleReferenceContractLinkAction::Added,
@@ -479,13 +482,13 @@ impl PreparedTraceEventUpgrade {
 
 #[derive(Debug)]
 struct PreparedUpdateContractLastUpgrade {
-    contract_index:     i64,
+    contract_index: i64,
     contract_sub_index: i64,
 }
 impl PreparedUpdateContractLastUpgrade {
     fn prepare(address: ContractAddress) -> anyhow::Result<Self> {
         Ok(Self {
-            contract_index:     i64::try_from(address.index)?,
+            contract_index: i64::try_from(address.index)?,
             contract_sub_index: i64::try_from(address.subindex)?,
         })
     }
@@ -515,7 +518,7 @@ impl PreparedUpdateContractLastUpgrade {
 #[derive(Debug)]
 struct PreparedTraceEventTransfer {
     /// Update the contract balance with the transferred CCD.
-    update_contract_balance:  PreparedUpdateContractBalance,
+    update_contract_balance: PreparedUpdateContractBalance,
     /// Update the account balance receiving CCD.
     update_receiving_account: PreparedUpdateAccountBalance,
 }
@@ -548,7 +551,9 @@ impl PreparedTraceEventTransfer {
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         self.update_contract_balance.save(tx).await?;
-        self.update_receiving_account.save(tx, Some(transaction_index)).await?;
+        self.update_receiving_account
+            .save(tx, Some(transaction_index))
+            .await?;
         Ok(())
     }
 }
@@ -556,7 +561,7 @@ impl PreparedTraceEventTransfer {
 #[derive(Debug)]
 struct PreparedTraceEventUpdate {
     /// Update the caller balance (either an account or contract).
-    sender:             PreparedTraceEventUpdateSender,
+    sender: PreparedTraceEventUpdateSender,
     /// Update the receiving contract balance.
     receiving_contract: PreparedUpdateContractBalance,
 }
@@ -621,10 +626,10 @@ impl PreparedTraceEventUpdate {
 /// Update of the balance of a contract
 #[derive(Debug)]
 struct PreparedUpdateContractBalance {
-    contract_index:     i64,
+    contract_index: i64,
     contract_sub_index: i64,
     /// Difference in CCD balance.
-    change:             i64,
+    change: i64,
 }
 
 impl PreparedUpdateContractBalance {
@@ -1010,11 +1015,17 @@ async fn process_cis2_token_event(
             .execute(tx.as_mut())
             .await
             .with_context(|| {
-                format!("Failed inserting the token transfer event: {:?}", cis2_transfer_event)
+                format!(
+                    "Failed inserting the token transfer event: {:?}",
+                    cis2_transfer_event
+                )
             })?
             .ensure_affected_one_row()
             .with_context(|| {
-                format!("Failed inserting the token transfer event: {:?}", cis2_transfer_event)
+                format!(
+                    "Failed inserting the token transfer event: {:?}",
+                    cis2_transfer_event
+                )
             })?;
         }
 

@@ -76,8 +76,11 @@ impl QueryBlockMetrics {
     ) -> ApiResult<BlockMetrics> {
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
-        let non_circulating_accounts =
-            config.non_circulating_account.iter().map(|a| a.to_string()).collect::<Vec<_>>();
+        let non_circulating_accounts = config
+            .non_circulating_account
+            .iter()
+            .map(|a| a.to_string())
+            .collect::<Vec<_>>();
 
         let latest_block = sqlx::query!(
             "WITH non_circulating_accounts AS (
@@ -147,8 +150,9 @@ impl QueryBlockMetrics {
         .await?;
 
         let bucket_width = period.bucket_width();
-        let bucket_interval: PgInterval =
-            bucket_width.try_into().map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))?;
+        let bucket_interval: PgInterval = bucket_width
+            .try_into()
+            .map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))?;
 
         let bucket_query = sqlx::query!(
             "
@@ -210,12 +214,18 @@ LEFT JOIN LATERAL (
             y_last_total_micro_ccd_staked: Vec::new(),
         };
         for row in bucket_query {
-            buckets.x_time.push(row.bucket_start.ok_or(InternalError::InternalError(
-                "Unexpected missing time for bucket".to_string(),
-            ))?);
+            buckets
+                .x_time
+                .push(row.bucket_start.ok_or(InternalError::InternalError(
+                    "Unexpected missing time for bucket".to_string(),
+                ))?);
             buckets.y_blocks_added.push(row.y_blocks_added.unwrap_or(0));
-            buckets.y_block_time_avg.push(row.y_block_time_avg_s.unwrap_or(0.0));
-            buckets.y_finalization_time_avg.push(row.y_finalization_time_avg_s.unwrap_or(0.0));
+            buckets
+                .y_block_time_avg
+                .push(row.y_block_time_avg_s.unwrap_or(0.0));
+            buckets
+                .y_finalization_time_avg
+                .push(row.y_finalization_time_avg_s.unwrap_or(0.0));
             buckets
                 .y_last_total_micro_ccd_staked
                 .push(row.y_last_total_micro_ccd_staked.unwrap_or(0).try_into()?);
@@ -223,7 +233,9 @@ LEFT JOIN LATERAL (
 
         Ok(BlockMetrics {
             blocks_added: period_query.blocks_added.unwrap_or(0),
-            avg_block_time: period_query.avg_block_time.map(|i| i.microseconds as f64 / 1000000.0),
+            avg_block_time: period_query
+                .avg_block_time
+                .map(|i| i.microseconds as f64 / 1000000.0),
             avg_finalization_time: period_query.avg_finalization_time_s,
             last_block_height: latest_block.height,
             last_total_micro_ccd: latest_block.total_amount.try_into()?,

@@ -12,9 +12,6 @@ on:
         - .github/**
   workflow_dispatch: # allows manual trigger
 
-env:
-  RUST_FMT: "nightly-2023-04-01"
-
 jobs:
   rustfmt:
     name: format
@@ -25,8 +22,8 @@ jobs:
       - name: Check formatting
         working-directory: backend
         run: |
-          rustup +${{ env.RUST_FMT }} component add rustfmt
-          cargo +${{ env.RUST_FMT }} fmt -- --color=always --check
+          rustup component add rustfmt
+          cargo fmt -- --color=always --check
 
   clippy:
     name: clippy

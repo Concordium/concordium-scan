@@ -24,15 +24,27 @@ pub use db::lock::acquire_indexer_lock;
 #[derive(clap::Args)]
 pub struct IndexerServiceConfig {
     /// Request timeout in seconds when querying a Concordium Node.
-    #[arg(long, env = "CCDSCAN_INDEXER_CONFIG_NODE_REQUEST_TIMEOUT", default_value = "60")]
-    pub node_request_timeout:             u64,
+    #[arg(
+        long,
+        env = "CCDSCAN_INDEXER_CONFIG_NODE_REQUEST_TIMEOUT",
+        default_value = "60"
+    )]
+    pub node_request_timeout: u64,
     /// Connection timeout in seconds when connecting a Concordium Node.
-    #[arg(long, env = "CCDSCAN_INDEXER_CONFIG_NODE_CONNECT_TIMEOUT", default_value = "10")]
-    pub node_connect_timeout:             u64,
+    #[arg(
+        long,
+        env = "CCDSCAN_INDEXER_CONFIG_NODE_CONNECT_TIMEOUT",
+        default_value = "10"
+    )]
+    pub node_connect_timeout: u64,
     /// Acquire the indexer advisory lock timeout in seconds when connecting to
     /// the database.
-    #[arg(long, env = "CCDSCAN_INDEXER_CONFIG_DATABASE_INDEXER_LOCK_TIMEOUT", default_value = "5")]
-    pub database_indexer_lock_timeout:    u64,
+    #[arg(
+        long,
+        env = "CCDSCAN_INDEXER_CONFIG_DATABASE_INDEXER_LOCK_TIMEOUT",
+        default_value = "5"
+    )]
+    pub database_indexer_lock_timeout: u64,
     /// Maximum number of blocks being preprocessed in parallel.
     #[arg(
         long,
@@ -42,26 +54,38 @@ pub struct IndexerServiceConfig {
     pub max_parallel_block_preprocessors: usize,
     /// Maximum number of blocks allowed to be batched into the same database
     /// transaction.
-    #[arg(long, env = "CCDSCAN_INDEXER_CONFIG_MAX_PROCESSING_BATCH", default_value = "4")]
-    pub max_processing_batch:             usize,
+    #[arg(
+        long,
+        env = "CCDSCAN_INDEXER_CONFIG_MAX_PROCESSING_BATCH",
+        default_value = "4"
+    )]
+    pub max_processing_batch: usize,
     /// Set the maximum amount of seconds the last finalized block of the node
     /// can be behind before it is deemed too far behind, and another node
     /// is tried.
-    #[arg(long, env = "CCDSCAN_INDEXER_CONFIG_NODE_MAX_BEHIND", default_value = "60")]
-    pub node_max_behind:                  u64,
+    #[arg(
+        long,
+        env = "CCDSCAN_INDEXER_CONFIG_NODE_MAX_BEHIND",
+        default_value = "60"
+    )]
+    pub node_max_behind: u64,
     /// Enables rate limit on the number of requests send through
     /// each connection to the node.
     /// Provided as the number of requests per second.
     #[arg(long, env = "CCDSCAN_INDEXER_CONFIG_NODE_REQUEST_RATE_LIMIT")]
-    pub node_request_rate_limit:          Option<u64>,
+    pub node_request_rate_limit: Option<u64>,
     /// Enables limit on the number of concurrent requests send through each
     /// connection to the node.
     #[arg(long, env = "CCDSCAN_INDEXER_CONFIG_NODE_REQUEST_CONCURRENCY_LIMIT")]
-    pub node_request_concurrency_limit:   Option<usize>,
+    pub node_request_concurrency_limit: Option<usize>,
     /// Set the max number of acceptable successive failures before shutting
     /// down the service.
-    #[arg(long, env = "CCDSCAN_INDEXER_CONFIG_MAX_SUCCESSIVE_FAILURES", default_value = "10")]
-    pub max_successive_failures:          u32,
+    #[arg(
+        long,
+        env = "CCDSCAN_INDEXER_CONFIG_MAX_SUCCESSIVE_FAILURES",
+        default_value = "10"
+    )]
+    pub max_successive_failures: u32,
 }
 
 /// Service traversing each block of the chain, indexing it into a database.
@@ -73,15 +97,15 @@ pub struct IndexerServiceConfig {
 /// count all rows via a table scan.
 pub struct IndexerService {
     /// List of Concordium nodes to cycle through when traversing.
-    endpoints:           Vec<v2::Endpoint>,
+    endpoints: Vec<v2::Endpoint>,
     /// The block height to traversing from.
-    start_height:        u64,
+    start_height: u64,
     /// State tracked by the block preprocessor during traversing.
     block_pre_processor: block_preprocessor::BlockPreProcessor,
     /// State tracked by the block processor, which is submitting to the
     /// database.
-    block_processor:     block_processor::BlockProcessor,
-    config:              IndexerServiceConfig,
+    block_processor: block_processor::BlockProcessor,
+    config: IndexerServiceConfig,
 }
 
 impl IndexerService {

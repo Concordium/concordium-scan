@@ -13,7 +13,7 @@ use concordium_rust_sdk::{
 #[derive(Debug)]
 pub struct PreparedModuleDeployed {
     module_reference: String,
-    schema:           Option<Vec<u8>>,
+    schema: Option<Vec<u8>>,
 }
 
 impl PreparedModuleDeployed {
@@ -33,7 +33,9 @@ impl PreparedModuleDeployed {
         }
         .ok();
 
-        let schema = schema.as_ref().map(concordium_rust_sdk::base::contracts_common::to_bytes);
+        let schema = schema
+            .as_ref()
+            .map(concordium_rust_sdk::base::contracts_common::to_bytes);
 
         Ok(Self {
             module_reference: module_reference.into(),
@@ -65,10 +67,10 @@ impl PreparedModuleDeployed {
 
 #[derive(Debug)]
 pub struct PreparedModuleLinkAction {
-    module_reference:   String,
-    contract_index:     i64,
+    module_reference: String,
+    contract_index: i64,
     contract_sub_index: i64,
-    link_action:        ModuleReferenceContractLinkAction,
+    link_action: ModuleReferenceContractLinkAction,
 }
 impl PreparedModuleLinkAction {
     pub fn prepare(

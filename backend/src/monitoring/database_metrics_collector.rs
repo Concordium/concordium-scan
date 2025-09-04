@@ -24,11 +24,17 @@ trait DatabasePool {
 /// implementation of Database pool for the Pg pool which allows to swap out the
 /// implementation for testing.
 impl DatabasePool for PgPool {
-    fn get_max_connections(&self) -> u32 { self.options().get_max_connections() }
+    fn get_max_connections(&self) -> u32 {
+        self.options().get_max_connections()
+    }
 
-    fn size(&self) -> u32 { self.size() }
+    fn size(&self) -> u32 {
+        self.size()
+    }
 
-    fn num_idle(&self) -> usize { self.num_idle() }
+    fn num_idle(&self) -> usize {
+        self.num_idle()
+    }
 }
 
 /// Database metrics collector defines our DatabasePool trait so that the
@@ -43,9 +49,7 @@ pub struct DatabaseMetricsCollector<DatabasePool> {
 /// self
 impl<DatabasePool> DatabaseMetricsCollector<DatabasePool> {
     pub fn new(pool: DatabasePool) -> Self {
-        Self {
-            pool,
-        }
+        Self { pool }
     }
 }
 
@@ -108,18 +112,24 @@ mod tests {
     /// dummy pool definition for testing
     #[derive(Debug)]
     struct DummyPool {
-        max:  u32,
+        max: u32,
         size: u32,
         idle: usize,
     }
 
     // implementation of dummy connection pool
     impl DatabasePool for DummyPool {
-        fn get_max_connections(&self) -> u32 { self.max }
+        fn get_max_connections(&self) -> u32 {
+            self.max
+        }
 
-        fn size(&self) -> u32 { self.size }
+        fn size(&self) -> u32 {
+            self.size
+        }
 
-        fn num_idle(&self) -> usize { self.idle }
+        fn num_idle(&self) -> usize {
+            self.idle
+        }
     }
 
     /// confirms that the expected metrics are encoded when we set up a dummy
@@ -127,14 +137,12 @@ mod tests {
     #[test]
     fn encodes_expected_metrics() {
         let pool = DummyPool {
-            max:  10,
+            max: 10,
             size: 8,
             idle: 3,
         };
 
-        let collector = DatabaseMetricsCollector {
-            pool,
-        };
+        let collector = DatabaseMetricsCollector { pool };
 
         let mut registry = prometheus_client::registry::Registry::default();
         registry.register_collector(Box::new(collector));

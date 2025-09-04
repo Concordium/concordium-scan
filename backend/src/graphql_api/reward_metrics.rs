@@ -61,8 +61,9 @@ async fn pool_reward_metrics(
     let end_time = Utc::now();
     let before_time = end_time - period.as_duration();
     let bucket_width = period.bucket_width();
-    let bucket_interval: PgInterval =
-        bucket_width.try_into().map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))?;
+    let bucket_interval: PgInterval = bucket_width
+        .try_into()
+        .map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))?;
     let rows = sqlx::query!(
             r#"
             SELECT
@@ -139,11 +140,13 @@ async fn reward_metrics(
     let before_time = end_time - period.as_duration();
     let bucket_width = period.bucket_width();
 
-    let bucket_interval: PgInterval =
-        bucket_width.try_into().map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))?;
+    let bucket_interval: PgInterval = bucket_width
+        .try_into()
+        .map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))?;
 
-    let value: Option<i64> =
-        account_id.map(|x| x.try_into().map_err(ApiError::InvalidIdInt)).transpose()?;
+    let value: Option<i64> = account_id
+        .map(|x| x.try_into().map_err(ApiError::InvalidIdInt))
+        .transpose()?;
 
     let rows = sqlx::query!(
         r#"
@@ -174,8 +177,10 @@ async fn reward_metrics(
     .fetch_all(pool)
     .await?;
 
-    let (x_time, y_sum_rewards): (Vec<DateTime>, Vec<i64>) =
-        rows.iter().map(|row| (row.bucket_time, row.accumulated_amount)).unzip();
+    let (x_time, y_sum_rewards): (Vec<DateTime>, Vec<i64>) = rows
+        .iter()
+        .map(|row| (row.bucket_time, row.accumulated_amount))
+        .unzip();
 
     let sum_reward_amount = y_sum_rewards.iter().sum();
 
@@ -192,9 +197,9 @@ async fn reward_metrics(
 #[derive(SimpleObject)]
 pub struct RewardMetricsBuckets {
     /// The width (time interval) of each bucket.
-    bucket_width:  TimeSpan,
+    bucket_width: TimeSpan,
     #[graphql(name = "x_Time")]
-    x_time:        Vec<DateTime>,
+    x_time: Vec<DateTime>,
     #[graphql(name = "y_SumRewards")]
     y_sum_rewards: Vec<i64>,
 }
@@ -202,13 +207,13 @@ pub struct RewardMetricsBuckets {
 #[derive(SimpleObject)]
 pub struct PoolRewardMetricsBuckets {
     /// The width (time interval) of each bucket.
-    bucket_width:             TimeSpan,
+    bucket_width: TimeSpan,
     #[graphql(name = "x_Time")]
-    x_time:                   Vec<DateTime>,
+    x_time: Vec<DateTime>,
     #[graphql(name = "y_SumTotalRewards")]
-    y_sum_total_rewards:      Vec<Long>,
+    y_sum_total_rewards: Vec<Long>,
     #[graphql(name = "y_SumBakerRewards")]
-    y_sum_baker_rewards:      Vec<Long>,
+    y_sum_baker_rewards: Vec<Long>,
     #[graphql(name = "y_SumDelegatorsRewards")]
     y_sum_delegators_rewards: Vec<Long>,
 }
@@ -218,7 +223,7 @@ pub struct RewardMetrics {
     /// Total rewards at the end of the interval
     sum_reward_amount: i64,
     /// Bucket-wise data for rewards
-    buckets:           RewardMetricsBuckets,
+    buckets: RewardMetricsBuckets,
 }
 
 #[derive(SimpleObject)]

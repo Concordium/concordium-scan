@@ -22,7 +22,9 @@ pub async fn run(
 ) -> anyhow::Result<SchemaVersion> {
     // Run database migration first to add the new columns.
     tx.as_mut()
-        .execute(sqlx::raw_sql(include_str!("./m0010_fill_capital_bound_and_leverage_bound.sql")))
+        .execute(sqlx::raw_sql(include_str!(
+            "./m0010_fill_capital_bound_and_leverage_bound.sql"
+        )))
         .await?;
 
     let endpoint = endpoints.first().context(format!(
@@ -32,13 +34,18 @@ pub async fn run(
     let mut client = v2::Client::new(endpoint.clone()).await?;
 
     // Get the current `epoch_duration` value.
-    let current_epoch_duration =
-        client.get_consensus_info().await?.epoch_duration.num_milliseconds();
+    let current_epoch_duration = client
+        .get_consensus_info()
+        .await?
+        .epoch_duration
+        .num_milliseconds();
 
     // Get the current `reward_period_length`, `capital_bound` and `leverage_bound`
     // value.
-    let current_chain_parmeters =
-        client.get_block_chain_parameters(BlockIdentifier::LastFinal).await?.response;
+    let current_chain_parmeters = client
+        .get_block_chain_parameters(BlockIdentifier::LastFinal)
+        .await?
+        .response;
     let (current_reward_period_length, capital_bound, leverage_bound) =
         match current_chain_parmeters {
             ChainParameters::V3(chain_parameters_v3) => (
@@ -62,7 +69,9 @@ pub async fn run(
             ),
         };
 
-    let capital_bound = i64::from(u32::from(PartsPerHundredThousands::from(capital_bound.bound)));
+    let capital_bound = i64::from(u32::from(PartsPerHundredThousands::from(
+        capital_bound.bound,
+    )));
 
     sqlx::query(
         "INSERT INTO current_chain_parameters (
@@ -83,7 +92,9 @@ pub async fn run(
             ",
     )
     .bind(current_epoch_duration)
-    .bind(i64::try_from(current_reward_period_length.reward_period_epochs().epoch)?)
+    .bind(i64::try_from(
+        current_reward_period_length.reward_period_epochs().epoch,
+    )?)
     .bind(capital_bound)
     .bind(i64::try_from(leverage_bound.numerator)?)
     .bind(i64::try_from(leverage_bound.denominator)?)
