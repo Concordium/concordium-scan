@@ -39,37 +39,37 @@ pub struct PreparedBlockItem {
     pub block_item_hash: String,
     /// Cost for the account signing the block item (in microCCD), always 0 for
     /// update and credential deployments.
-    ccd_cost:            i64,
+    ccd_cost: i64,
     /// Energy cost of the execution of the block item.
-    energy_cost:         i64,
+    energy_cost: i64,
     /// Absolute height of the block.
-    pub block_height:    i64,
+    pub block_height: i64,
     /// Base58check representation of the account address which signed the
     /// block, none for update and credential deployments.
-    sender:              Option<String>,
+    sender: Option<String>,
     /// Whether the block item is an account transaction, update or credential
     /// deployment.
-    transaction_type:    DbTransactionType,
+    transaction_type: DbTransactionType,
     /// The type of account transaction, is none if not an account transaction
     /// or if the account transaction got rejected due to deserialization
     /// failing.
-    account_type:        Option<AccountTransactionType>,
+    account_type: Option<AccountTransactionType>,
     /// The type of credential deployment transaction, is none if not a
     /// credential deployment transaction.
-    credential_type:     Option<CredentialDeploymentTransactionType>,
+    credential_type: Option<CredentialDeploymentTransactionType>,
     /// The type of update transaction, is none if not an update transaction.
-    update_type:         Option<UpdateTransactionType>,
+    update_type: Option<UpdateTransactionType>,
     /// Whether the block item was successful i.e. not rejected.
-    success:             bool,
+    success: bool,
     /// Events of the block item. Is none for rejected block items.
-    events:              Option<serde_json::Value>,
+    events: Option<serde_json::Value>,
     /// Reject reason the block item. Is none for successful block items.
-    reject:              Option<PreparedTransactionRejectReason>,
+    reject: Option<PreparedTransactionRejectReason>,
     /// All affected accounts for this transaction. Each entry is the binary
     /// representation of an account address.
-    affected_accounts:   Vec<Vec<u8>>,
+    affected_accounts: Vec<Vec<u8>>,
     /// Block item events prepared for inserting into the database.
-    prepared_event:      PreparedBlockItemEvent,
+    prepared_event: PreparedBlockItemEvent,
 }
 
 impl PreparedBlockItem {
@@ -87,7 +87,11 @@ impl PreparedBlockItem {
             // non-zero energy_cost.
             0
         } else {
-            i64::try_from(data.chain_parameters.ccd_cost(item_summary.energy_cost).micro_ccd)?
+            i64::try_from(
+                data.chain_parameters
+                    .ccd_cost(item_summary.energy_cost)
+                    .micro_ccd,
+            )?
         };
 
         let energy_cost = i64::try_from(item_summary.energy_cost.energy)?;
@@ -97,12 +101,22 @@ impl PreparedBlockItem {
                 BlockItemSummaryDetails::AccountTransaction(details) => {
                     let account_transaction_type =
                         details.transaction_type().map(AccountTransactionType::from);
-                    (DbTransactionType::Account, account_transaction_type, None, None)
+                    (
+                        DbTransactionType::Account,
+                        account_transaction_type,
+                        None,
+                        None,
+                    )
                 }
                 BlockItemSummaryDetails::AccountCreation(details) => {
                     let credential_type =
                         CredentialDeploymentTransactionType::from(details.credential_type);
-                    (DbTransactionType::CredentialDeployment, None, Some(credential_type), None)
+                    (
+                        DbTransactionType::CredentialDeployment,
+                        None,
+                        Some(credential_type),
+                        None,
+                    )
                 }
                 BlockItemSummaryDetails::Update(details) => {
                     let update_type = UpdateTransactionType::from(details.update_type());
@@ -126,11 +140,7 @@ impl PreparedBlockItem {
         } else {
             let reject =
                 if let BlockItemSummaryDetails::AccountTransaction(AccountTransactionDetails {
-                    effects:
-                        AccountTransactionEffects::None {
-                            reject_reason,
-                            ..
-                        },
+                    effects: AccountTransactionEffects::None { reject_reason, .. },
                     ..
                 }) = &item_summary.details
                 {
@@ -252,12 +262,15 @@ impl PreparedBlockItem {
         .await?
         .ensure_affected_rows(self.affected_accounts.len().try_into()?)
         .context("Failed incrementing num_txs for account")?;
-        self.prepared_event.save(tx, tx_idx, slot_time).await.with_context(|| {
-            format!(
-                "Failed processing block item event from {:?} transaction",
-                self.transaction_type
-            )
-        })?;
+        self.prepared_event
+            .save(tx, tx_idx, slot_time)
+            .await
+            .with_context(|| {
+                format!(
+                    "Failed processing block item event from {:?} transaction",
+                    self.transaction_type
+                )
+            })?;
         Ok(())
     }
 }
@@ -323,7 +336,9 @@ impl PreparedBlockItemEvent {
                 event.save(tx, transaction_index).await
             }
             PreparedBlockItemEvent::AccountTransaction(account_transaction_event) => {
-                account_transaction_event.save(tx, transaction_index, slot_time).await
+                account_transaction_event
+                    .save(tx, transaction_index, slot_time)
+                    .await
             }
             PreparedBlockItemEvent::ChainUpdate => Ok(()),
             PreparedBlockItemEvent::TokenCreation(event) => {

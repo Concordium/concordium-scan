@@ -56,7 +56,7 @@ pub async fn run(
             };
             let updated_events = serde_json::to_value(vec![
                 Event::CredentialDeployed(credentials::CredentialDeployed {
-                    reg_id:          details.reg_id.to_string(),
+                    reg_id: details.reg_id.to_string(),
                     account_address: details.address.into(),
                 }),
                 Event::AccountCreated(credentials::AccountCreated {

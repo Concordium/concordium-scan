@@ -35,15 +35,15 @@ pub struct UnknownRejectReason {
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
 pub struct AddressNotFoundRejectReason {
-    pub index:   String,
+    pub index: String,
     pub address: CborTokenHolder,
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
 pub struct TokenBalanceInsufficientRejectReason {
-    pub index:             String,
+    pub index: String,
     pub available_balance: TokenAmount,
-    pub required_balance:  TokenAmount,
+    pub required_balance: TokenAmount,
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
@@ -53,26 +53,26 @@ pub struct DeserializationFailureRejectReason {
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
 pub struct UnsupportedOperationRejectReason {
-    pub index:          String,
+    pub index: String,
     pub operation_type: String,
-    pub reason:         Option<String>,
+    pub reason: Option<String>,
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
 pub struct OperationNotPermittedRejectReason {
-    pub index:   String,
+    pub index: String,
     pub address: Option<CborTokenHolder>,
-    pub reason:  Option<String>,
+    pub reason: Option<String>,
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
 pub struct MintWouldOverflowRejectReason {
     /// The index in the list of operations of the failing operation.
-    pub index:                    String,
+    pub index: String,
     /// The requested amount to mint.
-    pub requested_amount:         TokenAmount,
+    pub requested_amount: TokenAmount,
     /// The current supply of the token.
-    pub current_supply:           TokenAmount,
+    pub current_supply: TokenAmount,
     /// The maximum representable token amount.
     pub max_representable_amount: TokenAmount,
 }
@@ -117,7 +117,7 @@ impl From<concordium_rust_sdk::protocol_level_tokens::AddressNotFoundRejectReaso
         reason: concordium_rust_sdk::protocol_level_tokens::AddressNotFoundRejectReason,
     ) -> Self {
         AddressNotFoundRejectReason {
-            index:   reason.index.to_string(),
+            index: reason.index.to_string(),
             address: reason.address.into(),
         }
     }
@@ -130,9 +130,9 @@ impl From<concordium_rust_sdk::protocol_level_tokens::TokenBalanceInsufficientRe
         reason: concordium_rust_sdk::protocol_level_tokens::TokenBalanceInsufficientRejectReason,
     ) -> Self {
         TokenBalanceInsufficientRejectReason {
-            index:             reason.index.to_string(),
+            index: reason.index.to_string(),
             available_balance: reason.available_balance.into(),
-            required_balance:  reason.required_balance.into(),
+            required_balance: reason.required_balance.into(),
         }
     }
 }
@@ -156,9 +156,9 @@ impl From<concordium_rust_sdk::protocol_level_tokens::UnsupportedOperationReject
         reason: concordium_rust_sdk::protocol_level_tokens::UnsupportedOperationRejectReason,
     ) -> Self {
         UnsupportedOperationRejectReason {
-            index:          reason.index.to_string(),
+            index: reason.index.to_string(),
             operation_type: reason.operation_type,
-            reason:         reason.reason,
+            reason: reason.reason,
         }
     }
 }
@@ -170,9 +170,9 @@ impl From<concordium_rust_sdk::protocol_level_tokens::OperationNotPermittedRejec
         reason: concordium_rust_sdk::protocol_level_tokens::OperationNotPermittedRejectReason,
     ) -> Self {
         OperationNotPermittedRejectReason {
-            index:   reason.index.to_string(),
+            index: reason.index.to_string(),
             address: reason.address.map(Into::into),
-            reason:  reason.reason,
+            reason: reason.reason,
         }
     }
 }
@@ -184,9 +184,9 @@ impl From<concordium_rust_sdk::protocol_level_tokens::MintWouldOverflowRejectRea
         reason: concordium_rust_sdk::protocol_level_tokens::MintWouldOverflowRejectReason,
     ) -> Self {
         MintWouldOverflowRejectReason {
-            index:                    reason.index.to_string(),
-            requested_amount:         reason.requested_amount.into(),
-            current_supply:           reason.current_supply.into(),
+            index: reason.index.to_string(),
+            requested_amount: reason.requested_amount.into(),
+            current_supply: reason.current_supply.into(),
             max_representable_amount: reason.max_representable_amount.into(),
         }
     }
@@ -216,33 +216,33 @@ pub enum TokenUpdateModuleType {
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
 pub struct CreatePlt {
     /// The symbol of the token.
-    pub token_id:                  String,
+    pub token_id: String,
     /// A SHA256 hash that identifies the token module implementation.
-    pub token_module:              String,
+    pub token_module: String,
     /// The number of decimal places used in the representation of amounts of
     /// this token. This determines the smallest representable fraction of the
     /// token.
-    pub decimals:                  u8,
+    pub decimals: u8,
     /// The initialization parameters of the token, encoded in CBOR.
     pub initialization_parameters: InitializationParameters,
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
 pub struct MetadataUrl {
-    pub url:              String,
+    pub url: String,
     pub checksum_sha_256: Option<String>,
-    pub additional:       Option<serde_json::Value>,
+    pub additional: Option<serde_json::Value>,
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
 pub struct InitializationParameters {
-    pub name:               String,
-    pub metadata:           MetadataUrl,
-    pub allow_list:         Option<bool>,
-    pub deny_list:          Option<bool>,
-    pub mintable:           Option<bool>,
-    pub burnable:           Option<bool>,
-    pub initial_supply:     Option<TokenAmount>,
+    pub name: String,
+    pub metadata: MetadataUrl,
+    pub allow_list: Option<bool>,
+    pub deny_list: Option<bool>,
+    pub mintable: Option<bool>,
+    pub burnable: Option<bool>,
+    pub initial_supply: Option<TokenAmount>,
     // Todo: Refactior convert this to CborTokenHolder (to ensure backwards compatibility will
     // update the type when we reset devnet db)
     pub governance_account: CborHolderAccount,
@@ -259,7 +259,7 @@ impl From<concordium_rust_sdk::protocol_level_tokens::CborTokenHolder> for CborT
             concordium_rust_sdk::protocol_level_tokens::CborTokenHolder::Account(account) => {
                 CborTokenHolder {
                     account: CborHolderAccount {
-                        address:   account.address.into(),
+                        address: account.address.into(),
                         coin_info: account.coin_info.map(|info| CoinInfo {
                             coin_info_code: match info {
                                 concordium_rust_sdk::protocol_level_tokens::CoinInfo::CCD => {
@@ -279,7 +279,7 @@ impl From<concordium_rust_sdk::protocol_level_tokens::CborTokenHolder> for CborH
         match holder {
             concordium_rust_sdk::protocol_level_tokens::CborTokenHolder::Account(account) => {
                 CborHolderAccount {
-                    address:   account.address.into(),
+                    address: account.address.into(),
                     coin_info: account.coin_info.map(|info| CoinInfo {
                         coin_info_code: match info {
                             concordium_rust_sdk::protocol_level_tokens::CoinInfo::CCD => {
@@ -295,7 +295,7 @@ impl From<concordium_rust_sdk::protocol_level_tokens::CborTokenHolder> for CborH
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
 pub struct CborHolderAccount {
-    pub address:   AccountAddress,
+    pub address: AccountAddress,
     pub coin_info: Option<CoinInfo>,
 }
 
@@ -311,11 +311,14 @@ impl From<concordium_rust_sdk::protocol_level_tokens::TokenModuleInitializationP
         params: concordium_rust_sdk::protocol_level_tokens::TokenModuleInitializationParameters,
     ) -> Self {
         InitializationParameters {
-            name:               params.name,
-            metadata:           MetadataUrl {
-                url:              params.metadata.url,
-                checksum_sha_256: params.metadata.checksum_sha_256.map(|h| hex::encode(h.as_ref())),
-                additional:       if params.metadata.additional.is_empty() {
+            name: params.name,
+            metadata: MetadataUrl {
+                url: params.metadata.url,
+                checksum_sha_256: params
+                    .metadata
+                    .checksum_sha_256
+                    .map(|h| hex::encode(h.as_ref())),
+                additional: if params.metadata.additional.is_empty() {
                     None
                 } else {
                     Some(serde_json::Value::Object(
@@ -330,11 +333,11 @@ impl From<concordium_rust_sdk::protocol_level_tokens::TokenModuleInitializationP
                     ))
                 },
             },
-            allow_list:         params.allow_list,
-            deny_list:          params.deny_list,
-            mintable:           params.mintable,
-            burnable:           params.burnable,
-            initial_supply:     params.initial_supply.map(Into::into),
+            allow_list: params.allow_list,
+            deny_list: params.deny_list,
+            mintable: params.mintable,
+            burnable: params.burnable,
+            initial_supply: params.initial_supply.map(Into::into),
             governance_account: params.governance_account.into(),
         }
     }
@@ -345,14 +348,14 @@ pub struct TokenCreationDetails {
     // The update payload used to create the token.
     pub create_plt: CreatePlt,
     // The events generated by the token module during the creation of the token.
-    pub events:     Vec<TokenUpdate>,
+    pub events: Vec<TokenUpdate>,
 }
 
 /// Common event struct for both Holder and Governance events.
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
 pub struct TokenUpdate {
     pub token_id: String,
-    pub event:    TokenEventDetails,
+    pub event: TokenEventDetails,
 }
 
 /// PreparedTokenUpdate:
@@ -369,14 +372,14 @@ pub struct TokenUpdate {
 
 #[derive(Debug, Clone)]
 pub struct PreparedTokenUpdate {
-    pub token_id:          String,
-    pub event:             TokenEventDetails,
-    pub event_type:        TokenUpdateEventType,
+    pub token_id: String,
+    pub event: TokenEventDetails,
+    pub event_type: TokenUpdateEventType,
     pub token_module_type: Option<TokenUpdateModuleType>,
     pub plt_amount_change: BigDecimal,
-    pub target:            Option<String>,
-    pub to:                Option<String>,
-    pub from:              Option<String>,
+    pub target: Option<String>,
+    pub to: Option<String>,
+    pub from: Option<String>,
 }
 
 #[derive(Union, Serialize, Deserialize, Clone, Debug)]
@@ -391,7 +394,7 @@ pub enum TokenEventDetails {
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
 pub struct TokenModuleEvent {
     pub event_type: String,
-    pub details:    serde_json::Value,
+    pub details: serde_json::Value,
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
@@ -401,7 +404,7 @@ pub struct TokenHolder {
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
 pub struct TokenAmount {
-    pub value:    String,
+    pub value: String,
     pub decimals: String,
 }
 
@@ -412,10 +415,10 @@ pub struct Memo {
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
 pub struct TokenTransferEvent {
-    pub from:   TokenHolder,
-    pub to:     TokenHolder,
+    pub from: TokenHolder,
+    pub to: TokenHolder,
     pub amount: TokenAmount,
-    pub memo:   Option<Memo>,
+    pub memo: Option<Memo>,
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
@@ -433,9 +436,7 @@ pub struct BurnEvent {
 impl From<concordium_rust_sdk::protocol_level_tokens::TokenHolder> for TokenHolder {
     fn from(holder: concordium_rust_sdk::protocol_level_tokens::TokenHolder) -> Self {
         match holder {
-            concordium_rust_sdk::protocol_level_tokens::TokenHolder::Account {
-                address,
-            } => Self {
+            concordium_rust_sdk::protocol_level_tokens::TokenHolder::Account { address } => Self {
                 address: address.into(),
             },
         }
@@ -445,7 +446,7 @@ impl From<concordium_rust_sdk::protocol_level_tokens::TokenHolder> for TokenHold
 impl From<concordium_rust_sdk::protocol_level_tokens::TokenAmount> for TokenAmount {
     fn from(amount: concordium_rust_sdk::protocol_level_tokens::TokenAmount) -> Self {
         Self {
-            value:    amount.value().to_string(),
+            value: amount.value().to_string(),
             decimals: amount.decimals().to_string(),
         }
     }
@@ -465,7 +466,7 @@ impl From<concordium_rust_sdk::protocol_level_tokens::TokenEventDetails> for Tok
         match event {
             TokenEventDetailsType::Module(e) => TokenEventDetails::Module(TokenModuleEvent {
                 event_type: e.event_type.as_ref().to_string(),
-                details:    {
+                details: {
                     match protocol_level_tokens::TokenModuleEvent::decode_token_module_event(&e) {
                         Ok(details) => {
                             serde_json::to_value(details).unwrap_or(serde_json::Value::Null)
@@ -479,10 +480,10 @@ impl From<concordium_rust_sdk::protocol_level_tokens::TokenEventDetails> for Tok
                 },
             }),
             TokenEventDetailsType::Transfer(e) => TokenEventDetails::Transfer(TokenTransferEvent {
-                from:   e.from.into(),
-                to:     e.to.into(),
+                from: e.from.into(),
+                to: e.to.into(),
                 amount: e.amount.into(),
-                memo:   e.memo.map(Into::into),
+                memo: e.memo.map(Into::into),
             }),
             TokenEventDetailsType::Mint(e) => TokenEventDetails::Mint(MintEvent {
                 target: e.target.into(),
@@ -502,7 +503,7 @@ impl TokenUpdate {
     ) -> anyhow::Result<Self> {
         Ok(TokenUpdate {
             token_id: event.token_id.clone().into(),
-            event:    event.event.clone().into(),
+            event: event.event.clone().into(),
         })
     }
 
@@ -624,17 +625,21 @@ impl PreparedTokenUpdate {
         .await?;
 
         // Update cumulative event count metrics (metrics_plt table)
-        self.update_metrics_plt_cumulative_event_count(tx, slot_time).await?;
+        self.update_metrics_plt_cumulative_event_count(tx, slot_time)
+            .await?;
 
         match self.event_type {
             TokenUpdateEventType::Mint => {
                 if let Some(ref target) = self.target {
-                    let previous_amount =
-                        self.plt_amount_accross_tokens_by_account(tx, target).await?;
+                    let previous_amount = self
+                        .plt_amount_accross_tokens_by_account(tx, target)
+                        .await?;
                     self.update_total_minted(tx).await?;
-                    self.update_account_balance(tx, target, &self.plt_amount_change).await?;
-                    let current_amount =
-                        self.plt_amount_accross_tokens_by_account(tx, target).await?;
+                    self.update_account_balance(tx, target, &self.plt_amount_change)
+                        .await?;
+                    let current_amount = self
+                        .plt_amount_accross_tokens_by_account(tx, target)
+                        .await?;
                     if previous_amount == BigDecimal::from(0)
                         && current_amount > BigDecimal::from(0)
                     {
@@ -645,13 +650,16 @@ impl PreparedTokenUpdate {
             }
             TokenUpdateEventType::Burn => {
                 if let Some(ref target) = self.target {
-                    let previous_amount =
-                        self.plt_amount_accross_tokens_by_account(tx, target).await?;
+                    let previous_amount = self
+                        .plt_amount_accross_tokens_by_account(tx, target)
+                        .await?;
 
                     self.update_total_burned(tx).await?;
-                    self.update_account_balance(tx, target, &(-&self.plt_amount_change)).await?;
-                    let current_amount =
-                        self.plt_amount_accross_tokens_by_account(tx, target).await?;
+                    self.update_account_balance(tx, target, &(-&self.plt_amount_change))
+                        .await?;
+                    let current_amount = self
+                        .plt_amount_accross_tokens_by_account(tx, target)
+                        .await?;
                     if previous_amount > BigDecimal::from(0)
                         && current_amount == BigDecimal::from(0)
                     {
@@ -666,7 +674,8 @@ impl PreparedTokenUpdate {
                         self.plt_amount_accross_tokens_by_account(tx, from).await?;
                     let previous_to_amount =
                         self.plt_amount_accross_tokens_by_account(tx, to).await?;
-                    self.update_transfer_balances(tx, from, to, &self.plt_amount_change).await?;
+                    self.update_transfer_balances(tx, from, to, &self.plt_amount_change)
+                        .await?;
 
                     // This SQL block updates the global PLT metrics table (metrics_plt) for a
                     // transfer event:
@@ -892,7 +901,12 @@ impl PreparedTokenUpdate {
 
         let from_account_address =
             concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(from).map_err(
-                |_| anyhow::anyhow!("Failed to convert string into account address type: {}", from),
+                |_| {
+                    anyhow::anyhow!(
+                        "Failed to convert string into account address type: {}",
+                        from
+                    )
+                },
             )?;
         let from_canonical_address = from_account_address.get_canonical_address();
 
@@ -1028,7 +1042,10 @@ impl PreparedTokenUpdate {
         .await?;
 
         if unique_account_count < 0 {
-            panic!("unique_account_count went negative: {}", unique_account_count);
+            panic!(
+                "unique_account_count went negative: {}",
+                unique_account_count
+            );
         }
         Ok(())
     }

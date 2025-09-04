@@ -20,7 +20,10 @@ pub async fn save_genesis_data(
     let mut client = v2::Client::new(endpoint)
         .await
         .context("Failed to establish connection to Concordium Node")?;
-    let mut tx = pool.begin().await.context("Failed to create SQL transaction")?;
+    let mut tx = pool
+        .begin()
+        .await
+        .context("Failed to create SQL transaction")?;
     let genesis_height = v2::BlockIdentifier::AbsoluteHeight(0.into());
 
     let genesis_block_info = client.get_block_info(genesis_height).await?.response;
@@ -32,8 +35,12 @@ pub async fn save_genesis_data(
         compute_validator_staking_information(&mut client, genesis_height).await?;
     let total_staked = i64::try_from(total_staked_capital.micro_ccd())?;
 
-    let total_amount =
-        i64::try_from(genesis_tokenomics.common_reward_data().total_amount.micro_ccd())?;
+    let total_amount = i64::try_from(
+        genesis_tokenomics
+            .common_reward_data()
+            .total_amount
+            .micro_ccd(),
+    )?;
     sqlx::query!(
         "INSERT INTO blocks (
             height,
@@ -52,8 +59,13 @@ pub async fn save_genesis_data(
     )
     .execute(&mut *tx)
     .await?;
-    let genesis_bakers_count: i64 =
-        client.get_baker_list(genesis_height).await?.response.count().await.try_into()?;
+    let genesis_bakers_count: i64 = client
+        .get_baker_list(genesis_height)
+        .await?
+        .response
+        .count()
+        .await
+        .try_into()?;
     sqlx::query!(
         "INSERT INTO metrics_bakers (block_height, total_bakers_added, total_bakers_removed)
         VALUES (0, $1, 0)",
@@ -64,7 +76,10 @@ pub async fn save_genesis_data(
 
     let mut genesis_accounts = client.get_account_list(genesis_height).await?.response;
     while let Some(account) = genesis_accounts.try_next().await? {
-        let info = client.get_account_info(&account.into(), genesis_height).await?.response;
+        let info = client
+            .get_account_info(&account.into(), genesis_height)
+            .await?
+            .response;
         let index = i64::try_from(info.account_index.index)?;
         let account_address = account.to_string();
         let canonical_address = account.get_canonical_address();
@@ -93,13 +108,19 @@ pub async fn save_genesis_data(
         }) = info.account_stake
         {
             let stake = i64::try_from(staked_amount.micro_ccd())?;
-            let open_status = pool_info.as_ref().map(|i| BakerPoolOpenStatus::from(i.open_status));
+            let open_status = pool_info
+                .as_ref()
+                .map(|i| BakerPoolOpenStatus::from(i.open_status));
             let metadata_url = pool_info.as_ref().map(|i| i.metadata_url.to_string());
             let transaction_commission = pool_info.as_ref().map(|i| {
-                i64::from(u32::from(PartsPerHundredThousands::from(i.commission_rates.transaction)))
+                i64::from(u32::from(PartsPerHundredThousands::from(
+                    i.commission_rates.transaction,
+                )))
             });
             let baking_commission = pool_info.as_ref().map(|i| {
-                i64::from(u32::from(PartsPerHundredThousands::from(i.commission_rates.baking)))
+                i64::from(u32::from(PartsPerHundredThousands::from(
+                    i.commission_rates.baking,
+                )))
             });
             let finalization_commission = pool_info.as_ref().map(|i| {
                 i64::from(u32::from(PartsPerHundredThousands::from(
@@ -127,6 +148,8 @@ pub async fn save_genesis_data(
         }
     }
 
-    tx.commit().await.context("Failed to commit SQL transaction")?;
+    tx.commit()
+        .await
+        .context("Failed to commit SQL transaction")?;
     Ok(())
 }

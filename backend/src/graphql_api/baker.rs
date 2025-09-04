@@ -36,7 +36,9 @@ pub struct QueryBaker;
 impl QueryBaker {
     async fn baker<'a>(&self, ctx: &Context<'a>, id: types::ID) -> ApiResult<Baker> {
         let id = IdBaker::try_from(id)?.baker_id.into();
-        Baker::query_by_id(get_pool(ctx)?, id).await?.ok_or(ApiError::NotFound)
+        Baker::query_by_id(get_pool(ctx)?, id)
+            .await?
+            .ok_or(ApiError::NotFound)
     }
 
     async fn baker_by_baker_id<'a>(
@@ -44,7 +46,9 @@ impl QueryBaker {
         ctx: &Context<'a>,
         baker_id: BakerId,
     ) -> ApiResult<Baker> {
-        Baker::query_by_id(get_pool(ctx)?, baker_id.into()).await?.ok_or(ApiError::NotFound)
+        Baker::query_by_id(get_pool(ctx)?, baker_id.into())
+            .await?
+            .ok_or(ApiError::NotFound)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -57,14 +61,17 @@ impl QueryBaker {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Baker>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
         let open_status_filter = filter.and_then(|input| input.open_status_filter);
-        let include_removed_filter =
-            filter.and_then(|input| input.include_removed).unwrap_or(false);
+        let include_removed_filter = filter
+            .and_then(|input| input.include_removed)
+            .unwrap_or(false);
         match sort {
             BakerSort::BakerIdAsc => {
                 Baker::id_asc_connection(
@@ -182,28 +189,28 @@ type BakerIdCursor = i64;
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 struct BakerFieldDescCursor {
     /// The cursor value of the relevant sorting field.
-    field:    i64,
+    field: i64,
     /// The baker id representing the pool of the cursor.
     baker_id: i64,
 }
 impl BakerFieldDescCursor {
     fn total_staked_cursor(row: &CurrentBaker) -> Self {
         BakerFieldDescCursor {
-            field:    row.pool_total_staked,
+            field: row.pool_total_staked,
             baker_id: row.id,
         }
     }
 
     fn delegator_count_cursor(row: &CurrentBaker) -> Self {
         BakerFieldDescCursor {
-            field:    row.pool_delegator_count,
+            field: row.pool_delegator_count,
             baker_id: row.id,
         }
     }
 
     fn payday_baking_commission_rate(row: &CurrentBaker) -> Self {
         BakerFieldDescCursor {
-            field:    row.payday_baking_commission_rate(),
+            field: row.payday_baking_commission_rate(),
             baker_id: row.id,
         }
     }
@@ -213,16 +220,19 @@ impl connection::CursorType for BakerFieldDescCursor {
     type Error = DecodeBakerFieldCursor;
 
     fn decode_cursor(s: &str) -> Result<Self, Self::Error> {
-        let (before, after) = s.split_once(':').ok_or(DecodeBakerFieldCursor::NoSemicolon)?;
+        let (before, after) = s
+            .split_once(':')
+            .ok_or(DecodeBakerFieldCursor::NoSemicolon)?;
         let field: i64 = before.parse().map_err(DecodeBakerFieldCursor::ParseField)?;
-        let baker_id: i64 = after.parse().map_err(DecodeBakerFieldCursor::ParseBakerId)?;
-        Ok(Self {
-            field,
-            baker_id,
-        })
+        let baker_id: i64 = after
+            .parse()
+            .map_err(DecodeBakerFieldCursor::ParseBakerId)?;
+        Ok(Self { field, baker_id })
     }
 
-    fn encode_cursor(&self) -> String { format!("{}:{}", self.field, self.baker_id) }
+    fn encode_cursor(&self) -> String {
+        format!("{}:{}", self.field, self.baker_id)
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -238,16 +248,18 @@ enum DecodeBakerFieldCursor {
 impl ConnectionBounds for BakerFieldDescCursor {
     const END_BOUND: Self = Self {
         baker_id: i64::MIN,
-        field:    i64::MIN,
+        field: i64::MIN,
     };
     const START_BOUND: Self = Self {
         baker_id: i64::MAX,
-        field:    i64::MAX,
+        field: i64::MAX,
     };
 }
 
 impl PartialOrd for BakerFieldDescCursor {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) }
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl Ord for BakerFieldDescCursor {
@@ -270,15 +282,15 @@ impl std::str::FromStr for IdBaker {
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         let baker_id = value.parse()?;
-        Ok(IdBaker {
-            baker_id,
-        })
+        Ok(IdBaker { baker_id })
     }
 }
 impl TryFrom<types::ID> for IdBaker {
     type Error = ApiError;
 
-    fn try_from(value: types::ID) -> Result<Self, Self::Error> { value.0.parse() }
+    fn try_from(value: types::ID) -> Result<Self, Self::Error> {
+        value.0.parse()
+    }
 }
 
 #[derive(Debug)]
@@ -300,7 +312,8 @@ impl Baker {
     /// and ordered by ID
     fn cmp_baker_field<F>(&self, other: &Baker, compare: F) -> Ordering
     where
-        F: Fn(&CurrentBaker, &CurrentBaker) -> Ordering, {
+        F: Fn(&CurrentBaker, &CurrentBaker) -> Ordering,
+    {
         match (self, other) {
             (Baker::Current(left), Baker::Current(right)) => {
                 let ord = compare(left, right);
@@ -320,7 +333,9 @@ impl Baker {
         let baker = if let Some(baker) = CurrentBaker::query_by_id(pool, baker_id).await? {
             Some(Baker::Current(Box::new(baker)))
         } else {
-            PreviouslyBaker::query_by_id(pool, baker_id).await?.map(Baker::Previously)
+            PreviouslyBaker::query_by_id(pool, baker_id)
+                .await?
+                .map(Baker::Previously)
         };
         Ok(baker)
     }
@@ -394,7 +409,9 @@ impl Baker {
         .fetch(pool);
         while let Some(row) = row_stream.try_next().await? {
             let cursor = row.id.encode_cursor();
-            connection.edges.push(connection::Edge::new(cursor, Baker::Current(Box::new(row))));
+            connection
+                .edges
+                .push(connection::Edge::new(cursor, Baker::Current(Box::new(row))));
         }
 
         if include_removed_filter {
@@ -423,14 +440,19 @@ impl Baker {
 
             while let Some(row) = row_stream.try_next().await? {
                 let cursor = row.id.encode_cursor();
-                connection.edges.push(connection::Edge::new(cursor, Baker::Previously(row)));
+                connection
+                    .edges
+                    .push(connection::Edge::new(cursor, Baker::Previously(row)));
             }
             // Sort again after adding the removed bakers and truncate to the desired limit.
             connection.edges.sort_by_key(|edge| edge.node.get_id());
             // Remove from either ends of the current edges, since we might be above the
             // limit.
             if query.is_last {
-                let offset = connection.edges.len().saturating_sub(usize::try_from(query.limit)?);
+                let offset = connection
+                    .edges
+                    .len()
+                    .saturating_sub(usize::try_from(query.limit)?);
                 connection.edges.drain(..offset);
             } else {
                 connection.edges.truncate(query.limit.try_into()?);
@@ -550,7 +572,9 @@ impl Baker {
         .fetch(pool);
         while let Some(row) = row_stream.try_next().await? {
             let cursor = row.id.encode_cursor();
-            connection.edges.push(connection::Edge::new(cursor, Baker::Current(Box::new(row))));
+            connection
+                .edges
+                .push(connection::Edge::new(cursor, Baker::Current(Box::new(row))));
         }
         if include_removed_filter {
             let mut row_stream = sqlx::query_as!(
@@ -578,15 +602,22 @@ impl Baker {
 
             while let Some(row) = row_stream.try_next().await? {
                 let cursor = row.id.encode_cursor();
-                connection.edges.push(connection::Edge::new(cursor, Baker::Previously(row)));
+                connection
+                    .edges
+                    .push(connection::Edge::new(cursor, Baker::Previously(row)));
             }
             // Sort again after adding the removed bakers.
-            connection.edges.sort_by_key(|edge| i64::MAX - edge.node.get_id());
+            connection
+                .edges
+                .sort_by_key(|edge| i64::MAX - edge.node.get_id());
 
             // Remove from either ends of the current edges, since we might be above the
             // limit.
             if query.is_last {
-                let offset = connection.edges.len().saturating_sub(usize::try_from(query.limit)?);
+                let offset = connection
+                    .edges
+                    .len()
+                    .saturating_sub(usize::try_from(query.limit)?);
                 connection.edges.drain(..offset);
             } else {
                 connection.edges.truncate(query.limit.try_into()?);
@@ -767,9 +798,10 @@ impl Baker {
             .fetch(pool);
             while let Some(row) = row_stream.try_next().await? {
                 let cursor: Cursor = Cursor::Second(Reversed::new(row.id));
-                connection
-                    .edges
-                    .push(connection::Edge::new(cursor.encode_cursor(), Baker::Previously(row)));
+                connection.edges.push(connection::Edge::new(
+                    cursor.encode_cursor(),
+                    Baker::Previously(row),
+                ));
             }
             Ok(())
         }
@@ -813,7 +845,9 @@ impl Baker {
                 // sure these are last after adding current bakers.
                 connection.edges.sort_by(|left, right| {
                     left.node.cmp_baker_field(&right.node, |left, right| {
-                        left.pool_total_staked.cmp(&right.pool_total_staked).reverse()
+                        left.pool_total_staked
+                            .cmp(&right.pool_total_staked)
+                            .reverse()
                     })
                 });
             }
@@ -873,7 +907,7 @@ impl Baker {
                 {
                     let collection_start_cursor = BakerFieldDescCursor {
                         baker_id: collection_ends.start_id,
-                        field:    collection_ends.start_total_staked,
+                        field: collection_ends.start_total_staked,
                     };
                     collection_start_cursor < BakerFieldDescCursor::total_staked_cursor(first_baker)
                 } else {
@@ -882,7 +916,7 @@ impl Baker {
                 if let Baker::Current(last_item) = &last_item.node {
                     let collection_end_cursor = BakerFieldDescCursor {
                         baker_id: collection_ends.end_id,
-                        field:    collection_ends.end_total_staked,
+                        field: collection_ends.end_total_staked,
                     };
                     connection.has_next_page = collection_end_cursor
                         > BakerFieldDescCursor::total_staked_cursor(last_item);
@@ -890,8 +924,9 @@ impl Baker {
             }
         }
         if include_removed_filter {
-            let min_removed_baker_id =
-                sqlx::query_scalar!("SELECT MIN(id) FROM bakers_removed",).fetch_one(pool).await?;
+            let min_removed_baker_id = sqlx::query_scalar!("SELECT MIN(id) FROM bakers_removed",)
+                .fetch_one(pool)
+                .await?;
             connection.has_next_page = if let Some(min_removed_baker_id) = min_removed_baker_id {
                 last_item.node.get_id() != min_removed_baker_id
             } else {
@@ -1036,9 +1071,10 @@ impl Baker {
             .fetch(pool);
             while let Some(row) = row_stream.try_next().await? {
                 let cursor: Cursor = Cursor::Second(Reversed::new(row.id));
-                connection
-                    .edges
-                    .push(connection::Edge::new(cursor.encode_cursor(), Baker::Previously(row)));
+                connection.edges.push(connection::Edge::new(
+                    cursor.encode_cursor(),
+                    Baker::Previously(row),
+                ));
             }
             Ok(())
         }
@@ -1082,7 +1118,9 @@ impl Baker {
                 // sure these are last after adding current bakers.
                 connection.edges.sort_by(|left, right| {
                     left.node.cmp_baker_field(&right.node, |left, right| {
-                        left.pool_delegator_count.cmp(&right.pool_delegator_count).reverse()
+                        left.pool_delegator_count
+                            .cmp(&right.pool_delegator_count)
+                            .reverse()
                     })
                 });
             }
@@ -1142,7 +1180,7 @@ impl Baker {
                 {
                     let collection_start_cursor = BakerFieldDescCursor {
                         baker_id: collection_ends.start_id,
-                        field:    collection_ends.start_delegator_count,
+                        field: collection_ends.start_delegator_count,
                     };
                     collection_start_cursor
                         < BakerFieldDescCursor::delegator_count_cursor(first_baker)
@@ -1152,7 +1190,7 @@ impl Baker {
                 if let Baker::Current(last_item) = &last_item.node {
                     let collection_end_cursor = BakerFieldDescCursor {
                         baker_id: collection_ends.end_id,
-                        field:    collection_ends.end_delegator_count,
+                        field: collection_ends.end_delegator_count,
                     };
                     connection.has_next_page = collection_end_cursor
                         > BakerFieldDescCursor::delegator_count_cursor(last_item);
@@ -1160,8 +1198,9 @@ impl Baker {
             }
         }
         if include_removed_filter {
-            let min_removed_baker_id =
-                sqlx::query_scalar!("SELECT MIN(id) FROM bakers_removed",).fetch_one(pool).await?;
+            let min_removed_baker_id = sqlx::query_scalar!("SELECT MIN(id) FROM bakers_removed",)
+                .fetch_one(pool)
+                .await?;
             connection.has_next_page = if let Some(min_removed_baker_id) = min_removed_baker_id {
                 last_item.node.get_id() != min_removed_baker_id
             } else {
@@ -1306,9 +1345,10 @@ impl Baker {
             .fetch(pool);
             while let Some(row) = row_stream.try_next().await? {
                 let cursor: Cursor = Cursor::Second(Reversed::new(row.id));
-                connection
-                    .edges
-                    .push(connection::Edge::new(cursor.encode_cursor(), Baker::Previously(row)));
+                connection.edges.push(connection::Edge::new(
+                    cursor.encode_cursor(),
+                    Baker::Previously(row),
+                ));
             }
             Ok(())
         }
@@ -1424,7 +1464,7 @@ impl Baker {
                 {
                     let collection_start_cursor = BakerFieldDescCursor {
                         baker_id: collection_ends.start_id,
-                        field:    collection_ends.start_commission.unwrap_or(0),
+                        field: collection_ends.start_commission.unwrap_or(0),
                     };
                     collection_start_cursor
                         < BakerFieldDescCursor::payday_baking_commission_rate(first_baker)
@@ -1434,7 +1474,7 @@ impl Baker {
                 if let Baker::Current(last_item) = &last_item.node {
                     let collection_end_cursor = BakerFieldDescCursor {
                         baker_id: collection_ends.end_id,
-                        field:    collection_ends.end_commission.unwrap_or(0),
+                        field: collection_ends.end_commission.unwrap_or(0),
                     };
                     connection.has_next_page = collection_end_cursor
                         > BakerFieldDescCursor::payday_baking_commission_rate(last_item);
@@ -1442,8 +1482,9 @@ impl Baker {
             }
         }
         if include_removed_filter {
-            let min_removed_baker_id =
-                sqlx::query_scalar!("SELECT MIN(id) FROM bakers_removed").fetch_one(pool).await?;
+            let min_removed_baker_id = sqlx::query_scalar!("SELECT MIN(id) FROM bakers_removed")
+                .fetch_one(pool)
+                .await?;
             connection.has_next_page = if let Some(min_removed_baker_id) = min_removed_baker_id {
                 last_item.node.get_id() != min_removed_baker_id
             } else {
@@ -1591,9 +1632,10 @@ impl Baker {
             .fetch(pool);
             while let Some(row) = row_stream.try_next().await? {
                 let cursor: Cursor = Cursor::First(row.id);
-                connection
-                    .edges
-                    .push(connection::Edge::new(cursor.encode_cursor(), Baker::Previously(row)));
+                connection.edges.push(connection::Edge::new(
+                    cursor.encode_cursor(),
+                    Baker::Previously(row),
+                ));
             }
             Ok(())
         }
@@ -1615,8 +1657,13 @@ impl Baker {
         // `last` parameter was provided in the top level query.
         if query.is_last {
             if let Some(current_baker_query) = query.subquery_second() {
-                query_current_bakers(current_baker_query, open_status_filter, &mut connection, pool)
-                    .await?
+                query_current_bakers(
+                    current_baker_query,
+                    open_status_filter,
+                    &mut connection,
+                    pool,
+                )
+                .await?
             }
             if include_removed_filter {
                 let remains_to_limit = query.limit - i64::try_from(connection.edges.len())?;
@@ -1707,7 +1754,7 @@ impl Baker {
                 if let Baker::Current(first_baker) = &first_item.node {
                     let collection_start_cursor = Reversed::new(BakerFieldDescCursor {
                         baker_id: collection_ends.start_id,
-                        field:    collection_ends.start_commission.unwrap_or(0),
+                        field: collection_ends.start_commission.unwrap_or(0),
                     });
                     connection.has_previous_page = collection_start_cursor
                         < Reversed::new(BakerFieldDescCursor::payday_baking_commission_rate(
@@ -1717,7 +1764,7 @@ impl Baker {
                 connection.has_next_page = if let Baker::Current(last_item) = &last_item.node {
                     let collection_end_cursor = Reversed::new(BakerFieldDescCursor {
                         baker_id: collection_ends.end_id,
-                        field:    collection_ends.end_commission.unwrap_or(0),
+                        field: collection_ends.end_commission.unwrap_or(0),
                     });
                     collection_end_cursor
                         > Reversed::new(BakerFieldDescCursor::payday_baking_commission_rate(
@@ -1729,8 +1776,9 @@ impl Baker {
             }
         }
         if include_removed_filter {
-            let min_removed_baker_id =
-                sqlx::query_scalar!("SELECT MIN(id) FROM bakers_removed",).fetch_one(pool).await?;
+            let min_removed_baker_id = sqlx::query_scalar!("SELECT MIN(id) FROM bakers_removed",)
+                .fetch_one(pool)
+                .await?;
             connection.has_previous_page = if let Some(min_removed_baker_id) = min_removed_baker_id
             {
                 first_item.node.get_id() != min_removed_baker_id
@@ -1850,7 +1898,10 @@ LIMIT $6
             .fetch(pool);
             while let Some(row) = row_stream.try_next().await? {
                 let cursor: Cursor = ConcatCursor::First(BakerCursor {
-                    outer: row.baker_apy.map(|apy| Reversed::new(F64Cursor::new(apy))).into(),
+                    outer: row
+                        .baker_apy
+                        .map(|apy| Reversed::new(F64Cursor::new(apy)))
+                        .into(),
                     inner: Reversed::new(row.id),
                 });
                 connection.edges.push(connection::Edge::new(
@@ -1892,9 +1943,10 @@ LIMIT $6
             .fetch(pool);
             while let Some(row) = row_stream.try_next().await? {
                 let cursor: Cursor = Cursor::Second(Reversed::new(row.id));
-                connection
-                    .edges
-                    .push(connection::Edge::new(cursor.encode_cursor(), Baker::Previously(row)));
+                connection.edges.push(connection::Edge::new(
+                    cursor.encode_cursor(),
+                    Baker::Previously(row),
+                ));
             }
             Ok(())
         }
@@ -2046,8 +2098,9 @@ LIMIT $6
         }
 
         if include_removed_filter {
-            let min_removed_baker_id =
-                sqlx::query_scalar!("SELECT MIN(id) FROM bakers_removed").fetch_one(pool).await?;
+            let min_removed_baker_id = sqlx::query_scalar!("SELECT MIN(id) FROM bakers_removed")
+                .fetch_one(pool)
+                .await?;
             connection.has_next_page = if let Some(min_removed_baker_id) = min_removed_baker_id {
                 last_item.node.get_id() != min_removed_baker_id
             } else {
@@ -2161,7 +2214,10 @@ LIMIT $6
             .fetch(pool);
             while let Some(row) = row_stream.try_next().await? {
                 let cursor: Cursor = ConcatCursor::First(BakerCursor {
-                    outer: row.delegators_apy.map(|apy| Reversed::new(F64Cursor::new(apy))).into(),
+                    outer: row
+                        .delegators_apy
+                        .map(|apy| Reversed::new(F64Cursor::new(apy)))
+                        .into(),
                     inner: Reversed::new(row.id),
                 });
                 connection.edges.push(connection::Edge::new(
@@ -2203,9 +2259,10 @@ LIMIT $6
             .fetch(pool);
             while let Some(row) = row_stream.try_next().await? {
                 let cursor: Cursor = Cursor::Second(Reversed::new(row.id));
-                connection
-                    .edges
-                    .push(connection::Edge::new(cursor.encode_cursor(), Baker::Previously(row)));
+                connection.edges.push(connection::Edge::new(
+                    cursor.encode_cursor(),
+                    Baker::Previously(row),
+                ));
             }
             Ok(())
         }
@@ -2357,8 +2414,9 @@ LIMIT $6
         }
 
         if include_removed_filter {
-            let min_removed_baker_id =
-                sqlx::query_scalar!("SELECT MIN(id) FROM bakers_removed").fetch_one(pool).await?;
+            let min_removed_baker_id = sqlx::query_scalar!("SELECT MIN(id) FROM bakers_removed")
+                .fetch_one(pool)
+                .await?;
             connection.has_next_page = if let Some(min_removed_baker_id) = min_removed_baker_id {
                 last_item.node.get_id() != min_removed_baker_id
             } else {
@@ -2371,7 +2429,7 @@ LIMIT $6
 
 #[derive(Debug)]
 pub struct PreviouslyBaker {
-    id:         i64,
+    id: i64,
     removed_at: DateTime,
 }
 
@@ -2430,7 +2488,9 @@ pub struct CurrentBaker {
 }
 impl CurrentBaker {
     /// Get the current payday baking commission rate.
-    fn payday_baking_commission_rate(&self) -> i64 { self.payday_baking_commission.unwrap_or(0) }
+    fn payday_baking_commission_rate(&self) -> i64 {
+        self.payday_baking_commission.unwrap_or(0)
+    }
 
     pub async fn query_by_id(pool: &PgPool, baker_id: i64) -> ApiResult<Option<Self>> {
         Ok(sqlx::query_as!(
@@ -2510,8 +2570,8 @@ impl CurrentBaker {
                 .transpose()?
                 .map(|c| AmountFraction::new_unchecked(c).into());
             Some(CommissionRates {
-                transaction_commission:  payday_transaction_commission,
-                baking_commission:       payday_baking_commission,
+                transaction_commission: payday_transaction_commission,
+                baking_commission: payday_baking_commission,
                 finalization_commission: payday_finalization_commission,
             })
         } else {
@@ -2705,10 +2765,7 @@ impl CurrentBaker {
             self.payday_ranking_by_lottery_powers,
             self.payday_total_ranking_by_lottery_powers,
         ) {
-            (Some(rank), Some(total)) => Some(Ranking {
-                rank,
-                total,
-            }),
+            (Some(rank), Some(total)) => Some(Ranking { rank, total }),
             (None, _) => None,
             (Some(_), None) => {
                 return Err(InternalError::InternalError(
@@ -2722,19 +2779,23 @@ impl CurrentBaker {
             InternalError::InternalError(format!("A baker has a negative id: {}", self.id))
         })?;
 
-        let handler = ctx.data::<NodeInfoReceiver>().map_err(InternalError::NoReceiver)?;
+        let handler = ctx
+            .data::<NodeInfoReceiver>()
+            .map_err(InternalError::NoReceiver)?;
         let statuses_ref = handler.borrow();
         let statuses = statuses_ref.as_ref().ok_or(InternalError::InternalError(
             "Node collector backend has not responded".to_string(),
         ))?;
 
-        let node =
-            statuses.iter().find(|x| x.external.consensus_baker_id == Some(baker_id)).cloned();
+        let node = statuses
+            .iter()
+            .find(|x| x.external.consensus_baker_id == Some(baker_id))
+            .cloned();
         let out = BakerState::ActiveBakerState(Box::new(ActiveBakerState {
-            node_status:      node,
-            staked_amount:    Amount::try_from(self.staked)?,
+            node_status: node,
+            staked_amount: Amount::try_from(self.staked)?,
             restake_earnings: self.restake_earnings,
-            pool:             BakerPool {
+            pool: BakerPool {
                 id: self.id,
                 open_status: self.open_status,
                 commission_rates: CommissionRates {
@@ -2760,16 +2821,20 @@ impl CurrentBaker {
                 delegated_stake_cap,
                 delegator_count: self.pool_delegator_count,
             },
-            pending_change:   None, // This is not used starting from P7.
+            pending_change: None, // This is not used starting from P7.
         }));
         Ok(out)
     }
 }
 #[Object]
 impl Baker {
-    async fn id(&self) -> types::ID { types::ID::from(self.get_id().to_string()) }
+    async fn id(&self) -> types::ID {
+        types::ID::from(self.get_id().to_string())
+    }
 
-    async fn baker_id(&self) -> BakerId { self.get_id().into() }
+    async fn baker_id(&self) -> BakerId {
+        self.get_id().into()
+    }
 
     async fn state(&self, ctx: &Context<'_>) -> ApiResult<BakerState<'_>> {
         match self {
@@ -2779,7 +2844,9 @@ impl Baker {
     }
 
     async fn account(&self, ctx: &Context<'_>) -> ApiResult<Account> {
-        Account::query_by_index(get_pool(ctx)?, self.get_id()).await?.ok_or(ApiError::NotFound)
+        Account::query_by_index(get_pool(ctx)?, self.get_id())
+            .await?
+            .ok_or(ApiError::NotFound)
     }
 
     async fn transactions(
@@ -2789,7 +2856,9 @@ impl Baker {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, InterimTransaction>> {
         let config = get_config(ctx)?;
@@ -2872,9 +2941,7 @@ impl Baker {
 
             connection.edges.push(connection::Edge::new(
                 tx.index.to_string(),
-                InterimTransaction {
-                    transaction: tx,
-                },
+                InterimTransaction { transaction: tx },
             ));
         }
 
@@ -2918,12 +2985,12 @@ enum BakerState<'a> {
 struct ActiveBakerState<'a> {
     /// The status of the baker's node. Will be null if no status for the node
     /// exists.
-    node_status:      Option<NodeStatus>,
-    staked_amount:    Amount,
+    node_status: Option<NodeStatus>,
+    staked_amount: Amount,
     restake_earnings: bool,
-    pool:             BakerPool<'a>,
+    pool: BakerPool<'a>,
     // This will not be used starting from P7
-    pending_change:   Option<PendingBakerChange>,
+    pending_change: Option<PendingBakerChange>,
 }
 
 #[derive(Union)]
@@ -2940,7 +3007,7 @@ struct PendingBakerRemoval {
 #[derive(SimpleObject)]
 struct PendingBakerReduceStake {
     new_staked_amount: Amount,
-    effective_time:    DateTime,
+    effective_time: DateTime,
 }
 
 #[derive(SimpleObject)]
@@ -2951,7 +3018,7 @@ struct RemovedBakerState {
 #[derive(InputObject, Clone, Copy)]
 struct BakerFilterInput {
     open_status_filter: Option<BakerPoolOpenStatus>,
-    include_removed:    Option<bool>,
+    include_removed: Option<bool>,
 }
 
 #[derive(Enum, Clone, Copy, PartialEq, Eq, Default)]
@@ -3045,39 +3112,65 @@ struct BakerPool<'a> {
 
 #[Object]
 impl<'a> BakerPool<'a> {
-    async fn total_stake_percentage(&self) -> &Decimal { &self.total_stake_percentage }
+    async fn total_stake_percentage(&self) -> &Decimal {
+        &self.total_stake_percentage
+    }
 
-    async fn total_stake(&self) -> Amount { self.total_stake }
+    async fn total_stake(&self) -> Amount {
+        self.total_stake
+    }
 
     // Future improvement (API breaking changes): The front end queries
     // `ranking_by_total_stake` which was renamed and updated to
     // `ranking_by_lottery_power` in the backend. Migrate the name change to the
     // front-end and make this field not optional anymore.
-    async fn ranking_by_total_stake(&self) -> Option<Ranking> { self.rank }
+    async fn ranking_by_total_stake(&self) -> Option<Ranking> {
+        self.rank
+    }
 
-    async fn delegated_stake(&self) -> Amount { self.delegated_stake }
+    async fn delegated_stake(&self) -> Amount {
+        self.delegated_stake
+    }
 
-    async fn delegated_stake_cap(&self) -> Amount { self.delegated_stake_cap }
+    async fn delegated_stake_cap(&self) -> Amount {
+        self.delegated_stake_cap
+    }
 
-    async fn delegator_count(&self) -> i64 { self.delegator_count }
+    async fn delegator_count(&self) -> i64 {
+        self.delegator_count
+    }
 
-    async fn commission_rates(&self) -> &CommissionRates { &self.commission_rates }
+    async fn commission_rates(&self) -> &CommissionRates {
+        &self.commission_rates
+    }
 
     async fn payday_commission_rates(&self) -> &Option<CommissionRates> {
         &self.payday_commission_rates
     }
 
-    async fn lottery_power(&self) -> &Decimal { &self.payday_lottery_power }
+    async fn lottery_power(&self) -> &Decimal {
+        &self.payday_lottery_power
+    }
 
-    async fn open_status(&self) -> Option<BakerPoolOpenStatus> { self.open_status }
+    async fn open_status(&self) -> Option<BakerPoolOpenStatus> {
+        self.open_status
+    }
 
-    async fn metadata_url(&self) -> Option<&'a str> { self.metadata_url }
+    async fn metadata_url(&self) -> Option<&'a str> {
+        self.metadata_url
+    }
 
-    async fn self_suspended(&self) -> Option<i64> { self.self_suspended }
+    async fn self_suspended(&self) -> Option<i64> {
+        self.self_suspended
+    }
 
-    async fn inactive_suspended(&self) -> Option<i64> { self.inactive_suspended }
+    async fn inactive_suspended(&self) -> Option<i64> {
+        self.inactive_suspended
+    }
 
-    async fn primed_for_suspension(&self) -> Option<i64> { self.primed_for_suspension }
+    async fn primed_for_suspension(&self) -> Option<i64> {
+        self.primed_for_suspension
+    }
 
     async fn pool_rewards(
         &self,
@@ -3086,7 +3179,9 @@ impl<'a> BakerPool<'a> {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<DescendingI64, PaydayPoolReward>> {
         let pool = get_pool(ctx)?;
@@ -3131,7 +3226,9 @@ impl<'a> BakerPool<'a> {
 
         let mut connection = connection::Connection::new(false, false);
         while let Some(rewards) = row_stream.try_next().await? {
-            connection.edges.push(connection::Edge::new(rewards.block_height.into(), rewards));
+            connection
+                .edges
+                .push(connection::Edge::new(rewards.block_height.into(), rewards));
         }
 
         if let (Some(edge_min_index), Some(edge_max_index)) =
@@ -3150,10 +3247,12 @@ impl<'a> BakerPool<'a> {
             .fetch_one(pool)
             .await?;
 
-            connection.has_previous_page =
-                result.max_index.is_some_and(|db_max| db_max > edge_max_index.node.block_height);
-            connection.has_next_page =
-                result.min_index.is_some_and(|db_min| db_min < edge_min_index.node.block_height);
+            connection.has_previous_page = result
+                .max_index
+                .is_some_and(|db_max| db_max > edge_max_index.node.block_height);
+            connection.has_next_page = result
+                .min_index
+                .is_some_and(|db_min| db_min < edge_min_index.node.block_height);
         }
 
         Ok(connection)
@@ -3166,7 +3265,9 @@ impl<'a> BakerPool<'a> {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<
         connection::Connection<NestedCursor<DescendingI64, DescendingI64>, DelegationSummary>,
@@ -3239,7 +3340,9 @@ impl<'a> BakerPool<'a> {
                 outer: delegator.staked_amount.into(),
                 inner: delegator.index.into(),
             };
-            connection.edges.push(connection::Edge::new(cursor, delegator));
+            connection
+                .edges
+                .push(connection::Edge::new(cursor, delegator));
         }
 
         let (Some(last_item), Some(first_item)) =
@@ -3330,8 +3433,8 @@ impl<'a> BakerPool<'a> {
 
 #[derive(SimpleObject, Default)]
 struct PoolApy {
-    total_apy:      Option<f64>,
-    baker_apy:      Option<f64>,
+    total_apy: Option<f64>,
+    baker_apy: Option<f64>,
     delegators_apy: Option<f64>,
 }
 
@@ -3353,7 +3456,7 @@ struct DelegatedStakeBounds {
     /// The `leverage bound` ensures that each baker has skin in the game with
     /// respect to its delegators by providing some of the CCD staked from
     /// its own funds.
-    leverage_bound_numerator:   i64,
+    leverage_bound_numerator: i64,
     leverage_bound_denominator: i64,
     /// The capital bound is the maximum proportion of the total stake in the
     /// protocol (from all bakers including passive delegation) to the total
@@ -3373,7 +3476,7 @@ struct DelegatedStakeBounds {
     /// The `capital_bound` helps maintain network
     /// decentralization by preventing a single baker from gaining excessive
     /// power in the consensus protocol.
-    capital_bound:              i64,
+    capital_bound: i64,
 }
 
 /// Ranking of the bakers by lottery powers from the last payday block staring
@@ -3381,7 +3484,7 @@ struct DelegatedStakeBounds {
 /// rank `total` for the baker with the lowest lottery power.
 #[derive(SimpleObject, Clone, Copy)]
 struct Ranking {
-    rank:  i64,
+    rank: i64,
     total: i64,
 }
 
@@ -3402,11 +3505,11 @@ mod test {
 
         {
             let first = BakerFieldDescCursor {
-                field:    10,
+                field: 10,
                 baker_id: 3,
             };
             let second = BakerFieldDescCursor {
-                field:    5,
+                field: 5,
                 baker_id: 5,
             };
             assert!(first < second);
@@ -3418,11 +3521,11 @@ mod test {
 
         {
             let second = BakerFieldDescCursor {
-                field:    11000000000,
+                field: 11000000000,
                 baker_id: 149,
             };
             let first = BakerFieldDescCursor {
-                field:    1000000000000000,
+                field: 1000000000000000,
                 baker_id: 3,
             };
             assert!(first < second);
@@ -3435,7 +3538,7 @@ mod test {
     #[test]
     fn test_total_staked_desc_cursor_encode_decode() {
         let cursor = BakerFieldDescCursor {
-            field:    10,
+            field: 10,
             baker_id: 3,
         };
         let encode_decode = BakerFieldDescCursor::decode_cursor(cursor.encode_cursor().as_str())

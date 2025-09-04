@@ -7,17 +7,17 @@ use async_graphql::{Context, Object, SimpleObject};
 
 #[derive(SimpleObject)]
 pub struct CommissionRates {
-    pub transaction_commission:  Option<Decimal>,
+    pub transaction_commission: Option<Decimal>,
     pub finalization_commission: Option<Decimal>,
-    pub baking_commission:       Option<Decimal>,
+    pub baking_commission: Option<Decimal>,
 }
 
 #[derive(SimpleObject, Clone)]
 pub struct PaydayPoolRewardAmounts {
     // The total amount in microCCD (baker + delegators).
-    pub total_amount:      u64,
+    pub total_amount: u64,
     // The bakers share of the above total reward in microCCD.
-    pub baker_amount:      u64,
+    pub baker_amount: u64,
     // The delegators share of the above total reward in microCCD.
     pub delegators_amount: u64,
 }
@@ -36,21 +36,26 @@ pub struct PaydayPoolReward {
 
 #[Object]
 impl PaydayPoolReward {
-    async fn id(&self) -> BlockHeight { self.block_height }
+    async fn id(&self) -> BlockHeight {
+        self.block_height
+    }
 
     async fn block<'a>(&self, ctx: &Context<'a>) -> ApiResult<Block> {
         Block::query_by_height(get_pool(ctx)?, self.block_height).await
     }
 
-    async fn pool_owner(&self) -> Option<i64> { self.pool_owner }
+    async fn pool_owner(&self) -> Option<i64> {
+        self.pool_owner
+    }
 
-    async fn timestamp(&self) -> DateTime { self.slot_time }
+    async fn timestamp(&self) -> DateTime {
+        self.slot_time
+    }
 
     async fn transaction_fees(&self) -> ApiResult<PaydayPoolRewardAmounts> {
         Ok(PaydayPoolRewardAmounts {
-            total_amount:      self.total_transaction_rewards.try_into()?,
-            baker_amount:      (self.total_transaction_rewards
-                - self.delegators_transaction_rewards)
+            total_amount: self.total_transaction_rewards.try_into()?,
+            baker_amount: (self.total_transaction_rewards - self.delegators_transaction_rewards)
                 .try_into()?,
             delegators_amount: self.delegators_transaction_rewards.try_into()?,
         })
@@ -58,8 +63,8 @@ impl PaydayPoolReward {
 
     async fn baker_reward(&self) -> ApiResult<PaydayPoolRewardAmounts> {
         Ok(PaydayPoolRewardAmounts {
-            total_amount:      self.total_baking_rewards.try_into()?,
-            baker_amount:      (self.total_baking_rewards - self.delegators_baking_rewards)
+            total_amount: self.total_baking_rewards.try_into()?,
+            baker_amount: (self.total_baking_rewards - self.delegators_baking_rewards)
                 .try_into()?,
             delegators_amount: self.delegators_baking_rewards.try_into()?,
         })
@@ -67,9 +72,8 @@ impl PaydayPoolReward {
 
     async fn finalization_reward(&self) -> ApiResult<PaydayPoolRewardAmounts> {
         Ok(PaydayPoolRewardAmounts {
-            total_amount:      self.total_finalization_rewards.try_into()?,
-            baker_amount:      (self.total_finalization_rewards
-                - self.delegators_finalization_rewards)
+            total_amount: self.total_finalization_rewards.try_into()?,
+            baker_amount: (self.total_finalization_rewards - self.delegators_finalization_rewards)
                 .try_into()?,
             delegators_amount: self.delegators_finalization_rewards.try_into()?,
         })
@@ -77,15 +81,17 @@ impl PaydayPoolReward {
 }
 
 pub struct DelegationSummary {
-    pub index:            i64,
-    pub account_address:  AccountAddress,
-    pub staked_amount:    i64,
+    pub index: i64,
+    pub account_address: AccountAddress,
+    pub staked_amount: i64,
     pub restake_earnings: Option<bool>,
 }
 
 #[Object]
 impl DelegationSummary {
-    async fn account_address(&self) -> &AccountAddress { &self.account_address }
+    async fn account_address(&self) -> &AccountAddress {
+        &self.account_address
+    }
 
     async fn staked_amount(&self) -> ApiResult<Amount> {
         self.staked_amount.try_into().map_err(|_| {

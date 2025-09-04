@@ -12,8 +12,8 @@ use crate::transaction_event::protocol_level_tokens::{
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct PreparedTokenCreationDetails {
-    pub create_plt: CreatePlt,        // The PLT creation identifier
-    pub events:     Vec<TokenUpdate>, // List of prepared token governance events
+    pub create_plt: CreatePlt,    // The PLT creation identifier
+    pub events: Vec<TokenUpdate>, // List of prepared token governance events
 }
 
 impl PreparedTokenCreationDetails {
@@ -33,7 +33,7 @@ impl PreparedTokenCreationDetails {
                 decimals: details.create_plt.decimals,
                 initialization_parameters,
             },
-            events:     details
+            events: details
                 .events
                 .iter()
                 .map(TokenUpdate::prepare)
@@ -63,8 +63,12 @@ impl PreparedTokenCreationDetails {
             .map(|supply| supply.value.parse::<u64>().unwrap_or(0))
             .unwrap_or(0);
         let initial_supply = BigDecimal::from(value);
-        let issuer =
-            self.create_plt.initialization_parameters.governance_account.address.to_string();
+        let issuer = self
+            .create_plt
+            .initialization_parameters
+            .governance_account
+            .address
+            .to_string();
         sqlx::query!(
             "INSERT INTO plt_tokens (
                 index,

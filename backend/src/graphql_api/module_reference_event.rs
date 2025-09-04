@@ -61,13 +61,13 @@ impl QueryModuleReferenceEvent {
 #[derive(SimpleObject)]
 #[graphql(complex)]
 pub struct ModuleReferenceEvent {
-    pub module_reference:  ModuleReference,
-    pub sender:            AccountAddress,
-    pub block_height:      BlockHeight,
-    pub transaction_hash:  TransactionHash,
+    pub module_reference: ModuleReference,
+    pub sender: AccountAddress,
+    pub block_height: BlockHeight,
+    pub transaction_hash: TransactionHash,
     pub transaction_index: TransactionIndex,
-    pub block_slot_time:   DateTime,
-    pub display_schema:    Option<String>,
+    pub block_slot_time: DateTime,
+    pub display_schema: Option<String>,
 }
 #[ComplexObject]
 impl ModuleReferenceEvent {
@@ -80,11 +80,14 @@ impl ModuleReferenceEvent {
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
         let min_index = i64::try_from(skip.unwrap_or(0))?;
-        let limit = i64::try_from(
-            take.map_or(config.module_reference_reject_events_collection_limit, |t| {
-                config.module_reference_reject_events_collection_limit.min(t)
-            }),
-        )?;
+        let limit = i64::try_from(take.map_or(
+            config.module_reference_reject_events_collection_limit,
+            |t| {
+                config
+                    .module_reference_reject_events_collection_limit
+                    .min(t)
+            },
+        ))?;
 
         let total_count: u64 = sqlx::query_scalar!(
             "SELECT
@@ -121,10 +124,7 @@ impl ModuleReferenceEvent {
         .fetch_all(pool)
         .await?;
 
-        Ok(ModuleReferenceRejectEventsCollectionSegment {
-            total_count,
-            items,
-        })
+        Ok(ModuleReferenceRejectEventsCollectionSegment { total_count, items })
     }
 
     async fn module_reference_contract_link_events(
@@ -136,11 +136,14 @@ impl ModuleReferenceEvent {
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
         let min_index = i64::try_from(skip.unwrap_or(0))?;
-        let limit = i64::try_from(
-            take.map_or(config.module_reference_contract_link_events_collection_limit, |t| {
-                config.module_reference_contract_link_events_collection_limit.min(t)
-            }),
-        )?;
+        let limit = i64::try_from(take.map_or(
+            config.module_reference_contract_link_events_collection_limit,
+            |t| {
+                config
+                    .module_reference_contract_link_events_collection_limit
+                    .min(t)
+            },
+        ))?;
 
         let total_count: u64 = sqlx::query_scalar!(
             "SELECT
@@ -177,10 +180,7 @@ impl ModuleReferenceEvent {
         .fetch_all(pool)
         .await?;
 
-        Ok(ModuleReferenceContractLinkEventsCollectionSegment {
-            total_count,
-            items,
-        })
+        Ok(ModuleReferenceContractLinkEventsCollectionSegment { total_count, items })
     }
 
     async fn linked_contracts(
@@ -192,11 +192,14 @@ impl ModuleReferenceEvent {
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
         let offset = i64::try_from(skip.unwrap_or(0))?;
-        let limit = i64::try_from(
-            take.map_or(config.module_reference_linked_contracts_collection_limit, |t| {
-                config.module_reference_linked_contracts_collection_limit.min(t)
-            }),
-        )?;
+        let limit = i64::try_from(take.map_or(
+            config.module_reference_linked_contracts_collection_limit,
+            |t| {
+                config
+                    .module_reference_linked_contracts_collection_limit
+                    .min(t)
+            },
+        ))?;
 
         // This offset approach below does not scale well for smart contract modules
         // with a large number of instances currently linked, since a large
@@ -237,16 +240,13 @@ impl ModuleReferenceEvent {
         .unwrap_or(0)
         .try_into()?;
 
-        Ok(LinkedContractsCollectionSegment {
-            total_count,
-            items,
-        })
+        Ok(LinkedContractsCollectionSegment { total_count, items })
     }
 }
 
 #[derive(SimpleObject)]
 struct ModuleReferenceRejectEventsCollectionSegment {
-    items:       Vec<ModuleReferenceRejectEvent>,
+    items: Vec<ModuleReferenceRejectEvent>,
     total_count: u64,
 }
 
@@ -255,10 +255,10 @@ struct ModuleReferenceRejectEventsCollectionSegment {
 struct ModuleReferenceRejectEvent {
     module_reference: ModuleReference,
     #[graphql(skip)]
-    reject:           Option<sqlx::types::Json<TransactionRejectReason>>,
-    block_height:     BlockHeight,
+    reject: Option<sqlx::types::Json<TransactionRejectReason>>,
+    block_height: BlockHeight,
     transaction_hash: TransactionHash,
-    block_slot_time:  DateTime,
+    block_slot_time: DateTime,
 }
 #[ComplexObject]
 impl ModuleReferenceRejectEvent {
@@ -277,11 +277,11 @@ impl ModuleReferenceRejectEvent {
 #[derive(SimpleObject)]
 #[graphql(complex)]
 struct ModuleReferenceContractLinkEvent {
-    block_slot_time:    DateTime,
-    transaction_hash:   TransactionHash,
-    link_action:        ModuleReferenceContractLinkAction,
+    block_slot_time: DateTime,
+    transaction_hash: TransactionHash,
+    link_action: ModuleReferenceContractLinkAction,
     #[graphql(skip)]
-    contract_index:     i64,
+    contract_index: i64,
     #[graphql(skip)]
     contract_sub_index: i64,
 }
@@ -296,7 +296,7 @@ impl ModuleReferenceContractLinkEvent {
 #[derive(SimpleObject)]
 struct ModuleReferenceContractLinkEventsCollectionSegment {
     /// A flattened list of the items.
-    items:       Vec<ModuleReferenceContractLinkEvent>,
+    items: Vec<ModuleReferenceContractLinkEvent>,
     total_count: u64,
 }
 
@@ -304,14 +304,14 @@ struct ModuleReferenceContractLinkEventsCollectionSegment {
 #[derive(SimpleObject)]
 struct LinkedContractsCollectionSegment {
     /// A flattened list of the items.
-    items:       Vec<LinkedContract>,
+    items: Vec<LinkedContract>,
     total_count: u64,
 }
 
 struct LinkedContract {
-    contract_index:     i64,
+    contract_index: i64,
     contract_sub_index: i64,
-    linked_date_time:   DateTime,
+    linked_date_time: DateTime,
 }
 
 #[Object]
@@ -320,5 +320,7 @@ impl LinkedContract {
         ContractAddress::new(self.contract_index, self.contract_sub_index)
     }
 
-    async fn linked_date_time(&self) -> DateTime { self.linked_date_time }
+    async fn linked_date_time(&self) -> DateTime {
+        self.linked_date_time
+    }
 }
