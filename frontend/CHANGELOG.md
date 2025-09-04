@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 - Fixed issue with footer links not redirecting to proper telegram channel.
 
+### Added
+
+- Added token holder distribution chart to specific plt dashboards.
+
 ## [1.7.24] - 2025-08-29
 
 ### Fixed
