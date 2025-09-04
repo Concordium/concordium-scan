@@ -161,8 +161,9 @@ impl PreparedPaydaySpecialTransactionOutcomes {
                     baker_reward,
                     finalization_reward,
                 } => {
-                    let pool_owner =
-                        pool_owner.map(|baker_id| baker_id.id.index.try_into()).transpose()?;
+                    let pool_owner = pool_owner
+                        .map(|baker_id| baker_id.id.index.try_into())
+                        .transpose()?;
 
                     total_rewards_pool_owners.push(pool_owner);
                     total_transaction_rewards.push(transaction_fees.micro_ccd.try_into()?);
@@ -412,10 +413,7 @@ impl PreparedSpecialTransactionOutcomeUpdate {
         statistics: &mut Statistics,
     ) -> anyhow::Result<Self> {
         let results = match &event {
-            SpecialTransactionOutcome::BakingRewards {
-                baker_rewards,
-                ..
-            } => {
+            SpecialTransactionOutcome::BakingRewards { baker_rewards, .. } => {
                 let rewards = baker_rewards
                     .iter()
                     .map(|(account_address, amount)| {
@@ -523,30 +521,24 @@ impl PreparedSpecialTransactionOutcomeUpdate {
                 )?,
             ]),
             // TODO: Support these two types. (Deviates from Old CCDScan)
-            SpecialTransactionOutcome::BlockAccrueReward {
-                ..
+            SpecialTransactionOutcome::BlockAccrueReward { .. }
+            | SpecialTransactionOutcome::PaydayPoolReward { .. } => Self::Rewards(Vec::new()),
+            SpecialTransactionOutcome::ValidatorSuspended { baker_id, .. } => {
+                Self::ValidatorSuspended(
+                    validator_suspension::PreparedValidatorSuspension::prepare(
+                        baker_id,
+                        block_info.block_height,
+                    )?,
+                )
             }
-            | SpecialTransactionOutcome::PaydayPoolReward {
-                ..
-            } => Self::Rewards(Vec::new()),
-            SpecialTransactionOutcome::ValidatorSuspended {
-                baker_id,
-                ..
-            } => Self::ValidatorSuspended(
-                validator_suspension::PreparedValidatorSuspension::prepare(
-                    baker_id,
-                    block_info.block_height,
-                )?,
-            ),
-            SpecialTransactionOutcome::ValidatorPrimedForSuspension {
-                baker_id,
-                ..
-            } => Self::ValidatorPrimedForSuspension(
-                validator_suspension::PreparedValidatorPrimedForSuspension::prepare(
-                    baker_id,
-                    block_info.block_height,
-                )?,
-            ),
+            SpecialTransactionOutcome::ValidatorPrimedForSuspension { baker_id, .. } => {
+                Self::ValidatorPrimedForSuspension(
+                    validator_suspension::PreparedValidatorPrimedForSuspension::prepare(
+                        baker_id,
+                        block_info.block_height,
+                    )?,
+                )
+            }
         };
         Ok(results)
     }
@@ -570,7 +562,7 @@ struct AccountReceivedReward {
     /// Update the balance of the account.
     update_account_balance: PreparedUpdateAccountBalance,
     /// Update the stake if restake earnings.
-    update_stake:           RestakeEarnings,
+    update_stake: RestakeEarnings,
 }
 
 impl AccountReceivedReward {
@@ -581,7 +573,9 @@ impl AccountReceivedReward {
         transaction_type: AccountStatementEntryType,
         statistics: &mut Statistics,
     ) -> anyhow::Result<Self> {
-        statistics.reward_stats.increment(account_address.get_canonical_address(), amount);
+        statistics
+            .reward_stats
+            .increment(account_address.get_canonical_address(), amount);
         Ok(Self {
             update_account_balance: PreparedUpdateAccountBalance::prepare(
                 account_address,
@@ -589,7 +583,7 @@ impl AccountReceivedReward {
                 block_height,
                 transaction_type,
             )?,
-            update_stake:           RestakeEarnings::prepare(account_address, amount),
+            update_stake: RestakeEarnings::prepare(account_address, amount),
         })
     }
 
@@ -606,7 +600,7 @@ struct RestakeEarnings {
     /// The account address of the receiver of the reward.
     canonical_account_address: CanonicalAccountAddress,
     /// Amount of CCD received as reward.
-    amount:                    i64,
+    amount: i64,
 }
 
 impl RestakeEarnings {

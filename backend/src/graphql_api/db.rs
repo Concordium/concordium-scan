@@ -9,13 +9,19 @@ pub async fn with_force_custom_plan<T>(
     execute: impl AsyncFnOnce(&mut PoolConnection<Postgres>) -> ApiResult<T>,
 ) -> ApiResult<T> {
     let mut connection = pool.acquire().await?;
-    let existing_plan_cache_mode: String =
-        sqlx::query_scalar("show plan_cache_mode").fetch_one(connection.as_mut()).await?;
-    sqlx::query("set plan_cache_mode = force_custom_plan").execute(connection.as_mut()).await?;
-    let result = execute(&mut connection).await;
-    sqlx::query(&format!("set plan_cache_mode = {}", existing_plan_cache_mode))
+    let existing_plan_cache_mode: String = sqlx::query_scalar("show plan_cache_mode")
+        .fetch_one(connection.as_mut())
+        .await?;
+    sqlx::query("set plan_cache_mode = force_custom_plan")
         .execute(connection.as_mut())
         .await?;
+    let result = execute(&mut connection).await;
+    sqlx::query(&format!(
+        "set plan_cache_mode = {}",
+        existing_plan_cache_mode
+    ))
+    .execute(connection.as_mut())
+    .await?;
 
     result
 }

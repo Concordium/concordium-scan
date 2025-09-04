@@ -8,7 +8,7 @@ pub struct AccountCreated {
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct CredentialDeployed {
-    pub reg_id:          String,
+    pub reg_id: String,
     pub account_address: AccountAddress,
 }
 
@@ -19,8 +19,8 @@ pub struct CredentialKeysUpdated {
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct CredentialsUpdated {
-    pub account_address:  AccountAddress,
-    pub new_cred_ids:     Vec<String>,
+    pub account_address: AccountAddress,
+    pub new_cred_ids: Vec<String>,
     pub removed_cred_ids: Vec<String>,
-    pub new_threshold:    Byte,
+    pub new_threshold: Byte,
 }

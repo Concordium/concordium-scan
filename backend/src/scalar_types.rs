@@ -55,27 +55,37 @@ impl ScalarType for UnsignedLong {
         }
     }
 
-    fn to_value(&self) -> Value { Value::Number(self.0.into()) }
+    fn to_value(&self) -> Value {
+        Value::Number(self.0.into())
+    }
 }
 
 impl From<UnsignedLong> for bigdecimal::BigDecimal {
-    fn from(UnsignedLong(v): UnsignedLong) -> Self { v.into() }
+    fn from(UnsignedLong(v): UnsignedLong) -> Self {
+        v.into()
+    }
 }
 
 impl TryFrom<i64> for UnsignedLong {
     type Error = <u64 as TryFrom<i64>>::Error;
 
-    fn try_from(number: i64) -> Result<Self, Self::Error> { Ok(UnsignedLong(number.try_into()?)) }
+    fn try_from(number: i64) -> Result<Self, Self::Error> {
+        Ok(UnsignedLong(number.try_into()?))
+    }
 }
 
 impl TryFrom<UnsignedLong> for i64 {
     type Error = <i64 as TryFrom<u64>>::Error;
 
-    fn try_from(number: UnsignedLong) -> Result<Self, Self::Error> { number.0.try_into() }
+    fn try_from(number: UnsignedLong) -> Result<Self, Self::Error> {
+        number.0.try_into()
+    }
 }
 
 impl From<concordium_rust_sdk::common::types::Amount> for UnsignedLong {
-    fn from(value: concordium_rust_sdk::common::types::Amount) -> Self { Self(value.micro_ccd()) }
+    fn from(value: concordium_rust_sdk::common::types::Amount) -> Self {
+        Self(value.micro_ccd())
+    }
 }
 
 /// The UnsignedInt scalar type represents a unsigned 32-bit numeric
@@ -116,7 +126,9 @@ impl ScalarType for UnsignedInt {
         }
     }
 
-    fn to_value(&self) -> Value { Value::Number(self.0.into()) }
+    fn to_value(&self) -> Value {
+        Value::Number(self.0.into())
+    }
 }
 
 /// The `Long` scalar type represents non-fractional signed whole 64-bit numeric
@@ -148,12 +160,16 @@ impl ScalarType for Long {
         }
     }
 
-    fn to_value(&self) -> Value { Value::Number(self.0.into()) }
+    fn to_value(&self) -> Value {
+        Value::Number(self.0.into())
+    }
 }
 impl TryFrom<u64> for Long {
     type Error = std::num::TryFromIntError;
 
-    fn try_from(value: u64) -> Result<Self, Self::Error> { Ok(Self(value.try_into()?)) }
+    fn try_from(value: u64) -> Result<Self, Self::Error> {
+        Ok(Self(value.try_into()?))
+    }
 }
 impl TryFrom<concordium_rust_sdk::types::BakerId> for Long {
     type Error = std::num::TryFromIntError;
@@ -166,21 +182,29 @@ impl TryFrom<concordium_rust_sdk::types::BakerId> for Long {
 impl Sub for Long {
     type Output = Self;
 
-    fn sub(self, other: Self) -> Self { Long(self.0 - other.0) }
+    fn sub(self, other: Self) -> Self {
+        Long(self.0 - other.0)
+    }
 }
 
 impl SubAssign for Long {
-    fn sub_assign(&mut self, other: Self) { self.0 -= other.0; }
+    fn sub_assign(&mut self, other: Self) {
+        self.0 -= other.0;
+    }
 }
 
 impl Add for Long {
     type Output = Self;
 
-    fn add(self, other: Self) -> Self { Long(self.0 + other.0) }
+    fn add(self, other: Self) -> Self {
+        Long(self.0 + other.0)
+    }
 }
 
 impl AddAssign for Long {
-    fn add_assign(&mut self, other: Self) { self.0 += other.0; }
+    fn add_assign(&mut self, other: Self) {
+        self.0 += other.0;
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, derive_more::From)]
@@ -196,7 +220,9 @@ impl ScalarType for Decimal {
         Ok(Self(string.parse()?))
     }
 
-    fn to_value(&self) -> Value { Value::String(self.0.to_string()) }
+    fn to_value(&self) -> Value {
+        Value::String(self.0.to_string())
+    }
 }
 
 impl From<concordium_rust_sdk::types::AmountFraction> for Decimal {
@@ -209,8 +235,9 @@ impl TryFrom<&BigDecimal> for Decimal {
     type Error = anyhow::Error;
 
     fn try_from(value: &BigDecimal) -> Result<Self, Self::Error> {
-        let float_value =
-            value.to_f64().ok_or_else(|| anyhow::anyhow!("Failed to convert BigDecimal to f64"))?;
+        let float_value = value
+            .to_f64()
+            .ok_or_else(|| anyhow::anyhow!("Failed to convert BigDecimal to f64"))?;
 
         let decimal = rust_decimal::Decimal::from_f64(float_value)
             .ok_or_else(|| anyhow::anyhow!("Failed to convert f64 to rust_decimal::Decimal"))?;
@@ -270,22 +297,33 @@ impl ScalarType for TimeSpan {
         Ok(Self::try_from(string)?)
     }
 
-    fn to_value(&self) -> Value { Value::String(self.to_string()) }
+    fn to_value(&self) -> Value {
+        Value::String(self.to_string())
+    }
 }
 impl TryFrom<String> for TimeSpan {
     type Error = anyhow::Error;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        let duration: iso8601_duration::Duration =
-            value.parse().map_err(|_| anyhow::anyhow!("Invalid duration, expected ISO-8601"))?;
-        Ok(Self(duration.to_chrono().context("Failed to construct duration")?))
+        let duration: iso8601_duration::Duration = value
+            .parse()
+            .map_err(|_| anyhow::anyhow!("Invalid duration, expected ISO-8601"))?;
+        Ok(Self(
+            duration
+                .to_chrono()
+                .context("Failed to construct duration")?,
+        ))
     }
 }
 impl From<TimeSpan> for String {
-    fn from(time: TimeSpan) -> Self { time.0.to_string() }
+    fn from(time: TimeSpan) -> Self {
+        time.0.to_string()
+    }
 }
 impl From<chrono::Duration> for TimeSpan {
-    fn from(duration: chrono::Duration) -> Self { TimeSpan(duration) }
+    fn from(duration: chrono::Duration) -> Self {
+        TimeSpan(duration)
+    }
 }
 
 /// The `BigInteger` scalar represents an `BigDecimal` compliant type.
@@ -300,16 +338,21 @@ impl TryFrom<String> for BigInteger {
     type Error = anyhow::Error;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        let big_decimal: bigdecimal::BigDecimal =
-            value.parse().map_err(|err| anyhow::anyhow!("Invalid BigDecimal format: {}", err))?;
+        let big_decimal: bigdecimal::BigDecimal = value
+            .parse()
+            .map_err(|err| anyhow::anyhow!("Invalid BigDecimal format: {}", err))?;
         Ok(Self(big_decimal))
     }
 }
 impl From<BigInteger> for String {
-    fn from(value: BigInteger) -> Self { value.0.to_string() }
+    fn from(value: BigInteger) -> Self {
+        value.0.to_string()
+    }
 }
 impl From<bigdecimal::BigDecimal> for BigInteger {
-    fn from(value: bigdecimal::BigDecimal) -> Self { BigInteger(value) }
+    fn from(value: bigdecimal::BigDecimal) -> Self {
+        BigInteger(value)
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, derive_more::From)]
@@ -333,7 +376,9 @@ impl ScalarType for Byte {
         }
     }
 
-    fn to_value(&self) -> Value { Value::Number(self.0.into()) }
+    fn to_value(&self) -> Value {
+        Value::Number(self.0.into())
+    }
 }
 
 #[cfg(test)]

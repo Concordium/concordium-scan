@@ -16,19 +16,21 @@ impl From<concordium_rust_sdk::common::types::AccountAddress> for AccountAddress
 
 impl From<String> for AccountAddress {
     fn from(as_string: String) -> Self {
-        Self {
-            as_string,
-        }
+        Self { as_string }
     }
 }
 // TODO: will remove this when we will read from the db (this is for creating a
 // hashset of addresses to find unique as we are reading from json data)
 impl fmt::Display for AccountAddress {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{}", self.as_string) }
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.as_string)
+    }
 }
 
 impl fmt::Debug for AccountAddress {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{}", self.as_string) }
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.as_string)
+    }
 }
 
 pub type ContractIndex = UnsignedLong; // TODO check format.
@@ -36,7 +38,7 @@ pub type ContractIndex = UnsignedLong; // TODO check format.
 #[derive(Debug, SimpleObject, serde::Serialize, serde::Deserialize, Clone, Copy)]
 #[graphql(complex)]
 pub struct ContractAddress {
-    pub index:     ContractIndex,
+    pub index: ContractIndex,
     pub sub_index: ContractIndex,
 }
 #[ComplexObject]
@@ -48,7 +50,7 @@ impl ContractAddress {
 impl ContractAddress {
     pub fn new(index: i64, sub_index: i64) -> ApiResult<Self> {
         Ok(Self {
-            index:     u64::try_from(index)?.into(),
+            index: u64::try_from(index)?.into(),
             sub_index: u64::try_from(sub_index)?.into(),
         })
     }
@@ -57,7 +59,7 @@ impl ContractAddress {
 impl From<concordium_rust_sdk::types::ContractAddress> for ContractAddress {
     fn from(value: concordium_rust_sdk::types::ContractAddress) -> Self {
         Self {
-            index:     value.index.into(),
+            index: value.index.into(),
             sub_index: value.subindex.into(),
         }
     }

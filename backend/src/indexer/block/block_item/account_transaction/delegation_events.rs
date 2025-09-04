@@ -33,14 +33,14 @@ impl PreparedAccountDelegationEvents {
 pub enum PreparedAccountDelegationEvent {
     StakeIncrease {
         account_id: i64,
-        staked:     i64,
+        staked: i64,
     },
     StakeDecrease {
         account_id: i64,
-        staked:     i64,
+        staked: i64,
     },
     SetRestakeEarnings {
-        account_id:       i64,
+        account_id: i64,
         restake_earnings: bool,
     },
     Added {
@@ -51,7 +51,7 @@ pub enum PreparedAccountDelegationEvent {
     },
     SetDelegationTarget {
         account_id: i64,
-        target_id:  Option<i64>,
+        target_id: Option<i64>,
     },
     RemoveBaker(BakerRemoved),
 }
@@ -68,20 +68,20 @@ impl PreparedAccountDelegationEvent {
                 new_stake,
             } => PreparedAccountDelegationEvent::StakeIncrease {
                 account_id: delegator_id.id.index.try_into()?,
-                staked:     new_stake.micro_ccd.try_into()?,
+                staked: new_stake.micro_ccd.try_into()?,
             },
             DelegationEvent::DelegationStakeDecreased {
                 delegator_id,
                 new_stake,
             } => PreparedAccountDelegationEvent::StakeDecrease {
                 account_id: delegator_id.id.index.try_into()?,
-                staked:     new_stake.micro_ccd.try_into()?,
+                staked: new_stake.micro_ccd.try_into()?,
             },
             DelegationEvent::DelegationSetRestakeEarnings {
                 delegator_id,
                 restake_earnings,
             } => PreparedAccountDelegationEvent::SetRestakeEarnings {
-                account_id:       delegator_id.id.index.try_into()?,
+                account_id: delegator_id.id.index.try_into()?,
                 restake_earnings: *restake_earnings,
             },
             DelegationEvent::DelegationSetDelegationTarget {
@@ -89,30 +89,29 @@ impl PreparedAccountDelegationEvent {
                 delegation_target,
             } => PreparedAccountDelegationEvent::SetDelegationTarget {
                 account_id: delegator_id.id.index.try_into()?,
-                target_id:  if let concordium_rust_sdk::types::DelegationTarget::Baker {
-                    baker_id,
-                } = delegation_target
+                target_id: if let concordium_rust_sdk::types::DelegationTarget::Baker { baker_id } =
+                    delegation_target
                 {
                     Some(baker_id.id.index.try_into()?)
                 } else {
                     None
                 },
             },
-            DelegationEvent::DelegationAdded {
-                delegator_id,
-            } => PreparedAccountDelegationEvent::Added {
-                account_id: delegator_id.id.index.try_into()?,
-            },
-            DelegationEvent::DelegationRemoved {
-                delegator_id,
-            } => PreparedAccountDelegationEvent::Removed {
-                account_id: delegator_id.id.index.try_into()?,
-            },
-            DelegationEvent::BakerRemoved {
-                baker_id,
-            } => PreparedAccountDelegationEvent::RemoveBaker(BakerRemoved::prepare(
-                baker_id, statistics,
-            )?),
+            DelegationEvent::DelegationAdded { delegator_id } => {
+                PreparedAccountDelegationEvent::Added {
+                    account_id: delegator_id.id.index.try_into()?,
+                }
+            }
+            DelegationEvent::DelegationRemoved { delegator_id } => {
+                PreparedAccountDelegationEvent::Removed {
+                    account_id: delegator_id.id.index.try_into()?,
+                }
+            }
+            DelegationEvent::BakerRemoved { baker_id } => {
+                PreparedAccountDelegationEvent::RemoveBaker(BakerRemoved::prepare(
+                    baker_id, statistics,
+                )?)
+            }
         };
         Ok(prepared)
     }
@@ -129,14 +128,8 @@ impl PreparedAccountDelegationEvent {
             0..=1
         };
         match self {
-            PreparedAccountDelegationEvent::StakeIncrease {
-                account_id,
-                staked,
-            }
-            | PreparedAccountDelegationEvent::StakeDecrease {
-                account_id,
-                staked,
-            } => {
+            PreparedAccountDelegationEvent::StakeIncrease { account_id, staked }
+            | PreparedAccountDelegationEvent::StakeDecrease { account_id, staked } => {
                 // Update the stake of the delegator.
                 sqlx::query!(
                     "UPDATE accounts SET delegated_stake = $1 WHERE index = $2",
@@ -148,9 +141,7 @@ impl PreparedAccountDelegationEvent {
                 .ensure_affected_one_row()
                 .context("Failed update delegator stake")?;
             }
-            PreparedAccountDelegationEvent::Added {
-                account_id,
-            } => {
+            PreparedAccountDelegationEvent::Added { account_id } => {
                 sqlx::query!(
                     "UPDATE accounts
                      SET delegated_stake = 0,
@@ -164,26 +155,24 @@ impl PreparedAccountDelegationEvent {
                 .ensure_affected_one_row()
                 .context("Failed updating delegator state to be added")?;
             }
-            PreparedAccountDelegationEvent::Removed {
-                account_id,
-            } => {
+            PreparedAccountDelegationEvent::Removed { account_id } => {
                 // Update the pool_delegator_count when delegator is removed
                 // Note that `DelegationEvent::Added` event is always accommodated by a
                 // `DelegationEvent::StakeIncrease` event and
                 // `DelegationEvent::SetDelegationTarget` event, meaning we don't have to handle
                 // updating the pool state here.
                 sqlx::query!(
-                        "UPDATE bakers
+                    "UPDATE bakers
                          SET pool_delegator_count = pool_delegator_count - 1
                          FROM accounts
                          WHERE bakers.id = accounts.delegated_target_baker_id
                              AND accounts.index = $1",
-                        account_id
-                    )
-                    .execute(tx.as_mut())
-                    .await?
-                    .ensure_affected_rows_in_range(0..=1) // No row affected when target was the passive pool.
-                    .context("Failed updating pool state with removed delegator")?;
+                    account_id
+                )
+                .execute(tx.as_mut())
+                .await?
+                .ensure_affected_rows_in_range(0..=1) // No row affected when target was the passive pool.
+                .context("Failed updating pool state with removed delegator")?;
 
                 sqlx::query!(
                     "UPDATE accounts

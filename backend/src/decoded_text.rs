@@ -2,7 +2,7 @@ use async_graphql::{Enum, SimpleObject};
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct DecodedText {
-    text:        String,
+    text: String,
     decode_type: TextDecodeType,
 }
 
@@ -17,7 +17,7 @@ impl DecodedText {
             }
         } else {
             Self {
-                text:        hex::encode(bytes),
+                text: hex::encode(bytes),
                 decode_type: TextDecodeType::Hex,
             }
         }

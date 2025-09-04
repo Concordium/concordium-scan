@@ -6,41 +6,41 @@ use async_graphql::{SimpleObject, Union};
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct DelegationAdded {
-    pub delegator_id:    AccountIndex,
+    pub delegator_id: AccountIndex,
     pub account_address: AccountAddress,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct DelegationRemoved {
-    pub delegator_id:    AccountIndex,
+    pub delegator_id: AccountIndex,
     pub account_address: AccountAddress,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct DelegationSetDelegationTarget {
-    pub delegator_id:      AccountIndex,
-    pub account_address:   AccountAddress,
+    pub delegator_id: AccountIndex,
+    pub account_address: AccountAddress,
     pub delegation_target: DelegationTarget,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct DelegationSetRestakeEarnings {
-    pub delegator_id:     AccountIndex,
-    pub account_address:  AccountAddress,
+    pub delegator_id: AccountIndex,
+    pub account_address: AccountAddress,
     pub restake_earnings: bool,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct DelegationStakeDecreased {
-    pub delegator_id:      AccountIndex,
-    pub account_address:   AccountAddress,
+    pub delegator_id: AccountIndex,
+    pub account_address: AccountAddress,
     pub new_staked_amount: Amount,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct DelegationStakeIncreased {
-    pub delegator_id:      AccountIndex,
-    pub account_address:   AccountAddress,
+    pub delegator_id: AccountIndex,
+    pub account_address: AccountAddress,
     pub new_staked_amount: Amount,
 }
 
@@ -56,16 +56,14 @@ impl TryFrom<concordium_rust_sdk::types::DelegationTarget> for DelegationTarget 
     fn try_from(target: concordium_rust_sdk::types::DelegationTarget) -> Result<Self, Self::Error> {
         use concordium_rust_sdk::types::DelegationTarget as Target;
         match target {
-            Target::Passive => {
-                Ok(DelegationTarget::PassiveDelegationTarget(PassiveDelegationTarget {
-                    dummy: true,
-                }))
-            }
-            Target::Baker {
-                baker_id,
-            } => Ok(DelegationTarget::BakerDelegationTarget(BakerDelegationTarget {
-                baker_id: baker_id.id.index.try_into()?,
-            })),
+            Target::Passive => Ok(DelegationTarget::PassiveDelegationTarget(
+                PassiveDelegationTarget { dummy: true },
+            )),
+            Target::Baker { baker_id } => Ok(DelegationTarget::BakerDelegationTarget(
+                BakerDelegationTarget {
+                    baker_id: baker_id.id.index.try_into()?,
+                },
+            )),
         }
     }
 }

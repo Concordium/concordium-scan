@@ -41,7 +41,9 @@ impl QueryBlocks {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Block>> {
         let config = get_config(ctx)?;
@@ -85,7 +87,9 @@ impl QueryBlocks {
 
         let has_prev_page = if let Some(first) = rows.first() {
             let max_height_option: Option<i64> =
-                sqlx::query_scalar!("SELECT MAX(height) FROM blocks").fetch_one(pool).await?;
+                sqlx::query_scalar!("SELECT MAX(height) FROM blocks")
+                    .fetch_one(pool)
+                    .await?;
             max_height_option.is_some_and(|height| height > first.height)
         } else {
             false
@@ -99,7 +103,9 @@ impl QueryBlocks {
         };
         let mut connection = connection::Connection::new(has_prev_page, has_next_page);
         for row in rows {
-            connection.edges.push(connection::Edge::new(row.height.to_string(), row));
+            connection
+                .edges
+                .push(connection::Edge::new(row.height.to_string(), row));
         }
         Ok(connection)
     }
@@ -107,20 +113,20 @@ impl QueryBlocks {
 
 #[derive(Debug, Clone)]
 pub struct Block {
-    pub(crate) hash:              BlockHash,
-    pub(crate) height:            BlockHeight,
+    pub(crate) hash: BlockHash,
+    pub(crate) height: BlockHeight,
     /// Time of the block being baked.
-    pub(crate) slot_time:         DateTime,
+    pub(crate) slot_time: DateTime,
     /// Number of milliseconds between the `slot_time` of this block and its
     /// parent.
-    pub(crate) block_time:        i32,
+    pub(crate) block_time: i32,
     /// If this block is finalized, the number of milliseconds between the
     /// `slot_time` of this block and the first block that contains a
     /// finalization proof or quorum certificate that justifies this block
     /// being finalized.
     pub(crate) finalization_time: Option<i32>,
-    pub(crate) baker_id:          Option<i64>,
-    pub(crate) total_amount:      i64,
+    pub(crate) baker_id: Option<i64>,
+    pub(crate) total_amount: i64,
 }
 
 impl Block {
@@ -168,21 +174,35 @@ impl Block {
 #[Object]
 impl Block {
     /// Absolute block height.
-    async fn id(&self) -> types::ID { types::ID::from(self.height) }
+    async fn id(&self) -> types::ID {
+        types::ID::from(self.height)
+    }
 
-    async fn block_hash(&self) -> &BlockHash { &self.hash }
+    async fn block_hash(&self) -> &BlockHash {
+        &self.hash
+    }
 
-    async fn block_height(&self) -> &BlockHeight { &self.height }
+    async fn block_height(&self) -> &BlockHeight {
+        &self.height
+    }
 
-    async fn baker_id(&self) -> Option<BakerId> { self.baker_id.map(BakerId::from) }
+    async fn baker_id(&self) -> Option<BakerId> {
+        self.baker_id.map(BakerId::from)
+    }
 
-    async fn total_amount(&self) -> ApiResult<Amount> { Ok(self.total_amount.try_into()?) }
+    async fn total_amount(&self) -> ApiResult<Amount> {
+        Ok(self.total_amount.try_into()?)
+    }
 
     /// Time of the block being baked.
-    async fn block_slot_time(&self) -> &DateTime { &self.slot_time }
+    async fn block_slot_time(&self) -> &DateTime {
+        &self.slot_time
+    }
 
     /// Whether the block is finalized.
-    async fn finalized(&self) -> bool { true }
+    async fn finalized(&self) -> bool {
+        true
+    }
 
     /// The block statistics:
     ///   - The time difference from the parent block.
@@ -190,17 +210,19 @@ impl Block {
     ///     finalized.
     async fn block_statistics(&self) -> BlockStatistics {
         BlockStatistics {
-            block_time:        self.block_time as f64 / 1000.0,
+            block_time: self.block_time as f64 / 1000.0,
             finalization_time: self.finalization_time.map(|f| f as f64 / 1000.0),
         }
     }
 
     /// Number of transactions included in this block.
     async fn transaction_count<'a>(&self, ctx: &Context<'a>) -> ApiResult<i64> {
-        let result =
-            sqlx::query!("SELECT COUNT(*) FROM transactions WHERE block_height = $1", self.height)
-                .fetch_one(get_pool(ctx)?)
-                .await?;
+        let result = sqlx::query!(
+            "SELECT COUNT(*) FROM transactions WHERE block_height = $1",
+            self.height
+        )
+        .fetch_one(get_pool(ctx)?)
+        .await?;
         Ok(result.count.unwrap_or(0))
     }
 
@@ -209,14 +231,18 @@ impl Block {
     async fn special_events(
         &self,
         ctx: &Context<'_>,
-        #[graphql(desc = "Filter special events by special event type. Set to null to return \
-                          all special events (no filtering).")]
+        #[graphql(
+            desc = "Filter special events by special event type. Set to null to return \
+                          all special events (no filtering)."
+        )]
         include_filter: Option<Vec<SpecialEventTypeFilter>>,
         #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, SpecialEvent>> {
         let config = get_config(ctx)?;
@@ -269,7 +295,9 @@ impl Block {
                 Some(current_min) => min(current_min, row.block_outcome_index),
             });
             let cursor = row.block_outcome_index.to_string();
-            connection.edges.push(connection::Edge::new(cursor, row.outcome.0));
+            connection
+                .edges
+                .push(connection::Edge::new(cursor, row.outcome.0));
         }
         if let (Some(page_min_id), Some(page_max_id)) = (page_min_index, page_max_index) {
             let row = sqlx::query!(
@@ -296,7 +324,9 @@ impl Block {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Transaction>> {
         let config = get_config(ctx)?;
@@ -362,7 +392,9 @@ impl Block {
                 Some(current_min) => min(current_min, tx.index),
             });
 
-            connection.edges.push(connection::Edge::new(tx.index.to_string(), tx));
+            connection
+                .edges
+                .push(connection::Edge::new(tx.index.to_string(), tx));
         }
 
         if let (Some(page_min_id), Some(page_max_id)) = (page_min_index, page_max_index) {
@@ -389,7 +421,7 @@ impl Block {
 struct BlockStatistics {
     /// Number of seconds between block slot time of this block and previous
     /// block.
-    block_time:        f64,
+    block_time: f64,
     /// Number of seconds between the block slot time of this block and the
     /// block containing the finalization proof for this block.
     ///
@@ -412,5 +444,5 @@ struct BlockStatistics {
 
 struct BlockSpecialTransactionOutcome {
     block_outcome_index: i64,
-    outcome:             sqlx::types::Json<SpecialEvent>,
+    outcome: sqlx::types::Json<SpecialEvent>,
 }
