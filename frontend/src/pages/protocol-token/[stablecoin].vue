@@ -110,15 +110,14 @@
 									tooltip-position="fixed"
 									class="text-theme-white text-right whitespace-nowrap z-[9999]"
 								>
-									<span class="text-theme-interactive">?</span>
 								</Tooltip>
 							</div>
 							<p class="font-bold text-xl text-theme-interactive">
 								{{
 									pltTokenDataRef?.tokenCreationDetails?.createPlt
 										?.initializationParameters?.mintable
-										? 'True'
-										: 'False'
+										? 'Yes'
+										: 'No'
 								}}
 							</p>
 						</div>
@@ -133,15 +132,14 @@
 									tooltip-position="fixed"
 									class="text-theme-white text-right whitespace-nowrap z-[9999]"
 								>
-									<span class="text-theme-interactive">?</span>
 								</Tooltip>
 							</div>
 							<p class="font-bold text-xl text-theme-interactive">
 								{{
 									pltTokenDataRef?.tokenCreationDetails?.createPlt
 										?.initializationParameters?.burnable
-										? 'True'
-										: 'False'
+										? 'Yes'
+										: 'No'
 								}}
 							</p>
 						</div>
@@ -156,15 +154,14 @@
 									tooltip-position="fixed"
 									class="text-theme-white text-right whitespace-nowrap z-[9999]"
 								>
-									<span class="text-theme-interactive">?</span>
 								</Tooltip>
 							</div>
 							<p class="font-bold text-xl text-theme-interactive">
 								{{
 									pltTokenDataRef?.tokenCreationDetails?.createPlt
 										?.initializationParameters?.allowList
-										? 'True'
-										: 'False'
+										? 'Yes'
+										: 'No'
 								}}
 							</p>
 						</div>
@@ -179,15 +176,14 @@
 									tooltip-position="fixed"
 									class="text-theme-white text-right whitespace-nowrap z-[9999]"
 								>
-									<span class="text-theme-interactive">?</span>
 								</Tooltip>
 							</div>
 							<p class="font-bold text-xl text-theme-interactive">
 								{{
 									pltTokenDataRef?.tokenCreationDetails?.createPlt
 										?.initializationParameters?.denyList
-										? 'True'
-										: 'False'
+										? 'Yes'
+										: 'No'
 								}}
 							</p>
 						</div>
