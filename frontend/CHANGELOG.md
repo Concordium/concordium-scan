@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Fixed
+
+- fix validator `APY` section  `APY` figures were all overlapping resulting in them becoming unreadable.
+
 ## [1.7.24] - 2025-08-29
 
 ### Fixed
