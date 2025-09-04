@@ -57,7 +57,7 @@
 				<OpenLinkButton url="https://www.linkedin.com/company/concordium/">
 					<LinkedinIcon class="inline w-12 h-12" />
 				</OpenLinkButton>
-				<OpenLinkButton url="https://t.me/concordium_official">
+				<OpenLinkButton url="https://t.me/ConcordiumNews">
 					<TelegramIcon class="inline w-12 h-12" />
 				</OpenLinkButton>
 				<OpenLinkButton url="https://discord.com/invite/GpKGE2hCFx">
