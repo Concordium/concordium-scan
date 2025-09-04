@@ -805,10 +805,10 @@ impl PltAccountAmount {
     }
 }
 
-// ------------
-// This struct represents the PLT (Protocol Level Token) information for a
-// specific account address.
-pub struct PltByAccountAddress {
+// Represents a Protocol Level Token (PLT) balance for a specific account.
+// Contains the token metadata along with the account's current balance
+// for that specific PLT token.
+pub struct AccountProtocolToken {
     pub token_name: String,
     pub token_id: TokenId,
     pub amount: Option<BigDecimal>,
@@ -817,7 +817,7 @@ pub struct PltByAccountAddress {
 }
 
 #[Object]
-impl PltByAccountAddress {
+impl AccountProtocolToken {
     async fn token_name(&self) -> ApiResult<String> {
         Ok(self.token_name.clone())
     }

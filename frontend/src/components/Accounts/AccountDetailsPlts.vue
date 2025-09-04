@@ -26,14 +26,14 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import type { PltByAccountAddress, PageInfo } from '~~/src/types/generated.js'
+import type { AccountProtocolToken, PageInfo } from '~~/src/types/generated.js'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import type { PaginationTarget } from '~/composables/usePagination'
 
 const { breakpoint } = useBreakpoint()
 
 type Props = {
-	accountTokens: PltByAccountAddress[]
+	accountTokens: AccountProtocolToken[]
 	pageInfo: PageInfo
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }

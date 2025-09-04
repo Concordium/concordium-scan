@@ -1,5 +1,5 @@
 use super::{
-    baker::Baker, get_config, get_pool, plt::PltByAccountAddress, token::AccountToken,
+    baker::Baker, get_config, get_pool, plt::AccountProtocolToken, token::AccountToken,
     AccountStatementEntryType, ApiError, ApiResult, ConnectionQuery, InternalError, OrderDir,
 };
 use crate::{
@@ -1303,7 +1303,7 @@ impl Account {
             desc = "Returns the elements in the list that come before the specified cursor."
         )]
         before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, PltByAccountAddress>> {
+    ) -> ApiResult<connection::Connection<String, AccountProtocolToken>> {
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
 
@@ -1316,7 +1316,7 @@ impl Account {
         )?;
 
         let mut row_stream = sqlx::query_as!(
-            PltByAccountAddress,
+            AccountProtocolToken,
             r#"
             SELECT plt_tokens.name as token_name, plt_tokens.token_id, pa.amount, plt_tokens.decimal, pa.token_index
                 FROM public.plt_accounts AS pa

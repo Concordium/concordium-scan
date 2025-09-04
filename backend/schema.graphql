@@ -70,7 +70,7 @@ type Account {
 		last: Int,
 		"Returns the elements in the list that come before the specified cursor."
 		before: String
-	): PltByAccountAddressConnection!
+	): AccountProtocolTokenConnection!
 }
 
 type AccountAddress {
@@ -139,6 +139,30 @@ type AccountMetricsBuckets {
 	value.
 	"""
 	y_AccountsCreated: [Int!]!
+}
+
+type AccountProtocolToken {
+	tokenName: String!
+	tokenId: String!
+	decimal: Int!
+	amount: Int!
+}
+
+type AccountProtocolTokenConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [AccountProtocolTokenEdge!]!
+	"A list of nodes."
+	nodes: [AccountProtocolToken!]!
+}
+
+"An edge in a connection."
+type AccountProtocolTokenEdge {
+	"The item at the end of the edge"
+	node: AccountProtocolToken!
+	"A cursor for use in pagination"
+	cursor: String!
 }
 
 type AccountReleaseSchedule {
@@ -2002,30 +2026,6 @@ type PltAccountAmountConnection {
 type PltAccountAmountEdge {
 	"The item at the end of the edge"
 	node: PltAccountAmount!
-	"A cursor for use in pagination"
-	cursor: String!
-}
-
-type PltByAccountAddress {
-	tokenName: String!
-	tokenId: String!
-	decimal: Int!
-	amount: Int!
-}
-
-type PltByAccountAddressConnection {
-	"Information to aid in pagination."
-	pageInfo: PageInfo!
-	"A list of edges."
-	edges: [PltByAccountAddressEdge!]!
-	"A list of nodes."
-	nodes: [PltByAccountAddress!]!
-}
-
-"An edge in a connection."
-type PltByAccountAddressEdge {
-	"The item at the end of the edge"
-	node: PltByAccountAddress!
 	"A cursor for use in pagination"
 	cursor: String!
 }
