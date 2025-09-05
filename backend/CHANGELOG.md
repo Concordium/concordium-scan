@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [2.0.19] - 2025-09-05
+
 ### Fixed
 
 - Indexer crash while plt transfer involves self transfer (not updating plt amount balance if sender and recipient are the same).
