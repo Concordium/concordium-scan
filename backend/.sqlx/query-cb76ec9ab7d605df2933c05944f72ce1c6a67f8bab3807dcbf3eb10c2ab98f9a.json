@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO plt_accounts (account_index, token_index, amount, decimal)\n                VALUES\n                    ( (SELECT index FROM accounts WHERE canonical_address = $1::bytea),\n                    (SELECT index FROM plt_tokens WHERE token_id = $2),\n                    0::numeric,\n                    (SELECT decimal FROM plt_tokens WHERE token_id = $2)\n                    )\n                ON CONFLICT (account_index, token_index) DO UPDATE\n                SET amount = plt_accounts.amount + 0\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bytea",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cb76ec9ab7d605df2933c05944f72ce1c6a67f8bab3807dcbf3eb10c2ab98f9a"
+}
