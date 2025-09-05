@@ -842,3 +842,33 @@ impl PltAccountAmount {
         })
     }
 }
+
+// Represents a Protocol Level Token (PLT) balance for a specific account.
+// Contains the token metadata along with the account's current balance
+// for that specific PLT token.
+pub struct AccountProtocolToken {
+    pub token_name: String,
+    pub token_id: TokenId,
+    pub amount: Option<BigDecimal>,
+    pub decimal: i32,
+    pub token_index: TokenIndex,
+}
+
+#[Object]
+impl AccountProtocolToken {
+    async fn token_name(&self) -> ApiResult<String> {
+        Ok(self.token_name.clone())
+    }
+
+    async fn token_id(&self) -> ApiResult<TokenId> {
+        Ok(self.token_id.clone())
+    }
+
+    async fn decimal(&self) -> ApiResult<i32> {
+        Ok(self.decimal)
+    }
+
+    async fn amount(&self) -> ApiResult<u64> {
+        Ok(self.amount.as_ref().and_then(|a| a.to_u64()).unwrap_or(0))
+    }
+}

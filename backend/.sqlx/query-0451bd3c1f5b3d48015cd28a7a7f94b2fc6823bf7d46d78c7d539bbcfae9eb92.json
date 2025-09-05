@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT MAX(pa.token_index) AS max_index, MIN(pa.token_index) AS min_index \n                FROM plt_accounts pa\n                INNER JOIN plt_tokens ON pa.token_index = plt_tokens.index\n                WHERE account_index = $1 \n                    AND amount > 0",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "max_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "min_index",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "0451bd3c1f5b3d48015cd28a7a7f94b2fc6823bf7d46d78c7d539bbcfae9eb92"
+}
