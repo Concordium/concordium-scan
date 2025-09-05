@@ -1,154 +1,66 @@
 import { useQuery, gql } from '@urql/vue'
-import type { PltToken, Scalars } from '~/types/generated'
+import type { PageInfo, PltAccountAmount, Scalars } from '~/types/generated'
 
 import type { QueryVariables } from '~/types/queryVariables'
 
-export type PltTokenQueryResponse = {
-	pltTokens: {
-		nodes: PltToken[]
+export type PltTokenHolderQueryResponse = {
+	pltAccountsByTokenId: {
+		nodes: PltAccountAmount[]
+		pageInfo: PageInfo
 	}
 }
 
-const PLT_TOKEN_QUERY = gql<PltTokenQueryResponse>`
-	query {
-		pltTokens {
+const PLT_HOLDER_BY_TOKEN_ID = gql<PltTokenHolderQueryResponse>`
+	query (
+		$after: String
+		$before: String
+		$first: Int
+		$last: Int
+		$tokenId: String
+	) {
+		pltAccountsByTokenId(
+			first: $first
+			last: $last
+			after: $after
+			before: $before
+			tokenId: $tokenId
+		) {
 			nodes {
-				name
-				tokenId
-				transactionHash
-				moduleReference
-				metadata
-				initialSupply
-				totalSupply
-				totalMinted
-				totalBurned
-				decimal
-				index
-				issuer {
+				accountAddress {
 					asString
 				}
-				totalUniqueHolders
+				tokenId
+				amount {
+					value
+					decimals
+				}
+			}
+			pageInfo {
+				startCursor
+				endCursor
+				hasPreviousPage
+				hasNextPage
 			}
 		}
 	}
 `
 
-function getData(value: PltTokenQueryResponse | undefined | null): PltToken[] {
-	return value?.pltTokens?.nodes ?? []
-}
-
-export const usePltTokenQuery = (eventsVariables?: QueryVariables) => {
+export const usePltTokenHolderQuery = (
+	tokenId: Scalars['ID'],
+	eventsVariables?: Partial<QueryVariables>
+) => {
 	const { data, fetching, error } = useQuery({
-		query: PLT_TOKEN_QUERY,
-		requestPolicy: 'cache-and-network',
-		variables: eventsVariables,
+		query: PLT_HOLDER_BY_TOKEN_ID,
+		requestPolicy: 'network-only',
+		variables: {
+			tokenId: tokenId,
+			...eventsVariables,
+		},
 	})
-
-	const dataRef = ref<PltToken[]>(getData(data.value))
-	const componentState = useComponentState<PltToken[]>({
-		fetching,
-		error,
-		data: dataRef,
-	})
-
-	watch(
-		() => data.value,
-		value => (dataRef.value = getData(value))
-	)
 
 	return {
-		data: dataRef,
-		error,
-		componentState,
-		loading: fetching,
-	}
-}
-
-export type PltTokenQueryByTokenIdResponse = {
-	pltToken: PltToken
-}
-
-const PLT_TOKEN_QUERY_BY_ID = gql<PltTokenQueryByTokenIdResponse>`
-	query ($id: String!) {
-		pltToken(id: $id) {
-			name
-			tokenId
-			transactionHash
-			moduleReference
-			metadata
-			initialSupply
-			totalSupply
-			totalMinted
-			totalBurned
-			decimal
-			index
-			totalUniqueHolders
-			issuer {
-				asString
-			}
-		}
-	}
-`
-
-export const usePltTokenQueryById = (tokenId: string) => {
-	const { data, fetching, error } = useQuery({
-		query: PLT_TOKEN_QUERY_BY_ID,
-		requestPolicy: 'cache-and-network',
-		variables: { id: tokenId },
-	})
-
-	const dataRef = ref<PltToken | null>(data.value?.pltToken ?? null)
-	const componentState = useComponentState<PltToken | null>({
+		data,
 		fetching,
 		error,
-		data: dataRef,
-	})
-
-	watch(
-		() => data.value,
-		value => (dataRef.value = value?.pltToken ?? null)
-	)
-
-	return {
-		data: dataRef,
-		error,
-		componentState,
-		loading: fetching,
-	}
-}
-
-export type UniqueHolders = {
-	pltUniqueAccounts: Scalars['Int']
-}
-
-const PLT_ACCOUNT_AMOUNT_QUERY = gql<UniqueHolders>`
-	query PltUniqueAccounts {
-		pltUniqueAccounts
-	}
-`
-
-export const usePltUniqueAccountsQuery = () => {
-	const { data, fetching, error } = useQuery({
-		query: PLT_ACCOUNT_AMOUNT_QUERY,
-		requestPolicy: 'cache-and-network',
-	})
-
-	const dataRef = ref<UniqueHolders | null>(data.value ?? null)
-	const componentState = useComponentState<UniqueHolders | null>({
-		fetching,
-		error,
-		data: dataRef,
-	})
-
-	watch(
-		() => data.value,
-		value => (dataRef.value = value ?? null)
-	)
-
-	return {
-		data: dataRef,
-		error,
-		componentState,
-		loading: fetching,
 	}
 }
