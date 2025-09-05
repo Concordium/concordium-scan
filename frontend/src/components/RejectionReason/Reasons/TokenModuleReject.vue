@@ -15,8 +15,10 @@
 					Available balance :
 					<b>
 						{{
-							Number(reason.details.available_balance.value) /
-							10 ** Number(reason.details.available_balance.decimals)
+							calculateActualValue(
+								reason.details.available_balance.value,
+								reason.details.available_balance.decimals
+							)
 						}}
 					</b>
 				</span>
@@ -25,8 +27,10 @@
 					Required balance :
 					<b>
 						{{
-							Number(reason.details.required_balance.value) /
-							10 ** Number(reason.details.required_balance.decimals)
+							calculateActualValue(
+								reason.details.required_balance.value,
+								reason.details.required_balance.decimals
+							)
 						}}
 					</b>
 				</span>
@@ -46,7 +50,7 @@
 				<span class="px-2">
 					Details:
 					<b>
-						{{ reason.details?.cause }}
+						{{ reason.details.cause ?? '' }}
 					</b>
 				</span>
 			</Tooltip>
@@ -82,14 +86,14 @@
 				<span class="px-2">
 					Operation Type :
 					<b>
-						{{ reason?.details?.operation_type }}
+						{{ reason.details.operation_type }}
 					</b>
 				</span>
 				<br />
 				<span class="px-2">
 					Details:
 					<b>
-						{{ reason?.details?.reason }}
+						{{ reason.details.reason ?? '' }}
 					</b>
 				</span>
 			</Tooltip>
@@ -101,27 +105,27 @@
 				</span>
 				<br />
 				<span class="px-2">
-					Token Id : <b> {{ reason?.tokenId }} </b>
+					Token Id : <b> {{ reason.tokenId }} </b>
 				</span>
 				<br />
-				<span v-if="reason?.details.address?.account?.address" class="px-2">
+				<span v-if="reason.details.address?.account?.address" class="px-2">
 					Token Holder :
 					<b>
-						{{ reason?.details.address?.account?.address?.as_string }}
+						{{ reason.details.address?.account?.address?.as_string }}
 					</b>
 				</span>
 				<br />
-				<span v-if="reason?.details?.address?.account?.coin_info" class="px-2">
+				<span v-if="reason.details.address?.account?.coin_info" class="px-2">
 					Coin Info :
 					<b>
-						{{ reason?.details?.address?.account?.coin_info }}
+						{{ reason.details.address?.account?.coin_info }}
 					</b>
 				</span>
 				<br />
 				<span class="px-2">
 					Details:
 					<b>
-						{{ reason?.details?.reason }}
+						{{ reason.details.reason ?? '' }}
 					</b>
 				</span>
 			</Tooltip>
@@ -139,21 +143,21 @@
 				<span class="px-2">
 					Requested amount :
 					<b>
-						{{ reason?.details?.requested_amount }}
+						{{ reason.details.requested_amount }}
 					</b>
 				</span>
 				<br />
 				<span class="px-2">
 					Current supply :
 					<b>
-						{{ reason?.details?.current_supply }}
+						{{ reason.details.current_supply }}
 					</b>
 				</span>
 				<br />
 				<span class="px-2">
 					Max representable ammount :
 					<b>
-						{{ reason?.details?.max_representable_amount }}
+						{{ reason.details.max_representable_amount }}
 					</b>
 				</span>
 			</Tooltip>
