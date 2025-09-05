@@ -921,7 +921,7 @@ impl PreparedTokenUpdate {
                 amount,
                 self.token_id
             );
-            
+
             // Handle self-transfer with a single database operation (net change = 0)
             sqlx::query!(
                 "INSERT INTO plt_accounts (account_index, token_index, amount, decimal)
