@@ -94,14 +94,28 @@ pub async fn run_migrations(
     ensure_migrations_table(db_connection).await?;
     let mut current = current_schema_version(&mut *db_connection).await?;
     info!("Current database schema version {}", current.as_i64());
-    info!("Latest database schema version {}", SchemaVersion::LATEST.as_i64());
+    info!(
+        "Latest database schema version {}",
+        SchemaVersion::LATEST.as_i64()
+    );
     while current < SchemaVersion::LATEST {
-        info!("Running migration from database schema version {}", current.as_i64());
-        let new_version = current.migration_to_next(db_connection, endpoints.as_slice()).await?;
+        info!(
+            "Running migration from database schema version {}",
+            current.as_i64()
+        );
+        let new_version = current
+            .migration_to_next(db_connection, endpoints.as_slice())
+            .await?;
         if new_version.is_partial() {
-            info!("Committing partial migration to schema version {}", new_version.as_i64());
+            info!(
+                "Committing partial migration to schema version {}",
+                new_version.as_i64()
+            );
         } else {
-            info!("Migrated database schema to version {} successfully", new_version.as_i64());
+            info!(
+                "Migrated database schema to version {} successfully",
+                new_version.as_i64()
+            );
         }
         current = new_version
     }
@@ -141,7 +155,7 @@ Use `--help` for more information.",
 #[display("Migration {version}:{description}")]
 struct Migration {
     /// Version number for the database schema.
-    version:     i64,
+    version: i64,
     /// Short description of the point of the migration.
     description: String,
     /// Whether the migration does a breaking change to the database schema.
@@ -153,7 +167,7 @@ struct Migration {
 impl From<SchemaVersion> for Migration {
     fn from(value: SchemaVersion) -> Self {
         Migration {
-            version:     value.as_i64(),
+            version: value.as_i64(),
             description: value.to_string(),
             destructive: value.is_destructive(),
         }
@@ -283,7 +297,9 @@ impl SchemaVersion {
     }
 
     /// Convert to the integer representation used as version in the database.
-    fn as_i64(self) -> i64 { self as i64 }
+    fn as_i64(self) -> i64 {
+        self as i64
+    }
 
     /// Whether introducing the database schema version is destructive, meaning
     /// not backwards compatible.
@@ -399,7 +415,9 @@ impl SchemaVersion {
             SchemaVersion::Empty => {
                 // Set up the initial database schema.
                 tx.as_mut()
-                    .execute(sqlx::raw_sql(include_str!("./migrations/m0001-initialize.sql")))
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0001-initialize.sql"
+                    )))
                     .await?;
                 SchemaVersion::InitialFirstHalf
             }
@@ -412,11 +430,15 @@ impl SchemaVersion {
                 SchemaVersion::IndexBlocksWithNoCumulativeFinTime
             }
             SchemaVersion::IndexBlocksWithNoCumulativeFinTime => {
-                tx.as_mut().execute(sqlx::raw_sql(include_str!("./migrations/m0003.sql"))).await?;
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!("./migrations/m0003.sql")))
+                    .await?;
                 SchemaVersion::PayDayPoolCommissionRates
             }
             SchemaVersion::PayDayPoolCommissionRates => {
-                tx.as_mut().execute(sqlx::raw_sql(include_str!("./migrations/m0004.sql"))).await?;
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!("./migrations/m0004.sql")))
+                    .await?;
                 SchemaVersion::PayDayLotteryPowers
             }
             SchemaVersion::PayDayLotteryPowers => {
@@ -463,7 +485,9 @@ impl SchemaVersion {
             }
             SchemaVersion::RankingByLotteryPower => {
                 tx.as_mut()
-                    .execute(sqlx::raw_sql(include_str!("./migrations/m0012-removed-bakers.sql")))
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0012-removed-bakers.sql"
+                    )))
                     .await?;
                 SchemaVersion::TrackRemovedBakers
             }
@@ -493,7 +517,9 @@ impl SchemaVersion {
             }
             SchemaVersion::PassiveDelegation => {
                 tx.as_mut()
-                    .execute(sqlx::raw_sql(include_str!("./migrations/m0017-reward-metrics.sql")))
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0017-reward-metrics.sql"
+                    )))
                     .await?;
                 SchemaVersion::RewardMetrics
             }
@@ -583,7 +609,9 @@ impl SchemaVersion {
             }
             SchemaVersion::ReindexAffectedAccounts => {
                 tx.as_mut()
-                    .execute(sqlx::raw_sql(include_str!("./migrations/m0032_reindex_gin_hash.sql")))
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0032_reindex_gin_hash.sql"
+                    )))
                     .await?;
                 SchemaVersion::ReindexGinHash
             }
@@ -640,7 +668,9 @@ impl SchemaVersion {
             }
             SchemaVersion::CreatePltTokenAndEventTables => {
                 tx.as_mut()
-                    .execute(sqlx::raw_sql(include_str!("./migrations/m0040_alter_plt_events.sql")))
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0040_alter_plt_events.sql"
+                    )))
                     .await?;
                 SchemaVersion::AlterPltEventsAddEventTimestampAndIndex
             }

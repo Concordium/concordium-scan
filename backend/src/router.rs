@@ -11,9 +11,15 @@ pub async fn serve(
     stop_signal: CancellationToken,
     health_routes: Router,
 ) -> anyhow::Result<()> {
-    let metric_routes = Router::new().route("/", get(metrics)).with_state(Arc::new(registry));
-    let app = Router::new().nest("/metrics", metric_routes).nest("/health", health_routes);
-    axum::serve(tcp_listener, app).with_graceful_shutdown(stop_signal.cancelled_owned()).await?;
+    let metric_routes = Router::new()
+        .route("/", get(metrics))
+        .with_state(Arc::new(registry));
+    let app = Router::new()
+        .nest("/metrics", metric_routes)
+        .nest("/health", health_routes);
+    axum::serve(tcp_listener, app)
+        .with_graceful_shutdown(stop_signal.cancelled_owned())
+        .await?;
     Ok(())
 }
 

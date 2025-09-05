@@ -12,7 +12,7 @@ use concordium_rust_sdk::types::{AbsoluteBlockHeight, BakerId, ProtocolVersion};
 /// Update the flag on the baker, marking it primed for suspension.
 pub struct PreparedValidatorPrimedForSuspension {
     /// Id of the baker/validator being primed for suspension.
-    baker_id:     i64,
+    baker_id: i64,
     /// Height of the block which contained the special transaction outcome
     /// causing it.
     block_height: i64,
@@ -21,7 +21,7 @@ pub struct PreparedValidatorPrimedForSuspension {
 impl PreparedValidatorPrimedForSuspension {
     pub fn prepare(baker_id: &BakerId, block_height: AbsoluteBlockHeight) -> anyhow::Result<Self> {
         Ok(Self {
-            baker_id:     baker_id.id.index.try_into()?,
+            baker_id: baker_id.id.index.try_into()?,
             block_height: block_height.height.try_into()?,
         })
     }
@@ -71,9 +71,7 @@ impl PreparedUnmarkPrimedForSuspension {
                 baker_ids.push(signer.id.index.try_into()?);
             }
         }
-        Ok(Self {
-            baker_ids,
-        })
+        Ok(Self { baker_ids })
     }
 
     pub async fn save(&self, tx: &mut sqlx::PgTransaction<'_>) -> anyhow::Result<()> {
@@ -97,7 +95,7 @@ impl PreparedUnmarkPrimedForSuspension {
 /// Update validator/baker to be suspended due to inactivity.
 pub struct PreparedValidatorSuspension {
     /// Id of the validator/baker being suspended.
-    baker_id:     i64,
+    baker_id: i64,
     /// Block containing the special transaction outcome event causing it.
     block_height: i64,
 }
@@ -105,7 +103,7 @@ pub struct PreparedValidatorSuspension {
 impl PreparedValidatorSuspension {
     pub fn prepare(baker_id: &BakerId, block_height: AbsoluteBlockHeight) -> anyhow::Result<Self> {
         Ok(Self {
-            baker_id:     baker_id.id.index.try_into()?,
+            baker_id: baker_id.id.index.try_into()?,
             block_height: block_height.height.try_into()?,
         })
     }

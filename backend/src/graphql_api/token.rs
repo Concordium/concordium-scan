@@ -40,7 +40,9 @@ impl QueryToken {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Token>> {
         let pool = get_pool(ctx)?;
@@ -80,11 +82,14 @@ impl QueryToken {
         .fetch(pool);
         let mut connection = connection::Connection::new(false, false);
         while let Some(token) = row_stream.try_next().await? {
-            connection.edges.push(connection::Edge::new(token.index.to_string(), token));
+            connection
+                .edges
+                .push(connection::Edge::new(token.index.to_string(), token));
         }
         if let Some(page_max_index) = connection.edges.first() {
-            if let Some(max_index) =
-                sqlx::query_scalar!("SELECT MAX(index) FROM tokens").fetch_one(pool).await?
+            if let Some(max_index) = sqlx::query_scalar!("SELECT MAX(index) FROM tokens")
+                .fetch_one(pool)
+                .await?
             {
                 connection.has_previous_page = max_index > page_max_index.node.index;
             }
@@ -97,14 +102,14 @@ impl QueryToken {
 }
 
 pub struct Token {
-    pub index:                  i64,
+    pub index: i64,
     pub init_transaction_index: TransactionIndex,
-    pub contract_index:         i64,
-    pub contract_sub_index:     i64,
-    pub token_id:               String,
-    pub metadata_url:           Option<String>,
-    pub raw_total_supply:       bigdecimal::BigDecimal,
-    pub token_address:          String,
+    pub contract_index: i64,
+    pub contract_sub_index: i64,
+    pub token_id: String,
+    pub metadata_url: Option<String>,
+    pub raw_total_supply: bigdecimal::BigDecimal,
+    pub token_address: String,
 }
 
 impl Token {
@@ -143,27 +148,39 @@ impl Token {
 #[Object]
 impl Token {
     async fn initial_transaction(&self, ctx: &Context<'_>) -> ApiResult<Transaction> {
-        Transaction::query_by_index(get_pool(ctx)?, self.init_transaction_index).await?.ok_or_else(
-            || {
+        Transaction::query_by_index(get_pool(ctx)?, self.init_transaction_index)
+            .await?
+            .ok_or_else(|| {
                 InternalError::InternalError(
                     "Token: No transaction at init_transaction_index".to_string(),
                 )
                 .into()
-            },
-        )
+            })
     }
 
-    async fn total_supply(&self) -> BigInteger { BigInteger::from(self.raw_total_supply.clone()) }
+    async fn total_supply(&self) -> BigInteger {
+        BigInteger::from(self.raw_total_supply.clone())
+    }
 
-    async fn token_address(&self) -> &String { &self.token_address }
+    async fn token_address(&self) -> &String {
+        &self.token_address
+    }
 
-    async fn token_id(&self) -> &String { &self.token_id }
+    async fn token_id(&self) -> &String {
+        &self.token_id
+    }
 
-    async fn metadata_url(&self) -> &Option<String> { &self.metadata_url }
+    async fn metadata_url(&self) -> &Option<String> {
+        &self.metadata_url
+    }
 
-    async fn contract_index(&self) -> i64 { self.contract_index }
+    async fn contract_index(&self) -> i64 {
+        self.contract_index
+    }
 
-    async fn contract_sub_index(&self) -> i64 { self.contract_sub_index }
+    async fn contract_sub_index(&self) -> i64 {
+        self.contract_sub_index
+    }
 
     async fn contract_address_formatted(&self) -> String {
         format!("<{},{}>", self.contract_index, self.contract_sub_index)
@@ -178,10 +195,11 @@ impl Token {
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
         let min_index = i64::try_from(skip.unwrap_or(0))?;
-        let limit =
-            i64::try_from(take.map_or(config.token_holder_addresses_collection_limit, |t| {
+        let limit = i64::try_from(
+            take.map_or(config.token_holder_addresses_collection_limit, |t| {
                 config.token_holder_addresses_collection_limit.min(t)
-            }))?;
+            }),
+        )?;
 
         // Tokens with 0 balance are filtered out. We still display tokens with a
         // negative balance (buggy cis2 smart contract) to help smart contract
@@ -363,45 +381,47 @@ impl Token {
 #[derive(SimpleObject)]
 pub struct TokenEventsCollectionSegment {
     /// Information to aid in pagination.
-    pub page_info:   CollectionSegmentInfo,
+    pub page_info: CollectionSegmentInfo,
     /// A flattened list of the items.
-    pub items:       Vec<Cis2Event>,
+    pub items: Vec<Cis2Event>,
     pub total_count: u64,
 }
 
 #[derive(SimpleObject)]
 #[graphql(complex)]
 pub struct Cis2Event {
-    pub token_id:           String,
-    pub contract_index:     i64,
+    pub token_id: String,
+    pub contract_index: i64,
     pub contract_sub_index: i64,
-    pub transaction_index:  TransactionIndex,
-    pub index_per_token:    i64,
+    pub transaction_index: TransactionIndex,
+    pub index_per_token: i64,
     #[graphql(skip)]
-    pub event:              sqlx::types::Json<CisEvent>,
+    pub event: sqlx::types::Json<CisEvent>,
 }
 
 #[ComplexObject]
 impl Cis2Event {
     async fn transaction(&self, ctx: &Context<'_>) -> ApiResult<Transaction> {
-        Transaction::query_by_index(get_pool(ctx)?, self.transaction_index).await?.ok_or_else(
-            || {
+        Transaction::query_by_index(get_pool(ctx)?, self.transaction_index)
+            .await?
+            .ok_or_else(|| {
                 InternalError::InternalError(
                     "Token: No transaction at transaction_index".to_string(),
                 )
                 .into()
-            },
-        )
+            })
     }
 
-    async fn event(&self) -> &CisEvent { &self.event.as_ref() }
+    async fn event(&self) -> &CisEvent {
+        &self.event.as_ref()
+    }
 }
 
 /// A segment of a collection.
 #[derive(SimpleObject)]
 pub struct TokensCollectionSegment {
     /// A flattened list of the items.
-    pub items:       Vec<Token>,
+    pub items: Vec<Token>,
     pub total_count: u64,
 }
 
@@ -409,22 +429,22 @@ pub struct TokensCollectionSegment {
 #[derive(SimpleObject)]
 pub struct AccountsCollectionSegment {
     /// Information to aid in pagination.
-    pub page_info:   CollectionSegmentInfo,
+    pub page_info: CollectionSegmentInfo,
     /// A flattened list of the items.
-    pub items:       Vec<AccountToken>,
+    pub items: Vec<AccountToken>,
     pub total_count: u64,
 }
 #[derive(SimpleObject)]
 #[graphql(complex)]
 pub struct AccountToken {
     // The value is used for pagination/sorting in some queries.
-    pub change_seq:         i64,
-    pub token_id:           String,
-    pub contract_index:     i64,
+    pub change_seq: i64,
+    pub token_id: String,
+    pub contract_index: i64,
     pub contract_sub_index: i64,
     #[graphql(skip)]
-    pub raw_balance:        bigdecimal::BigDecimal,
-    pub account_id:         i64,
+    pub raw_balance: bigdecimal::BigDecimal,
+    pub account_id: i64,
 }
 #[ComplexObject]
 impl AccountToken {
@@ -439,22 +459,26 @@ impl AccountToken {
     }
 
     async fn account<'a>(&self, ctx: &Context<'a>) -> ApiResult<Account> {
-        Account::query_by_index(get_pool(ctx)?, self.account_id).await?.ok_or(ApiError::NotFound)
+        Account::query_by_index(get_pool(ctx)?, self.account_id)
+            .await?
+            .ok_or(ApiError::NotFound)
     }
 
-    async fn balance(&self) -> BigInteger { BigInteger::from(self.raw_balance.clone()) }
+    async fn balance(&self) -> BigInteger {
+        BigInteger::from(self.raw_balance.clone())
+    }
 }
 
 // Interim struct used to fetch AccountToken data from the database.
 pub struct AccountTokenInterim {
     // This value is used for pagination/sorting in some queries. The value is inferred as
     // nullable and the corresponding `Option` type in Rust is used here.
-    pub change_seq:         Option<i64>,
-    pub token_id:           String,
-    pub contract_index:     i64,
+    pub change_seq: Option<i64>,
+    pub token_id: String,
+    pub contract_index: i64,
     pub contract_sub_index: i64,
-    pub raw_balance:        bigdecimal::BigDecimal,
-    pub account_id:         i64,
+    pub raw_balance: bigdecimal::BigDecimal,
+    pub account_id: i64,
 }
 impl TryFrom<AccountTokenInterim> for AccountToken {
     type Error = ApiError;

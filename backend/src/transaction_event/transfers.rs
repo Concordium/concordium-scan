@@ -11,22 +11,22 @@ use tracing::error;
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct Transferred {
     pub amount: Amount,
-    pub from:   Address,
-    pub to:     Address,
+    pub from: Address,
+    pub to: Address,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct AmountAddedByDecryption {
-    pub amount:          Amount,
+    pub amount: Amount,
     pub account_address: AccountAddress,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct EncryptedAmountsRemoved {
-    pub account_address:      AccountAddress,
+    pub account_address: AccountAddress,
     pub new_encrypted_amount: String,
-    pub input_amount:         String,
-    pub up_to_index:          u64,
+    pub input_amount: String,
+    pub up_to_index: u64,
 }
 
 impl TryFrom<concordium_rust_sdk::types::EncryptedAmountRemovedEvent> for EncryptedAmountsRemoved {
@@ -36,25 +36,25 @@ impl TryFrom<concordium_rust_sdk::types::EncryptedAmountRemovedEvent> for Encryp
         removed: concordium_rust_sdk::types::EncryptedAmountRemovedEvent,
     ) -> Result<Self, Self::Error> {
         Ok(EncryptedAmountsRemoved {
-            account_address:      removed.account.into(),
+            account_address: removed.account.into(),
             new_encrypted_amount: serde_json::to_string(&removed.new_amount)?,
-            input_amount:         serde_json::to_string(&removed.input_amount)?,
-            up_to_index:          removed.up_to_index.index,
+            input_amount: serde_json::to_string(&removed.input_amount)?,
+            up_to_index: removed.up_to_index.index,
         })
     }
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct EncryptedSelfAmountAdded {
-    pub account_address:      AccountAddress,
+    pub account_address: AccountAddress,
     pub new_encrypted_amount: String,
-    pub amount:               Amount,
+    pub amount: Amount,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct NewEncryptedAmount {
-    pub account_address:  AccountAddress,
-    pub new_index:        u64,
+    pub account_address: AccountAddress,
+    pub new_index: u64,
     pub encrypted_amount: String,
 }
 
@@ -65,8 +65,8 @@ impl TryFrom<concordium_rust_sdk::types::NewEncryptedAmountEvent> for NewEncrypt
         added: concordium_rust_sdk::types::NewEncryptedAmountEvent,
     ) -> Result<Self, Self::Error> {
         Ok(NewEncryptedAmount {
-            account_address:  added.receiver.into(),
-            new_index:        added.new_index.index,
+            account_address: added.receiver.into(),
+            new_index: added.new_index.index,
             encrypted_amount: serde_json::to_string(&added.encrypted_amount)?,
         })
     }
@@ -101,14 +101,14 @@ impl From<concordium_rust_sdk::types::Memo> for TransferMemo {
 #[derive(SimpleObject, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TimestampedAmount {
     pub timestamp: DateTime,
-    pub amount:    UnsignedLong,
+    pub amount: UnsignedLong,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 #[graphql(complex)]
 pub struct TransferredWithSchedule {
-    pub from_account_address:    AccountAddress,
-    pub to_account_address:      AccountAddress,
+    pub from_account_address: AccountAddress,
+    pub to_account_address: AccountAddress,
     #[graphql(skip)]
     pub(crate) amounts_schedule: Vec<TimestampedAmount>,
 }
@@ -116,7 +116,11 @@ pub struct TransferredWithSchedule {
 #[ComplexObject]
 impl TransferredWithSchedule {
     async fn total_amount(&self) -> Amount {
-        self.amounts_schedule.iter().map(|amount| amount.amount.0).sum::<u64>().into()
+        self.amounts_schedule
+            .iter()
+            .map(|amount| amount.amount.0)
+            .sum::<u64>()
+            .into()
     }
 
     async fn amounts_schedule(
@@ -125,7 +129,9 @@ impl TransferredWithSchedule {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<usize>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<Connection<String, TimestampedAmount>> {
         connection_from_slice(&self.amounts_schedule[..], first, after, last, before)

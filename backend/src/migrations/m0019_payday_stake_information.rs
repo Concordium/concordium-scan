@@ -16,10 +16,10 @@ const NEXT_SCHEMA_VERSION: SchemaVersion = SchemaVersion::PaydayPoolStake;
 
 #[derive(Debug)]
 struct Data {
-    block:                   i64,
-    bakers:                  Vec<i64>,
-    baker_stake:             Vec<i64>,
-    delegator_stake:         Vec<i64>,
+    block: i64,
+    bakers: Vec<i64>,
+    baker_stake: Vec<i64>,
+    delegator_stake: Vec<i64>,
     passive_delegator_stake: i64,
 }
 impl Data {
@@ -60,7 +60,10 @@ pub async fn run(
     }
 
     let endpoint = endpoints.first().with_context(|| {
-        format!("Migration '{}' must be provided access to a Concordium node", NEXT_SCHEMA_VERSION)
+        format!(
+            "Migration '{}' must be provided access to a Concordium node",
+            NEXT_SCHEMA_VERSION
+        )
     })?;
     let mut client = v2::Client::new(endpoint.clone()).await?;
     let mut process = paydays.len();
@@ -73,17 +76,24 @@ pub async fn run(
         }
 
         let block_height = AbsoluteBlockHeight::from(u64::try_from(payday_block_height)?);
-        let mut baker_rewards = client.get_bakers_reward_period(block_height).await?.response;
+        let mut baker_rewards = client
+            .get_bakers_reward_period(block_height)
+            .await?
+            .response;
         let mut data = Data::new(payday_block_height);
         // Iterate bakers
         while let Some(reward) = baker_rewards.try_next().await? {
             data.bakers.push(reward.baker.baker_id.id.index.try_into()?);
-            data.baker_stake.push(reward.equity_capital.micro_ccd().try_into()?);
-            data.delegator_stake.push(reward.delegated_capital.micro_ccd().try_into()?);
+            data.baker_stake
+                .push(reward.equity_capital.micro_ccd().try_into()?);
+            data.delegator_stake
+                .push(reward.delegated_capital.micro_ccd().try_into()?);
         }
         // Iterate delegators for the passive pool
-        let mut passive_rewards =
-            client.get_passive_delegators_reward_period(block_height).await?.response;
+        let mut passive_rewards = client
+            .get_passive_delegators_reward_period(block_height)
+            .await?
+            .response;
         let mut passive_stake = Amount::zero();
         while let Some(reward) = passive_rewards.try_next().await? {
             passive_stake += reward.stake;

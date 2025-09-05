@@ -101,143 +101,127 @@ pub fn events_from_summary(
     use concordium_rust_sdk::types::{AccountTransactionEffects, BlockItemSummaryDetails};
     let events = match value {
         BlockItemSummaryDetails::AccountTransaction(details) => match details.effects {
-            AccountTransactionEffects::None {
-                ..
-            } => {
+            AccountTransactionEffects::None { .. } => {
                 anyhow::bail!("Transaction was rejected")
             }
-            AccountTransactionEffects::ModuleDeployed {
-                module_ref,
-            } => {
-                vec![Event::ContractModuleDeployed(smart_contracts::ContractModuleDeployed {
-                    module_ref: module_ref.to_string(),
-                })]
+            AccountTransactionEffects::ModuleDeployed { module_ref } => {
+                vec![Event::ContractModuleDeployed(
+                    smart_contracts::ContractModuleDeployed {
+                        module_ref: module_ref.to_string(),
+                    },
+                )]
             }
-            AccountTransactionEffects::ContractInitialized {
-                data,
-            } => {
-                vec![Event::ContractInitialized(smart_contracts::ContractInitialized {
-                    input_parameter:   data.parameter.map(|x| x.as_ref().to_vec()),
-                    module_ref:        data.origin_ref.to_string(),
-                    contract_address:  data.address.into(),
-                    amount:            data.amount.micro_ccd().into(),
-                    init_name:         data.init_name.to_string(),
-                    version:           data.contract_version.into(),
-                    contract_logs_raw: data.events.iter().map(|e| e.as_ref().to_vec()).collect(),
-                })]
+            AccountTransactionEffects::ContractInitialized { data } => {
+                vec![Event::ContractInitialized(
+                    smart_contracts::ContractInitialized {
+                        input_parameter: data.parameter.map(|x| x.as_ref().to_vec()),
+                        module_ref: data.origin_ref.to_string(),
+                        contract_address: data.address.into(),
+                        amount: data.amount.micro_ccd().into(),
+                        init_name: data.init_name.to_string(),
+                        version: data.contract_version.into(),
+                        contract_logs_raw: data
+                            .events
+                            .iter()
+                            .map(|e| e.as_ref().to_vec())
+                            .collect(),
+                    },
+                )]
             }
-            AccountTransactionEffects::ContractUpdateIssued {
-                effects,
-            } => {
+            AccountTransactionEffects::ContractUpdateIssued { effects } => {
                 use concordium_rust_sdk::types::ContractTraceElement;
                 effects
                     .into_iter()
                     .map(|effect| match effect {
-                        ContractTraceElement::Updated {
-                            data,
-                        } => Ok(Event::ContractUpdated(smart_contracts::ContractUpdated {
-                            contract_address:  data.address.into(),
-                            instigator:        data.instigator.into(),
-                            amount:            data.amount.micro_ccd().into(),
-                            receive_name:      data.receive_name.to_string(),
-                            version:           data.contract_version.into(),
-                            input_parameter:   data.message.as_ref().to_vec(),
-                            contract_logs_raw: data
-                                .events
-                                .iter()
-                                .map(|e| e.as_ref().to_vec())
-                                .collect(),
-                        })),
-                        ContractTraceElement::Transferred {
-                            from,
-                            amount,
-                            to,
-                        } => Ok(Event::Transferred(transfers::Transferred {
-                            amount: amount.micro_ccd().into(),
-                            from:   ScalarAddress::ContractAddress(from.into()),
-                            to:     to.into(),
-                        })),
-                        ContractTraceElement::Interrupted {
-                            address,
-                            events,
-                        } => Ok(Event::ContractInterrupted(smart_contracts::ContractInterrupted {
-                            contract_address:  address.into(),
-                            contract_logs_raw: events.iter().map(|e| e.as_ref().to_vec()).collect(),
-                        })),
-                        ContractTraceElement::Resumed {
-                            address,
-                            success,
-                        } => Ok(Event::ContractResumed(smart_contracts::ContractResumed {
-                            contract_address: address.into(),
-                            success,
-                        })),
-                        ContractTraceElement::Upgraded {
-                            address,
-                            from,
-                            to,
-                        } => Ok(Event::ContractUpgraded(smart_contracts::ContractUpgraded {
-                            contract_address: address.into(),
-                            from:             from.to_string(),
-                            to:               to.to_string(),
-                        })),
+                        ContractTraceElement::Updated { data } => {
+                            Ok(Event::ContractUpdated(smart_contracts::ContractUpdated {
+                                contract_address: data.address.into(),
+                                instigator: data.instigator.into(),
+                                amount: data.amount.micro_ccd().into(),
+                                receive_name: data.receive_name.to_string(),
+                                version: data.contract_version.into(),
+                                input_parameter: data.message.as_ref().to_vec(),
+                                contract_logs_raw: data
+                                    .events
+                                    .iter()
+                                    .map(|e| e.as_ref().to_vec())
+                                    .collect(),
+                            }))
+                        }
+                        ContractTraceElement::Transferred { from, amount, to } => {
+                            Ok(Event::Transferred(transfers::Transferred {
+                                amount: amount.micro_ccd().into(),
+                                from: ScalarAddress::ContractAddress(from.into()),
+                                to: to.into(),
+                            }))
+                        }
+                        ContractTraceElement::Interrupted { address, events } => Ok(
+                            Event::ContractInterrupted(smart_contracts::ContractInterrupted {
+                                contract_address: address.into(),
+                                contract_logs_raw: events
+                                    .iter()
+                                    .map(|e| e.as_ref().to_vec())
+                                    .collect(),
+                            }),
+                        ),
+                        ContractTraceElement::Resumed { address, success } => {
+                            Ok(Event::ContractResumed(smart_contracts::ContractResumed {
+                                contract_address: address.into(),
+                                success,
+                            }))
+                        }
+                        ContractTraceElement::Upgraded { address, from, to } => {
+                            Ok(Event::ContractUpgraded(smart_contracts::ContractUpgraded {
+                                contract_address: address.into(),
+                                from: from.to_string(),
+                                to: to.to_string(),
+                            }))
+                        }
                     })
                     .collect::<anyhow::Result<Vec<_>>>()?
             }
-            AccountTransactionEffects::AccountTransfer {
-                amount,
-                to,
-            } => {
+            AccountTransactionEffects::AccountTransfer { amount, to } => {
                 vec![Event::Transferred(transfers::Transferred {
                     amount: amount.micro_ccd().into(),
-                    from:   ScalarAddress::AccountAddress(details.sender.into()),
-                    to:     to.into(),
+                    from: ScalarAddress::AccountAddress(details.sender.into()),
+                    to: to.into(),
                 })]
             }
-            AccountTransactionEffects::AccountTransferWithMemo {
-                amount,
-                to,
-                memo,
-            } => {
+            AccountTransactionEffects::AccountTransferWithMemo { amount, to, memo } => {
                 vec![
                     Event::Transferred(transfers::Transferred {
                         amount: amount.micro_ccd().into(),
-                        from:   ScalarAddress::AccountAddress(details.sender.into()),
-                        to:     to.into(),
+                        from: ScalarAddress::AccountAddress(details.sender.into()),
+                        to: to.into(),
                     }),
                     Event::TransferMemo(memo.into()),
                 ]
             }
-            AccountTransactionEffects::BakerAdded {
-                data,
-            } => {
+            AccountTransactionEffects::BakerAdded { data } => {
                 vec![Event::BakerAdded(baker::BakerAdded {
-                    staked_amount:    data.stake.micro_ccd().into(),
+                    staked_amount: data.stake.micro_ccd().into(),
                     restake_earnings: data.restake_earnings,
-                    baker_id:         data.keys_event.baker_id.id.index.try_into()?,
-                    sign_key:         serde_json::to_string(&data.keys_event.sign_key)?,
-                    election_key:     serde_json::to_string(&data.keys_event.election_key)?,
-                    aggregation_key:  serde_json::to_string(&data.keys_event.aggregation_key)?,
+                    baker_id: data.keys_event.baker_id.id.index.try_into()?,
+                    sign_key: serde_json::to_string(&data.keys_event.sign_key)?,
+                    election_key: serde_json::to_string(&data.keys_event.election_key)?,
+                    aggregation_key: serde_json::to_string(&data.keys_event.aggregation_key)?,
                 })]
             }
-            AccountTransactionEffects::BakerRemoved {
-                baker_id,
-            } => {
+            AccountTransactionEffects::BakerRemoved { baker_id } => {
                 vec![Event::BakerRemoved(baker::BakerRemoved {
                     baker_id: baker_id.id.index.try_into()?,
                 })]
             }
-            AccountTransactionEffects::BakerStakeUpdated {
-                data,
-            } => {
+            AccountTransactionEffects::BakerStakeUpdated { data } => {
                 if let Some(data) = data {
                     if data.increased {
                         vec![Event::BakerStakeIncreased(baker::BakerStakeIncreased {
-                            baker_id:          data.baker_id.id.index.try_into()?,
+                            baker_id: data.baker_id.id.index.try_into()?,
                             new_staked_amount: data.new_stake.micro_ccd().into(),
                         })]
                     } else {
                         vec![Event::BakerStakeDecreased(baker::BakerStakeDecreased {
-                            baker_id:          data.baker_id.id.index.try_into()?,
+                            baker_id: data.baker_id.id.index.try_into()?,
                             new_staked_amount: data.new_stake.micro_ccd().into(),
                         })]
                     }
@@ -249,25 +233,22 @@ pub fn events_from_summary(
                 baker_id,
                 restake_earnings,
             } => {
-                vec![Event::BakerSetRestakeEarnings(baker::BakerSetRestakeEarnings {
-                    baker_id: baker_id.id.index.try_into()?,
-                    restake_earnings,
-                })]
+                vec![Event::BakerSetRestakeEarnings(
+                    baker::BakerSetRestakeEarnings {
+                        baker_id: baker_id.id.index.try_into()?,
+                        restake_earnings,
+                    },
+                )]
             }
-            AccountTransactionEffects::BakerKeysUpdated {
-                data,
-            } => {
+            AccountTransactionEffects::BakerKeysUpdated { data } => {
                 vec![Event::BakerKeysUpdated(baker::BakerKeysUpdated {
-                    baker_id:        data.baker_id.id.index.try_into()?,
-                    sign_key:        serde_json::to_string(&data.sign_key)?,
-                    election_key:    serde_json::to_string(&data.election_key)?,
+                    baker_id: data.baker_id.id.index.try_into()?,
+                    sign_key: serde_json::to_string(&data.sign_key)?,
+                    election_key: serde_json::to_string(&data.election_key)?,
                     aggregation_key: serde_json::to_string(&data.aggregation_key)?,
                 })]
             }
-            AccountTransactionEffects::EncryptedAmountTransferred {
-                removed,
-                added,
-            } => {
+            AccountTransactionEffects::EncryptedAmountTransferred { removed, added } => {
                 vec![
                     Event::EncryptedAmountsRemoved((*removed).try_into()?),
                     Event::NewEncryptedAmount((*added).try_into()?),
@@ -284,60 +265,52 @@ pub fn events_from_summary(
                     Event::TransferMemo(memo.into()),
                 ]
             }
-            AccountTransactionEffects::TransferredToEncrypted {
-                data,
-            } => {
-                vec![Event::EncryptedSelfAmountAdded(transfers::EncryptedSelfAmountAdded {
-                    account_address:      data.account.into(),
-                    new_encrypted_amount: serde_json::to_string(&data.new_amount)?,
-                    amount:               data.amount.micro_ccd().into(),
-                })]
+            AccountTransactionEffects::TransferredToEncrypted { data } => {
+                vec![Event::EncryptedSelfAmountAdded(
+                    transfers::EncryptedSelfAmountAdded {
+                        account_address: data.account.into(),
+                        new_encrypted_amount: serde_json::to_string(&data.new_amount)?,
+                        amount: data.amount.micro_ccd().into(),
+                    },
+                )]
             }
-            AccountTransactionEffects::TransferredToPublic {
-                removed,
-                amount,
-            } => {
+            AccountTransactionEffects::TransferredToPublic { removed, amount } => {
                 vec![
                     Event::EncryptedAmountsRemoved((*removed).try_into()?),
                     Event::AmountAddedByDecryption(transfers::AmountAddedByDecryption {
-                        amount:          amount.micro_ccd().into(),
+                        amount: amount.micro_ccd().into(),
                         account_address: details.sender.into(),
                     }),
                 ]
             }
-            AccountTransactionEffects::TransferredWithSchedule {
-                to,
-                amount,
-            } => {
-                vec![Event::TransferredWithSchedule(transfers::TransferredWithSchedule {
-                    from_account_address: details.sender.into(),
-                    to_account_address:   to.into(),
-                    amounts_schedule:     amount
-                        .iter()
-                        .map(|(timestamp, amount)| {
-                            Ok::<TimestampedAmount, anyhow::Error>(TimestampedAmount {
-                                timestamp: (*timestamp).try_into()?,
-                                amount:    UnsignedLong(amount.micro_ccd()),
-                            })
-                        })
-                        .collect::<Result<Vec<TimestampedAmount>, _>>()?,
-                })]
-            }
-            AccountTransactionEffects::TransferredWithScheduleAndMemo {
-                to,
-                amount,
-                memo,
-            } => {
-                vec![
-                    Event::TransferredWithSchedule(transfers::TransferredWithSchedule {
+            AccountTransactionEffects::TransferredWithSchedule { to, amount } => {
+                vec![Event::TransferredWithSchedule(
+                    transfers::TransferredWithSchedule {
                         from_account_address: details.sender.into(),
-                        to_account_address:   to.into(),
-                        amounts_schedule:     amount
+                        to_account_address: to.into(),
+                        amounts_schedule: amount
                             .iter()
                             .map(|(timestamp, amount)| {
                                 Ok::<TimestampedAmount, anyhow::Error>(TimestampedAmount {
                                     timestamp: (*timestamp).try_into()?,
-                                    amount:    UnsignedLong(amount.micro_ccd()),
+                                    amount: UnsignedLong(amount.micro_ccd()),
+                                })
+                            })
+                            .collect::<Result<Vec<TimestampedAmount>, _>>()?,
+                    },
+                )]
+            }
+            AccountTransactionEffects::TransferredWithScheduleAndMemo { to, amount, memo } => {
+                vec![
+                    Event::TransferredWithSchedule(transfers::TransferredWithSchedule {
+                        from_account_address: details.sender.into(),
+                        to_account_address: to.into(),
+                        amounts_schedule: amount
+                            .iter()
+                            .map(|(timestamp, amount)| {
+                                Ok::<TimestampedAmount, anyhow::Error>(TimestampedAmount {
+                                    timestamp: (*timestamp).try_into()?,
+                                    amount: UnsignedLong(amount.micro_ccd()),
                                 })
                             })
                             .collect::<Result<Vec<TimestampedAmount>, _>>()?,
@@ -345,12 +318,12 @@ pub fn events_from_summary(
                     Event::TransferMemo(memo.into()),
                 ]
             }
-            AccountTransactionEffects::CredentialKeysUpdated {
-                cred_id,
-            } => {
-                vec![Event::CredentialKeysUpdated(credentials::CredentialKeysUpdated {
-                    cred_id: cred_id.to_string(),
-                })]
+            AccountTransactionEffects::CredentialKeysUpdated { cred_id } => {
+                vec![Event::CredentialKeysUpdated(
+                    credentials::CredentialKeysUpdated {
+                        cred_id: cred_id.to_string(),
+                    },
+                )]
             }
             AccountTransactionEffects::CredentialsUpdated {
                 new_cred_ids,
@@ -358,8 +331,8 @@ pub fn events_from_summary(
                 new_threshold,
             } => {
                 vec![Event::CredentialsUpdated(credentials::CredentialsUpdated {
-                    account_address:  details.sender.into(),
-                    new_cred_ids:     new_cred_ids
+                    account_address: details.sender.into(),
+                    new_cred_ids: new_cred_ids
                         .into_iter()
                         .map(|cred| cred.to_string())
                         .collect(),
@@ -367,92 +340,90 @@ pub fn events_from_summary(
                         .into_iter()
                         .map(|cred| cred.to_string())
                         .collect(),
-                    new_threshold:    Byte(u8::from(new_threshold)),
+                    new_threshold: Byte(u8::from(new_threshold)),
                 })]
             }
-            AccountTransactionEffects::DataRegistered {
-                data,
-            } => {
+            AccountTransactionEffects::DataRegistered { data } => {
                 vec![Event::DataRegistered(DataRegistered {
                     data_as_hex: hex::encode(data.as_ref()),
                 })]
             }
-            AccountTransactionEffects::BakerConfigured {
-                data,
-            } => data
+            AccountTransactionEffects::BakerConfigured { data } => data
                 .into_iter()
                 .map(|baker_event| {
                     use concordium_rust_sdk::types::BakerEvent;
                     match baker_event {
-                        BakerEvent::BakerAdded {
-                            data,
-                        } => Ok(Event::BakerAdded(baker::BakerAdded {
-                            staked_amount:    data.stake.micro_ccd().into(),
-                            restake_earnings: data.restake_earnings,
-                            baker_id:         data.keys_event.baker_id.id.index.try_into()?,
-                            sign_key:         serde_json::to_string(&data.keys_event.sign_key)?,
-                            election_key:     serde_json::to_string(&data.keys_event.election_key)?,
-                            aggregation_key:  serde_json::to_string(
-                                &data.keys_event.aggregation_key,
-                            )?,
-                        })),
-                        BakerEvent::BakerRemoved {
-                            baker_id,
-                        } => Ok(Event::BakerRemoved(baker::BakerRemoved {
-                            baker_id: baker_id.id.index.try_into()?,
-                        })),
+                        BakerEvent::BakerAdded { data } => {
+                            Ok(Event::BakerAdded(baker::BakerAdded {
+                                staked_amount: data.stake.micro_ccd().into(),
+                                restake_earnings: data.restake_earnings,
+                                baker_id: data.keys_event.baker_id.id.index.try_into()?,
+                                sign_key: serde_json::to_string(&data.keys_event.sign_key)?,
+                                election_key: serde_json::to_string(&data.keys_event.election_key)?,
+                                aggregation_key: serde_json::to_string(
+                                    &data.keys_event.aggregation_key,
+                                )?,
+                            }))
+                        }
+                        BakerEvent::BakerRemoved { baker_id } => {
+                            Ok(Event::BakerRemoved(baker::BakerRemoved {
+                                baker_id: baker_id.id.index.try_into()?,
+                            }))
+                        }
                         BakerEvent::BakerStakeIncreased {
                             baker_id,
                             new_stake,
                         } => Ok(Event::BakerStakeIncreased(baker::BakerStakeIncreased {
-                            baker_id:          baker_id.id.index.try_into()?,
+                            baker_id: baker_id.id.index.try_into()?,
                             new_staked_amount: new_stake.micro_ccd().into(),
                         })),
                         BakerEvent::BakerStakeDecreased {
                             baker_id,
                             new_stake,
                         } => Ok(Event::BakerStakeDecreased(baker::BakerStakeDecreased {
-                            baker_id:          baker_id.id.index.try_into()?,
+                            baker_id: baker_id.id.index.try_into()?,
                             new_staked_amount: new_stake.micro_ccd().into(),
                         })),
                         BakerEvent::BakerRestakeEarningsUpdated {
                             baker_id,
                             restake_earnings,
-                        } => Ok(Event::BakerSetRestakeEarnings(baker::BakerSetRestakeEarnings {
-                            baker_id: baker_id.id.index.try_into()?,
-                            restake_earnings,
-                        })),
-                        BakerEvent::BakerKeysUpdated {
-                            data,
-                        } => Ok(Event::BakerKeysUpdated(baker::BakerKeysUpdated {
-                            baker_id:        data.baker_id.id.index.try_into()?,
-                            sign_key:        serde_json::to_string(&data.sign_key)?,
-                            election_key:    serde_json::to_string(&data.election_key)?,
-                            aggregation_key: serde_json::to_string(&data.aggregation_key)?,
-                        })),
+                        } => Ok(Event::BakerSetRestakeEarnings(
+                            baker::BakerSetRestakeEarnings {
+                                baker_id: baker_id.id.index.try_into()?,
+                                restake_earnings,
+                            },
+                        )),
+                        BakerEvent::BakerKeysUpdated { data } => {
+                            Ok(Event::BakerKeysUpdated(baker::BakerKeysUpdated {
+                                baker_id: data.baker_id.id.index.try_into()?,
+                                sign_key: serde_json::to_string(&data.sign_key)?,
+                                election_key: serde_json::to_string(&data.election_key)?,
+                                aggregation_key: serde_json::to_string(&data.aggregation_key)?,
+                            }))
+                        }
                         BakerEvent::BakerSetOpenStatus {
                             baker_id,
                             open_status,
                         } => Ok(Event::BakerSetOpenStatus(baker::BakerSetOpenStatus {
-                            baker_id:        baker_id.id.index.try_into()?,
+                            baker_id: baker_id.id.index.try_into()?,
                             account_address: details.sender.into(),
-                            open_status:     open_status.into(),
+                            open_status: open_status.into(),
                         })),
                         BakerEvent::BakerSetMetadataURL {
                             baker_id,
                             metadata_url,
                         } => Ok(Event::BakerSetMetadataURL(baker::BakerSetMetadataURL {
-                            baker_id:        baker_id.id.index.try_into()?,
+                            baker_id: baker_id.id.index.try_into()?,
                             account_address: details.sender.into(),
-                            metadata_url:    metadata_url.into(),
+                            metadata_url: metadata_url.into(),
                         })),
                         BakerEvent::BakerSetTransactionFeeCommission {
                             baker_id,
                             transaction_fee_commission,
                         } => Ok(Event::BakerSetTransactionFeeCommission(
                             baker::BakerSetTransactionFeeCommission {
-                                baker_id:                   baker_id.id.index.try_into()?,
-                                account_address:            details.sender.into(),
+                                baker_id: baker_id.id.index.try_into()?,
+                                account_address: details.sender.into(),
                                 transaction_fee_commission: transaction_fee_commission.into(),
                             },
                         )),
@@ -461,8 +432,8 @@ pub fn events_from_summary(
                             baking_reward_commission,
                         } => Ok(Event::BakerSetBakingRewardCommission(
                             baker::BakerSetBakingRewardCommission {
-                                baker_id:                 baker_id.id.index.try_into()?,
-                                account_address:          details.sender.into(),
+                                baker_id: baker_id.id.index.try_into()?,
+                                account_address: details.sender.into(),
                                 baking_reward_commission: baking_reward_commission.into(),
                             },
                         )),
@@ -477,30 +448,28 @@ pub fn events_from_summary(
                                     .into(),
                             },
                         )),
-                        BakerEvent::DelegationRemoved {
-                            delegator_id,
-                        } => Ok(Event::BakerDelegationRemoved(baker::BakerDelegationRemoved {
-                            delegator_id:    delegator_id.id.index.try_into()?,
-                            account_address: details.sender.into(),
-                        })),
-                        BakerEvent::BakerSuspended {
-                            baker_id,
-                        } => Ok(Event::BakerSuspended(baker::BakerSuspended {
-                            baker_id:        baker_id.id.index.try_into()?,
-                            account_address: details.sender.into(),
-                        })),
-                        BakerEvent::BakerResumed {
-                            baker_id,
-                        } => Ok(Event::BakerResumed(baker::BakerResumed {
-                            baker_id:        baker_id.id.index.try_into()?,
-                            account_address: details.sender.into(),
-                        })),
+                        BakerEvent::DelegationRemoved { delegator_id } => Ok(
+                            Event::BakerDelegationRemoved(baker::BakerDelegationRemoved {
+                                delegator_id: delegator_id.id.index.try_into()?,
+                                account_address: details.sender.into(),
+                            }),
+                        ),
+                        BakerEvent::BakerSuspended { baker_id } => {
+                            Ok(Event::BakerSuspended(baker::BakerSuspended {
+                                baker_id: baker_id.id.index.try_into()?,
+                                account_address: details.sender.into(),
+                            }))
+                        }
+                        BakerEvent::BakerResumed { baker_id } => {
+                            Ok(Event::BakerResumed(baker::BakerResumed {
+                                baker_id: baker_id.id.index.try_into()?,
+                                account_address: details.sender.into(),
+                            }))
+                        }
                     }
                 })
                 .collect::<anyhow::Result<Vec<Event>>>()?,
-            AccountTransactionEffects::DelegationConfigured {
-                data,
-            } => {
+            AccountTransactionEffects::DelegationConfigured { data } => {
                 use concordium_rust_sdk::types::DelegationEvent;
                 data.into_iter()
                     .map(|event| match event {
@@ -509,8 +478,8 @@ pub fn events_from_summary(
                             new_stake,
                         } => Ok(Event::DelegationStakeIncreased(
                             delegation::DelegationStakeIncreased {
-                                delegator_id:      delegator_id.id.index.try_into()?,
-                                account_address:   details.sender.into(),
+                                delegator_id: delegator_id.id.index.try_into()?,
+                                account_address: details.sender.into(),
                                 new_staked_amount: new_stake.micro_ccd().into(),
                             },
                         )),
@@ -519,8 +488,8 @@ pub fn events_from_summary(
                             new_stake,
                         } => Ok(Event::DelegationStakeDecreased(
                             delegation::DelegationStakeDecreased {
-                                delegator_id:      delegator_id.id.index.try_into()?,
-                                account_address:   details.sender.into(),
+                                delegator_id: delegator_id.id.index.try_into()?,
+                                account_address: details.sender.into(),
                                 new_staked_amount: new_stake.micro_ccd().into(),
                             },
                         )),
@@ -539,39 +508,37 @@ pub fn events_from_summary(
                             delegation_target,
                         } => Ok(Event::DelegationSetDelegationTarget(
                             delegation::DelegationSetDelegationTarget {
-                                delegator_id:      delegator_id.id.index.try_into()?,
-                                account_address:   details.sender.into(),
+                                delegator_id: delegator_id.id.index.try_into()?,
+                                account_address: details.sender.into(),
                                 delegation_target: delegation_target.try_into()?,
                             },
                         )),
-                        DelegationEvent::DelegationAdded {
-                            delegator_id,
-                        } => Ok(Event::DelegationAdded(delegation::DelegationAdded {
-                            delegator_id:    delegator_id.id.index.try_into()?,
-                            account_address: details.sender.into(),
-                        })),
-                        DelegationEvent::DelegationRemoved {
-                            delegator_id,
-                        } => Ok(Event::DelegationRemoved(delegation::DelegationRemoved {
-                            delegator_id:    delegator_id.id.index.try_into()?,
-                            account_address: details.sender.into(),
-                        })),
-                        DelegationEvent::BakerRemoved {
-                            baker_id,
-                        } => Ok(Event::BakerRemoved(baker::BakerRemoved {
-                            baker_id: baker_id.id.index.try_into()?,
-                        })),
+                        DelegationEvent::DelegationAdded { delegator_id } => {
+                            Ok(Event::DelegationAdded(delegation::DelegationAdded {
+                                delegator_id: delegator_id.id.index.try_into()?,
+                                account_address: details.sender.into(),
+                            }))
+                        }
+                        DelegationEvent::DelegationRemoved { delegator_id } => {
+                            Ok(Event::DelegationRemoved(delegation::DelegationRemoved {
+                                delegator_id: delegator_id.id.index.try_into()?,
+                                account_address: details.sender.into(),
+                            }))
+                        }
+                        DelegationEvent::BakerRemoved { baker_id } => {
+                            Ok(Event::BakerRemoved(baker::BakerRemoved {
+                                baker_id: baker_id.id.index.try_into()?,
+                            }))
+                        }
                     })
                     .collect::<anyhow::Result<Vec<_>>>()?
             }
-            AccountTransactionEffects::TokenUpdate {
-                events,
-            } => events
+            AccountTransactionEffects::TokenUpdate { events } => events
                 .iter()
                 .map(|event| {
                     Ok(Event::TokenUpdate(protocol_level_tokens::TokenUpdate {
                         token_id: event.token_id.clone().into(),
-                        event:    event.event.clone().into(),
+                        event: event.event.clone().into(),
                     }))
                 })
                 .collect::<anyhow::Result<Vec<_>>>()?,
@@ -579,7 +546,7 @@ pub fn events_from_summary(
         BlockItemSummaryDetails::AccountCreation(details) => {
             vec![
                 Event::CredentialDeployed(credentials::CredentialDeployed {
-                    reg_id:          details.reg_id.to_string(),
+                    reg_id: details.reg_id.to_string(),
                     account_address: details.address.into(),
                 }),
                 Event::AccountCreated(credentials::AccountCreated {
@@ -590,31 +557,32 @@ pub fn events_from_summary(
         BlockItemSummaryDetails::Update(details) => {
             let effective_time = details.effective_time.seconds;
             let is_effetive_immediately = effective_time == 0;
-            vec![Event::ChainUpdateEnqueued(chain_update::ChainUpdateEnqueued {
-                effective_time: if is_effetive_immediately {
-                    Some(block_time)
-                } else {
-                    DateTime::from_timestamp(effective_time.try_into()?, 0)
-                }
-                .context("Failed to parse effective time")?,
-                payload:        details.payload.into(),
-            })]
+            vec![Event::ChainUpdateEnqueued(
+                chain_update::ChainUpdateEnqueued {
+                    effective_time: if is_effetive_immediately {
+                        Some(block_time)
+                    } else {
+                        DateTime::from_timestamp(effective_time.try_into()?, 0)
+                    }
+                    .context("Failed to parse effective time")?,
+                    payload: details.payload.into(),
+                },
+            )]
         }
         BlockItemSummaryDetails::TokenCreationDetails(token_creation_details) => {
             let initialization_parameters =
                 cbor::cbor_decode::<TokenModuleInitializationParameters>(
-                    token_creation_details.create_plt.initialization_parameters.as_ref(),
+                    token_creation_details
+                        .create_plt
+                        .initialization_parameters
+                        .as_ref(),
                 )
                 .context("Failed to decode token module initialization parameters")?;
 
             let create_plt = CreatePlt {
-                token_id:                  token_creation_details
-                    .create_plt
-                    .token_id
-                    .clone()
-                    .into(),
-                token_module:              token_creation_details.create_plt.token_module.into(),
-                decimals:                  token_creation_details.create_plt.decimals,
+                token_id: token_creation_details.create_plt.token_id.clone().into(),
+                token_module: token_creation_details.create_plt.token_module.into(),
+                decimals: token_creation_details.create_plt.decimals,
                 initialization_parameters: initialization_parameters.into(),
             };
             let events = token_creation_details
@@ -635,7 +603,7 @@ pub fn events_from_summary(
                         ) => protocol_level_tokens::TokenEventDetails::Module(
                             protocol_level_tokens::TokenModuleEvent {
                                 event_type: token_module_event.event_type.as_ref().to_string(),
-                                details:    serde_json::to_value(&token_module_event.details)
+                                details: serde_json::to_value(&token_module_event.details)
                                     .unwrap_or_default(),
                             },
                         ),
@@ -643,10 +611,10 @@ pub fn events_from_summary(
                             token_transfer_event,
                         ) => protocol_level_tokens::TokenEventDetails::Transfer(
                             protocol_level_tokens::TokenTransferEvent {
-                                from:   token_transfer_event.from.clone().into(),
-                                to:     token_transfer_event.to.clone().into(),
+                                from: token_transfer_event.from.clone().into(),
+                                to: token_transfer_event.to.clone().into(),
                                 amount: token_transfer_event.amount.into(),
-                                memo:   token_transfer_event.memo.clone().map(Into::into),
+                                memo: token_transfer_event.memo.clone().map(Into::into),
                             },
                         ),
                         concordium_rust_sdk::protocol_level_tokens::TokenEventDetails::Burn(
@@ -661,14 +629,13 @@ pub fn events_from_summary(
 
                     protocol_level_tokens::TokenUpdate {
                         token_id: event.token_id.clone().into(),
-                        event:    event_details,
+                        event: event_details,
                     }
                 })
                 .collect::<Vec<_>>();
-            vec![Event::TokenCreationDetails(protocol_level_tokens::TokenCreationDetails {
-                create_plt,
-                events,
-            })]
+            vec![Event::TokenCreationDetails(
+                protocol_level_tokens::TokenCreationDetails { create_plt, events },
+            )]
         }
     };
     Ok(events)
@@ -677,55 +644,69 @@ pub fn events_from_summary(
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct CisTransferEvent {
     pub raw_token_id: cis2::TokenId,
-    pub amount:       cis2::TokenAmount,
-    pub from:         Address,
-    pub to:           Address,
+    pub amount: cis2::TokenAmount,
+    pub from: Address,
+    pub to: Address,
 }
 #[Object]
 impl CisTransferEvent {
-    async fn to_address(&self) -> ScalarAddress { self.to.into() }
+    async fn to_address(&self) -> ScalarAddress {
+        self.to.into()
+    }
 
-    async fn from_address(&self) -> ScalarAddress { self.from.into() }
+    async fn from_address(&self) -> ScalarAddress {
+        self.from.into()
+    }
 
     async fn token_amount(&self) -> crate::scalar_types::BigInteger {
         BigInteger::from(BigDecimal::from_biguint(self.amount.0.clone(), 0))
     }
 
-    async fn token_id(&self) -> crate::scalar_types::TokenId { self.raw_token_id.clone().into() }
+    async fn token_id(&self) -> crate::scalar_types::TokenId {
+        self.raw_token_id.clone().into()
+    }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct CisMintEvent {
     pub raw_token_id: cis2::TokenId,
-    pub amount:       cis2::TokenAmount,
-    pub owner:        Address,
+    pub amount: cis2::TokenAmount,
+    pub owner: Address,
 }
 #[Object]
 impl CisMintEvent {
-    async fn to_address(&self) -> ScalarAddress { self.owner.into() }
+    async fn to_address(&self) -> ScalarAddress {
+        self.owner.into()
+    }
 
     async fn token_amount(&self) -> crate::scalar_types::BigInteger {
         BigInteger::from(BigDecimal::from_biguint(self.amount.0.clone(), 0))
     }
 
-    async fn token_id(&self) -> crate::scalar_types::TokenId { self.raw_token_id.clone().into() }
+    async fn token_id(&self) -> crate::scalar_types::TokenId {
+        self.raw_token_id.clone().into()
+    }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct CisBurnEvent {
     pub raw_token_id: cis2::TokenId,
-    pub amount:       cis2::TokenAmount,
-    pub owner:        Address,
+    pub amount: cis2::TokenAmount,
+    pub owner: Address,
 }
 #[Object]
 impl CisBurnEvent {
-    async fn from_address(&self) -> ScalarAddress { self.owner.into() }
+    async fn from_address(&self) -> ScalarAddress {
+        self.owner.into()
+    }
 
     async fn token_amount(&self) -> crate::scalar_types::BigInteger {
         BigInteger::from(BigDecimal::from_biguint(self.amount.0.clone(), 0))
     }
 
-    async fn token_id(&self) -> crate::scalar_types::TokenId { self.raw_token_id.clone().into() }
+    async fn token_id(&self) -> crate::scalar_types::TokenId {
+        self.raw_token_id.clone().into()
+    }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -735,13 +716,17 @@ pub struct CisTokenMetadataEvent {
 }
 #[Object]
 impl CisTokenMetadataEvent {
-    async fn metadata_url(&self) -> String { self.metadata_url.url().to_string() }
+    async fn metadata_url(&self) -> String {
+        self.metadata_url.url().to_string()
+    }
 
     async fn hash_hex(&self) -> Option<String> {
         self.metadata_url.hash().map(|hash| hash.to_string())
     }
 
-    async fn token_id(&self) -> crate::scalar_types::TokenId { self.raw_token_id.clone().into() }
+    async fn token_id(&self) -> crate::scalar_types::TokenId {
+        self.raw_token_id.clone().into()
+    }
 }
 
 #[derive(Debug, SimpleObject, serde::Serialize, serde::Deserialize)]

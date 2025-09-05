@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n                    starting AS (\n                        SELECT\n                            account_index AS start_index,\n                            COALESCE(amount, 0) AS start_amount\n                        FROM plt_accounts pa\n                        JOIN plt_tokens pt ON pa.token_index = pt.index\n                        WHERE pt.token_id = $1\n                        ORDER BY COALESCE(amount, 0) DESC, account_index DESC\n                        LIMIT 1\n                    ),\n                    ending AS (\n                        SELECT\n                            account_index AS end_index,\n                            COALESCE(amount, 0) AS end_amount\n                        FROM plt_accounts pa\n                        JOIN plt_tokens pt ON pa.token_index = pt.index\n                        WHERE pt.token_id = $1\n                        ORDER BY COALESCE(amount, 0) ASC, account_index ASC\n                        LIMIT 1\n                    )\n                SELECT * FROM starting, ending",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "start_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "start_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 2,
+        "name": "end_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "end_amount",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false,
+      null
+    ]
+  },
+  "hash": "135c0c23b06bcc3a3d33126e93fcbcad4a87ea944c9ecd2209125fe182058ece"
+}

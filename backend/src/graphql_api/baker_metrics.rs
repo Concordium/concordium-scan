@@ -30,8 +30,9 @@ impl QueryBakerMetrics {
         let before_time = end_time - period.as_duration();
         let bucket_width = period.bucket_width();
 
-        let bucket_interval: PgInterval =
-            bucket_width.try_into().map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))?;
+        let bucket_interval: PgInterval = bucket_width
+            .try_into()
+            .map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))?;
 
         let rows = sqlx::query_file!(
             "src/graphql_api/baker_metrics.sql",
@@ -46,10 +47,11 @@ impl QueryBakerMetrics {
             InternalError::InternalError("No metrics found for the given period".to_string())
         })?;
 
-        let mut current_period_baker_count: u64 =
-            first_row.added_before.sub(first_row.removed_before).try_into().map_err(|_| {
-                InternalError::InternalError("Invalid initial baker count".to_string())
-            })?;
+        let mut current_period_baker_count: u64 = first_row
+            .added_before
+            .sub(first_row.removed_before)
+            .try_into()
+            .map_err(|_| InternalError::InternalError("Invalid initial baker count".to_string()))?;
 
         let (mut bakers_added, mut bakers_removed) = (0, 0);
         let mut x_time = Vec::with_capacity(rows.len());
@@ -79,10 +81,10 @@ impl QueryBakerMetrics {
         })?;
 
         Ok(BakerMetrics {
-            bakers_added:     bakers_added.try_into()?,
-            bakers_removed:   bakers_removed.try_into()?,
+            bakers_added: bakers_added.try_into()?,
+            bakers_removed: bakers_removed.try_into()?,
             last_baker_count: *last_baker_count,
-            buckets:          BakerMetricsBuckets {
+            buckets: BakerMetricsBuckets {
                 bucket_width: TimeSpan(bucket_width),
                 y_last_baker_count,
                 x_time,
@@ -96,19 +98,19 @@ impl QueryBakerMetrics {
 #[derive(SimpleObject)]
 pub struct BakerMetricsBuckets {
     /// The width (time interval) of each bucket.
-    bucket_width:       TimeSpan,
+    bucket_width: TimeSpan,
     /// The time values (start of each bucket) intended for use as x-axis
     /// values.
     #[graphql(name = "x_Time")]
-    x_time:             Vec<DateTime>,
+    x_time: Vec<DateTime>,
     /// The number of bakers added for each bucket, intended for use as y-axis
     /// values.
     #[graphql(name = "y_BakersAdded")]
-    y_bakers_added:     Vec<u64>,
+    y_bakers_added: Vec<u64>,
     /// The number of bakers removed for each bucket, intended for use as y-axis
     /// values.
     #[graphql(name = "y_BakersRemoved")]
-    y_bakers_removed:   Vec<u64>,
+    y_bakers_removed: Vec<u64>,
     /// Total bakers during each period
     #[graphql(name = "y_LastBakerCount")]
     y_last_baker_count: Vec<u64>,
@@ -119,9 +121,9 @@ pub struct BakerMetrics {
     /// Total bakers before the start of the period
     last_baker_count: u64,
     /// The number of bakers added during the specified period.
-    bakers_added:     i64,
+    bakers_added: i64,
     /// The number of bakers removed during the specified period.
-    bakers_removed:   i64,
+    bakers_removed: i64,
     /// Bucket-wise data for bakers added, removed, and the bucket times.
-    buckets:          BakerMetricsBuckets,
+    buckets: BakerMetricsBuckets,
 }

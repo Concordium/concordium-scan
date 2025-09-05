@@ -2,20 +2,19 @@ import { useQuery, gql } from '@urql/vue'
 import type { Ref } from 'vue'
 import type {
 	MetricsPeriod,
-	PltTransferMetrics,
-	PltMetrics,
+	PltTransferMetricsByTokenId,
+	GlobalPltMetrics,
 } from '~/types/generated'
 
 export type PltMetricsQueryResponse = {
-	pltMetrics: PltMetrics
+	globalPltMetrics: GlobalPltMetrics
 }
 
 const PltMetricsQuery = gql<PltMetricsQueryResponse>`
-	query PltMetrics($period: MetricsPeriod!) {
-		pltMetrics(period: $period) {
-			transactionCount
-			transferVolume
-			uniqueAccounts
+	query GlobalPltMetrics($period: MetricsPeriod!) {
+		globalPltMetrics(period: $period) {
+			eventCount
+			transferAmount
 		}
 	}
 `
@@ -31,20 +30,23 @@ export const usePltMetricsQuery = (period: Ref<MetricsPeriod>) => {
 }
 
 export type PltTransferMetricsQueryResponse = {
-	pltTransferMetrics: PltTransferMetrics
+	pltTransferMetricsByTokenId: PltTransferMetricsByTokenId
 }
 
 const PltTransferMetricsQueryByTokenId = gql<PltTransferMetricsQueryResponse>`
-	query PltTransferMetrics($period: MetricsPeriod!, $tokenId: String!) {
-		pltTransferMetrics(period: $period, tokenId: $tokenId) {
+	query PltTransferMetricsByTokenId(
+		$period: MetricsPeriod!
+		$tokenId: String!
+	) {
+		pltTransferMetricsByTokenId(period: $period, tokenId: $tokenId) {
 			transferCount
-			transferVolume
+			transferAmount
 			decimal
 			buckets {
 				bucketWidth
 				x_Time
 				y_TransferCount
-				y_TransferVolume
+				y_TransferAmount
 			}
 		}
 	}

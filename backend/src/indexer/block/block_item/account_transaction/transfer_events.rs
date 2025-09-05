@@ -22,7 +22,7 @@ use concordium_rust_sdk::{
 #[derive(Debug)]
 pub struct PreparedCcdTransferEvent {
     /// Updating the sender account balance.
-    update_sender:   PreparedUpdateAccountBalance,
+    update_sender: PreparedUpdateAccountBalance,
     /// Updating the receivers account balance.
     update_receiver: PreparedUpdateAccountBalance,
 }
@@ -144,8 +144,12 @@ impl PreparedScheduledReleases {
         .execute(tx.as_mut())
         .await?
         .ensure_affected_rows(self.release_times.len().try_into()?)?;
-        self.target_account_balance_update.save(tx, Some(transaction_index)).await?;
-        self.source_account_balance_update.save(tx, Some(transaction_index)).await?;
+        self.target_account_balance_update
+            .save(tx, Some(transaction_index))
+            .await?;
+        self.source_account_balance_update
+            .save(tx, Some(transaction_index))
+            .await?;
         Ok(())
     }
 }
@@ -182,7 +186,9 @@ impl PreparedUpdateEncryptedBalance {
         tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
-        self.public_balance_change.save(tx, Some(transaction_index)).await?;
+        self.public_balance_change
+            .save(tx, Some(transaction_index))
+            .await?;
         Ok(())
     }
 }

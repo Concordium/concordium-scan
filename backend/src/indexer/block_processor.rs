@@ -12,6 +12,7 @@ use concordium_rust_sdk::indexer::{async_trait, ProcessEvent};
 use prometheus_client::{
     metrics::{
         counter::Counter,
+        gauge::Gauge,
         histogram::{self, Histogram},
     },
     registry::Registry,
@@ -25,24 +26,28 @@ use tracing::info;
 /// blocks.
 pub struct BlockProcessor {
     /// Options for the database connection.
-    db_connect_options:          PgConnectOptions,
+    db_connect_options: PgConnectOptions,
     /// Timeout for acquiring the indexer advisory lock after connecting to the
     /// database.
-    db_indexer_lock_timeout:     Duration,
+    db_indexer_lock_timeout: Duration,
     /// Current database connection.
-    db_connection:               PgConnection,
+    db_connection: PgConnection,
     /// Histogram collecting batch size
-    batch_size:                  Histogram,
+    batch_size: Histogram,
     /// Metric counting the total number of failed attempts to process
     /// blocks.
-    processing_failures:         Counter,
+    processing_failures: Counter,
     /// Histogram collecting the time it took to process a block.
     processing_duration_seconds: Histogram,
     /// Max number of acceptable successive failures before shutting down the
     /// service.
-    max_successive_failures:     u32,
+    max_successive_failures: u32,
     /// Starting context which is tracked across processing blocks.
-    current_context:             BlockProcessingContext,
+    current_context: BlockProcessingContext,
+    /// Metric tracking the last processed block height.
+    last_processed_block_height: Gauge<i64>,
+    /// Metric tracking the last processed block slot time
+    last_processed_block_slot_time: Gauge<i64>,
 }
 impl BlockProcessor {
     /// Construct the block processor by loading the initial state from the
@@ -84,9 +89,9 @@ impl BlockProcessor {
         .await
         .context("Failed to query data for save context")?;
         let starting_context = BlockProcessingContext {
-            last_finalized_hash:               last_finalized_block.hash,
-            last_block_slot_time:              last_block.slot_time,
-            last_cumulative_num_txs:           last_block.cumulative_num_txs,
+            last_finalized_hash: last_finalized_block.hash,
+            last_block_slot_time: last_block.slot_time,
+            last_cumulative_num_txs: last_block.cumulative_num_txs,
             last_cumulative_finalization_time: last_finalized_block
                 .cumulative_finalization_time
                 .unwrap_or(0),
@@ -108,6 +113,20 @@ impl BlockProcessor {
         let batch_size = Histogram::new(histogram::linear_buckets(1.0, 1.0, 10));
         registry.register("batch_size", "Batch sizes", batch_size.clone());
 
+        let last_processed_block_height: Gauge<i64> = Gauge::default();
+        registry.register(
+            "last_processed_block_height",
+            "The last processed block height",
+            last_processed_block_height.clone(),
+        );
+
+        let last_processed_block_slot_time: Gauge<i64> = Gauge::default();
+        registry.register(
+            "last_processed_block_slot_time",
+            "The last processed block slot_time",
+            last_processed_block_slot_time.clone(),
+        );
+
         Ok(Self {
             db_connect_options,
             db_connection,
@@ -117,6 +136,8 @@ impl BlockProcessor {
             processing_failures,
             processing_duration_seconds,
             max_successive_failures,
+            last_processed_block_height,
+            last_processed_block_slot_time,
         })
     }
 }
@@ -144,8 +165,11 @@ impl ProcessEvent for BlockProcessor {
         // nothing fails.
         let mut new_context = self.current_context.clone();
 
-        let mut tx =
-            self.db_connection.begin().await.context("Failed to create SQL transaction")?;
+        let mut tx = self
+            .db_connection
+            .begin()
+            .await
+            .context("Failed to create SQL transaction")?;
         PreparedBlock::batch_save(batch, &mut new_context, &mut tx).await?;
         for block in batch {
             block.process_block_content(&mut tx).await?;
@@ -154,10 +178,21 @@ impl ProcessEvent for BlockProcessor {
         process_release_schedules(new_context.last_block_slot_time, &mut tx)
             .await
             .context("Processing scheduled releases")?;
-        tx.commit().await.context("Failed to commit SQL transaction")?;
+        tx.commit()
+            .await
+            .context("Failed to commit SQL transaction")?;
+
+        // set prometheus metrics tracking the latest block height and slot time
+        if let Some(last_block) = batch.last() {
+            self.last_processed_block_height.set(last_block.height);
+            self.last_processed_block_slot_time
+                .set(last_block.slot_time.timestamp());
+        }
+
         self.batch_size.observe(batch.len() as f64);
         let duration = start_time.elapsed();
-        self.processing_duration_seconds.observe(duration.as_secs_f64());
+        self.processing_duration_seconds
+            .observe(duration.as_secs_f64());
         self.current_context = new_context;
         Ok(out)
     }
@@ -176,7 +211,10 @@ impl ProcessEvent for BlockProcessor {
         error: Self::Error,
         successive_failures: u32,
     ) -> Result<bool, Self::Error> {
-        info!("Failed processing {} times in row: \n{:?}", successive_failures, error);
+        info!(
+            "Failed processing {} times in row: \n{:?}",
+            successive_failures, error
+        );
         self.processing_failures.inc();
 
         // Create the new Database connection here
@@ -228,14 +266,14 @@ async fn process_release_schedules(
 pub struct BlockProcessingContext {
     /// The last finalized block hash according to the latest indexed block.
     /// This is used when computing the finalization time.
-    pub last_finalized_hash:               String,
+    pub last_finalized_hash: String,
     /// The slot time of the last processed block.
     /// This is used when computing the block time.
-    pub last_block_slot_time:              DateTime<Utc>,
+    pub last_block_slot_time: DateTime<Utc>,
     /// The value of cumulative_num_txs from the last block.
     /// This, along with the number of transactions in the current block,
     /// is used to calculate the next cumulative_num_txs.
-    pub last_cumulative_num_txs:           i64,
+    pub last_cumulative_num_txs: i64,
     /// The cumulative_finalization_time in milliseconds of the last finalized
     /// block. This is used to efficiently update the
     /// cumulative_finalization_time of newly finalized blocks.

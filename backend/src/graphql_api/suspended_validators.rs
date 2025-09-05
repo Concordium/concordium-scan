@@ -24,7 +24,9 @@ impl SuspendedValidators {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<i64, Validators>> {
         let pool = get_pool(ctx)?;
@@ -59,7 +61,9 @@ impl SuspendedValidators {
         let mut connection: connection::Connection<i64, Validators> =
             connection::Connection::new(false, false);
         while let Some(suspended_baker) = row_stream.try_next().await? {
-            connection.edges.push(connection::Edge::new(suspended_baker.id, suspended_baker));
+            connection
+                .edges
+                .push(connection::Edge::new(suspended_baker.id, suspended_baker));
         }
 
         if let (Some(edge_min_index), Some(edge_max_index)) =
@@ -77,10 +81,12 @@ impl SuspendedValidators {
             .fetch_one(pool)
             .await?;
 
-            connection.has_next_page =
-                result.max_index.is_some_and(|db_max| db_max > edge_max_index.node.id);
-            connection.has_previous_page =
-                result.min_index.is_some_and(|db_min| db_min < edge_min_index.node.id);
+            connection.has_next_page = result
+                .max_index
+                .is_some_and(|db_max| db_max > edge_max_index.node.id);
+            connection.has_previous_page = result
+                .min_index
+                .is_some_and(|db_min| db_min < edge_min_index.node.id);
         }
 
         Ok(connection)
@@ -93,7 +99,9 @@ impl SuspendedValidators {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<i64, Validators>> {
         let pool = get_pool(ctx)?;
@@ -128,7 +136,9 @@ impl SuspendedValidators {
         let mut connection: connection::Connection<i64, Validators> =
             connection::Connection::new(false, false);
         while let Some(suspended_baker) = row_stream.try_next().await? {
-            connection.edges.push(connection::Edge::new(suspended_baker.id, suspended_baker));
+            connection
+                .edges
+                .push(connection::Edge::new(suspended_baker.id, suspended_baker));
         }
 
         if let (Some(edge_min_index), Some(edge_max_index)) =
@@ -146,10 +156,12 @@ impl SuspendedValidators {
             .fetch_one(pool)
             .await?;
 
-            connection.has_next_page =
-                result.max_index.is_some_and(|db_max| db_max > edge_max_index.node.id);
-            connection.has_previous_page =
-                result.min_index.is_some_and(|db_min| db_min < edge_min_index.node.id);
+            connection.has_next_page = result
+                .max_index
+                .is_some_and(|db_max| db_max > edge_max_index.node.id);
+            connection.has_previous_page = result
+                .min_index
+                .is_some_and(|db_min| db_min < edge_min_index.node.id);
         }
 
         Ok(connection)

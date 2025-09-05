@@ -2,7 +2,7 @@ use super::{
     baker::{self, Baker},
     block::Block,
     contract::{self, Contract, ContractSnapshot},
-    get_config, get_pool,
+    db, get_config, get_pool,
     module_reference_event::ModuleReferenceEvent,
     node_status::NodeInfoReceiver,
     token::Token,
@@ -27,11 +27,31 @@ use async_graphql::{
 use concordium_rust_sdk::base::contracts_common::schema::VersionedModuleSchema;
 use futures::TryStreamExt;
 use regex::Regex;
-use std::str::FromStr;
+use sqlx::{pool::PoolConnection, Postgres};
+use std::{borrow::Cow, str::FromStr, sync::LazyLock};
 
 pub struct SearchResult {
     pub query: String,
 }
+
+/// Minimum query length we accept for searching for hashes by prefix.
+/// Currently, this matches the number of characters in the short display of
+/// hashes in CCD scan UI.
+const MIN_HASH_QUERY_LENGTH: usize = 6;
+
+/// Query string that can be applied to columns containing hash values using
+/// the condition `starts_with(hash_column, HASH_DUMMY_QUERY)` and which will
+/// make the condition always be false.
+///
+/// Should be combined with `force_custom_plan` (<https://www.postgresql.org/docs/current/sql-prepare.html>),
+/// such that Postgres will be able to see that the condition is almost
+/// certainly false via its bucket statistics and hence choose a plan that takes
+/// this into account.
+const HASH_DUMMY_QUERY: &str = "$";
+
+/// Regular expression matching 256-bit hash in hexadecimal representation.
+static HASH_256_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^[a-fA-F0-9]{1,64}$").expect("invalid regex"));
 
 #[Object]
 impl SearchResult {
@@ -42,7 +62,9 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, contract::Contract>> {
         let contract_index_regex: Regex = Regex::new("^[0-9]+$")
@@ -100,13 +122,17 @@ impl SearchResult {
 
         while let Some(row) = row_stream.try_next().await? {
             let contract_address_index =
-                row.index.try_into().map_err(|e: <u64 as TryFrom<i64>>::Error| {
-                    InternalError::InternalError(e.to_string())
-                })?;
+                row.index
+                    .try_into()
+                    .map_err(|e: <u64 as TryFrom<i64>>::Error| {
+                        InternalError::InternalError(e.to_string())
+                    })?;
             let contract_address_sub_index =
-                row.sub_index.try_into().map_err(|e: <u64 as TryFrom<i64>>::Error| {
-                    InternalError::InternalError(e.to_string())
-                })?;
+                row.sub_index
+                    .try_into()
+                    .map_err(|e: <u64 as TryFrom<i64>>::Error| {
+                        InternalError::InternalError(e.to_string())
+                    })?;
 
             let snapshot = ContractSnapshot {
                 block_height: row.block_height,
@@ -131,9 +157,10 @@ impl SearchResult {
                 snapshot,
             };
 
-            connection
-                .edges
-                .push(connection::Edge::new(contract.contract_address_index.to_string(), contract));
+            connection.edges.push(connection::Edge::new(
+                contract.contract_address_index.to_string(),
+                contract,
+            ));
         }
 
         if let (Some(page_min_id), Some(page_max_id)) =
@@ -153,12 +180,20 @@ impl SearchResult {
             .fetch_one(pool)
             .await?;
 
-            let page_max: i64 =
-                page_max_id.node.contract_address_index.0.try_into().map_err(|e| {
+            let page_max: i64 = page_max_id
+                .node
+                .contract_address_index
+                .0
+                .try_into()
+                .map_err(|e| {
                     InternalError::InternalError(format!("A contract index is too large: {}", e))
                 })?;
-            let page_min: i64 =
-                page_min_id.node.contract_address_index.0.try_into().map_err(|e| {
+            let page_min: i64 = page_min_id
+                .node
+                .contract_address_index
+                .0
+                .try_into()
+                .map_err(|e| {
                     InternalError::InternalError(format!("A contract index is too large: {}", e))
                 })?;
 
@@ -177,7 +212,9 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, ModuleReferenceEvent>> {
         let mut connection = connection::Connection::new(false, false);
@@ -366,23 +403,37 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Block>> {
-        let block_hash_regex: Regex = Regex::new(r"^[a-fA-F0-9]{1,64}$")
-            .map_err(|_| InternalError::InternalError("Invalid regex".to_string()))?;
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
         let query =
             ConnectionQuery::<i64>::new(first, after, last, before, config.block_connection_limit)?;
         let mut connection = connection::Connection::new(false, false);
-        if !block_hash_regex.is_match(&self.query) {
+        if !HASH_256_REGEX.is_match(&self.query) {
             return Ok(connection);
         }
-        let lower_case_query = self.query.to_lowercase();
-        let mut rows = sqlx::query_as!(
-            Block,
-            "SELECT * FROM (
+
+        let height_query = self.query.parse::<i64>().ok();
+        let query_lowercase = self.query.to_lowercase();
+        let hash_query: Cow<str> = if query_lowercase.len() >= MIN_HASH_QUERY_LENGTH {
+            query_lowercase.into()
+        } else {
+            if height_query.is_none() {
+                return Ok(connection);
+            }
+            HASH_DUMMY_QUERY.into()
+        };
+
+        db::with_force_custom_plan(
+            pool,
+            async |db_connection: &mut PoolConnection<Postgres>| {
+                let mut rows = sqlx::query_as!(
+                    Block,
+                    "SELECT * FROM (
                 SELECT
                     hash,
                     height,
@@ -402,42 +453,50 @@ impl SearchResult {
                     (CASE WHEN NOT $4 THEN height END) DESC
                 LIMIT $3
             ) ORDER BY height DESC",
-            query.from,
-            query.to,
-            query.limit,
-            query.is_last,
-            lower_case_query.parse::<i64>().ok(),
-            lower_case_query
-        )
-        .fetch(pool);
+                    query.from,
+                    query.to,
+                    query.limit,
+                    query.is_last,
+                    height_query,
+                    hash_query.as_ref()
+                )
+                .fetch(db_connection.as_mut());
 
-        while let Some(block) = rows.try_next().await? {
-            connection.edges.push(connection::Edge::new(block.height.to_string(), block));
-        }
+                while let Some(block) = rows.try_next().await? {
+                    connection
+                        .edges
+                        .push(connection::Edge::new(block.height.to_string(), block));
+                }
+                drop(rows);
 
-        if let (Some(page_min_height), Some(page_max_height)) =
-            (connection.edges.first(), connection.edges.last())
-        {
-            let result = sqlx::query!(
-                "
+                if let (Some(page_min_height), Some(page_max_height)) =
+                    (connection.edges.first(), connection.edges.last())
+                {
+                    let result = sqlx::query!(
+                        "
                     SELECT MAX(height) as max_height, MIN(height) as min_height
                     FROM blocks
                     WHERE
                         height = $1
                         OR starts_with(hash, $2)
                 ",
-                lower_case_query.parse::<i64>().ok(),
-                lower_case_query,
-            )
-            .fetch_one(pool)
-            .await?;
+                        height_query,
+                        hash_query.as_ref(),
+                    )
+                    .fetch_one(db_connection.as_mut())
+                    .await?;
 
-            connection.has_previous_page =
-                result.max_height.is_some_and(|db_max| db_max > page_max_height.node.height);
-            connection.has_next_page =
-                result.min_height.is_some_and(|db_min| db_min < page_min_height.node.height);
-        }
-        Ok(connection)
+                    connection.has_previous_page = result
+                        .max_height
+                        .is_some_and(|db_max| db_max > page_max_height.node.height);
+                    connection.has_next_page = result
+                        .min_height
+                        .is_some_and(|db_min| db_min < page_min_height.node.height);
+                }
+                Ok(connection)
+            },
+        )
+        .await
     }
 
     async fn transactions(
@@ -447,11 +506,11 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Transaction>> {
-        let transaction_hash_regex: Regex = Regex::new(r"^[a-fA-F0-9]{1,64}$")
-            .map_err(|_| InternalError::InternalError("Invalid regex".to_string()))?;
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
         let query = ConnectionQuery::<DescendingI64>::new(
@@ -462,61 +521,70 @@ impl SearchResult {
             config.transaction_connection_limit,
         )?;
         let mut connection = connection::Connection::new(false, false);
-        if !transaction_hash_regex.is_match(&self.query) {
+        if !HASH_256_REGEX.is_match(&self.query) || self.query.len() < MIN_HASH_QUERY_LENGTH {
             return Ok(connection);
         }
         let lower_case_query = self.query.to_lowercase();
-        let mut row_stream = sqlx::query_as!(
-            Transaction,
-            r#"SELECT * FROM (
-                SELECT
-                    index,
-                    block_height,
-                    hash,
-                    ccd_cost,
-                    energy_cost,
-                    sender_index,
-                    type as "tx_type: DbTransactionType",
-                    type_account as "type_account: AccountTransactionType",
-                    type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
-                    type_update as "type_update: UpdateTransactionType",
-                    success,
-                    events as "events: sqlx::types::Json<Vec<Event>>",
-                    reject as "reject: sqlx::types::Json<TransactionRejectReason>"
-                FROM transactions
-                WHERE
-                    starts_with(hash, $5)
-                    AND $2 < index
-                    AND index < $1
-                ORDER BY
-                    (CASE WHEN $3 THEN index END) ASC,
-                    (CASE WHEN NOT $3 THEN index END) DESC
-                LIMIT $4
-            ) ORDER BY index DESC"#,
-            i64::from(query.from),
-            i64::from(query.to),
-            query.is_last,
-            query.limit,
-            lower_case_query
-        )
-        .fetch(pool);
 
-        while let Some(tx) = row_stream.try_next().await? {
-            connection.edges.push(connection::Edge::new(tx.index.to_string(), tx));
-        }
-        if let (Some(page_min), Some(page_max)) =
-            (connection.edges.last(), connection.edges.first())
-        {
-            let result =
-                sqlx::query!("SELECT MAX(index) as max_id, MIN(index) as min_id FROM transactions")
-                    .fetch_one(pool)
-                    .await?;
-            connection.has_next_page =
-                result.min_id.is_some_and(|db_min| db_min < page_min.node.index);
-            connection.has_previous_page =
-                result.max_id.is_some_and(|db_max| db_max > page_max.node.index);
-        }
-        Ok(connection)
+        db::with_force_custom_plan(pool, async |db_connection| {
+            let mut row_stream = sqlx::query_as!(
+                Transaction,
+                r#"SELECT * FROM (
+                    SELECT
+                        index,
+                        block_height,
+                        hash,
+                        ccd_cost,
+                        energy_cost,
+                        sender_index,
+                        type as "tx_type: DbTransactionType",
+                        type_account as "type_account: AccountTransactionType",
+                        type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
+                        type_update as "type_update: UpdateTransactionType",
+                        success,
+                        events as "events: sqlx::types::Json<Vec<Event>>",
+                        reject as "reject: sqlx::types::Json<TransactionRejectReason>"
+                    FROM transactions
+                    WHERE
+                        starts_with(hash, $5)
+                        AND $2 < index
+                        AND index < $1
+                    ORDER BY
+                        (CASE WHEN $3 THEN index END) ASC,
+                        (CASE WHEN NOT $3 THEN index END) DESC
+                    LIMIT $4
+                ) ORDER BY index DESC"#,
+                i64::from(query.from),
+                i64::from(query.to),
+                query.is_last,
+                query.limit,
+                lower_case_query
+            )
+            .fetch(db_connection.as_mut());
+
+            while let Some(tx) = row_stream.try_next().await? {
+                connection.edges.push(connection::Edge::new(tx.index.to_string(), tx));
+            }
+            drop(row_stream);
+
+            if let (Some(page_min), Some(page_max)) =
+                (connection.edges.last(), connection.edges.first())
+            {
+                let result = sqlx::query!(
+                    r#"SELECT MAX(index) as max_id, MIN(index) as min_id 
+                                FROM transactions 
+                                WHERE starts_with(hash, $1)"#,
+                    lower_case_query
+                )
+                .fetch_one(db_connection.as_mut())
+                .await?;
+                connection.has_next_page =
+                    result.min_id.is_some_and(|db_min| db_min < page_min.node.index);
+                connection.has_previous_page =
+                    result.max_id.is_some_and(|db_max| db_max > page_max.node.index);
+            }
+            Ok(connection)
+        }).await
     }
 
     async fn tokens(
@@ -526,7 +594,9 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Token>> {
         // Base58 characters
@@ -573,7 +643,9 @@ impl SearchResult {
         .fetch(pool);
 
         while let Some(token) = rows.try_next().await? {
-            connection.edges.push(connection::Edge::new(token.index.to_string(), token));
+            connection
+                .edges
+                .push(connection::Edge::new(token.index.to_string(), token));
         }
 
         if let (Some(page_min), Some(page_max)) =
@@ -591,10 +663,12 @@ impl SearchResult {
             .fetch_one(pool)
             .await?;
 
-            connection.has_previous_page =
-                result.max_index.is_some_and(|db_max| db_max > page_max.node.index);
-            connection.has_next_page =
-                result.min_index.is_some_and(|db_min| db_min < page_min.node.index);
+            connection.has_previous_page = result
+                .max_index
+                .is_some_and(|db_max| db_max > page_max.node.index);
+            connection.has_next_page = result
+                .min_index
+                .is_some_and(|db_min| db_min < page_min.node.index);
         }
         Ok(connection)
     }
@@ -606,7 +680,9 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Account>> {
         let account_address_regex: Regex = Regex::new(r"^[1-9A-HJ-NP-Za-km-z]{1,50}$")
@@ -640,7 +716,9 @@ impl SearchResult {
             .fetch_optional(pool)
             .await?
             {
-                connection.edges.push(connection::Edge::new(account.index.to_string(), account));
+                connection
+                    .edges
+                    .push(connection::Edge::new(account.index.to_string(), account));
             }
             return Ok(connection);
         };
@@ -676,7 +754,9 @@ impl SearchResult {
         .await?;
 
         for account in accounts {
-            connection.edges.push(connection::Edge::new(account.index.to_string(), account));
+            connection
+                .edges
+                .push(connection::Edge::new(account.index.to_string(), account));
         }
 
         if let (Some(page_min_id), Some(page_max_id)) =
@@ -694,10 +774,12 @@ impl SearchResult {
             .fetch_one(pool)
             .await?;
 
-            connection.has_previous_page =
-                result.min_id.is_some_and(|db_min| db_min < page_min_id.node.index);
-            connection.has_next_page =
-                result.max_id.is_some_and(|db_max| db_max > page_max_id.node.index);
+            connection.has_previous_page = result
+                .min_id
+                .is_some_and(|db_min| db_min < page_min_id.node.index);
+            connection.has_next_page = result
+                .max_id
+                .is_some_and(|db_max| db_max > page_max_id.node.index);
         }
         Ok(connection)
     }
@@ -709,7 +791,9 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, baker::Baker>> {
         let baker_index_regex: Regex = Regex::new("^[0-9]+$")
@@ -774,7 +858,9 @@ impl SearchResult {
         .fetch(pool);
         while let Some(row) = row_stream.try_next().await? {
             let cursor = row.id.encode_cursor();
-            connection.edges.push(connection::Edge::new(cursor, Baker::Current(Box::new(row))));
+            connection
+                .edges
+                .push(connection::Edge::new(cursor, Baker::Current(Box::new(row))));
         }
 
         let (Some(first_item), Some(last_item)) =
@@ -812,10 +898,14 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<usize>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, NodeStatus>> {
-        let handler = ctx.data::<NodeInfoReceiver>().map_err(InternalError::NoReceiver)?;
+        let handler = ctx
+            .data::<NodeInfoReceiver>()
+            .map_err(InternalError::NoReceiver)?;
         let statuses = if let Some(statuses) = handler.borrow().clone() {
             statuses
         } else {

@@ -43,12 +43,17 @@ pub async fn run(
             .response;
 
         let baker_id: i64 = baker.id.index.try_into()?;
-        let staked =
-            account_info.account_stake.context("Expected account to be baker")?.staked_amount();
+        let staked = account_info
+            .account_stake
+            .context("Expected account to be baker")?
+            .staked_amount();
         baker_ids.push(baker_id);
         baker_stakes.push(i64::try_from(staked.micro_ccd())?);
 
-        let mut pool_delegators = client.get_pool_delegators(block_height, baker).await?.response;
+        let mut pool_delegators = client
+            .get_pool_delegators(block_height, baker)
+            .await?
+            .response;
         while let Some(delegator) = pool_delegators.try_next().await? {
             delegator_addresses.push(delegator.account.to_string());
             delegator_stakes.push(i64::try_from(delegator.stake.micro_ccd())?)

@@ -31,21 +31,21 @@ use tracing::{debug, error, info};
 /// preprocessors can run in parallel, this must be `Sync`.
 pub struct BlockPreProcessor {
     /// Genesis hash, used to ensure the nodes are on the expected network.
-    genesis_hash:                 sdk_types::hashes::BlockHash,
+    genesis_hash: sdk_types::hashes::BlockHash,
     /// Metric counting the total number of connections ever established to a
     /// node.
     established_node_connections: Family<NodeMetricLabels, Counter>,
     /// Metric counting the total number of failed attempts to preprocess
     /// blocks.
-    preprocessing_failures:       Family<NodeMetricLabels, Counter>,
+    preprocessing_failures: Family<NodeMetricLabels, Counter>,
     /// Metric tracking the number of blocks currently being preprocessed.
-    blocks_being_preprocessed:    Family<NodeMetricLabels, Gauge>,
+    blocks_being_preprocessed: Family<NodeMetricLabels, Gauge>,
     /// Histogram collecting the time it takes for fetching all the block data
     /// from the node.
-    node_response_time:           Family<NodeMetricLabels, histogram::Histogram>,
+    node_response_time: Family<NodeMetricLabels, histogram::Histogram>,
     /// Max number of acceptable successive failures before shutting down the
     /// service.
-    max_successive_failures:      u64,
+    max_successive_failures: u64,
 }
 impl BlockPreProcessor {
     pub fn new(
@@ -138,7 +138,9 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
         }
         info!("Connection established to node at uri: {}", endpoint.uri());
         let label = NodeMetricLabels::new(&endpoint);
-        self.established_node_connections.get_or_create(&label).inc();
+        self.established_node_connections
+            .get_or_create(&label)
+            .inc();
         Ok(label)
     }
 
@@ -173,8 +175,8 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
                 // The information is only used when preparing blocks for P8 and up.
                 let certificates = if block_info.protocol_version < ProtocolVersion::P8 {
                     BlockCertificates {
-                        quorum_certificate:       None,
-                        timeout_certificate:      None,
+                        quorum_certificate: None,
+                        timeout_certificate: None,
                         epoch_finalization_entry: None,
                     }
                 } else {
@@ -239,8 +241,6 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
                 get_items,
                 get_special_items
             )?;
-            let node_response_time = start_fetching.elapsed();
-            self.node_response_time.get_or_create(label).observe(node_response_time.as_secs_f64());
             let data = BlockData {
                 finalized_block_info: fbi,
                 block_info,
@@ -257,11 +257,18 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
             let prepared_block = PreparedBlock::prepare(&mut client, &data)
                 .await
                 .map_err(v2::RPCError::ParseError)?;
+            let node_response_time = start_fetching.elapsed();
+            self.node_response_time
+                .get_or_create(label)
+                .observe(node_response_time.as_secs_f64());
             Ok(prepared_block)
         }
         .await;
         self.blocks_being_preprocessed.get_or_create(label).dec();
-        debug!("Preprocessing block {}:{} completed", fbi.height, fbi.block_hash);
+        debug!(
+            "Preprocessing block {}:{} completed",
+            fbi.height, fbi.block_hash
+        );
         result
     }
 
@@ -275,8 +282,13 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
         successive_failures: u64,
         err: TraverseError,
     ) -> bool {
-        info!("Failed preprocessing {} times in row: {}", successive_failures, err);
-        self.preprocessing_failures.get_or_create(&NodeMetricLabels::new(&endpoint)).inc();
+        info!(
+            "Failed preprocessing {} times in row: {}",
+            successive_failures, err
+        );
+        self.preprocessing_failures
+            .get_or_create(&NodeMetricLabels::new(&endpoint))
+            .inc();
         successive_failures > self.max_successive_failures
     }
 }

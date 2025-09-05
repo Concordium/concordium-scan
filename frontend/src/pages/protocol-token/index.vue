@@ -19,7 +19,7 @@
 						<template #title>Total Token Supply</template>
 						<template #value>
 							<p class="font-bold text-2xl mt-2">
-								<PLtAmount
+								<PltAmount
 									:value="
 										pltTokenDataRef
 											.reduce(
@@ -29,7 +29,7 @@
 														String(coin?.totalSupply),
 														Number(coin?.decimal)
 													),
-												0n
+												BigInt(0)
 											)
 											.toString()
 									"
@@ -60,10 +60,10 @@
 						:y-values="[[null]]"
 						:is-loading="pltEventMetricsLoading"
 					>
-						<template #title># of Txs (24h)</template>
+						<template #title># of Tx Events (24h)</template>
 						<template #value>
 							<p class="font-bold text-2xl mt-2">
-								{{ pltEventMetricsDataRef?.pltMetrics.transactionCount }}
+								{{ pltEventMetricsDataRef?.globalPltMetrics.eventCount }}
 							</p>
 						</template>
 					</KeyValueChartCard>
@@ -79,7 +79,7 @@
 							<p class="font-bold text-2xl mt-2">
 								{{
 									numberFormatter(
-										pltEventMetricsDataRef?.pltMetrics.transferVolume
+										pltEventMetricsDataRef?.globalPltMetrics.transferAmount
 									)
 								}}
 							</p>
@@ -192,7 +192,7 @@
 								event.tokenEvent.__typename == 'TokenTransferEvent'
 							"
 						>
-							<PLtAmount
+							<PltAmount
 								:value="event.tokenEvent.amount.value"
 								:decimals="Number(event.tokenEvent.amount.decimals)"
 							/>
@@ -221,11 +221,11 @@ import {
 } from '~/queries/usePltTokenQuery'
 import { usePagedData } from '~/composables/usePagedData'
 import { usePltEventsQuery } from '~/queries/usePltEventsQuery'
-import type { Pltevent } from '~/types/generated'
+import type { PltEvent } from '~/types/generated'
 import { useDateNow } from '~/composables/useDateNow'
 import HolderByStableCoin from '~/components/molecules/ChartCards/HolderByStableCoin.vue'
 import KeyValueChartCard from '~/components/molecules/KeyValueChartCard.vue'
-import { usePltMetricsQuery } from '~/queries/usePltEventsMetricsQuery'
+import { usePltMetricsQuery } from '~/queries/usePltTransferMetricsQuery'
 import { MetricsPeriod } from '~/types/generated'
 definePageMeta({
 	middleware: 'plt-features-guard',
@@ -235,7 +235,7 @@ definePageMeta({
 const pageSize = 10
 const maxPageSize = 20
 const { pagedData, first, last, after, before, addPagedData, loadMore } =
-	usePagedData<Pltevent>([], pageSize, maxPageSize)
+	usePagedData<PltEvent>([], pageSize, maxPageSize)
 
 const { data: pltTokenData, loading: pltTokenLoading } = usePltTokenQuery()
 

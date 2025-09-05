@@ -9,6 +9,7 @@ mod baker_metrics;
 mod block;
 mod block_metrics;
 mod contract;
+mod db;
 mod module_reference_event;
 pub mod node_status;
 mod passive_delegation;
@@ -61,10 +62,18 @@ const VERSION: &str = clap::crate_version!();
 #[derive(Debug, clap::Args)]
 pub struct ApiServiceConfig {
     /// Account(s) that should not be considered in circulation.
-    #[arg(long, env = "CCDSCAN_API_CONFIG_NON_CIRCULATING_ACCOUNTS", value_delimiter = ',')]
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_NON_CIRCULATING_ACCOUNTS",
+        value_delimiter = ','
+    )]
     pub non_circulating_account: Vec<sdk_types::AccountAddress>,
     /// The most transactions which can be queried at once.
-    #[arg(long, env = "CCDSCAN_API_CONFIG_TRANSACTION_CONNECTION_LIMIT", default_value = "100")]
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_TRANSACTION_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
     transaction_connection_limit: u64,
     #[arg(
         long,
@@ -72,7 +81,11 @@ pub struct ApiServiceConfig {
         default_value = "100"
     )]
     transactions_per_block_connection_limit: u64,
-    #[arg(long, env = "CCDSCAN_API_CONFIG_BLOCK_CONNECTION_LIMIT", default_value = "100")]
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_BLOCK_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
     block_connection_limit: u64,
     #[arg(
         long,
@@ -80,7 +93,11 @@ pub struct ApiServiceConfig {
         default_value = "100"
     )]
     special_events_per_block_connection_limit: u64,
-    #[arg(long, env = "CCDSCAN_API_CONFIG_ACCOUNT_CONNECTION_LIMIT", default_value = "100")]
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_ACCOUNT_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
     account_connection_limit: u64,
     #[arg(
         long,
@@ -95,17 +112,41 @@ pub struct ApiServiceConfig {
     )]
     account_schedule_connection_limit: u64,
     /// specified max days allowed for account statements export.
-    #[arg(long, env = "CCDSCAN_API_EXPORT_STATEMENTS_MAX_DAYS", default_value_t = 32)]
+    #[arg(
+        long,
+        env = "CCDSCAN_API_EXPORT_STATEMENTS_MAX_DAYS",
+        default_value_t = 32
+    )]
     pub export_statement_max_days: u64,
-    #[arg(long, env = "CCDSCAN_API_CONFIG_BAKER_CONNECTION_LIMIT", default_value = "100")]
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_BAKER_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
     baker_connection_limit: u64,
-    #[arg(long, env = "CCDSCAN_API_CONFIG_CONTRACT_CONNECTION_LIMIT", default_value = "100")]
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_CONTRACT_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
     contract_connection_limit: u64,
-    #[arg(long, env = "CCDSCAN_API_CONFIG_DELEGATORS_CONNECTION_LIMIT", default_value = "100")]
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_DELEGATORS_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
     delegators_connection_limit: u64,
-    #[arg(long, env = "CCDSCAN_API_CONFIG_POOL_REWARDS_CONNECTION_LIMIT", default_value = "100")]
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_POOL_REWARDS_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
     pool_rewards_connection_limit: u64,
-    #[arg(long, env = "CCDSCAN_API_CONFIG_VALIDATORS_CONNECTION_LIMIT", default_value = "100")]
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_VALIDATORS_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
     validators_connection_limit: u64,
     #[arg(
         long,
@@ -113,7 +154,11 @@ pub struct ApiServiceConfig {
         default_value = "100"
     )]
     transaction_event_connection_limit: u64,
-    #[arg(long, env = "CCDSCAN_API_CONFIG_TOKENS_CONNECTION_LIMIT", default_value = "100")]
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_TOKENS_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
     tokens_connection_limit: u64,
     #[arg(
         long,
@@ -151,9 +196,17 @@ pub struct ApiServiceConfig {
         default_value = "100"
     )]
     module_reference_contract_link_events_collection_limit: u64,
-    #[arg(long, env = "CCDSCAN_API_CONFIG_MODULE_CONNECTION_LIMIT", default_value = "100")]
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_MODULE_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
     module_connection_limit: u64,
-    #[arg(long, env = "CCDSCAN_API_CONFIG_REWARD_CONNECTION_LIMIT", default_value = "100")]
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_REWARD_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
     reward_connection_limit: u64,
     #[arg(
         long,
@@ -161,7 +214,11 @@ pub struct ApiServiceConfig {
         default_value = "100"
     )]
     token_holder_addresses_collection_limit: u64,
-    #[arg(long, env = "CCDSCAN_API_CONFIG_TOKEN_EVENTS_COLLECTION_LIMIT", default_value = "100")]
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_TOKEN_EVENTS_COLLECTION_LIMIT",
+        default_value = "100"
+    )]
     token_events_collection_limit: u64,
     #[arg(
         long,
@@ -169,6 +226,12 @@ pub struct ApiServiceConfig {
         default_value = "100"
     )]
     plt_token_events_collection_limit: u64,
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_PLT_ACCOUNT_AMOUNT_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
+    plt_account_amount_connection_limit: u64,
 }
 
 #[derive(MergedObject, Default)]
@@ -190,11 +253,11 @@ pub struct Query(
     reward_metrics::QueryRewardMetrics,
     block_metrics::QueryBlockMetrics,
     transaction_metrics::QueryTransactionMetrics,
-    plt::QueryPLTEvent,
-    plt::QueryPLT,
-    plt::QueryPLTAccountAmount,
-    plt_transfer_metrics::QueryPltTransferMetrics,
-    plt_transfer_metrics::QueryPltMetrics,
+    plt_transfer_metrics::QueryGlobalPltMetrics,
+    plt_transfer_metrics::QueryPltTransferMetricsByTokenId,
+    plt::QueryPltEvent,
+    plt::QueryPlt,
+    plt::QueryPltAccountAmount,
 );
 
 pub struct Service {
@@ -221,9 +284,7 @@ impl Service {
             .data(pool)
             .data(config)
             .finish();
-        Self {
-            schema,
-        }
+        Self { schema }
     }
 
     /// Construct the GraphQL Schema Definition Language used by the service.
@@ -236,7 +297,7 @@ impl Service {
     /// Convert service into an axum router.
     pub fn as_router(self) -> axum::Router {
         let cors_layer = CorsLayer::new()
-            .allow_origin(Any)  // Open access to selected route
+            .allow_origin(Any) // Open access to selected route
             .allow_methods(Any)
             .allow_headers(Any);
         axum::Router::new()
@@ -246,7 +307,10 @@ impl Service {
                 Self::API_GRAPHQL_ROUTE,
                 axum::routing::post_service(async_graphql_axum::GraphQL::new(self.schema.clone())),
             )
-            .route_service(Self::WEBSOCKET_GRAPHQL_ROUTE, GraphQLSubscription::new(self.schema))
+            .route_service(
+                Self::WEBSOCKET_GRAPHQL_ROUTE,
+                GraphQLSubscription::new(self.schema),
+            )
             .layer(cors_layer)
     }
 
@@ -279,7 +343,9 @@ mod logging {
     pub struct LoggingExtension;
 
     impl async_graphql::extensions::ExtensionFactory for LoggingExtension {
-        fn create(&self) -> Arc<dyn async_graphql::extensions::Extension> { Arc::new(self.clone()) }
+        fn create(&self) -> Arc<dyn async_graphql::extensions::Extension> {
+            Arc::new(self.clone())
+        }
     }
     #[async_trait]
     impl async_graphql::extensions::Extension for LoggingExtension {
@@ -291,7 +357,9 @@ mod logging {
         ) -> async_graphql::Response {
             let response = next.run(ctx, operation_name).await;
             let api_errors = response.errors.iter().filter_map(|err| {
-                err.source.as_ref().and_then(|source| source.downcast_ref::<ApiError>())
+                err.source
+                    .as_ref()
+                    .and_then(|source| source.downcast_ref::<ApiError>())
             });
             for err in api_errors {
                 if let ApiError::InternalServerError(internal_error) = err {
@@ -332,11 +400,11 @@ mod monitor {
     #[derive(Clone)]
     pub struct MonitorExtension {
         /// Metric for tracking current number of requests in-flight.
-        in_flight_requests:   Family<QueryLabels, Gauge>,
+        in_flight_requests: Family<QueryLabels, Gauge>,
         /// Metric for counting total number of requests.
-        total_requests:       Family<QueryLabels, Counter>,
+        total_requests: Family<QueryLabels, Counter>,
         /// Metric for collecting execution duration for requests.
-        request_duration:     Family<QueryLabels, Histogram>,
+        request_duration: Family<QueryLabels, Histogram>,
         /// Metric tracking current open subscriptions.
         active_subscriptions: Gauge,
     }
@@ -378,7 +446,9 @@ mod monitor {
         }
     }
     impl async_graphql::extensions::ExtensionFactory for MonitorExtension {
-        fn create(&self) -> Arc<dyn async_graphql::extensions::Extension> { Arc::new(self.clone()) }
+        fn create(&self) -> Arc<dyn async_graphql::extensions::Extension> {
+            Arc::new(self.clone())
+        }
     }
     #[async_trait]
     impl async_graphql::extensions::Extension for MonitorExtension {
@@ -396,7 +466,9 @@ mod monitor {
             let start = Instant::now();
             let response = next.run(ctx, operation_name).await;
             let duration = start.elapsed();
-            self.request_duration.get_or_create(&label).observe(duration.as_secs_f64());
+            self.request_duration
+                .get_or_create(&label)
+                .observe(duration.as_secs_f64());
             self.in_flight_requests.get_or_create(&label).dec();
             response
         }
@@ -415,7 +487,7 @@ mod monitor {
     }
     /// Wrapper around a stream to update metrics when it gets dropped.
     struct WrappedStream<'s> {
-        inner:                stream::BoxStream<'s, async_graphql::Response>,
+        inner: stream::BoxStream<'s, async_graphql::Response>,
         active_subscriptions: Gauge,
     }
     impl<'s> WrappedStream<'s> {
@@ -441,7 +513,9 @@ mod monitor {
         }
     }
     impl std::ops::Drop for WrappedStream<'_> {
-        fn drop(&mut self) { self.active_subscriptions.dec(); }
+        fn drop(&mut self) {
+            self.active_subscriptions.dec();
+        }
     }
 }
 
@@ -490,30 +564,41 @@ pub enum ApiError {
     InvalidContractVersion(#[from] InvalidContractVersionError),
     #[error("Service unavailable: {0}")]
     Unavailable(String),
+    #[error("Invalid ID format: {0}")]
+    InvalidIdFormat(String),
 }
 
 impl From<sqlx::Error> for InternalError {
-    fn from(value: sqlx::Error) -> Self { InternalError::FailedDatabaseQuery(Arc::new(value)) }
+    fn from(value: sqlx::Error) -> Self {
+        InternalError::FailedDatabaseQuery(Arc::new(value))
+    }
 }
 
 impl From<sqlx::Error> for ApiError {
-    fn from(value: sqlx::Error) -> Self { InternalError::from(value).into() }
+    fn from(value: sqlx::Error) -> Self {
+        InternalError::from(value).into()
+    }
 }
 
 impl From<VersionedSchemaError> for ApiError {
-    fn from(value: VersionedSchemaError) -> Self { InternalError::from(value).into() }
+    fn from(value: VersionedSchemaError) -> Self {
+        InternalError::from(value).into()
+    }
 }
 
 pub type ApiResult<A> = Result<A, ApiError>;
 
 /// Get the database pool from the context.
 pub fn get_pool<'a>(ctx: &Context<'a>) -> ApiResult<&'a PgPool> {
-    ctx.data::<PgPool>().map_err(|err| InternalError::NoDatabasePool(err).into())
+    ctx.data::<PgPool>()
+        .map_err(|err| InternalError::NoDatabasePool(err).into())
 }
 
 /// Get service configuration from the context.
 pub fn get_config<'a>(ctx: &Context<'a>) -> ApiResult<&'a ApiServiceConfig> {
-    let config = ctx.data::<Arc<ApiServiceConfig>>().map_err(InternalError::NoServiceConfig)?;
+    let config = ctx
+        .data::<Arc<ApiServiceConfig>>()
+        .map_err(InternalError::NoServiceConfig)?;
     Ok(config.as_ref())
 }
 
@@ -566,9 +651,11 @@ impl BaseQuery {
         // Future improvement (breaking changes): remove `ChainParametersV1` and just
         // use the `reward_period_length` from the current consensus algorithm
         // directly.
-        Ok(LatestChainParameters::ChainParametersV1(ChainParametersV1 {
-            reward_period_length: reward_period_length.try_into()?,
-        }))
+        Ok(LatestChainParameters::ChainParametersV1(
+            ChainParametersV1 {
+                reward_period_length: reward_period_length.try_into()?,
+            },
+        ))
     }
 
     async fn payday_status<'a>(&self, ctx: &Context<'a>) -> ApiResult<PaydayStatus> {
@@ -603,14 +690,12 @@ impl BaseQuery {
     }
 
     async fn search(&self, query: String) -> SearchResult {
-        SearchResult {
-            query,
-        }
+        SearchResult { query }
     }
 }
 
 pub struct Subscription {
-    block_added:      broadcast::Receiver<Block>,
+    block_added: broadcast::Receiver<Block>,
     accounts_updated: broadcast::Receiver<AccountsUpdatedSubscriptionItem>,
 }
 
@@ -675,9 +760,9 @@ impl Subscription {
 }
 
 pub struct SubscriptionContext {
-    block_added_sender:      broadcast::Sender<Block>,
+    block_added_sender: broadcast::Sender<Block>,
     accounts_updated_sender: broadcast::Sender<AccountsUpdatedSubscriptionItem>,
-    retry_delay_sec:         u64,
+    retry_delay_sec: u64,
 }
 
 impl SubscriptionContext {
@@ -735,9 +820,10 @@ impl SubscriptionContext {
                         }
 
                         Self::ACCOUNTS_UPDATED_CHANNEL => {
-                            self.accounts_updated_sender.send(AccountsUpdatedSubscriptionItem {
-                                address: notification.payload().to_string(),
-                            })?;
+                            self.accounts_updated_sender
+                                .send(AccountsUpdatedSubscriptionItem {
+                                    address: notification.payload().to_string(),
+                                })?;
                         }
 
                         unknown => {
@@ -775,16 +861,16 @@ pub enum LatestChainParameters {
 }
 
 pub struct CurrentChainParameters {
-    reward_period_length:         i64,
-    epoch_duration:               i64,
+    reward_period_length: i64,
+    epoch_duration: i64,
     opt_last_payday_block_height: Option<i64>,
-    last_payday_block_slot_time:  chrono::DateTime<Utc>,
+    last_payday_block_slot_time: chrono::DateTime<Utc>,
 }
 
 #[derive(SimpleObject)]
 #[graphql(complex)]
 pub struct PaydayStatus {
-    next_payday_time:             DateTime,
+    next_payday_time: DateTime,
     #[graphql(skip)]
     opt_last_payday_block_height: Option<i64>,
 }
@@ -801,13 +887,16 @@ impl PaydayStatus {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         _after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
         _before: Option<String>,
     ) -> ApiResult<connection::Connection<String, PaydaySummary>> {
         let mut connection = connection::Connection::new(false, false);
 
         let last_payday_block_height =
-            self.opt_last_payday_block_height.ok_or(InternalError::InternalError(
+            self.opt_last_payday_block_height
+                .ok_or(InternalError::InternalError(
                 "Indexer should have recorded a payday block in database if it was running for at \
                  least the duration of a payday."
                     .to_string(),
@@ -817,9 +906,10 @@ impl PaydayStatus {
             block_height: last_payday_block_height,
         };
 
-        connection
-            .edges
-            .push(connection::Edge::new(last_payday_block_height.to_string(), payday_summary));
+        connection.edges.push(connection::Edge::new(
+            last_payday_block_height.to_string(),
+            payday_summary,
+        ));
         Ok(connection)
     }
 }
@@ -854,16 +944,10 @@ struct Versions {
 struct CollectionSegmentInfo {
     /// Indicates whether more items exist following the set defined by the
     /// clients arguments.
-    has_next_page:     bool,
+    has_next_page: bool,
     /// Indicates whether more items exist prior the set defined by the clients
     /// arguments.
     has_previous_page: bool,
-}
-
-#[derive(SimpleObject)]
-struct Ranking {
-    rank:  i32,
-    total: i32,
 }
 
 #[derive(Enum, Clone, Copy, PartialEq, Eq)]
@@ -886,7 +970,10 @@ impl TryFrom<ApyPeriod> for sqlx::postgres::types::PgInterval {
     type Error = ApiError;
 
     fn try_from(value: ApyPeriod) -> Result<Self, Self::Error> {
-        value.as_duration().try_into().map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))
+        value
+            .as_duration()
+            .try_into()
+            .map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))
     }
 }
 
