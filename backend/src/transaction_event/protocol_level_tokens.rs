@@ -910,6 +910,20 @@ impl PreparedTokenUpdate {
             )?;
         let from_canonical_address = from_account_address.get_canonical_address();
 
+        // Check if this is a self-transfer (same account sending to itself)
+        if from_canonical_address == to_canonical_address {
+            // For self-transfers, no balance changes occur, but we still need to record the event
+            // The amounts cancel out: -amount + amount = 0
+            // So we can skip the balance updates entirely
+            tracing::debug!(
+                "Detected PLT self-transfer for account {} with amount {} for token {}",
+                from,
+                amount,
+                self.token_id
+            );
+            return Ok(());
+        }
+
         // to Avoid two separate queries, we use a CTE approach
         sqlx::query!(
             "WITH updated_accounts AS (
