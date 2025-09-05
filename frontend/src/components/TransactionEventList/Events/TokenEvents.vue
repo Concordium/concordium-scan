@@ -15,6 +15,9 @@
 			To
 			<AccountLink :address="event.event.to.address.asString" />
 		</span>
+		<span>
+			<PltTransferMemo :memo="event.event.memo ?? undefined" />
+		</span>
 	</span>
 
 	<span v-else-if="event.event.__typename === 'MintEvent'">
@@ -66,7 +69,7 @@
 
 <script setup lang="ts">
 import type { TokenUpdate } from '~/types/generated'
-import AccountLink from '~/components/molecules/AccountLink.vue'
+import PltTransferMemo from './PltTransferMemo.vue'
 
 type Props = {
 	event: TokenUpdate
