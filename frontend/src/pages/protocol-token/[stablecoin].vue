@@ -1,7 +1,7 @@
 <template>
 	<div>
 		<Title>CCDScan | Stable Coin</Title>
-		<FtbCarousel non-carousel-classes="grid-cols-2">
+		<FtbCarousel non-carousel-classes="grid-cols-3">
 			<CarouselSlide class="w-full lg:h-full">
 				<div
 					class="flex flex-col p-8 h-full w-full my-4 relative cardShadow rounded-2xl shadow-2xl overflow-hidden bg-theme-background-primary-elevated"
@@ -93,6 +93,103 @@
 					</div>
 				</div>
 			</CarouselSlide>
+			<CarouselSlide class="w-full lg:h-full">
+				<div
+					class="flex flex-col p-8 h-full w-full my-4 relative cardShadow rounded-2xl shadow-2xl bg-theme-background-primary-elevated"
+				>
+					<h1>Token Configuration</h1>
+					<div class="flex flex-col">
+						<div class="flex justify-between pt-4">
+							<div class="flex items-center gap-2">
+								<p class="text-xl text-theme-faded">Mintable</p>
+								<Tooltip
+									text="Whether additional tokens can be minted"
+									position="bottom"
+									x="50%"
+									y="50%"
+									tooltip-position="fixed"
+									class="text-theme-white text-right whitespace-nowrap z-[9999]"
+								>
+								</Tooltip>
+							</div>
+							<p class="font-bold text-xl text-theme-interactive">
+								{{
+									pltTokenDataRef?.tokenCreationDetails?.createPlt
+										?.initializationParameters?.mintable
+										? 'Yes'
+										: 'No'
+								}}
+							</p>
+						</div>
+						<div class="flex justify-between pt-4">
+							<div class="flex items-center gap-2">
+								<p class="text-xl text-theme-faded">Burnable</p>
+								<Tooltip
+									text="Whether tokens can be burnt"
+									position="bottom"
+									x="50%"
+									y="50%"
+									tooltip-position="fixed"
+									class="text-theme-white text-right whitespace-nowrap z-[9999]"
+								>
+								</Tooltip>
+							</div>
+							<p class="font-bold text-xl text-theme-interactive">
+								{{
+									pltTokenDataRef?.tokenCreationDetails?.createPlt
+										?.initializationParameters?.burnable
+										? 'Yes'
+										: 'No'
+								}}
+							</p>
+						</div>
+						<div class="flex justify-between pt-4">
+							<div class="flex items-center gap-2">
+								<p class="text-xl text-theme-faded">Allow List</p>
+								<Tooltip
+									text="Whether token supports an allow list"
+									position="bottom"
+									x="50%"
+									y="50%"
+									tooltip-position="fixed"
+									class="text-theme-white text-right whitespace-nowrap z-[9999]"
+								>
+								</Tooltip>
+							</div>
+							<p class="font-bold text-xl text-theme-interactive">
+								{{
+									pltTokenDataRef?.tokenCreationDetails?.createPlt
+										?.initializationParameters?.allowList
+										? 'Yes'
+										: 'No'
+								}}
+							</p>
+						</div>
+						<div class="flex justify-between pt-4">
+							<div class="flex items-center gap-2">
+								<p class="text-xl text-theme-faded">Deny List</p>
+								<Tooltip
+									text="Whether token supports a deny list"
+									position="bottom"
+									x="50%"
+									y="50%"
+									tooltip-position="fixed"
+									class="text-theme-white text-right whitespace-nowrap z-[9999]"
+								>
+								</Tooltip>
+							</div>
+							<p class="font-bold text-xl text-theme-interactive">
+								{{
+									pltTokenDataRef?.tokenCreationDetails?.createPlt
+										?.initializationParameters?.denyList
+										? 'Yes'
+										: 'No'
+								}}
+							</p>
+						</div>
+					</div>
+				</div>
+			</CarouselSlide>
 		</FtbCarousel>
 		<header
 			class="flex flex-wrap justify-between gap-8 w-full mb-4 mt-10 lg:mt-0"
@@ -140,9 +237,10 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import TabBar from '~/components/atoms/TabBar.vue'
 import TabBarItem from '~/components/atoms/TabBarItem.vue'
+import Tooltip from '~/components/atoms/Tooltip.vue'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 import CarouselSlide from '~/components/molecules/CarouselSlide.vue'
 import Holders from '~/components/StableCoin/Holders.vue'

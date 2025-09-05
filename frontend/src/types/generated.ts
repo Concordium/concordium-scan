@@ -2332,6 +2332,7 @@ export type PltToken = {
   metadata?: Maybe<Scalars['JSON']>;
   moduleReference?: Maybe<Scalars['String']>;
   name?: Maybe<Scalars['String']>;
+  tokenCreationDetails: TokenCreationDetails;
   tokenId: Scalars['String'];
   totalBurned?: Maybe<Scalars['Int']>;
   totalMinted?: Maybe<Scalars['Int']>;
