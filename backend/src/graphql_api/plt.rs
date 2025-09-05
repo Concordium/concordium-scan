@@ -550,6 +550,11 @@ impl PltToken {
                 return Ok(token_creation_details);
             }
         }
+        // Log an internal error as this should never happen if the database is correct
+        tracing::error!(
+            "INTERNAL ERROR: TokenCreationDetails not found in transaction events for transaction index: {}.",
+            self.transaction_index
+        );
 
         Err(ApiError::NotFound)
     }
