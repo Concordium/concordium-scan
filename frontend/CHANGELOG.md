@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased 
 
+### Fixed
+
+- Fixed issue with footer links not redirecting to proper telegram channel.
+
 ### Added
 
 - Added token holder distribution chart to specific plt dashboards.
@@ -11,9 +15,11 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - fix validator `APY` section  `APY` figures were all overlapping resulting in them becoming unreadable.
+
+### Fixed
+
 - PLT overview page supply chart tooltip convert token symbol to token name.
 - Change the `Transaction` to `Activities` on the overview page of PLT and the per PLT page.
-- Fixed issue with footer links not redirecting to proper telegram channel.
 
 ## [1.7.24] - 2025-08-29
 
