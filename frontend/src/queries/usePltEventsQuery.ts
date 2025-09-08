@@ -59,7 +59,10 @@ const PLT_TOKEN_QUERY = gql<PltEventsQueryResponse>`
 							decimals
 						}
 						memo {
-							bytes
+							decoded {
+								text
+								decodeType
+							}
 						}
 					}
 					... on TokenModuleEvent {
@@ -166,7 +169,10 @@ const PLT_EVENT_BY_ID_QUERY = gql<PltEventsByTokenIdQueryResponse>`
 							decimals
 						}
 						memo {
-							bytes
+							decoded {
+								text
+								decodeType
+							}
 						}
 					}
 					... on TokenModuleEvent {

@@ -16,7 +16,7 @@
 			<AccountLink :address="event.event.to.address.asString" />
 		</span>
 		<span>
-			<PltTransferMemo :memo="event.event.memo ?? undefined" />
+			<PltTransferMemo v-if="event.event.memo" :memo="event.event.memo" />
 		</span>
 	</span>
 
