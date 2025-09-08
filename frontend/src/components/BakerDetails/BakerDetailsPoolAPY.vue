@@ -29,31 +29,46 @@
 	<DetailsCard>
 		<template #title>Total APY ({{ periodText }})</template>
 		<template #default>
-			<span v-if="data && Number.isFinite(data.totalApy)" class="numerical">
-				{{ formatPercentage(data.totalApy!) }}%
-			</span>
-			<span v-else>-</span>
+			<div class="w-full overflow-hidden">
+				<span
+					v-if="data && Number.isFinite(data.totalApy)"
+					class="numerical text-right block max-w-full truncate"
+					:title="`${formatPercentage(data.totalApy!)}%`"
+				>
+					{{ formatPercentage(data.totalApy!) }}%
+				</span>
+				<span v-else>-</span>
+			</div>
 		</template>
 	</DetailsCard>
 	<DetailsCard>
 		<template #title>Validator APY ({{ periodText }})</template>
 		<template #default>
-			<span v-if="data && Number.isFinite(data.bakerApy)" class="numerical">
-				{{ formatPercentage(data.bakerApy!) }}%
-			</span>
-			<span v-else>-</span>
+			<div class="w-full overflow-hidden">
+				<span
+					v-if="data && Number.isFinite(data.bakerApy)"
+					class="numerical text-right block max-w-full truncate"
+					:title="`${formatPercentage(data.bakerApy!)}%`"
+				>
+					{{ formatPercentage(data.bakerApy!) }}%
+				</span>
+				<span v-else>-</span>
+			</div>
 		</template>
 	</DetailsCard>
 	<DetailsCard>
 		<template #title>Delegators APY ({{ periodText }})</template>
 		<template #default>
-			<span
-				v-if="data && Number.isFinite(data.delegatorsApy)"
-				class="numerical"
-			>
-				{{ formatPercentage(data.delegatorsApy!) }}%
-			</span>
-			<span v-else>-</span>
+			<div class="w-full overflow-hidden">
+				<span
+					v-if="data && Number.isFinite(data.delegatorsApy)"
+					class="numerical text-right block max-w-full truncate"
+					:title="`${formatPercentage(data.delegatorsApy!)}%`"
+				>
+					{{ formatPercentage(data.delegatorsApy!) }}%
+				</span>
+				<span v-else>-</span>
+			</div>
 		</template>
 	</DetailsCard>
 </template>

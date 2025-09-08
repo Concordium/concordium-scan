@@ -54,7 +54,6 @@ const hoverColors = [
 // Define Props
 const props = defineProps<{
 	distributionValues?: Stablecoin[]
-	isLoading?: boolean
 	labelClickable?: boolean
 }>()
 

@@ -23,6 +23,20 @@
 						"
 					/>
 				</CarouselSlide>
+				<CarouselSlide class="w-full lg:h-full">
+					<Filter
+						v-model="topHolder"
+						:data="[
+							{ label: 'Top 10', value: TransactionFilterOption.Top10 },
+							{ label: 'Top 20', value: TransactionFilterOption.Top20 },
+						]"
+					/>
+					<StableCoinTokenDistributionByHolder
+						:token-distribution-data="pagedData"
+						:is-loading="pltHolderLoading"
+						:total-supply="props.totalSupply"
+					/>
+				</CarouselSlide>
 			</FtbCarousel>
 		</div>
 	</div>
@@ -31,11 +45,15 @@
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 import CarouselSlide from '~/components/molecules/CarouselSlide.vue'
 import StableCoinTokenTransfer from '~/components/molecules/ChartCards/StableCoinTokenTransfer.vue'
+import StableCoinTokenDistributionByHolder from '~/components/molecules/ChartCards/StableCoinTokenDistributionByHolder.vue'
 import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
 import Filter from '~/components/StableCoin/Filter.vue'
 import { usePltTransferMetricsQueryByTokenId } from '~/queries/usePltTransferMetricsQuery'
-import { MetricsPeriod } from '~/types/generated'
+import { MetricsPeriod, type PltAccountAmount } from '~/types/generated'
 import { ref, watch } from 'vue'
+import { TransactionFilterOption } from '~/types/stable-coin'
+import { usePagedData } from '~/composables/usePagedData'
+import { usePltTokenHolderQuery } from '~/queries/usePltTokenHolderQuery'
 
 const props = defineProps<{
 	coinId: string
@@ -44,6 +62,7 @@ const props = defineProps<{
 
 const coinId = props.coinId
 
+const topHolder = ref(TransactionFilterOption.Top10)
 const days = ref(MetricsPeriod.Last7Days)
 watch(days, newValue => {
 	selectedMetricsPeriod.value = newValue
@@ -60,5 +79,39 @@ watch(
 		pltTransferMetricsDataRef.value = newData
 	},
 	{ immediate: true, deep: true }
+)
+
+const { pagedData, addPagedData } = usePagedData<PltAccountAmount>(
+	[],
+	topHolder.value,
+	topHolder.value
+)
+
+const queryFirst = ref(topHolder.value)
+
+watch(
+	() => topHolder.value,
+	newValue => {
+		queryFirst.value = newValue
+		pagedData.value = []
+	}
+)
+
+const { data: pltHolderData, fetching: pltHolderLoading } =
+	usePltTokenHolderQuery(coinId, {
+		first: queryFirst,
+	})
+
+watch(
+	() => pltHolderData.value,
+	value => {
+		if (value?.pltAccountsByTokenId) {
+			addPagedData(
+				value.pltAccountsByTokenId.nodes || [],
+				value.pltAccountsByTokenId.pageInfo
+			)
+		}
+	},
+	{ immediate: true }
 )
 </script>

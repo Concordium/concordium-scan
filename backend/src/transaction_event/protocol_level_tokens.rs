@@ -910,6 +910,41 @@ impl PreparedTokenUpdate {
             )?;
         let from_canonical_address = from_account_address.get_canonical_address();
 
+        // Check if this is a self-transfer (same account sending to itself)
+        if from_canonical_address == to_canonical_address {
+            // For self-transfers, no balance changes occur, but we still need to record the account-token relationship
+            // The amounts cancel out: -amount + amount = 0
+            // Insert a single entry with 0 change to ensure the account appears in queries
+            tracing::debug!(
+                "Detected PLT self-transfer for account {} with amount {} for token {}",
+                from,
+                amount,
+                self.token_id
+            );
+
+            // Handle self-transfer with a single database operation (net change = 0)
+            sqlx::query!(
+                "INSERT INTO plt_accounts (account_index, token_index, amount, decimal)
+                VALUES
+                    ( (SELECT index FROM accounts WHERE canonical_address = $1::bytea),
+                    (SELECT index FROM plt_tokens WHERE token_id = $2),
+                    0::numeric,
+                    (SELECT decimal FROM plt_tokens WHERE token_id = $2)
+                    )
+                ON CONFLICT (account_index, token_index) DO UPDATE
+                SET amount = plt_accounts.amount + 0
+                ",
+                from_canonical_address.0.as_slice(),
+                self.token_id,
+            )
+            .execute(tx.as_mut())
+            .await?;
+
+            // No need to update sum_amounts for self-transfers as the net change is 0
+            // This also avoids the "ON CONFLICT DO UPDATE command cannot affect row a second time" error
+            return Ok(());
+        }
+
         // to Avoid two separate queries, we use a CTE approach
         sqlx::query!(
             "WITH updated_accounts AS (

@@ -1,9 +1,8 @@
 <template>
 	<div>
 		<DistributionByHolder
-			:is-loading="isLoading"
 			:distribution-values="distributionValues"
-			:label-clickable="false"
+			:label-clickable="true"
 		>
 			<template #title> Token Distribution By Holder </template>
 		</DistributionByHolder>
@@ -12,36 +11,36 @@
 
 <script lang="ts" setup>
 import { ref, watchEffect, defineProps } from 'vue'
-import type { StableCoinDashboardListResponse } from '~/queries/useStableCoinDashboardList'
 import DistributionByHolder from '~/components/molecules/DistributionByHolder.vue'
-import { shortenHash } from '~/utils/format'
-import type { HoldingResponse } from '~/types/generated'
+import { calculatePercentageforBigInt, shortenHash } from '~/utils/format'
+import type { PltAccountAmount } from '~/types/generated'
 
 type Props = {
-	tokenTransferData?: StableCoinDashboardListResponse
+	tokenDistributionData: PltAccountAmount[]
+	totalSupply: bigint
 }
+
 const props = defineProps<Props>()
 
-const isLoading = ref(true)
 const distributionValues = ref<
 	{ address: string; percentage: string; symbol: string }[]
 >([])
 
+// Transforms tokenTransferData into chart-ready format according to props data.
+// Calculates percentage ownership and shortens addresses for display.
 watchEffect(() => {
-	const holders = props.tokenTransferData?.stablecoin?.holdings || []
-
-	if (holders.length === 0) {
-		distributionValues.value = []
-		return
-	}
-
-	setTimeout(() => {
-		distributionValues.value = holders.map((ele: HoldingResponse) => ({
-			address: shortenHash(ele.address),
-			symbol: ele.assetName || '',
-			percentage: (ele.percentage ?? 0).toFixed(2),
-		}))
-		isLoading.value = false
-	}, 1000)
+	distributionValues.value =
+		props.tokenDistributionData.map(item => {
+			const address = item.accountAddress.asString
+			const amount = BigInt(item.amount.value)
+			const supply = props.totalSupply
+			const percentage = calculatePercentageforBigInt(amount, supply)
+			const symbol = item.tokenId
+			return {
+				address: shortenHash(address),
+				percentage: `${percentage}`,
+				symbol,
+			}
+		}) ?? []
 })
 </script>

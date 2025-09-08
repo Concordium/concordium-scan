@@ -8,6 +8,12 @@ All notable changes to this project will be documented in this file.
 
 - GraphQL API: Added support for plt list in the query `account_by_address`
 
+## [2.0.19] - 2025-09-05
+
+### Fixed
+
+- Indexer crash while plt transfer involves self transfer (not updating plt amount balance if sender and recipient are the same).
+
 ## [2.0.18] - 2025-08-26
 
 Database schema version: 40
@@ -29,6 +35,7 @@ Database schema version: 40
   Optimized the two queries and their paging info queries also by setting `'plan_cache_mode = force_custom_plan'`
   while executing the queries.
 - Changed Rust version to 1.89
+- Query `PltTokens` now returns `token_creation_details`.
 
 ### Changed
 

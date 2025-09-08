@@ -2074,6 +2074,7 @@ type PltToken {
 	decimal: Int
 	index: Int!
 	totalUniqueHolders: Int!
+	tokenCreationDetails: TokenCreationDetails!
 }
 
 type PltTokenConnection {
