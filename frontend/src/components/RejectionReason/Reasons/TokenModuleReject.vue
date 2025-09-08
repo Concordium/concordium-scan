@@ -15,18 +15,10 @@
 					Available balance :
 					<b>
 						{{
-							// Todo: fix this when we reset the devnet DB
-							reason.details[reason.reasonType]?.availableBalance?.value /
-							10 **
-								reason.details[reason.reasonType]?.availableBalance?.decimals[
-									'$serde_json::private::Number'
-								]
-								? reason.details[reason.reasonType]?.availableBalance?.value /
-								  10 **
-										reason.details[reason.reasonType]?.availableBalance
-											?.decimals['$serde_json::private::Number']
-								: Number(reason.details.available_balance.value) /
-								  10 ** Number(reason.details.available_balance.decimals)
+							calculateActualValue(
+								reason.details.available_balance.value,
+								reason.details.available_balance.decimals
+							)
 						}}
 					</b>
 				</span>
@@ -35,18 +27,10 @@
 					Required balance :
 					<b>
 						{{
-							// Todo: fix this when we reset the devnet DB
-							reason.details[reason.reasonType]?.requiredBalance?.value /
-							10 **
-								reason.details[reason.reasonType]?.requiredBalance?.decimals[
-									'$serde_json::private::Number'
-								]
-								? reason.details[reason.reasonType]?.requiredBalance?.value /
-								  10 **
-										reason.details[reason.reasonType]?.requiredBalance
-											?.decimals['$serde_json::private::Number']
-								: Number(reason.details.required_balance.value) /
-								  10 ** Number(reason.details.required_balance.decimals)
+							calculateActualValue(
+								reason.details.required_balance.value,
+								reason.details.required_balance.decimals
+							)
 						}}
 					</b>
 				</span>
@@ -66,11 +50,7 @@
 				<span class="px-2">
 					Details:
 					<b>
-						{{
-							// Todo: fix this when we reset the devnet DB
-
-							reason.details[reason.reasonType]?.cause ?? reason.details?.cause
-						}}
+						{{ reason.details.cause ?? '' }}
 					</b>
 				</span>
 			</Tooltip>
@@ -88,12 +68,7 @@
 				<span class="px-2">
 					Address:
 					<b>
-						{{
-							// Todo: fix this when we reset the devnet DB
-
-							reason.details[reason.reasonType].address.address ??
-							reason.details.address.account.address.as_string
-						}}
+						{{ reason.details.address.account.address.as_string }}
 					</b>
 				</span>
 			</Tooltip>
@@ -111,23 +86,14 @@
 				<span class="px-2">
 					Operation Type :
 					<b>
-						{{
-							// Todo: fix this when we reset the devnet DB
-
-							reason.details[reason.reasonType].operationType ??
-							reason.details.operationType
-						}}
+						{{ reason.details.operation_type }}
 					</b>
 				</span>
 				<br />
 				<span class="px-2">
 					Details:
 					<b>
-						{{
-							// Todo: fix this when we reset the devnet DB
-
-							reason.details[reason.reasonType].reason ?? reason.details.reason
-						}}
+						{{ reason.details.reason ?? '' }}
 					</b>
 				</span>
 			</Tooltip>
@@ -142,54 +108,24 @@
 					Token Id : <b> {{ reason.tokenId }} </b>
 				</span>
 				<br />
-				<span
-					v-if="
-						// Todo: fix this when we reset the devnet DB
-
-						reason.details[reason.reasonType]?.address ??
-						reason.details.address?.account?.address
-					"
-					class="px-2"
-				>
+				<span v-if="reason.details.address?.account?.address" class="px-2">
 					Token Holder :
 					<b>
-						{{
-							// Todo: fix this when we reset the devnet DB
-
-							reason.details[reason.reasonType]?.address?.address ??
-							reason.details.address?.account?.address?.as_string
-						}}
+						{{ reason.details.address?.account?.address?.as_string }}
 					</b>
 				</span>
 				<br />
-				<span
-					v-if="
-						// Todo: fix this when we reset the devnet DB
-
-						reason.details[reason.reasonType]?.address?.coinInfo ??
-						reason.details.address?.account?.coin_info
-					"
-					class="px-2"
-				>
+				<span v-if="reason.details.address?.account?.coin_info" class="px-2">
 					Coin Info :
 					<b>
-						{{
-							// Todo: fix this when we reset the devnet DB
-
-							reason.details[reason.reasonType]?.address?.coinInfo ??
-							reason.details.address?.account?.coin_info
-						}}
+						{{ reason.details.address?.account?.coin_info }}
 					</b>
 				</span>
 				<br />
 				<span class="px-2">
 					Details:
 					<b>
-						{{
-							// Todo: fix this when we reset the devnet DB
-
-							reason.details[reason.reasonType]?.reason ?? reason.details.reason
-						}}
+						{{ reason.details.reason ?? '' }}
 					</b>
 				</span>
 			</Tooltip>
@@ -207,36 +143,21 @@
 				<span class="px-2">
 					Requested amount :
 					<b>
-						{{
-							// Todo: fix this when we reset the devnet DB
-
-							reason.details[reason.reasonType]?.requested_amount ??
-							reason.details.requested_amount
-						}}
+						{{ reason.details.requested_amount }}
 					</b>
 				</span>
 				<br />
 				<span class="px-2">
 					Current supply :
 					<b>
-						{{
-							// Todo: fix this when we reset the devnet DB
-
-							reason.details[reason.reasonType]?.current_supply ??
-							reason.details.current_supply
-						}}
+						{{ reason.details.current_supply }}
 					</b>
 				</span>
 				<br />
 				<span class="px-2">
 					Max representable ammount :
 					<b>
-						{{
-							// Todo: fix this when we reset the devnet DB
-
-							reason.details[reason.reasonType]?.max_representable_amount ??
-							reason.details.max_representable_amount
-						}}
+						{{ reason.details.max_representable_amount }}
 					</b>
 				</span>
 			</Tooltip>
