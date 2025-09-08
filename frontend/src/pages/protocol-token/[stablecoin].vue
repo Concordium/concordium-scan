@@ -105,11 +105,12 @@
 								<Tooltip
 									text="Whether additional tokens can be minted"
 									position="bottom"
-									x="50%"
-									y="50%"
+									x="25"
+									y="25"
 									tooltip-position="fixed"
 									class="text-theme-white text-right whitespace-nowrap z-[9999]"
 								>
+									<InfoIcon class="w-5 h-5 text-theme-faded cursor-pointer" />
 								</Tooltip>
 							</div>
 							<p class="font-bold text-xl text-theme-interactive">
@@ -127,11 +128,12 @@
 								<Tooltip
 									text="Whether tokens can be burnt"
 									position="bottom"
-									x="50%"
-									y="50%"
 									tooltip-position="fixed"
+									x="25"
+									y="25"
 									class="text-theme-white text-right whitespace-nowrap z-[9999]"
 								>
+									<InfoIcon class="w-5 h-5 text-theme-faded cursor-pointer" />
 								</Tooltip>
 							</div>
 							<p class="font-bold text-xl text-theme-interactive">
@@ -149,11 +151,12 @@
 								<Tooltip
 									text="Whether token supports an allow list"
 									position="bottom"
-									x="50%"
-									y="50%"
+									x="25"
+									y="25"
 									tooltip-position="fixed"
 									class="text-theme-white text-right whitespace-nowrap z-[9999]"
 								>
+									<InfoIcon class="w-5 h-5 text-theme-faded cursor-pointer" />
 								</Tooltip>
 							</div>
 							<p class="font-bold text-xl text-theme-interactive">
@@ -171,11 +174,12 @@
 								<Tooltip
 									text="Whether token supports a deny list"
 									position="bottom"
-									x="50%"
-									y="50%"
+									x="25"
+									y="25"
 									tooltip-position="fixed"
 									class="text-theme-white text-right whitespace-nowrap z-[9999]"
 								>
+									<InfoIcon class="w-5 h-5 text-theme-faded cursor-pointer" />
 								</Tooltip>
 							</div>
 							<p class="font-bold text-xl text-theme-interactive">
