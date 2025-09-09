@@ -149,7 +149,7 @@
 						<TableTd>
 							<a
 								:href="`/protocol-token/${event.tokenId}`"
-								target="_blank"
+								target="_self"
 								class="font-normal text-md text-theme-interactive flex flex-row items-center"
 							>
 								{{ event.tokenName }}
