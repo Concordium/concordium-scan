@@ -1317,19 +1317,21 @@ impl Account {
 
         let mut row_stream = sqlx::query_as!(
             AccountProtocolToken,
-            r#"
-            SELECT plt_tokens.name as token_name, plt_tokens.token_id, pa.amount, plt_tokens.decimal, pa.token_index
-                FROM public.plt_accounts AS pa
-                INNER JOIN plt_tokens 
-                    ON pa.token_index = plt_tokens.index
-                WHERE account_index = $1 
-                    AND amount > 0 
-                    AND $3 < pa.token_index AND pa.token_index < $2
-                ORDER BY 
-                    CASE WHEN $5 THEN pa.token_index END ASC,
-                    CASE WHEN NOT $5 THEN pa.token_index END DESC
-                LIMIT $4
-            "#,
+            "
+            SELECT * FROM (
+                SELECT plt_tokens.name as token_name, plt_tokens.token_id, pa.amount as \"amount!\", plt_tokens.decimal as \"decimal!\", pa.token_index
+                    FROM public.plt_accounts AS pa
+                    INNER JOIN plt_tokens 
+                        ON pa.token_index = plt_tokens.index
+                    WHERE account_index = $1 
+                        AND amount > 0 
+                        AND $3 < pa.token_index AND pa.token_index < $2
+                    ORDER BY 
+                        CASE WHEN $5 THEN pa.token_index END ASC,
+                        CASE WHEN NOT $5 THEN pa.token_index END DESC
+                    LIMIT $4)             
+            ORDER BY token_index DESC
+            ",
             self.index,
             i64::from(query.from),
             i64::from(query.to),

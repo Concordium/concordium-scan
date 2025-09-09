@@ -1,0 +1,50 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT * FROM (\n                SELECT plt_tokens.name as token_name, plt_tokens.token_id, pa.amount as \"amount!\", plt_tokens.decimal as \"decimal!\", pa.token_index\n                    FROM public.plt_accounts AS pa\n                    INNER JOIN plt_tokens \n                        ON pa.token_index = plt_tokens.index\n                    WHERE account_index = $1 \n                        AND amount > 0 \n                        AND $3 < pa.token_index AND pa.token_index < $2\n                    ORDER BY \n                        CASE WHEN $5 THEN pa.token_index END ASC,\n                        CASE WHEN NOT $5 THEN pa.token_index END DESC\n                    LIMIT $4)             \n            ORDER BY token_index DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "token_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "token_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "amount!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "decimal!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "token_index",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "d26ed57934266cae3346a1da6ada2a6274578100a138b1284f7626a5fec3217b"
+}

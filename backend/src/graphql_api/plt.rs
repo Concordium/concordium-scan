@@ -849,7 +849,7 @@ impl PltAccountAmount {
 pub struct AccountProtocolToken {
     pub token_name: String,
     pub token_id: TokenId,
-    pub amount: Option<BigDecimal>,
+    pub amount: BigDecimal,
     pub decimal: i32,
     pub token_index: TokenIndex,
 }
@@ -869,6 +869,10 @@ impl AccountProtocolToken {
     }
 
     async fn amount(&self) -> ApiResult<u64> {
-        Ok(self.amount.as_ref().and_then(|a| a.to_u64()).unwrap_or(0))
+        self.amount.to_u64().ok_or_else(|| {
+            ApiError::InternalServerError(InternalError::InternalError(
+                "Failed to convert PLT token amount to u64".to_string(),
+            ))
+        })
     }
 }
