@@ -1319,7 +1319,7 @@ impl Account {
             AccountProtocolToken,
             "
             SELECT * FROM (
-                SELECT plt_tokens.name as token_name, plt_tokens.token_id, pa.amount as \"amount!\", plt_tokens.decimal as \"decimal!\", pa.token_index
+                SELECT plt_tokens.name as token_name, plt_tokens.token_id, pa.amount as amount, plt_tokens.decimal as decimal, pa.token_index
                     FROM public.plt_accounts AS pa
                     INNER JOIN plt_tokens 
                         ON pa.token_index = plt_tokens.index
