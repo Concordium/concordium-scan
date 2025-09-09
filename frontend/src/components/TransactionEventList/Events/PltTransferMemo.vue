@@ -1,11 +1,8 @@
 <template>
-	<div
-		v-if="memo?.__typename === 'Memo'"
-		class="bg-gray rounded flex items-center gap-2"
-	>
-		<span v-if="memo?.__typename === 'Memo'" class="text-gray-500">
+	<div class="bg-gray rounded flex items-center gap-2">
+		<span class="text-gray-500">
 			Memo :
-			{{ memo?.decoded?.text || '' }}
+			{{ memo.decoded.text }}
 		</span>
 	</div>
 </template>
