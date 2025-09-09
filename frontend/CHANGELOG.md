@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Fixed overview page plt total supply chart to display upto 3 decimal places.
 - Fixed issue with footer links not redirecting to proper telegram channel.
 
 ### Added
