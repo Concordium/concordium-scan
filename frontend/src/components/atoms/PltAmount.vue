@@ -1,9 +1,7 @@
 <template>
 	<span class="inline-block" data-testid="amount">
 		<span class="numerical">{{ amounts[0] }}</span>
-		<span v-if="amounts[1]" class="numerical text-sm opacity-50"
-			>.{{ amounts[1] }}</span
-		>
+		<span v-if="amounts[1]" class="numerical text-sm opacity-50">.{{ amounts[1] }}</span>
 	</span>
 </template>
 
@@ -14,6 +12,7 @@ type Props = {
 	value: string
 	decimals: number
 	formatNumber?: boolean
+	fixedDecimals?: number
 }
 
 const props = defineProps<Props>()
@@ -65,8 +64,9 @@ const amounts: ComputedRef<[string, string]> = computed(() => {
 	if (props.formatNumber) {
 		const { formatedNum, suffix } = numberFormatter(
 			BigInt(significantDigits),
-			props.decimals
+			props.fixedDecimals ?? 3
 		)
+
 		const trimmed = formatedNum.replace(/\.?0+$/, '')
 		return trimmed === '0'
 			? ['0' + formatedNum.replace(trimmed, '') + suffix, '']
