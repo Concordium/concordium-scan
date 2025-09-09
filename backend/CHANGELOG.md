@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+Database schema version: 41
+
+### Fixed
+
+- index for baker related transactions `baker_related_tx_idx` re-added. This was dropped inherently due to the column drop & rename `type_account` on the transactions table in migration file 0037
+
 ## [2.0.19] - 2025-09-05
 
 ### Fixed
