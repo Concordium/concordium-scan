@@ -1512,6 +1512,7 @@ scalar Long
 
 type Memo {
 	bytes: String!
+	decoded: DecodedText!
 }
 
 type Metadata {

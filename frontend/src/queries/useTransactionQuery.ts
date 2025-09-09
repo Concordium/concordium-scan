@@ -392,7 +392,10 @@ __typename
         }
         ... on TokenTransferEvent {
             memo {
-                bytes
+                decoded {
+                    text
+                    decodeType
+                }
             }
             amount {
                 value
@@ -481,7 +484,10 @@ __typename
                     decimals
                 }
                 memo {
-                    bytes
+                    decoded {
+                        text
+                        decodeType
+                    }
                 }
             }
             ... on MintEvent {
