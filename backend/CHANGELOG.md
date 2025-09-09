@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+Database schema version: 41
+
 ### Added
 
 - GraphQL API: Added support for plt list in the query `account_by_address`
