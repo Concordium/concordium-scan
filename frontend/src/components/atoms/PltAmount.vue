@@ -1,7 +1,7 @@
 <template>
 	<span class="inline-block" data-testid="amount">
 		<span class="numerical">{{ amounts[0] }}</span>
-		<span v-if="amounts[1]" class="numerical text-sm opacity-50"
+		<span v-if="amounts[1]" class="numerical text opacity-50 mr-1"
 			>.{{ amounts[1] }}</span
 		>
 	</span>
