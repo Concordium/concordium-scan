@@ -9,7 +9,7 @@ type Props = {
 }
 const props = defineProps<Props>()
 const handleClick = () => {
-	window.open(props.url, '_blank')
+	window.open(props.url, '_self')
 }
 </script>
 <style>

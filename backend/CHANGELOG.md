@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [2.0.20] - 2025-09-10
+
+Database schema version: 41
+
+Database schema version: 42
+
+### Added
+
+- GraphQL API: Added support for plt list in the query `account_by_address`
+
+### Fixed
+
+- index for baker related transactions `baker_related_tx_idx` re-added. This was dropped inherently due to the column drop & rename `type_account` on the transactions table in migration file 0037
+
 ## [2.0.19] - 2025-09-05
 
 ### Fixed

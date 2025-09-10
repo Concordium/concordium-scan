@@ -232,6 +232,12 @@ pub struct ApiServiceConfig {
         default_value = "100"
     )]
     plt_account_amount_connection_limit: u64,
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_PLT_BY_ACCOUNT_ADDRESS_CONNECTION_LIMIT",
+        default_value = "10"
+    )]
+    plt_by_account_address_connection_limit: u64,
 }
 
 #[derive(MergedObject, Default)]

@@ -7,7 +7,8 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - Fixed overview page plt total supply chart to display up to 3 decimal places.
-- Fixed issue with footer links not redirecting to proper telegram channel.
+
+## [1.7.25] - 2025-09-10
 
 ### Added
 
@@ -15,15 +16,11 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Fixed per plt page navigation to open in the same tab.
+- Fixed issue with footer links not redirecting to proper telegram channel.
 - fix validator `APY` section  `APY` figures were all overlapping resulting in them becoming unreadable.
-
-### Fixed
-
 - PLT overview page supply chart tooltip convert token symbol to token name.
 - Change the `Transaction` to `Activities` on the overview page of PLT and the per PLT page.
-
-### Fixed
-
 - Fixed plt transfer memo was not visible.
 
 ## [1.7.24] - 2025-08-29

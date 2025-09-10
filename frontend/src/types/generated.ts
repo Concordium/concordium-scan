@@ -46,6 +46,7 @@ export type Account = {
    * optimization if intended to be used.
    */
   nonce: Scalars['Int'];
+  plts: AccountProtocolTokenConnection;
   releaseSchedule: AccountReleaseSchedule;
   rewards: AccountRewardConnection;
   tokens: AccountTokenConnection;
@@ -59,6 +60,14 @@ export type Account = {
 
 
 export type AccountAccountStatementArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type AccountPltsArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
@@ -163,6 +172,33 @@ export type AccountMetricsBuckets = {
    * period. Intended y-axis value.
    */
   y_LastCumulativeAccountsCreated: Array<Scalars['Int']>;
+};
+
+export type AccountProtocolToken = {
+  __typename?: 'AccountProtocolToken';
+  amount: Scalars['Int'];
+  decimal: Scalars['Int'];
+  tokenId: Scalars['String'];
+  tokenName: Scalars['String'];
+};
+
+export type AccountProtocolTokenConnection = {
+  __typename?: 'AccountProtocolTokenConnection';
+  /** A list of edges. */
+  edges: Array<AccountProtocolTokenEdge>;
+  /** A list of nodes. */
+  nodes: Array<AccountProtocolToken>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type AccountProtocolTokenEdge = {
+  __typename?: 'AccountProtocolTokenEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: AccountProtocolToken;
 };
 
 export type AccountReleaseSchedule = {
