@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Fixed per plt page navigation to open in the same tab.
 - Fixed issue with footer links not redirecting to proper telegram channel.
 
 ### Added

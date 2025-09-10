@@ -88,7 +88,7 @@ const defaultOptions: ChartOptions<'doughnut'> = {
 				if (index !== undefined) {
 					const label = chartData.value.labels?.[index]
 					if (label) {
-						window.open(`/protocol-token/${label}`, '_blank')
+						window.open(`/protocol-token/${label}`, '_self')
 					}
 				}
 				return
@@ -135,7 +135,7 @@ const handleSliceClick = (event: MouseEvent) => {
 		const index = elements[0].index
 		const label = chartInstance.data.labels?.[index] as string
 		if (label) {
-			window.open(`/protocol-token/${label}`, '_blank')
+			window.open(`/protocol-token/${label}`, '_self')
 		}
 	}
 }
