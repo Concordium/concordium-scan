@@ -282,6 +282,8 @@ pub enum SchemaVersion {
     AlterPltEventsAddEventTimestampAndIndex,
     #[display("0041: Re-Add the index `baker_related_tx_idx` that was dropped in mistake due to column drop")]
     ReAddBakerRelatedTransactionsIndex,
+    #[display("0042: Alter PLT accounts add NOT NULL constraint on amount and decimal")]
+    AlterPltAccountsAddNotNullConstraint,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -290,7 +292,7 @@ impl SchemaVersion {
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
         SchemaVersion::CreatePltTokenAndEventTables;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::ReAddBakerRelatedTransactionsIndex;
+    const LATEST: SchemaVersion = SchemaVersion::AlterPltAccountsAddNotNullConstraint;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -353,6 +355,7 @@ impl SchemaVersion {
             SchemaVersion::CreatePltTokenAndEventTables => false,
             SchemaVersion::AlterPltEventsAddEventTimestampAndIndex => false,
             SchemaVersion::ReAddBakerRelatedTransactionsIndex => false,
+            SchemaVersion::AlterPltAccountsAddNotNullConstraint => false,
         }
     }
 
@@ -404,6 +407,7 @@ impl SchemaVersion {
             SchemaVersion::CreatePltTokenAndEventTables => false,
             SchemaVersion::AlterPltEventsAddEventTimestampAndIndex => false,
             SchemaVersion::ReAddBakerRelatedTransactionsIndex => false,
+            SchemaVersion::AlterPltAccountsAddNotNullConstraint => false,
         }
     }
 
@@ -686,8 +690,15 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::ReAddBakerRelatedTransactionsIndex
             }
-
-            SchemaVersion::ReAddBakerRelatedTransactionsIndex => unimplemented!(
+            SchemaVersion::ReAddBakerRelatedTransactionsIndex => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0042-plt-account-alter-add-not-null-constraint.sql"
+                    )))
+                    .await?;
+                SchemaVersion::AlterPltAccountsAddNotNullConstraint
+            }
+            SchemaVersion::AlterPltAccountsAddNotNullConstraint => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
