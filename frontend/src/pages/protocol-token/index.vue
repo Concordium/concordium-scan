@@ -34,6 +34,7 @@
 											.toString()
 									"
 									:decimals="0"
+									:fixed-decimals="3"
 									:format-number="true"
 								/>
 							</p>
