@@ -21,6 +21,10 @@ All notable changes to this project will be documented in this file.
 - PLT overview page supply chart tooltip convert token symbol to token name.
 - Change the `Transaction` to `Activities` on the overview page of PLT and the per PLT page.
 
+### Fixed
+
+- Fixed plt transfer memo was not visible.
+
 ## [1.7.24] - 2025-08-29
 
 ### Fixed

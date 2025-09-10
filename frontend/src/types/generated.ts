@@ -1752,6 +1752,7 @@ export type LinkedContractsCollectionSegment = {
 export type Memo = {
   __typename?: 'Memo';
   bytes: Scalars['String'];
+  decoded: DecodedText;
 };
 
 export type Metadata = {

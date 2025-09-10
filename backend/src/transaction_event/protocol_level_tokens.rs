@@ -1,7 +1,12 @@
-use crate::address::AccountAddress;
-use async_graphql::{Enum, SimpleObject, Union};
+use crate::{
+    address::AccountAddress,
+    decoded_text::DecodedText,
+    graphql_api::{ApiResult, InternalError},
+};
+use async_graphql::{ComplexObject, Enum, SimpleObject, Union};
 use bigdecimal::BigDecimal;
 use std::str::FromStr;
+use tracing::error;
 
 use concordium_rust_sdk::protocol_level_tokens;
 use serde::{Deserialize, Serialize};
@@ -409,8 +414,21 @@ pub struct TokenAmount {
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
+#[graphql(complex)]
 pub struct Memo {
     pub bytes: String,
+}
+
+#[ComplexObject]
+impl Memo {
+    async fn decoded(&self) -> ApiResult<DecodedText> {
+        let decoded_data = hex::decode(&self.bytes).map_err(|e| {
+            error!("Invalid hex encoding {:?} in a controlled environment", e);
+            InternalError::InternalError("Failed to decode hex data".to_string())
+        })?;
+
+        Ok(DecodedText::from_bytes(decoded_data.as_slice()))
+    }
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
