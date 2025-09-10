@@ -10,14 +10,38 @@
 <script lang="ts" setup>
 import { computed, type ComputedRef } from 'vue'
 
+/**
+ * Props for the PltAmount component
+ */
 type Props = {
+	/** The raw token amount as a string (e.g., "1000000" for 1.000000 tokens with 6 decimals) */
 	value: string
+	/** The number of decimal places for the token (used to convert raw value to human-readable format) */
 	decimals: number
+	/**
+	 * Whether to format large numbers with suffixes (K, M, B, T) for better readability
+	 * @default false
+	 */
 	formatNumber?: boolean
+	/**
+	 * When formatNumber is true, this overrides the number of decimal places shown in the formatted output
+	 * Useful for consistent display formatting regardless of token's native decimal places
+	 * @example With fixedDecimals=2, "1234567" becomes "1.23M" instead of "1.234567M"
+	 */
+	fixedDecimals?: number
 }
 
 const props = defineProps<Props>()
 
+/**
+ * Formats large numbers with appropriate suffixes (K, M, B, T)
+ * @param significantBigInt - The significant part of the number as BigInt
+ * @param decimals - Number of decimal places to show in the formatted output
+ * @returns Object containing the formatted number string and suffix
+ * @example
+ * numberFormatter(BigInt(1234), 2) // returns { formatedNum: "1.23", suffix: "K" }
+ * numberFormatter(BigInt(999), 2)  // returns { formatedNum: "999.00", suffix: "" }
+ */
 const numberFormatter = (significantBigInt: bigint, decimals: number) => {
 	const units = [
 		{ threshold: BigInt(1000000000000), suffix: 'T' },
@@ -43,6 +67,18 @@ const numberFormatter = (significantBigInt: bigint, decimals: number) => {
 	}
 }
 
+/**
+ * Computed property that processes the raw token value into display format
+ * @returns A tuple [mainPart, decimalPart] where:
+ *   - mainPart: The integer part with thousands separators or formatted with suffix
+ *   - decimalPart: The decimal part (empty string if no decimals or when using formatNumber)
+ * @example
+ * // For value="1234567", decimals=6, formatNumber=false:
+ * // returns ["1", "234567"] (displays as "1.234567")
+ *
+ * // For value="1234567000", decimals=6, formatNumber=true, fixedDecimals=2:
+ * // returns ["1.23K", ""] (displays as "1.23K")
+ */
 const amounts: ComputedRef<[string, string]> = computed(() => {
 	const valueStr = props.value.toString()
 	const totalLength = valueStr.length
@@ -65,8 +101,9 @@ const amounts: ComputedRef<[string, string]> = computed(() => {
 	if (props.formatNumber) {
 		const { formatedNum, suffix } = numberFormatter(
 			BigInt(significantDigits),
-			props.decimals
+			props.fixedDecimals ? props.fixedDecimals : props.decimals
 		)
+
 		const trimmed = formatedNum.replace(/\.?0+$/, '')
 		return trimmed === '0'
 			? ['0' + formatedNum.replace(trimmed, '') + suffix, '']

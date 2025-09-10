@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased 
 
+### Fixed
+
+- Fixed overview page plt total supply chart to display up to 3 decimal places.
+
 ## [1.7.25] - 2025-09-10
 
 ### Added
