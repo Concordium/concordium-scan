@@ -96,6 +96,7 @@ const PLT_TOKEN_QUERY_BY_ID = gql<PltTokenQueryByTokenIdResponse>`
 					}
 				}
 			}
+			tokenModulePauseUnpauseStatus
 		}
 	}
 `

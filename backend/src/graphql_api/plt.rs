@@ -558,6 +558,22 @@ impl PltToken {
 
         Err(ApiError::NotFound)
     }
+
+    async fn token_module_pause_unpause_status<'a>(&self, ctx: &Context<'a>) -> ApiResult<String> {
+        let pool = get_pool(ctx)?;
+        let result = sqlx::query_scalar!(
+            "SELECT token_module_type::TEXT 
+               FROM plt_events 
+               WHERE token_module_type IN ('Pause', 'Unpause') 
+                 AND token_index = $1 
+               ORDER BY transaction_index DESC 
+               LIMIT 1",
+            self.index
+        )
+        .fetch_optional(pool)
+        .await?;
+        Ok(result.flatten().unwrap_or_else(|| "Unknown".to_string()))
+    }
 }
 
 // --------------
