@@ -191,6 +191,24 @@
 								}}
 							</p>
 						</div>
+						<div class="flex justify-between pt-4">
+							<div class="flex items-center gap-2">
+								<p class="text-xl text-theme-faded">Token Global State</p>
+								<Tooltip
+									text="Whether token is currently paused or unpaused"
+									position="bottom"
+									x="25"
+									y="25"
+									tooltip-position="fixed"
+									class="text-theme-white text-right whitespace-nowrap z-[9999]"
+								>
+									<InfoIcon class="w-5 h-5 text-theme-faded cursor-pointer" />
+								</Tooltip>
+							</div>
+							<p class="font-bold text-xl text-theme-interactive">
+								{{ pltTokenDataRef?.tokenModulePauseUnpauseStatus }}
+							</p>
+						</div>
 					</div>
 				</div>
 			</CarouselSlide>
