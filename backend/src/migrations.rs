@@ -284,7 +284,7 @@ pub enum SchemaVersion {
     ReAddBakerRelatedTransactionsIndex,
     #[display("0042: Alter PLT accounts add NOT NULL constraint on amount and decimal")]
     AlterPltAccountsAddNotNullConstraint,
-    #[display("0043: Add token module pause/unpause status")]
+    #[display("0043: Add token module pause/unpause status to plt_tokens table")]
     AddTokenModulePauseUnpauseStatus,
 }
 impl SchemaVersion {
@@ -705,7 +705,7 @@ impl SchemaVersion {
             SchemaVersion::AlterPltAccountsAddNotNullConstraint => {
                 tx.as_mut()
                     .execute(sqlx::raw_sql(include_str!(
-                        "./migrations/m0043-plt-event-index-for-pause-unpause.sql"
+                        "./migrations/m0043-alter-plt-tokens-add-paused-status.sql"
                     )))
                     .await?;
                 SchemaVersion::AddTokenModulePauseUnpauseStatus

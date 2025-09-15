@@ -193,7 +193,7 @@
 						</div>
 						<div class="flex justify-between pt-4">
 							<div class="flex items-center gap-2">
-								<p class="text-xl text-theme-faded">Token Global State</p>
+								<p class="text-xl text-theme-faded">Paused</p>
 								<Tooltip
 									text="Whether token is currently paused or unpaused"
 									position="bottom"
@@ -206,7 +206,9 @@
 								</Tooltip>
 							</div>
 							<p class="font-bold text-xl text-theme-interactive">
-								{{ pltTokenDataRef?.tokenModulePauseUnpauseStatus }}
+								{{
+									pltTokenDataRef?.tokenModulePaused == 'true' ? 'Yes' : 'No'
+								}}
 							</p>
 						</div>
 					</div>

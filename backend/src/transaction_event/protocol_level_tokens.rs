@@ -794,7 +794,20 @@ impl PreparedTokenUpdate {
                     }
                 }
             }
-            TokenUpdateEventType::TokenModule => {}
+            TokenUpdateEventType::TokenModule => {
+                // Handle TokenModule updates for paused/unpaused state changes if needed.
+                match self.token_module_type {
+                    Some(TokenUpdateModuleType::Pause) => {
+                        self.update_paused_state(tx, true).await?;
+                    }
+                    Some(TokenUpdateModuleType::Unpause) => {
+                        self.update_paused_state(tx, false).await?;
+                    }
+                    _ => {
+                        // As of now No action needed for other TokenModule events.
+                    }
+                }
+            }
         }
 
         Ok(())
@@ -1100,6 +1113,20 @@ impl PreparedTokenUpdate {
                 unique_account_count
             );
         }
+        Ok(())
+    }
+    async fn update_paused_state(
+        &self,
+        tx: &mut sqlx::PgTransaction<'_>,
+        paused: bool,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            "UPDATE plt_tokens SET paused = $1 WHERE token_id = $2",
+            paused,
+            self.token_id
+        )
+        .execute(tx.as_mut())
+        .await?;
         Ok(())
     }
 }

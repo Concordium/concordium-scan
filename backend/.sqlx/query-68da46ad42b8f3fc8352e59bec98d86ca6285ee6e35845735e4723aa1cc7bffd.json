@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT paused FROM plt_tokens WHERE index = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "paused",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "68da46ad42b8f3fc8352e59bec98d86ca6285ee6e35845735e4723aa1cc7bffd"
+}

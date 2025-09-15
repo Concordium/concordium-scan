@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE plt_tokens SET paused = $1 WHERE token_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b9f71ae217112396bae832d283c03b5427e4f5b1fa0babfd9eeb38c136d63bba"
+}

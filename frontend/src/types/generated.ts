@@ -2371,7 +2371,7 @@ export type PltToken = {
   name?: Maybe<Scalars['String']>;
   tokenCreationDetails: TokenCreationDetails;
   tokenId: Scalars['String'];
-  tokenModulePauseUnpauseStatus: Scalars['String'];
+  tokenModulePaused: Scalars['String'];
   totalBurned?: Maybe<Scalars['Int']>;
   totalMinted?: Maybe<Scalars['Int']>;
   totalSupply?: Maybe<Scalars['Int']>;
