@@ -284,15 +284,17 @@ pub enum SchemaVersion {
     ReAddBakerRelatedTransactionsIndex,
     #[display("0042: Alter PLT accounts add NOT NULL constraint on amount and decimal")]
     AlterPltAccountsAddNotNullConstraint,
+    #[display("0043: Add token module pause/unpause status to plt_tokens table")]
+    AddTokenModulePauseUnpauseStatus,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking (destructive) database schema versions
     /// have been introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
-        SchemaVersion::CreatePltTokenAndEventTables;
+        SchemaVersion::AddTokenModulePauseUnpauseStatus;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::AlterPltAccountsAddNotNullConstraint;
+    const LATEST: SchemaVersion = SchemaVersion::AddTokenModulePauseUnpauseStatus;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -356,6 +358,7 @@ impl SchemaVersion {
             SchemaVersion::AlterPltEventsAddEventTimestampAndIndex => false,
             SchemaVersion::ReAddBakerRelatedTransactionsIndex => false,
             SchemaVersion::AlterPltAccountsAddNotNullConstraint => false,
+            SchemaVersion::AddTokenModulePauseUnpauseStatus => false,
         }
     }
 
@@ -408,6 +411,7 @@ impl SchemaVersion {
             SchemaVersion::AlterPltEventsAddEventTimestampAndIndex => false,
             SchemaVersion::ReAddBakerRelatedTransactionsIndex => false,
             SchemaVersion::AlterPltAccountsAddNotNullConstraint => false,
+            SchemaVersion::AddTokenModulePauseUnpauseStatus => false,
         }
     }
 
@@ -698,7 +702,15 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::AlterPltAccountsAddNotNullConstraint
             }
-            SchemaVersion::AlterPltAccountsAddNotNullConstraint => unimplemented!(
+            SchemaVersion::AlterPltAccountsAddNotNullConstraint => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0043-alter-plt-tokens-add-paused-status.sql"
+                    )))
+                    .await?;
+                SchemaVersion::AddTokenModulePauseUnpauseStatus
+            }
+            SchemaVersion::AddTokenModulePauseUnpauseStatus => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),

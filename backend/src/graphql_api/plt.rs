@@ -558,6 +558,16 @@ impl PltToken {
 
         Err(ApiError::NotFound)
     }
+
+    async fn token_module_paused<'a>(&self, ctx: &Context<'a>) -> ApiResult<String> {
+        let pool = get_pool(ctx)?;
+        let is_paused =
+            sqlx::query_scalar!("SELECT paused FROM plt_tokens WHERE index = $1", self.index)
+                .fetch_one(pool)
+                .await?;
+
+        Ok(is_paused.to_string())
+    }
 }
 
 // --------------

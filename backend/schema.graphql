@@ -2076,6 +2076,7 @@ type PltToken {
 	index: Int!
 	totalUniqueHolders: Int!
 	tokenCreationDetails: TokenCreationDetails!
+	tokenModulePaused: String!
 }
 
 type PltTokenConnection {
