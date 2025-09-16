@@ -1370,13 +1370,6 @@ type GlobalPltMetrics {
 	transferAmount: Float!
 }
 
-type HoldingResponse {
-	address: String!
-	assetName: String!
-	quantity: Float!
-	percentage: Float!
-}
-
 
 type ImportState {
 	epochDuration: TimeSpan!
@@ -1510,17 +1503,6 @@ type KeyIndexAlreadyInUse {
 
 union LatestChainParameters = ChainParametersV1
 
-type LatestTransactionResponse {
-	from: String!
-	to: String!
-	assetName: String!
-	dateTime: DateTime!
-	amount: Float!
-	value: Float!
-	transactionHash: String!
-	assetMetadata: Metadata
-}
-
 type Level1KeysChainUpdatePayload {
 	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
 }
@@ -1547,10 +1529,6 @@ scalar Long
 type Memo {
 	bytes: String!
 	decoded: DecodedText!
-}
-
-type Metadata {
-	iconUrl: String!
 }
 
 type MetadataUrl {
@@ -2200,12 +2178,6 @@ type Query {
 		"Returns the elements in the list that come before the specified cursor."
 		before: String
 	): BlockConnection!
-	stablecoin(symbol: String!, limit: Int, minQuantity: Float, lastNTransactions: Int): StableCoin
-	stablecoins: [StableCoin!]!
-	stablecoinsBySupply(minSupply: Int!): [StableCoin!]!
-	transferSummary(assetName: String!, days: Int): TransferSummaryResponse!
-	stablecoinOverview: StableCoinOverview!
-	latestTransactions(limit: Int): [LatestTransactionResponse!]
 	transaction(id: ID!): Transaction!
 	transactionByTransactionHash(transactionHash: String!): Transaction!
 	transactions(
@@ -2552,30 +2524,6 @@ enum SpecialEventTypeFilter {
 	VALIDATOR_PRIMED_FOR_SUSPENSION
 }
 
-type StableCoin {
-	name: String!
-	symbol: String!
-	decimal: Int!
-	totalSupply: Int!
-	circulatingSupply: Int!
-	valueInDollar: Float!
-	totalUniqueHolders: Int
-	transfers: [Transfer!]
-	holdings: [HoldingResponse!]
-	metadata: Metadata
-	transactions: [TransactionMResponse!]
-	issuer: String!
-}
-
-type StableCoinOverview {
-	totalMarketcap: Float!
-	numberOfUniqueHolders: Int!
-	noOfTxn: Int!
-	valuesTransferred: Float!
-	noOfTxnLast24H: Int!
-	valuesTransferredLast24H: Float!
-}
-
 type StakeOverMaximumThresholdForPool {
 	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
 }
@@ -2827,16 +2775,6 @@ type TransactionFeeDistributionChainUpdatePayload {
 	gasAccount: Decimal!
 }
 
-type TransactionMResponse {
-	from: String!
-	to: String!
-	assetName: String!
-	dateTime: DateTime!
-	amount: Float!
-	value: Float!
-	transactionHash: String!
-}
-
 type TransactionMetrics {
 	"Total number of transactions (all time)."
 	lastCumulativeTransactionCount: Int!
@@ -2868,29 +2806,9 @@ union TransactionResult = Success | Rejected
 
 union TransactionType = AccountTransaction | CredentialDeploymentTransaction | UpdateTransaction
 
-type Transfer {
-	from: AccountAddress!
-	to: AccountAddress!
-	assetName: String!
-	dateTime: DateTime!
-	amount: Float!
-}
-
 type TransferMemo {
 	rawHex: String!
 	decoded: DecodedText!
-}
-
-type TransferSummary {
-	dateTime: DateTime!
-	totalAmount: Float!
-	transactionCount: Int!
-}
-
-type TransferSummaryResponse {
-	dailySummary: [TransferSummary!]!
-	totalTxnCount: Int!
-	totalValue: Float!
 }
 
 type Transferred {

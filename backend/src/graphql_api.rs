@@ -17,7 +17,6 @@ mod plt;
 mod plt_transfer_metrics;
 mod reward_metrics;
 mod search_result;
-mod stable_coin;
 mod suspended_validators;
 mod token;
 mod transaction;
@@ -247,7 +246,6 @@ pub struct Query(
     suspended_validators::QuerySuspendedValidators,
     baker::QueryBaker,
     block::QueryBlocks,
-    stable_coin::QueryStableCoins,
     transaction::QueryTransactions,
     account::QueryAccounts,
     module_reference_event::QueryModuleReferenceEvent,
