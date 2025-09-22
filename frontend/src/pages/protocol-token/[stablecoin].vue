@@ -6,48 +6,7 @@
 				<div
 					class="flex flex-col p-8 h-full w-full my-4 relative cardShadow rounded-2xl shadow-2xl overflow-hidden bg-theme-background-primary-elevated"
 				>
-					<h1>Market Overview</h1>
-					<div class="flex flex-col">
-						<!-- <div class="flex justify-between pt-4">
-							<p class="text-xl text-theme-faded">Price</p>
-							<p class="font-bold text-xl text-theme-interactive">
-								${{ dataTransferSummary?.stablecoin?.valueInDollar }}
-							</p>
-						</div> -->
-						<div class="flex justify-between pt-4">
-							<p class="text-xl text-theme-faded">Initial Supply</p>
-							<p class="font-bold text-xl text-theme-interactive">
-								<PltAmount
-									:value="(pltTokenDataRef?.initialSupply ?? 0).toString()"
-									:decimals="pltTokenDataRef?.decimal ?? 0"
-									:format-number="true"
-								/>
-							</p>
-						</div>
-						<div class="flex justify-between pt-4">
-							<p class="text-xl text-theme-faded">Current Supply</p>
-							<p class="font-bold text-xl text-theme-interactive">
-								<PltAmount
-									:value="(pltTokenDataRef?.totalSupply ?? 0).toString()"
-									:decimals="pltTokenDataRef?.decimal ?? 0"
-									:format-number="true"
-								/>
-							</p>
-						</div>
-						<div class="flex justify-between pt-4">
-							<p class="text-xl text-theme-faded"># of Holders</p>
-							<p class="font-bold text-xl text-theme-interactive">
-								{{ pltTokenDataRef?.totalUniqueHolders }}
-							</p>
-						</div>
-					</div>
-				</div>
-			</CarouselSlide>
-			<CarouselSlide class="w-full lg:h-full">
-				<div
-					class="flex flex-col p-8 h-full w-full my-4 relative cardShadow rounded-2xl shadow-2xl overflow-hidden bg-theme-background-primary-elevated"
-				>
-					<h1>Profile Summary</h1>
+					<h1>Profile</h1>
 					<div class="flex flex-col">
 						<!-- <div class="flex justify-between pt-4">
 							<p class="text-xl text-theme-faded">Token name</p>
@@ -97,7 +56,7 @@
 				<div
 					class="flex flex-col p-8 h-full w-full my-4 relative cardShadow rounded-2xl shadow-2xl bg-theme-background-primary-elevated"
 				>
-					<h1>Token Configuration</h1>
+					<h1>Configuration</h1>
 					<div class="flex flex-col">
 						<div class="flex justify-between pt-4">
 							<div class="flex items-center gap-2">
@@ -209,6 +168,47 @@
 								{{
 									pltTokenDataRef?.tokenModulePaused == 'true' ? 'Yes' : 'No'
 								}}
+							</p>
+						</div>
+					</div>
+				</div>
+			</CarouselSlide>
+			<CarouselSlide class="w-full lg:h-full">
+				<div
+					class="flex flex-col p-8 h-full w-full my-4 relative cardShadow rounded-2xl shadow-2xl overflow-hidden bg-theme-background-primary-elevated"
+				>
+					<h1>Market</h1>
+					<div class="flex flex-col">
+						<!-- <div class="flex justify-between pt-4">
+							<p class="text-xl text-theme-faded">Price</p>
+							<p class="font-bold text-xl text-theme-interactive">
+								${{ dataTransferSummary?.stablecoin?.valueInDollar }}
+							</p>
+						</div> -->
+						<div class="flex justify-between pt-4">
+							<p class="text-xl text-theme-faded">Initial Supply</p>
+							<p class="font-bold text-xl text-theme-interactive">
+								<PltAmount
+									:value="(pltTokenDataRef?.initialSupply ?? 0).toString()"
+									:decimals="pltTokenDataRef?.decimal ?? 0"
+									:format-number="true"
+								/>
+							</p>
+						</div>
+						<div class="flex justify-between pt-4">
+							<p class="text-xl text-theme-faded">Current Supply</p>
+							<p class="font-bold text-xl text-theme-interactive">
+								<PltAmount
+									:value="(pltTokenDataRef?.totalSupply ?? 0).toString()"
+									:decimals="pltTokenDataRef?.decimal ?? 0"
+									:format-number="true"
+								/>
+							</p>
+						</div>
+						<div class="flex justify-between pt-4">
+							<p class="text-xl text-theme-faded"># of Holders</p>
+							<p class="font-bold text-xl text-theme-interactive">
+								{{ pltTokenDataRef?.totalUniqueHolders }}
 							</p>
 						</div>
 					</div>
