@@ -573,11 +573,8 @@ impl PltToken {
         Ok(is_paused.to_string())
     }
     async fn normalized_current_supply(&self) -> ApiResult<Option<f64>> {
-        let value = self
-            .normalized_current_supply
-            .clone();
+        let value = self.normalized_current_supply.clone();
         Ok(value)
-    
     }
 }
 
