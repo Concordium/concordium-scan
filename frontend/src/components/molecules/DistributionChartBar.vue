@@ -73,8 +73,8 @@ const chartData = computed(() => {
 		.slice(0, MAX_ITEMS)
 		.map(item =>
 			props.chartType === 'supply'
-				? item.totalSupply != null && item.decimal != null
-					? item.totalSupply / Math.pow(10, item.decimal)
+				? item.normalizedCurrentSupply != null
+					? item.normalizedCurrentSupply
 					: null
 				: item.totalUniqueHolders != null
 				? item.totalUniqueHolders
@@ -86,8 +86,8 @@ const chartData = computed(() => {
 		const othersTotal = coins.slice(MAX_ITEMS).reduce((sum, item) => {
 			const value =
 				props.chartType === 'supply'
-					? item.totalSupply != null && item.decimal != null
-						? item.totalSupply / Math.pow(10, item.decimal)
+					? item.normalizedCurrentSupply != null
+						? item.normalizedCurrentSupply
 						: 0
 					: item.totalUniqueHolders != null
 					? item.totalUniqueHolders
