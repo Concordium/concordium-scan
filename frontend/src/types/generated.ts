@@ -2344,6 +2344,7 @@ export type PltToken = {
   metadata?: Maybe<Scalars['JSON']>;
   moduleReference?: Maybe<Scalars['String']>;
   name?: Maybe<Scalars['String']>;
+  normalizedCurrentSupply?: Maybe<Scalars['Float']>;
   tokenCreationDetails: TokenCreationDetails;
   tokenId: Scalars['String'];
   tokenModulePaused: Scalars['String'];
