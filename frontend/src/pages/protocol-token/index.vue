@@ -90,6 +90,25 @@
 			</FtbCarousel>
 			<header class="flex justify-between items-center mb-4">
 				<h1 class="text-xl">Supply & Holders</h1>
+				<NuxtLink
+					to="/protocol-token/list/all"
+					class="text-xs text-theme-text-secondary hover:text-theme-interactive transition-colors duration-200 flex items-center gap-1"
+				>
+					<span>View More</span>
+					<svg
+						class="w-3 h-3"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M9 5l7 7-7 7"
+						></path>
+					</svg>
+				</NuxtLink>
 			</header>
 			<FtbCarousel non-carousel-classes="grid-cols-3">
 				<CarouselSlide class="w-full lg:h-full">
