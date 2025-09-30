@@ -2055,6 +2055,7 @@ type PltToken {
 	totalUniqueHolders: Int!
 	tokenCreationDetails: TokenCreationDetails!
 	tokenModulePaused: String!
+	normalizedCurrentSupply: Float
 }
 
 type PltTokenConnection {
