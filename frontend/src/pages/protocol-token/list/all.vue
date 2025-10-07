@@ -174,8 +174,8 @@ const {
 	pageInfo,
 	loading: pltTokenLoading,
 } = usePltTokensPagedQuery({
-	first, 
-	last, 
+	first,
+	last,
 	after,
 	before,
 })
