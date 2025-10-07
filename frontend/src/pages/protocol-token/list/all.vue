@@ -174,8 +174,8 @@ const {
 	pageInfo,
 	loading: pltTokenLoading,
 } = usePltTokensPagedQuery({
-	first, // Will be undefined
-	last, // Will be pageSize - this gives ascending order
+	first, 
+	last, 
 	after,
 	before,
 })
