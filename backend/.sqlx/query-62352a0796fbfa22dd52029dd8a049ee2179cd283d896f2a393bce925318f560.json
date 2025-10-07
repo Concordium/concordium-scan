@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT name,\n                index,\n                token_id,\n                transaction_index,\n                issuer_index,\n                module_reference,\n                metadata as \"metadata: sqlx::types::Json<sqlx::types::JsonValue>\",\n                initial_supply,\n                total_minted,\n                total_burned,\n                decimal\n            FROM plt_tokens \n            WHERE $2 < index AND index < $1\n            ORDER BY \n                CASE WHEN $3 THEN index END ASC,\n                CASE WHEN NOT $3 THEN index END DESC\n            LIMIT $4",
+  "query": "SELECT name,\n                index,\n                token_id,\n                transaction_index,\n                issuer_index,\n                module_reference,\n                metadata as \"metadata: sqlx::types::Json<sqlx::types::JsonValue>\",\n                initial_supply,\n                total_minted,\n                total_burned,\n                normalized_current_supply::DOUBLE PRECISION AS normalized_current_supply,\n                total_holders,\n                decimal\n            FROM plt_tokens \n            WHERE $2 < index AND index < $1\n            ORDER BY \n                normalized_current_supply DESC,\n                CASE WHEN $3 THEN index END ASC,\n                CASE WHEN NOT $3 THEN index END DESC\n            LIMIT $4",
   "describe": {
     "columns": [
       {
@@ -55,6 +55,16 @@
       },
       {
         "ordinal": 10,
+        "name": "normalized_current_supply",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 11,
+        "name": "total_holders",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 12,
         "name": "decimal",
         "type_info": "Int4"
       }
@@ -78,8 +88,10 @@
       true,
       true,
       true,
+      null,
+      true,
       false
     ]
   },
-  "hash": "9f7ffe4571cb227489936b716b7200b02e82b5f571b8c0d647522221b2955f82"
+  "hash": "62352a0796fbfa22dd52029dd8a049ee2179cd283d896f2a393bce925318f560"
 }

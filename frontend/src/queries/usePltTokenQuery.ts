@@ -28,6 +28,7 @@ const PLT_TOKEN_QUERY = gql<PltTokenQueryResponse>`
 					asString
 				}
 				totalUniqueHolders
+				normalizedCurrentSupply
 			}
 		}
 	}
