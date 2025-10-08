@@ -332,7 +332,7 @@ impl QueryPlt {
             after,
             last,
             before,
-            config.plt_token_events_collection_limit,
+            config.plt_tokens_collection_limit,
         )?;
 
         let mut row_stream = sqlx::query_as!(
