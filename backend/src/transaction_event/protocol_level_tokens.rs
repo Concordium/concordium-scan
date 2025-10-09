@@ -108,7 +108,7 @@ impl From<concordium_rust_sdk::protocol_level_tokens::TokenModuleRejectReasonTyp
             Reason::MintWouldOverflow(reason) => {
                 TokenModuleRejectReasonType::MintWouldOverflow(reason.into())
             }
-            Reason::Unknow => TokenModuleRejectReasonType::Unknown(UnknownRejectReason {
+            Reason::Unknown => TokenModuleRejectReasonType::Unknown(UnknownRejectReason {
                 message: "Unknown reject reason".into(),
             }),
         }
@@ -241,8 +241,8 @@ pub struct MetadataUrl {
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
 pub struct InitializationParameters {
-    pub name: String,
-    pub metadata: MetadataUrl,
+    pub name: Option<String>,
+    pub metadata: Option<MetadataUrl>,
     pub allow_list: Option<bool>,
     pub deny_list: Option<bool>,
     pub mintable: Option<bool>,
@@ -250,7 +250,7 @@ pub struct InitializationParameters {
     pub initial_supply: Option<TokenAmount>,
     // Todo: Refactior convert this to CborTokenHolder (to ensure backwards compatibility will
     // update the type when we reset devnet db)
-    pub governance_account: CborHolderAccount,
+    pub governance_account: Option<CborHolderAccount>,
 }
 
 #[derive(SimpleObject, Debug, Serialize, Deserialize, Clone)]
@@ -258,42 +258,44 @@ pub struct CborTokenHolder {
     pub account: CborHolderAccount,
 }
 
-impl From<concordium_rust_sdk::protocol_level_tokens::CborTokenHolder> for CborTokenHolder {
-    fn from(holder: concordium_rust_sdk::protocol_level_tokens::CborTokenHolder) -> Self {
+impl From<concordium_rust_sdk::protocol_level_tokens::CborHolderAccount> for CborTokenHolder {
+    fn from(holder: concordium_rust_sdk::protocol_level_tokens::CborHolderAccount) -> Self {
         match holder {
-            concordium_rust_sdk::protocol_level_tokens::CborTokenHolder::Account(account) => {
-                CborTokenHolder {
-                    account: CborHolderAccount {
-                        address: account.address.into(),
-                        coin_info: account.coin_info.map(|info| CoinInfo {
-                            coin_info_code: match info {
-                                concordium_rust_sdk::protocol_level_tokens::CoinInfo::CCD => {
-                                    CONCORDIUM_SLIP_0044_CODE.to_string()
-                                }
-                            },
-                        }),
-                    },
-                }
-            }
-        }
-    }
-}
-
-impl From<concordium_rust_sdk::protocol_level_tokens::CborTokenHolder> for CborHolderAccount {
-    fn from(holder: concordium_rust_sdk::protocol_level_tokens::CborTokenHolder) -> Self {
-        match holder {
-            concordium_rust_sdk::protocol_level_tokens::CborTokenHolder::Account(account) => {
-                CborHolderAccount {
-                    address: account.address.into(),
-                    coin_info: account.coin_info.map(|info| CoinInfo {
+            concordium_rust_sdk::protocol_level_tokens::CborHolderAccount {
+                address,
+                coin_info,
+            } => CborTokenHolder {
+                account: CborHolderAccount {
+                    address: address.into(),
+                    coin_info: coin_info.map(|info| CoinInfo {
                         coin_info_code: match info {
                             concordium_rust_sdk::protocol_level_tokens::CoinInfo::CCD => {
                                 CONCORDIUM_SLIP_0044_CODE.to_string()
                             }
                         },
                     }),
-                }
-            }
+                },
+            },
+        }
+    }
+}
+
+impl From<concordium_rust_sdk::protocol_level_tokens::CborHolderAccount> for CborHolderAccount {
+    fn from(holder: concordium_rust_sdk::protocol_level_tokens::CborHolderAccount) -> Self {
+        match holder {
+            concordium_rust_sdk::protocol_level_tokens::CborHolderAccount {
+                coin_info,
+                address,
+            } => CborHolderAccount {
+                address: address.into(),
+                coin_info: coin_info.map(|info| CoinInfo {
+                    coin_info_code: match info {
+                        concordium_rust_sdk::protocol_level_tokens::CoinInfo::CCD => {
+                            CONCORDIUM_SLIP_0044_CODE.to_string()
+                        }
+                    },
+                }),
+            },
         }
     }
 }
@@ -317,18 +319,20 @@ impl From<concordium_rust_sdk::protocol_level_tokens::TokenModuleInitializationP
     ) -> Self {
         InitializationParameters {
             name: params.name,
-            metadata: MetadataUrl {
-                url: params.metadata.url,
-                checksum_sha_256: params
-                    .metadata
-                    .checksum_sha_256
-                    .map(|h| hex::encode(h.as_ref())),
-                additional: if params.metadata.additional.is_empty() {
+            allow_list: params.allow_list,
+            deny_list: params.deny_list,
+            mintable: params.mintable,
+            burnable: params.burnable,
+            initial_supply: params.initial_supply.map(Into::into),
+            governance_account: params
+                .governance_account
+                .map(|cbor_holder_account| CborHolderAccount::from(cbor_holder_account)),
+            metadata: params.metadata.map(|mdata| MetadataUrl {
+                additional: if mdata.additional.is_empty() {
                     None
                 } else {
                     Some(serde_json::Value::Object(
-                        params
-                            .metadata
+                        mdata
                             .additional
                             .into_iter()
                             .map(|(key, value)| {
@@ -337,13 +341,9 @@ impl From<concordium_rust_sdk::protocol_level_tokens::TokenModuleInitializationP
                             .collect(),
                     ))
                 },
-            },
-            allow_list: params.allow_list,
-            deny_list: params.deny_list,
-            mintable: params.mintable,
-            burnable: params.burnable,
-            initial_supply: params.initial_supply.map(Into::into),
-            governance_account: params.governance_account.into(),
+                url: mdata.url,
+                checksum_sha_256: mdata.checksum_sha_256.map(|h| hex::encode(h.as_ref())),
+            }),
         }
     }
 }

@@ -47,27 +47,33 @@ pub async fn run(
             .await?
             .response;
         while let Some(summary) = block_summary.next().await.transpose()? {
-            let BlockItemSummaryDetails::AccountTransaction(update) = &summary.details else {
+            let summary_details = summary.details.known_or_err()?;
+
+            let BlockItemSummaryDetails::AccountTransaction(update) = &summary_details else {
                 continue;
             };
-            if !matches!(
-                update.transaction_type(),
-                Some(
-                    TransactionType::TransferWithSchedule
-                        | TransactionType::TransferWithScheduleAndMemo
-                )
-            ) {
-                continue;
+
+            if let Some(transaction_type) = &update.transaction_type() {
+                if !matches!(
+                    transaction_type.as_known(),
+                    Some(
+                        TransactionType::TransferWithSchedule
+                            | TransactionType::TransferWithScheduleAndMemo
+                    )
+                ) {
+                    continue;
+                }
             }
+
             if !matches!(
-                update.effects,
+                update.effects.as_ref().known_or_err()?,
                 AccountTransactionEffects::TransferredWithSchedule { .. }
                     | AccountTransactionEffects::TransferredWithScheduleAndMemo { .. }
             ) {
                 continue;
             }
 
-            let events = events_from_summary(summary.details, block_slot_time)?;
+            let events = events_from_summary(summary_details, block_slot_time)?;
             let hash = summary.hash.to_string();
             sqlx::query(
                 "

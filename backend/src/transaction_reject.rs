@@ -875,18 +875,17 @@ impl PreparedTransactionRejectReason {
             RejectReason::PoolClosed => {
                 TransactionRejectReason::PoolClosed(PoolClosed { dummy: true })
             }
-            RejectReason::NonExistentTokenId(token_id) => {
+            RejectReason::NonExistentTokenId { token_id } => {
                 TransactionRejectReason::NonExistentTokenId(NonExistentTokenId {
                     token_id: token_id.clone().into(),
                 })
             }
-            RejectReason::TokenUpdateTransactionFailed(token_module_reject_reason) => {
-                let details =
-                    TokenModuleRejectReason::decode_reject_reason(&token_module_reject_reason)
-                        .context("Failed to decode token module transaction failure reason")?;
+            RejectReason::TokenUpdateTransactionFailed { reject_reason } => {
+                let details = TokenModuleRejectReason::decode_reject_reason(&reject_reason)
+                    .context("Failed to decode token module transaction failure reason")?;
                 TransactionRejectReason::TokenUpdateTransactionFailed(TokenModuleReject {
-                    token_id: token_module_reject_reason.token_id.clone().into(),
-                    reason_type: token_module_reject_reason.clone().reason_type.into(),
+                    token_id: reject_reason.token_id.clone().into(),
+                    reason_type: reject_reason.clone().reason_type.into(),
                     details: serde_json::to_value::<TokenModuleRejectReasonType>(details.into())
                         .context(
                             "Failed to serialize token module transaction failure details to JSON",

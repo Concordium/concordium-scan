@@ -184,7 +184,7 @@ impl PreparedBakerEvent {
                 baker_id,
                 open_status,
             } => {
-                let open_status = open_status.to_owned().into();
+                let open_status = open_status.known_or_err()?.to_owned().into();
                 let move_delegators = if matches!(open_status, BakerPoolOpenStatus::ClosedForAll) {
                     Some(MovePoolDelegatorsToPassivePool::prepare(baker_id)?)
                 } else {

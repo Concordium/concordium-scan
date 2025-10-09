@@ -8,6 +8,7 @@ use crate::{
 use anyhow::Context;
 use async_graphql::{ComplexObject, Object, SimpleObject, Union};
 use bigdecimal::BigDecimal;
+use concordium_rust_sdk::smart_contracts::types::WasmVersion;
 use concordium_rust_sdk::{
     cis2, common::cbor, protocol_level_tokens::TokenModuleInitializationParameters, types::Address,
 };
@@ -100,7 +101,10 @@ pub fn events_from_summary(
 ) -> anyhow::Result<Vec<Event>> {
     use concordium_rust_sdk::types::{AccountTransactionEffects, BlockItemSummaryDetails};
     let events = match value {
-        BlockItemSummaryDetails::AccountTransaction(details) => match details.effects {
+        BlockItemSummaryDetails::AccountTransaction(details) => match details
+            .effects
+            .known_or_err()?
+        {
             AccountTransactionEffects::None { .. } => {
                 anyhow::bail!("Transaction was rejected")
             }
@@ -119,7 +123,7 @@ pub fn events_from_summary(
                         contract_address: data.address.into(),
                         amount: data.amount.micro_ccd().into(),
                         init_name: data.init_name.to_string(),
-                        version: data.contract_version.into(),
+                        version: WasmVersion::try_from(data.contract_version)?.into(),
                         contract_logs_raw: data
                             .events
                             .iter()
@@ -132,14 +136,14 @@ pub fn events_from_summary(
                 use concordium_rust_sdk::types::ContractTraceElement;
                 effects
                     .into_iter()
-                    .map(|effect| match effect {
+                    .map(|effect| match effect.known_or_err()? {
                         ContractTraceElement::Updated { data } => {
                             Ok(Event::ContractUpdated(smart_contracts::ContractUpdated {
                                 contract_address: data.address.into(),
                                 instigator: data.instigator.into(),
                                 amount: data.amount.micro_ccd().into(),
                                 receive_name: data.receive_name.to_string(),
-                                version: data.contract_version.into(),
+                                version: WasmVersion::try_from(data.contract_version)?.into(),
                                 input_parameter: data.message.as_ref().to_vec(),
                                 contract_logs_raw: data
                                     .events
@@ -352,7 +356,7 @@ pub fn events_from_summary(
                 .into_iter()
                 .map(|baker_event| {
                     use concordium_rust_sdk::types::BakerEvent;
-                    match baker_event {
+                    match baker_event.known_or_err()? {
                         BakerEvent::BakerAdded { data } => {
                             Ok(Event::BakerAdded(baker::BakerAdded {
                                 staked_amount: data.stake.micro_ccd().into(),
@@ -407,7 +411,7 @@ pub fn events_from_summary(
                         } => Ok(Event::BakerSetOpenStatus(baker::BakerSetOpenStatus {
                             baker_id: baker_id.id.index.try_into()?,
                             account_address: details.sender.into(),
-                            open_status: open_status.into(),
+                            open_status: open_status.known_or_err()?.into(),
                         })),
                         BakerEvent::BakerSetMetadataURL {
                             baker_id,
@@ -472,7 +476,7 @@ pub fn events_from_summary(
             AccountTransactionEffects::DelegationConfigured { data } => {
                 use concordium_rust_sdk::types::DelegationEvent;
                 data.into_iter()
-                    .map(|event| match event {
+                    .map(|event| match event.known_or_err()? {
                         DelegationEvent::DelegationStakeIncreased {
                             delegator_id,
                             new_stake,
@@ -565,7 +569,7 @@ pub fn events_from_summary(
                         DateTime::from_timestamp(effective_time.try_into()?, 0)
                     }
                     .context("Failed to parse effective time")?,
-                    payload: details.payload.into(),
+                    payload: details.payload.known_or_err()?.into(),
                 },
             )]
         }

@@ -98,53 +98,58 @@ pub async fn save_genesis_data(
         .execute(&mut *tx)
         .await?;
 
-        if let Some(AccountStakingInfo::Baker {
-            staked_amount,
-            restake_earnings,
-            baker_info: _,
-            pending_change: _,
-            pool_info,
-            is_suspended: _,
-        }) = info.account_stake
-        {
-            let stake = i64::try_from(staked_amount.micro_ccd())?;
-            let open_status = pool_info
-                .as_ref()
-                .map(|i| BakerPoolOpenStatus::from(i.open_status));
-            let metadata_url = pool_info.as_ref().map(|i| i.metadata_url.to_string());
-            let transaction_commission = pool_info.as_ref().map(|i| {
-                i64::from(u32::from(PartsPerHundredThousands::from(
-                    i.commission_rates.transaction,
-                )))
-            });
-            let baking_commission = pool_info.as_ref().map(|i| {
-                i64::from(u32::from(PartsPerHundredThousands::from(
-                    i.commission_rates.baking,
-                )))
-            });
-            let finalization_commission = pool_info.as_ref().map(|i| {
-                i64::from(u32::from(PartsPerHundredThousands::from(
-                    i.commission_rates.finalization,
-                )))
-            });
-            sqlx::query!(
-                "INSERT INTO bakers (id, staked, restake_earnings, open_status, metadata_url, \
-                 transaction_commission, baking_commission, finalization_commission, \
-                 pool_total_staked, pool_delegator_count)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
-                index,
-                stake,
+        if let Some(upward_account_staking_info) = info.account_stake {
+            if let Some(AccountStakingInfo::Baker {
+                staked_amount,
                 restake_earnings,
-                open_status as Option<BakerPoolOpenStatus>,
-                metadata_url,
-                transaction_commission,
-                baking_commission,
-                finalization_commission,
-                stake,
-                0
-            )
-            .execute(&mut *tx)
-            .await?;
+                baker_info: _,
+                pending_change: _,
+                pool_info,
+                is_suspended: _,
+            }) = upward_account_staking_info.as_known()
+            {
+                let stake = i64::try_from(staked_amount.micro_ccd())?;
+                let open_status = if let Some(baker_pool_info) = pool_info.as_ref() {
+                    let open_status = baker_pool_info.open_status.known_or_err()?;
+                    Some(BakerPoolOpenStatus::from(open_status))
+                } else {
+                    None
+                };
+                let metadata_url = pool_info.as_ref().map(|i| i.metadata_url.to_string());
+                let transaction_commission = pool_info.as_ref().map(|i| {
+                    i64::from(u32::from(PartsPerHundredThousands::from(
+                        i.commission_rates.transaction,
+                    )))
+                });
+                let baking_commission = pool_info.as_ref().map(|i| {
+                    i64::from(u32::from(PartsPerHundredThousands::from(
+                        i.commission_rates.baking,
+                    )))
+                });
+                let finalization_commission = pool_info.as_ref().map(|i| {
+                    i64::from(u32::from(PartsPerHundredThousands::from(
+                        i.commission_rates.finalization,
+                    )))
+                });
+                sqlx::query!(
+                    "INSERT INTO bakers (id, staked, restake_earnings, open_status, metadata_url, \
+                        transaction_commission, baking_commission, finalization_commission, \
+                        pool_total_staked, pool_delegator_count)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+                    index,
+                    stake,
+                    restake_earnings,
+                    open_status as Option<BakerPoolOpenStatus>,
+                    metadata_url,
+                    transaction_commission,
+                    baking_commission,
+                    finalization_commission,
+                    stake,
+                    0
+                )
+                .execute(&mut *tx)
+                .await?;
+            }
         }
     }
 
