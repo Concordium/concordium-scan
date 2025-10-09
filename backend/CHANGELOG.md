@@ -4,11 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+Database schema version: 44
+
+### Fixed
+
+- Fixed issue plt cumulative transfer amount was not normalized correctly in metrics_plt table for plt transfer events.
+
 ## [2.0.21] - 2025-09-16
 
 Database schema version: 43
 
-## Added
+### Added
 
 - Added `token_module_pause_unpause_status` column to `plt_tokens` query to get the current status of the token module (paused or unpaused).
 
