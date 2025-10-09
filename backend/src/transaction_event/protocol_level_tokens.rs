@@ -260,33 +260,10 @@ pub struct CborTokenHolder {
 
 impl From<concordium_rust_sdk::protocol_level_tokens::CborHolderAccount> for CborTokenHolder {
     fn from(holder: concordium_rust_sdk::protocol_level_tokens::CborHolderAccount) -> Self {
-        match holder {
-            concordium_rust_sdk::protocol_level_tokens::CborHolderAccount {
-                address,
-                coin_info,
-            } => CborTokenHolder {
-                account: CborHolderAccount {
-                    address: address.into(),
-                    coin_info: coin_info.map(|info| CoinInfo {
-                        coin_info_code: match info {
-                            concordium_rust_sdk::protocol_level_tokens::CoinInfo::CCD => {
-                                CONCORDIUM_SLIP_0044_CODE.to_string()
-                            }
-                        },
-                    }),
-                },
-            },
-        }
-    }
-}
-
-impl From<concordium_rust_sdk::protocol_level_tokens::CborHolderAccount> for CborHolderAccount {
-    fn from(holder: concordium_rust_sdk::protocol_level_tokens::CborHolderAccount) -> Self {
-        match holder {
-            concordium_rust_sdk::protocol_level_tokens::CborHolderAccount {
-                coin_info,
-                address,
-            } => CborHolderAccount {
+        let concordium_rust_sdk::protocol_level_tokens::CborHolderAccount { address, coin_info } =
+            holder;
+        CborTokenHolder {
+            account: CborHolderAccount {
                 address: address.into(),
                 coin_info: coin_info.map(|info| CoinInfo {
                     coin_info_code: match info {
@@ -296,6 +273,23 @@ impl From<concordium_rust_sdk::protocol_level_tokens::CborHolderAccount> for Cbo
                     },
                 }),
             },
+        }
+    }
+}
+
+impl From<concordium_rust_sdk::protocol_level_tokens::CborHolderAccount> for CborHolderAccount {
+    fn from(holder: concordium_rust_sdk::protocol_level_tokens::CborHolderAccount) -> Self {
+        let concordium_rust_sdk::protocol_level_tokens::CborHolderAccount { coin_info, address } =
+            holder;
+        CborHolderAccount {
+            address: address.into(),
+            coin_info: coin_info.map(|info| CoinInfo {
+                coin_info_code: match info {
+                    concordium_rust_sdk::protocol_level_tokens::CoinInfo::CCD => {
+                        CONCORDIUM_SLIP_0044_CODE.to_string()
+                    }
+                },
+            }),
         }
     }
 }
@@ -324,9 +318,7 @@ impl From<concordium_rust_sdk::protocol_level_tokens::TokenModuleInitializationP
             mintable: params.mintable,
             burnable: params.burnable,
             initial_supply: params.initial_supply.map(Into::into),
-            governance_account: params
-                .governance_account
-                .map(|cbor_holder_account| CborHolderAccount::from(cbor_holder_account)),
+            governance_account: params.governance_account.map(CborHolderAccount::from),
             metadata: params.metadata.map(|mdata| MetadataUrl {
                 additional: if mdata.additional.is_empty() {
                     None

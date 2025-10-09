@@ -283,7 +283,7 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
                 .await
                 .map_err(|e| {
                     OnFinalizationError::from(
-                        tonic::Status::unknown(format!("Unknown error occurred while preparing block. {}", e.to_string()))
+                        tonic::Status::unknown(format!("Unknown error occurred while preparing block. {}", e))
                     )
                 })?;
 
