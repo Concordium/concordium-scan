@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        WITH latest_metrics AS (\n                            SELECT \n                                COALESCE(cumulative_transfer_amount, 0) AS prev_transfer_amount,\n                                COALESCE(unique_account_count, 0) AS prev_unique_count\n                            FROM metrics_plt \n                            ORDER BY event_timestamp DESC \n                            LIMIT 1\n                        ),\n                        token_info AS (\n                            SELECT decimal FROM plt_tokens WHERE token_id = $3\n                        )\n                        INSERT INTO metrics_plt (\n                            event_timestamp, \n                            cumulative_transfer_amount,\n                            unique_account_count\n                        )\n                        SELECT \n                            $1,\n                            lm.prev_transfer_amount + ($2 / POWER(10::numeric, ti.decimal)),\n                            lm.prev_unique_count\n                        FROM latest_metrics lm, token_info ti\n                        ON CONFLICT (event_timestamp) DO UPDATE SET\n                            cumulative_transfer_amount = GREATEST(metrics_plt.cumulative_transfer_amount, EXCLUDED.cumulative_transfer_amount),\n                            unique_account_count = GREATEST(metrics_plt.unique_account_count, EXCLUDED.unique_account_count)\n                        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Numeric",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1e70021561b0eb5b4de5d4a3b9e27b6d341e74a749bbc0ffd31951966b8e3752"
+}

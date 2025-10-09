@@ -699,7 +699,7 @@ impl PreparedTokenUpdate {
                     // transfer event:
                     // It fetches the latest cumulative transfer amount and unique account count.
                     // Inserts a new row for the current event timestamp, incrementing the transfer
-                    // amount by the transferred value. If a row for the
+                    // amount by the normalized transferred value (divided by 10^decimal). If a row for the
                     // timestamp already exists, it updates the cumulative transfer amount using the
                     // maximum value (to ensure monotonic increase). The unique
                     // account count is preserved and not changed by this query.
@@ -712,6 +712,9 @@ impl PreparedTokenUpdate {
                             FROM metrics_plt 
                             ORDER BY event_timestamp DESC 
                             LIMIT 1
+                        ),
+                        token_info AS (
+                            SELECT decimal FROM plt_tokens WHERE token_id = $3
                         )
                         INSERT INTO metrics_plt (
                             event_timestamp, 
@@ -720,9 +723,9 @@ impl PreparedTokenUpdate {
                         )
                         SELECT 
                             $1,
-                            lm.prev_transfer_amount + $2,
+                            lm.prev_transfer_amount + ($2 / POWER(10::numeric, ti.decimal)),
                             lm.prev_unique_count
-                        FROM latest_metrics lm
+                        FROM latest_metrics lm, token_info ti
                         ON CONFLICT (event_timestamp) DO UPDATE SET
                             cumulative_transfer_amount = \
                          GREATEST(metrics_plt.cumulative_transfer_amount, \
@@ -731,7 +734,8 @@ impl PreparedTokenUpdate {
                          EXCLUDED.unique_account_count)
                         ",
                         slot_time,
-                        self.plt_amount_change
+                        self.plt_amount_change,
+                        self.token_id
                     )
                     .execute(tx.as_mut())
                     .await?;
