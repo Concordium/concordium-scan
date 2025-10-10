@@ -11,14 +11,14 @@ use anyhow::Context;
 use concordium_rust_sdk::{
     base::transactions::{BlockItem, EncodedPayload},
     common::types::Amount,
-    indexer::{OnFinalizationError, TraverseError},
+    indexer::{OnFinalizationError, OnFinalizationResult, TraverseError},
     types::{
         self as sdk_types,
         block_certificates::BlockCertificates,
         queries::{BlockInfo, ProtocolVersionInt},
         BlockItemSummary, ProtocolVersion, RewardsOverview, SpecialTransactionOutcome,
     },
-    v2::{self},
+    v2::{self, upward::UnknownDataError},
 };
 use futures::TryStreamExt as _;
 use prometheus_client::{
@@ -158,7 +158,7 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
         mut client: v2::Client,
         label: &'a Self::Context,
         fbi: v2::FinalizedBlockInfo,
-    ) -> concordium_rust_sdk::indexer::OnFinalizationResult<Self::Data> {
+    ) -> OnFinalizationResult<Self::Data> {
         self.blocks_being_preprocessed.get_or_create(label).inc();
         debug!("Preprocessing block {}:{}", fbi.height, fbi.block_hash);
         // We block together the computation, so we can update the metric in the error
@@ -218,11 +218,7 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
                 let items = upward_block_items
                     .into_iter()
                     .map(|block_item| {
-                        block_item.known_or_err()
-                            .map_err(|e| v2::RPCError::ParseError(anyhow::anyhow!(
-                                "Unknown data error while trying to parse block item: {}",
-                                e
-                            )))
+                        block_item.known_or_err()?
                     })
                     .collect::<Result<Vec<_>, _>>()?;
 
@@ -282,9 +278,11 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
             let prepared_block = PreparedBlock::prepare(&mut client, &data)
                 .await
                 .map_err(|e| {
-                    OnFinalizationError::from(
-                        tonic::Status::unknown(format!("Unknown error occurred while preparing block. {}", e))
-                    )
+                    //Rob
+                    v2::RPCError::ParseError(anyhow::anyhow!(
+                        "Failed to parse and prepare block: {}",
+                        e
+                    ))
                 })?;
 
             let node_response_time = start_fetching.elapsed();
@@ -404,10 +402,8 @@ pub async fn compute_validator_staking_information(
                 .map(|account_staking_info| account_staking_info.staked_amount())
                 .known_or_err()
                 .map_err(|e| {
-                    v2::RPCError::ParseError(anyhow::anyhow!(
-                        "Unknown data error while trying to get validator stake amount: {}",
-                        e
-                    ))
+                    // Rob
+                    OnFinalizationError::UnkownDataError(e);
                 })?;
 
             let baker_index = i64::try_from(baker_id.id.index).map_err(|e| {

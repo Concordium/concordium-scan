@@ -14,7 +14,7 @@ use crate::{
         UpdateTransactionType,
     },
 };
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
     base::{
@@ -101,17 +101,11 @@ impl PreparedBlockItem {
         let (transaction_type, account_type, credential_type, update_type) =
             match item_summary.details.as_ref().known_or_err()? {
                 BlockItemSummaryDetails::AccountTransaction(details) => {
-                    let account_transaction_type = details
+                    let transaction_type = details
                         .transaction_type()
-                        .ok_or(anyhow!("Error parsing transaction type"))?
-                        .map(AccountTransactionType::from)
-                        .known_or_err()?;
-                    (
-                        DbTransactionType::Account,
-                        Some(account_transaction_type),
-                        None,
-                        None,
-                    )
+                        .map(|tx| tx.map(AccountTransactionType::from).known_or_err())
+                        .transpose()?;
+                    (DbTransactionType::Account, transaction_type, None, None)
                 }
                 BlockItemSummaryDetails::AccountCreation(details) => {
                     let credential_type =

@@ -32,7 +32,9 @@ impl ProtocolUpdateMigration {
             return Ok(None);
         }
 
-        let migration = match ProtocolVersion::try_from(data.block_info.protocol_version.0)? {
+        let migration = match ProtocolVersion::try_from(data.block_info.protocol_version.0)
+            .context("Could not parse protocol version. Please update the concordium-rust-sdk")?
+        {
             ProtocolVersion::P4 => Some(ProtocolUpdateMigration::P4(
                 P4ProtocolUpdateMigration::prepare(node_client, data).await?,
             )),

@@ -105,7 +105,7 @@ impl PreparedEventEnvelope {
         let event =
             PreparedEvent::prepare(node_client, data, details, item, sender, statistics).await?;
         let metadata = EventMetadata {
-            protocol_version: ProtocolVersion::try_from(data.block_info.protocol_version)?,
+            protocol_version: ProtocolVersion::try_from(data.block_info.protocol_version).context("Protocol version could not be parsed. Please update the concordium-rust-sdk version.")?,
         };
         Ok(PreparedEventEnvelope { metadata, event })
     }
@@ -200,10 +200,10 @@ impl PreparedEvent {
                 )
             }
             AccountTransactionEffects::ContractUpdateIssued { effects } => {
-                let mut known_contract_trace_elements = vec![];
-                for effect in effects {
-                    known_contract_trace_elements.push(effect.clone().known_or_err()?);
-                }
+                let known_contract_trace_elements: Vec<_> = effects
+                    .into_iter()
+                    .map(|contract_trace_element| contract_trace_element.clone().known_or_err())
+                    .collect::<Result<_, _>>()?;
 
                 PreparedEvent::ContractUpdate(
                     contract_events::PreparedContractUpdates::prepare(
