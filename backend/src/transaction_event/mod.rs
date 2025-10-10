@@ -123,7 +123,7 @@ pub fn events_from_summary(
                         contract_address: data.address.into(),
                         amount: data.amount.micro_ccd().into(),
                         init_name: data.init_name.to_string(),
-                        version: WasmVersion::try_from(data.contract_version).context(format!("Tried parsing the contract version but failed. Please Update the concordium-rust-sdk version."))?.into(),
+                        version: WasmVersion::try_from(data.contract_version).context("Tried parsing the contract version but failed. Please Update the concordium-rust-sdk version.")?.into(),
                         contract_logs_raw: data
                             .events
                             .iter()

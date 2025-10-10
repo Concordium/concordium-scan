@@ -401,10 +401,7 @@ pub async fn compute_validator_staking_information(
                 .map_err(v2::RPCError::ParseError)?
                 .map(|account_staking_info| account_staking_info.staked_amount())
                 .known_or_err()
-                .map_err(|e| {
-                    // Rob
-                    OnFinalizationError::UnkownDataError(e);
-                })?;
+                .map_err(OnFinalizationError::UnkownDataError)?;
 
             let baker_index = i64::try_from(baker_id.id.index).map_err(|e| {
                 v2::RPCError::ParseError(anyhow::anyhow!("Failed to convert baker index: {}", e))
