@@ -11,9 +11,9 @@ use anyhow::Context;
 use bigdecimal::BigDecimal;
 use concordium_rust_sdk::{
     types::{
-        queries::BlockInfo, AbsoluteBlockHeight, BakerRewardPeriodInfo, BirkBaker,
-        DelegatorRewardPeriodInfo, PartsPerHundredThousands, PassiveDelegationStatus,
-        ProtocolVersion,
+        queries::{BlockInfo, ProtocolVersionInt},
+        AbsoluteBlockHeight, BakerRewardPeriodInfo, BirkBaker, DelegatorRewardPeriodInfo,
+        PartsPerHundredThousands, PassiveDelegationStatus, ProtocolVersion,
     },
     v2,
 };
@@ -56,7 +56,7 @@ impl PreparedPayDayBlock {
         // rate of baker pools is expected to be used when the indexer has fully
         // caught up to the top of the chain.
         let (baker_reward_period_infos, passive_reward_period_info) =
-            if block_info.protocol_version >= ProtocolVersion::P4 {
+            if block_info.protocol_version >= ProtocolVersionInt::from(ProtocolVersion::P4) {
                 let baker_info = node_client
                     .get_bakers_reward_period(v2::BlockIdentifier::AbsoluteHeight(block_height))
                     .await?
@@ -85,7 +85,9 @@ impl PreparedPayDayBlock {
         let baker_payday_commission_rates =
             PreparedBakerPaydayCommissionRates::prepare(baker_reward_period_infos)?;
 
-        let passive_delegation_status = if block_info.protocol_version >= ProtocolVersion::P4 {
+        let passive_delegation_status = if block_info.protocol_version
+            >= ProtocolVersionInt::from(ProtocolVersion::P4)
+        {
             Some(
                 node_client
                     .get_passive_delegation_info(v2::BlockIdentifier::AbsoluteHeight(block_height))

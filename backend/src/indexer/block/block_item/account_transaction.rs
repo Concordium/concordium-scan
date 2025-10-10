@@ -23,8 +23,9 @@ use concordium_rust_sdk::{
     base::transactions::{BlockItem, EncodedPayload},
     id::types::AccountAddress,
     types::{AccountTransactionDetails, AccountTransactionEffects, ProtocolVersion},
-    v2,
+    v2::{self},
 };
+use tracing::warn;
 
 mod baker_events;
 mod contract_events;
@@ -104,7 +105,7 @@ impl PreparedEventEnvelope {
         let event =
             PreparedEvent::prepare(node_client, data, details, item, sender, statistics).await?;
         let metadata = EventMetadata {
-            protocol_version: data.block_info.protocol_version,
+            protocol_version: ProtocolVersion::try_from(data.block_info.protocol_version).context("Protocol version could not be parsed. Please update the concordium-rust-sdk version.")?,
         };
         Ok(PreparedEventEnvelope { metadata, event })
     }
@@ -164,17 +165,23 @@ impl PreparedEvent {
         statistics: &mut Statistics,
     ) -> anyhow::Result<Self> {
         let height = data.block_info.block_height;
-        let prepared_event = match &details.effects {
+        let prepared_event = match details.effects.as_ref().known_or_err()? {
             AccountTransactionEffects::None {
                 transaction_type,
                 reject_reason,
-            } => {
-                PreparedEvent::RejectedTransaction(rejected_events::PreparedRejectedEvent::prepare(
-                    transaction_type.as_ref(),
-                    reject_reason,
-                    item,
-                )?)
-            }
+            } => match reject_reason.as_known() {
+                Some(reason) => PreparedEvent::RejectedTransaction(
+                    rejected_events::PreparedRejectedEvent::prepare(
+                        transaction_type.as_ref(),
+                        reason,
+                        item,
+                    )?,
+                ),
+                None => {
+                    warn!("Reject reason was not known, you may need to update the Rust SDK - for now no operation will be returned as a fail safe");
+                    PreparedEvent::NoOperation
+                }
+            },
             AccountTransactionEffects::ModuleDeployed { module_ref } => {
                 PreparedEvent::ModuleDeployed(
                     module_events::PreparedModuleDeployed::prepare(node_client, *module_ref)
@@ -193,9 +200,18 @@ impl PreparedEvent {
                 )
             }
             AccountTransactionEffects::ContractUpdateIssued { effects } => {
+                let known_contract_trace_elements: Vec<_> = effects
+                    .into_iter()
+                    .map(|contract_trace_element| contract_trace_element.clone().known_or_err())
+                    .collect::<Result<_, _>>()?;
+
                 PreparedEvent::ContractUpdate(
-                    contract_events::PreparedContractUpdates::prepare(node_client, data, effects)
-                        .await?,
+                    contract_events::PreparedContractUpdates::prepare(
+                        node_client,
+                        data,
+                        &known_contract_trace_elements,
+                    )
+                    .await?,
                 )
             }
             AccountTransactionEffects::AccountTransfer { amount, to }
@@ -264,7 +280,12 @@ impl PreparedEvent {
                 PreparedEvent::BakerEvents(baker_events::PreparedBakerEvents {
                     events: events
                         .iter()
-                        .map(|event| baker_events::PreparedBakerEvent::prepare(event, statistics))
+                        .map(|event| {
+                            baker_events::PreparedBakerEvent::prepare(
+                                event.as_ref().known_or_err()?,
+                                statistics,
+                            )
+                        })
                         .collect::<anyhow::Result<Vec<_>>>()?,
                 })
             }
@@ -319,7 +340,8 @@ impl PreparedEvent {
                             .iter()
                             .map(|event| {
                                 delegation_events::PreparedAccountDelegationEvent::prepare(
-                                    event, statistics,
+                                    event.as_ref().known_or_err()?,
+                                    statistics,
                                 )
                             })
                             .collect::<anyhow::Result<Vec<_>>>()?,

@@ -47,10 +47,11 @@ pub async fn run(
             .await?
             .response;
         while let Some(summary) = block_summary.next().await.transpose()? {
-            let BlockItemSummaryDetails::Update(_) = &summary.details else {
+            let BlockItemSummaryDetails::Update(_) = &summary.details.as_ref().known_or_err()?
+            else {
                 continue;
             };
-            let events = events_from_summary(summary.details, block_slot_time)?;
+            let events = events_from_summary(summary.details.known_or_err()?, block_slot_time)?;
             let json = serde_json::to_value(events)?;
             let hash = summary.hash.to_string();
             sqlx::query(

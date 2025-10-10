@@ -8,7 +8,7 @@ use super::SchemaVersion;
 use crate::transaction_event::baker::BakerPoolOpenStatus;
 use anyhow::Context;
 use concordium_rust_sdk::{
-    types::{PartsPerHundredThousands, ProtocolVersion},
+    types::{queries::ProtocolVersionInt, PartsPerHundredThousands, ProtocolVersion},
     v2::{self, BlockIdentifier},
 };
 use futures::TryStreamExt;
@@ -38,7 +38,7 @@ pub async fn run(
 
     {
         let latest_block_info = client.get_block_info(latest_block).await?.response;
-        if latest_block_info.protocol_version < ProtocolVersion::P4 {
+        if latest_block_info.protocol_version < ProtocolVersionInt::from(ProtocolVersion::P4) {
             // No data to migrate at this point.
             // The indexer will handle the data migration when reaching P4.
             return Ok(NEXT_SCHEMA_VERSION);
@@ -74,7 +74,7 @@ pub async fn run(
                 return Ok(None);
             };
             let pool = status.pool_info;
-            let status = BakerPoolOpenStatus::from(pool.open_status);
+            let status = BakerPoolOpenStatus::from(pool.open_status.known_or_err()?);
             let metadata_url = String::from(pool.metadata_url);
             let transaction_rate = i64::from(u32::from(PartsPerHundredThousands::from(
                 pool.commission_rates.transaction,

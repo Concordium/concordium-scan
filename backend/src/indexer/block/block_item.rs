@@ -25,7 +25,7 @@ use concordium_rust_sdk::{
         AccountTransactionDetails, AccountTransactionEffects, BlockItemSummary,
         BlockItemSummaryDetails,
     },
-    v2,
+    v2::{self, Upward},
 };
 
 mod account_creation;
@@ -82,7 +82,9 @@ impl PreparedBlockItem {
     ) -> anyhow::Result<Self> {
         let block_height = i64::try_from(data.finalized_block_info.height.height)?;
         let block_item_hash = item_summary.hash.to_string();
-        let ccd_cost = if let BlockItemSummaryDetails::AccountCreation(_) = item_summary.details {
+        let ccd_cost = if let BlockItemSummaryDetails::AccountCreation(_) =
+            item_summary.details.as_ref().known_or_err()?
+        {
             // Account creation does not involve any transaction fees, but still have a
             // non-zero energy_cost.
             0
@@ -97,16 +99,13 @@ impl PreparedBlockItem {
         let energy_cost = i64::try_from(item_summary.energy_cost.energy)?;
         let sender = item_summary.sender_account().map(|a| a.to_string());
         let (transaction_type, account_type, credential_type, update_type) =
-            match &item_summary.details {
+            match item_summary.details.as_ref().known_or_err()? {
                 BlockItemSummaryDetails::AccountTransaction(details) => {
-                    let account_transaction_type =
-                        details.transaction_type().map(AccountTransactionType::from);
-                    (
-                        DbTransactionType::Account,
-                        account_transaction_type,
-                        None,
-                        None,
-                    )
+                    let transaction_type = details
+                        .transaction_type()
+                        .map(|tx| tx.map(AccountTransactionType::from).known_or_err())
+                        .transpose()?;
+                    (DbTransactionType::Account, transaction_type, None, None)
                 }
                 BlockItemSummaryDetails::AccountCreation(details) => {
                     let credential_type =
@@ -119,7 +118,8 @@ impl PreparedBlockItem {
                     )
                 }
                 BlockItemSummaryDetails::Update(details) => {
-                    let update_type = UpdateTransactionType::from(details.update_type());
+                    let update_type =
+                        UpdateTransactionType::from(details.update_type().known_or_err()?);
                     (DbTransactionType::Update, None, None, Some(update_type))
                 }
                 BlockItemSummaryDetails::TokenCreationDetails(_token_creation_details) => (
@@ -130,21 +130,23 @@ impl PreparedBlockItem {
                 ),
             };
 
-        let success = item_summary.is_success();
+        let success = item_summary.is_success().known_or_err()?;
         let (events, reject) = if success {
             let events = serde_json::to_value(transaction_event::events_from_summary(
-                item_summary.details.clone(),
+                item_summary.details.as_ref().known_or_err()?.clone(),
                 data.block_info.block_slot_time,
             )?)?;
             (Some(events), None)
         } else {
             let reject =
                 if let BlockItemSummaryDetails::AccountTransaction(AccountTransactionDetails {
-                    effects: AccountTransactionEffects::None { reject_reason, .. },
+                    effects: Upward::Known(AccountTransactionEffects::None { reject_reason, .. }),
                     ..
-                }) = &item_summary.details
+                }) = item_summary.details.as_ref().known_or_err()?
                 {
-                    PreparedTransactionRejectReason::prepare(reject_reason.clone())?
+                    PreparedTransactionRejectReason::prepare(
+                        reject_reason.as_ref().known_or_err()?.clone(),
+                    )?
                 } else {
                     anyhow::bail!("Invariant violation: Failed transaction without a reject reason")
                 };
@@ -152,6 +154,7 @@ impl PreparedBlockItem {
         };
         let affected_accounts = item_summary
             .affected_addresses()
+            .known_or_err()?
             .iter()
             .map(|acc| acc.get_canonical_address().0.to_vec())
             .collect::<HashSet<Vec<u8>>>()
@@ -296,7 +299,7 @@ impl PreparedBlockItemEvent {
         item: &BlockItem<EncodedPayload>,
         statistics: &mut Statistics,
     ) -> anyhow::Result<Self> {
-        match &item_summary.details {
+        match &item_summary.details.as_ref().known_or_err()? {
             BlockItemSummaryDetails::AccountCreation(details) => {
                 Ok(PreparedBlockItemEvent::AccountCreation(
                     account_creation::PreparedAccountCreation::prepare(details)?,

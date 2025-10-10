@@ -90,7 +90,7 @@ pub async fn run(
         let mut last_pool_owner: Option<Option<i64>> = None;
 
         for event in &special_items {
-            match event {
+            match event.as_ref().known_or_err()? {
                 SpecialTransactionOutcome::PaydayPoolReward {
                     pool_owner,
                     transaction_fees,

@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Updated Rust SDK to use the latest forward compatible changes. The indexer will stop/crash when an Unknown variant is encountered, which will require updating the `concordium-rust-sdk` dependency.
+
 ## [2.0.21] - 2025-09-16
 
 Database schema version: 43

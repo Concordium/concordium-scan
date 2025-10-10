@@ -46,7 +46,9 @@ pub async fn run(
         let staked = account_info
             .account_stake
             .context("Expected account to be baker")?
+            .known_or_err()?
             .staked_amount();
+
         baker_ids.push(baker_id);
         baker_stakes.push(i64::try_from(staked.micro_ccd())?);
 
