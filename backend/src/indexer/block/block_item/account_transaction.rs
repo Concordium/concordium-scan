@@ -165,17 +165,15 @@ impl PreparedEvent {
     ) -> anyhow::Result<Self> {
         let height = data.block_info.block_height;
         let prepared_event = match details.effects.as_ref().known_or_err()? {
-            AccountTransactionEffects::None { 
-                transaction_type, 
-                reject_reason 
+            AccountTransactionEffects::None {
+                transaction_type,
+                reject_reason,
             } => {
-                PreparedEvent::RejectedTransaction(
-                    rejected_events::PreparedRejectedEvent::prepare(
-                        transaction_type.as_ref(), 
-                        reject_reason.as_ref().known_or_err()?, 
-                        item
-                    )?
-                )
+                PreparedEvent::RejectedTransaction(rejected_events::PreparedRejectedEvent::prepare(
+                    transaction_type.as_ref(),
+                    reject_reason.as_ref().known_or_err()?,
+                    item,
+                )?)
             }
             AccountTransactionEffects::ModuleDeployed { module_ref } => {
                 PreparedEvent::ModuleDeployed(

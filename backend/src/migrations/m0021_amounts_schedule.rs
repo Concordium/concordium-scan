@@ -54,7 +54,10 @@ pub async fn run(
             };
 
             if !matches!(
-                update.transaction_type().as_ref().and_then(|tt| tt.as_known()),
+                update
+                    .transaction_type()
+                    .as_ref()
+                    .and_then(|tt| tt.as_known()),
                 Some(
                     TransactionType::TransferWithSchedule
                         | TransactionType::TransferWithScheduleAndMemo

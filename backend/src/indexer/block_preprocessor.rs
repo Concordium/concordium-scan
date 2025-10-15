@@ -18,7 +18,7 @@ use concordium_rust_sdk::{
         queries::{BlockInfo, ProtocolVersionInt},
         BlockItemSummary, ProtocolVersion, RewardsOverview, SpecialTransactionOutcome,
     },
-    v2::{self, upward::UnknownDataError},
+    v2::{self},
 };
 use futures::TryStreamExt as _;
 use prometheus_client::{
@@ -163,7 +163,7 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
         debug!("Preprocessing block {}:{}", fbi.height, fbi.block_hash);
         // We block together the computation, so we can update the metric in the error
         // case, before returning early.
-        let result = async move {
+        let result: Result<PreparedBlock, OnFinalizationError> = async move {
             let mut client1 = client.clone();
             let mut client2 = client.clone();
             let mut client3 = client.clone();
@@ -172,10 +172,13 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
             let mut client6 = client.clone();
             let get_block_info = async move {
                 let block_info = client1.get_block_info(fbi.height).await?.response;
+
                 // Fetching the block certificates prior to P6 results in a InvalidArgument gRPC
                 // error, so we produce the empty type of certificates instead.
                 // The information is only used when preparing blocks for P8 and up.
-                let certificates = if block_info.protocol_version < ProtocolVersionInt::from(ProtocolVersion::P8) {
+                let certificates = if block_info.protocol_version
+                    < ProtocolVersionInt::from(ProtocolVersion::P8)
+                {
                     BlockCertificates {
                         quorum_certificate: None,
                         timeout_certificate: None,
@@ -200,11 +203,13 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
 
             let get_tokenomics_info = async move {
                 let tokenomics_info = client3.get_tokenomics_info(fbi.height).await?.response;
+
                 let computed_validator_staking_details = compute_validator_staking_information(
                     &mut client3,
                     v2::BlockIdentifier::AbsoluteHeight(fbi.height),
                 )
                 .await?;
+
                 Ok((tokenomics_info, computed_validator_staking_details))
             };
 
@@ -215,12 +220,11 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
                     .response
                     .try_collect::<Vec<_>>()
                     .await?;
+
                 let items = upward_block_items
                     .into_iter()
-                    .map(|block_item| {
-                        block_item.known_or_err()?
-                    })
-                    .collect::<Result<Vec<_>, _>>()?;
+                    .flat_map(|a| a.known_or_err())
+                    .collect();
 
                 Ok(items)
             };
@@ -235,14 +239,8 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
 
                 let items = upward_special_transaction_outcomes
                     .into_iter()
-                    .map(|special_transaction_outcome| {
-                        special_transaction_outcome.known_or_err()
-                            .map_err(|e| v2::RPCError::ParseError(anyhow::anyhow!(
-                                "Unknown data error while trying to parse special transaction outcomes: {}",
-                                e
-                            )))
-                    })
-                    .collect::<Result<Vec<_>, _>>()?;
+                    .flat_map(|a| a.known_or_err())
+                    .collect();
 
                 Ok(items)
             };
@@ -277,13 +275,7 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
 
             let prepared_block = PreparedBlock::prepare(&mut client, &data)
                 .await
-                .map_err(|e| {
-                    //Rob
-                    v2::RPCError::ParseError(anyhow::anyhow!(
-                        "Failed to parse and prepare block: {}",
-                        e
-                    ))
-                })?;
+                .map_err(|e| OnFinalizationError::OtherError(e))?;
 
             let node_response_time = start_fetching.elapsed();
             self.node_response_time
@@ -329,7 +321,7 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
 pub async fn compute_validator_staking_information(
     client: &mut v2::Client,
     block_height: v2::BlockIdentifier,
-) -> v2::QueryResult<(Amount, ValidatorStakingInformation)> {
+) -> OnFinalizationResult<(Amount, ValidatorStakingInformation)> {
     let mut total_staked = Amount::zero();
     let mut bakers = client.get_baker_list(block_height).await?.response;
 
@@ -365,12 +357,8 @@ pub async fn compute_validator_staking_information(
                     baker_pool_info.response.all_pool_total_capital
                 );
 
-                let baker_index = i64::try_from(baker_id.id.index).map_err(|e| {
-                    v2::RPCError::ParseError(anyhow::anyhow!(
-                        "Failed to convert baker index: {}",
-                        e
-                    ))
-                })?;
+                let baker_index = i64::try_from(baker_id.id.index)
+                    .map_err(|e| OnFinalizationError::OtherError(e.into()))?;
 
                 // push the information for this baker into their corresponding vectors
                 validator_ids.push(baker_index);
@@ -397,15 +385,12 @@ pub async fn compute_validator_staking_information(
 
             let validator_stake = account_info
                 .account_stake
-                .context("Expected baker to have account stake information")
-                .map_err(v2::RPCError::ParseError)?
-                .map(|account_staking_info| account_staking_info.staked_amount())
-                .known_or_err()
-                .map_err(OnFinalizationError::UnkownDataError)?;
+                .context("Expected staking information")
+                .map(|account_staking_info| account_staking_info.known_or_err())?
+                .map(|a| a.staked_amount())?;
 
-            let baker_index = i64::try_from(baker_id.id.index).map_err(|e| {
-                v2::RPCError::ParseError(anyhow::anyhow!("Failed to convert baker index: {}", e))
-            })?;
+            let baker_index = i64::try_from(baker_id.id.index)
+                .map_err(|e| OnFinalizationError::OtherError(e.into()))?;
 
             validator_ids.push(baker_index);
             validator_staked_amounts.push(validator_stake.micro_ccd as i64);

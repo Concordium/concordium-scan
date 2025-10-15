@@ -886,10 +886,12 @@ impl PreparedTransactionRejectReason {
                 TransactionRejectReason::TokenUpdateTransactionFailed(TokenModuleReject {
                     token_id: reject_reason.token_id.clone().into(),
                     reason_type: reject_reason.clone().reason_type.into(),
-                    details: serde_json::to_value::<TokenModuleRejectReasonType>(details.known_or_err()?.into())
-                        .context(
-                            "Failed to serialize token module transaction failure details to JSON",
-                        )?,
+                    details: serde_json::to_value::<TokenModuleRejectReasonType>(
+                        details.known_or_err()?.into(),
+                    )
+                    .context(
+                        "Failed to serialize token module transaction failure details to JSON",
+                    )?,
                 })
             }
         };
