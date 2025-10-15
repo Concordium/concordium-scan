@@ -108,9 +108,6 @@ impl From<concordium_rust_sdk::protocol_level_tokens::TokenModuleRejectReasonTyp
             Reason::MintWouldOverflow(reason) => {
                 TokenModuleRejectReasonType::MintWouldOverflow(reason.into())
             }
-            Reason::Unknown => TokenModuleRejectReasonType::Unknown(UnknownRejectReason {
-                message: "Unknown reject reason".into(),
-            }),
         }
     }
 }

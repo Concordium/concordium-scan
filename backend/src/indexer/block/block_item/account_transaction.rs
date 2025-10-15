@@ -25,7 +25,6 @@ use concordium_rust_sdk::{
     types::{AccountTransactionDetails, AccountTransactionEffects, ProtocolVersion},
     v2::{self},
 };
-use tracing::warn;
 
 mod baker_events;
 mod contract_events;
@@ -166,22 +165,18 @@ impl PreparedEvent {
     ) -> anyhow::Result<Self> {
         let height = data.block_info.block_height;
         let prepared_event = match details.effects.as_ref().known_or_err()? {
-            AccountTransactionEffects::None {
-                transaction_type,
-                reject_reason,
-            } => match reject_reason.as_known() {
-                Some(reason) => PreparedEvent::RejectedTransaction(
+            AccountTransactionEffects::None { 
+                transaction_type, 
+                reject_reason 
+            } => {
+                PreparedEvent::RejectedTransaction(
                     rejected_events::PreparedRejectedEvent::prepare(
-                        transaction_type.as_ref(),
-                        reason,
-                        item,
-                    )?,
-                ),
-                None => {
-                    warn!("Reject reason was not known, you may need to update the Rust SDK - for now no operation will be returned as a fail safe");
-                    PreparedEvent::NoOperation
-                }
-            },
+                        transaction_type.as_ref(), 
+                        reject_reason.as_ref().known_or_err()?, 
+                        item
+                    )?
+                )
+            }
             AccountTransactionEffects::ModuleDeployed { module_ref } => {
                 PreparedEvent::ModuleDeployed(
                     module_events::PreparedModuleDeployed::prepare(node_client, *module_ref)

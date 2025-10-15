@@ -53,16 +53,14 @@ pub async fn run(
                 continue;
             };
 
-            if let Some(transaction_type) = &update.transaction_type() {
-                if !matches!(
-                    transaction_type.as_known(),
-                    Some(
-                        TransactionType::TransferWithSchedule
-                            | TransactionType::TransferWithScheduleAndMemo
-                    )
-                ) {
-                    continue;
-                }
+            if !matches!(
+                update.transaction_type().as_ref().and_then(|tt| tt.as_known()),
+                Some(
+                    TransactionType::TransferWithSchedule
+                        | TransactionType::TransferWithScheduleAndMemo
+                )
+            ) {
+                continue;
             }
 
             if !matches!(
