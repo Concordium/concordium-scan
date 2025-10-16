@@ -359,8 +359,12 @@ pub async fn compute_validator_staking_information(
                     baker_pool_info.response.all_pool_total_capital
                 );
 
-                let baker_index = i64::try_from(baker_id.id.index)
-                    .map_err(|e| OnFinalizationError::OtherError(e.into()))?;
+                let baker_index = i64::try_from(baker_id.id.index).map_err(|e| {
+                    OnFinalizationError::OtherError(anyhow::anyhow!(
+                        "Failed to convert baker index: {}",
+                        e
+                    ))
+                })?;
 
                 // push the information for this baker into their corresponding vectors
                 validator_ids.push(baker_index);
@@ -391,8 +395,12 @@ pub async fn compute_validator_staking_information(
                 .map(|account_staking_info| account_staking_info.known_or_err())?
                 .map(|a| a.staked_amount())?;
 
-            let baker_index = i64::try_from(baker_id.id.index)
-                .map_err(|e| OnFinalizationError::OtherError(e.into()))?;
+            let baker_index = i64::try_from(baker_id.id.index).map_err(|e| {
+                OnFinalizationError::OtherError(anyhow::anyhow!(
+                    "Failed to convert baker index: {}",
+                    e
+                ))
+            })?;
 
             validator_ids.push(baker_index);
             validator_staked_amounts.push(validator_stake.micro_ccd as i64);
