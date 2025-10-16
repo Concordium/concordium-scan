@@ -10,7 +10,9 @@ use crate::{
 };
 use anyhow::Context;
 use concordium_rust_sdk::{
-    types::{self as sdk_types, PartsPerHundredThousands, ProtocolVersion},
+    types::{
+        self as sdk_types, queries::ProtocolVersionInt, PartsPerHundredThousands, ProtocolVersion,
+    },
     v2,
 };
 use futures::TryStreamExt;
@@ -32,13 +34,13 @@ impl ProtocolUpdateMigration {
             return Ok(None);
         }
 
-        let migration = match ProtocolVersion::try_from(data.block_info.protocol_version.0)
-            .context("Could not parse protocol version. Please update the concordium-rust-sdk")?
-        {
-            ProtocolVersion::P4 => Some(ProtocolUpdateMigration::P4(
-                P4ProtocolUpdateMigration::prepare(node_client, data).await?,
+        const P4_VERSION_INT: u64 = ProtocolVersionInt::from_enum(ProtocolVersion::P4).0;
+
+        let migration = match data.block_info.protocol_version.0 {
+            P4_VERSION_INT => Some(ProtocolUpdateMigration::P4(
+                P4ProtocolUpdateMigration::prepare(node_client, data).await?
             )),
-            _ => None,
+            _ => None
         };
 
         Ok(migration)
