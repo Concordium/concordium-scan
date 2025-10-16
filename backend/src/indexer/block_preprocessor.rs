@@ -277,9 +277,7 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
                 validator_staking_information,
             };
 
-            let prepared_block = PreparedBlock::prepare(&mut client, &data)
-                .await
-                .map_err(|e| OnFinalizationError::OtherError(e))?;
+            let prepared_block = PreparedBlock::prepare(&mut client, &data).await?;
 
             let node_response_time = start_fetching.elapsed();
             self.node_response_time

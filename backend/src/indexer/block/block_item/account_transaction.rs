@@ -194,7 +194,7 @@ impl PreparedEvent {
             }
             AccountTransactionEffects::ContractUpdateIssued { effects } => {
                 let known_contract_trace_elements: Vec<_> = effects
-                    .into_iter()
+                    .iter()
                     .map(|contract_trace_element| contract_trace_element.clone().known_or_err())
                     .collect::<Result<_, _>>()?;
 
