@@ -99,14 +99,14 @@ pub async fn save_genesis_data(
         .await?;
 
         if let Some(upward_account_staking_info) = info.account_stake {
-            if let Some(AccountStakingInfo::Baker {
+            if let AccountStakingInfo::Baker {
                 staked_amount,
                 restake_earnings,
                 baker_info: _,
                 pending_change: _,
                 pool_info,
                 is_suspended: _,
-            }) = Some(upward_account_staking_info.known_or_err()?)
+            } = upward_account_staking_info.known_or_err()?
             {
                 let stake = i64::try_from(staked_amount.micro_ccd())?;
                 let open_status = if let Some(baker_pool_info) = pool_info.as_ref() {
