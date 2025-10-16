@@ -20,6 +20,7 @@ use concordium_rust_sdk::{
     },
     v2::{self},
 };
+use futures::TryFutureExt;
 use futures::TryStreamExt as _;
 use prometheus_client::{
     metrics::{counter::Counter, family::Family, gauge::Gauge, histogram},
@@ -188,7 +189,7 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
                     let response = client1.get_block_certificates(fbi.height).await?;
                     response.response
                 };
-                Ok((block_info, certificates))
+                Ok::<_, OnFinalizationError>((block_info, certificates))
             };
 
             let get_events = async move {
@@ -244,6 +245,7 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
 
                 Ok(items)
             };
+
             let start_fetching = Instant::now();
             let (
                 (block_info, certificates),
@@ -254,7 +256,9 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
                 special_events,
             ) = try_join!(
                 get_block_info,
-                client6.get_block_chain_parameters(fbi.height),
+                client6
+                    .get_block_chain_parameters(fbi.height)
+                    .map_err(OnFinalizationError::from),
                 get_tokenomics_info,
                 get_events,
                 get_items,
