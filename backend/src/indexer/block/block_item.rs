@@ -91,6 +91,7 @@ impl PreparedBlockItem {
         } else {
             i64::try_from(
                 data.chain_parameters
+                    .energy_rate()?
                     .ccd_cost(item_summary.energy_cost)
                     .micro_ccd,
             )?
