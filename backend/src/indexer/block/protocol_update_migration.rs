@@ -10,7 +10,9 @@ use crate::{
 };
 use anyhow::Context;
 use concordium_rust_sdk::{
-    types::{self as sdk_types, PartsPerHundredThousands},
+    types::{
+        self as sdk_types, queries::ProtocolVersionInt, PartsPerHundredThousands, ProtocolVersion,
+    },
     v2,
 };
 use futures::TryStreamExt;
@@ -31,12 +33,16 @@ impl ProtocolUpdateMigration {
             // Not the first block in a new protocol version (era).
             return Ok(None);
         }
-        let migration = match data.block_info.protocol_version {
-            sdk_types::ProtocolVersion::P4 => Some(ProtocolUpdateMigration::P4(
+
+        const P4_VERSION_INT: u64 = ProtocolVersionInt::from_enum(ProtocolVersion::P4).0;
+
+        let migration = match data.block_info.protocol_version.0 {
+            P4_VERSION_INT => Some(ProtocolUpdateMigration::P4(
                 P4ProtocolUpdateMigration::prepare(node_client, data).await?,
             )),
             _ => None,
         };
+
         Ok(migration)
     }
 
@@ -94,7 +100,7 @@ impl P4ProtocolUpdateMigration {
                         .context("Unexpected missing pool info during P4 migration")?;
                     let pool = status.pool_info;
                     let validator_id: i64 = baker_id.id.index.try_into()?;
-                    let status = BakerPoolOpenStatus::from(pool.open_status);
+                    let status = BakerPoolOpenStatus::from(pool.open_status.known_or_err()?);
                     let metadata_url = String::from(pool.metadata_url);
                     let transaction_rate = i64::from(u32::from(PartsPerHundredThousands::from(
                         pool.commission_rates.transaction,

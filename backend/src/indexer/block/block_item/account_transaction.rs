@@ -22,8 +22,8 @@ use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
     base::transactions::{BlockItem, EncodedPayload},
     id::types::AccountAddress,
-    types::{AccountTransactionDetails, AccountTransactionEffects, ProtocolVersion},
-    v2,
+    types::{queries::ProtocolVersionInt, AccountTransactionDetails, AccountTransactionEffects},
+    v2::{self},
 };
 
 mod baker_events;
@@ -125,7 +125,7 @@ impl PreparedEventEnvelope {
 /// individual events.
 #[derive(Debug)]
 struct EventMetadata {
-    protocol_version: ProtocolVersion,
+    protocol_version: ProtocolVersionInt,
 }
 
 #[derive(Debug)]
@@ -164,14 +164,14 @@ impl PreparedEvent {
         statistics: &mut Statistics,
     ) -> anyhow::Result<Self> {
         let height = data.block_info.block_height;
-        let prepared_event = match &details.effects {
+        let prepared_event = match details.effects.as_ref().known_or_err()? {
             AccountTransactionEffects::None {
                 transaction_type,
                 reject_reason,
             } => {
                 PreparedEvent::RejectedTransaction(rejected_events::PreparedRejectedEvent::prepare(
                     transaction_type.as_ref(),
-                    reject_reason,
+                    reject_reason.as_ref().known_or_err()?,
                     item,
                 )?)
             }
@@ -193,9 +193,18 @@ impl PreparedEvent {
                 )
             }
             AccountTransactionEffects::ContractUpdateIssued { effects } => {
+                let known_contract_trace_elements: Vec<_> = effects
+                    .iter()
+                    .map(|contract_trace_element| contract_trace_element.clone().known_or_err())
+                    .collect::<Result<_, _>>()?;
+
                 PreparedEvent::ContractUpdate(
-                    contract_events::PreparedContractUpdates::prepare(node_client, data, effects)
-                        .await?,
+                    contract_events::PreparedContractUpdates::prepare(
+                        node_client,
+                        data,
+                        &known_contract_trace_elements,
+                    )
+                    .await?,
                 )
             }
             AccountTransactionEffects::AccountTransfer { amount, to }
@@ -264,7 +273,12 @@ impl PreparedEvent {
                 PreparedEvent::BakerEvents(baker_events::PreparedBakerEvents {
                     events: events
                         .iter()
-                        .map(|event| baker_events::PreparedBakerEvent::prepare(event, statistics))
+                        .map(|event| {
+                            baker_events::PreparedBakerEvent::prepare(
+                                event.as_ref().known_or_err()?,
+                                statistics,
+                            )
+                        })
                         .collect::<anyhow::Result<Vec<_>>>()?,
                 })
             }
@@ -319,7 +333,8 @@ impl PreparedEvent {
                             .iter()
                             .map(|event| {
                                 delegation_events::PreparedAccountDelegationEvent::prepare(
-                                    event, statistics,
+                                    event.as_ref().known_or_err()?,
+                                    statistics,
                                 )
                             })
                             .collect::<anyhow::Result<Vec<_>>>()?,
@@ -342,7 +357,7 @@ impl PreparedEvent {
         &self,
         tx: &mut sqlx::PgTransaction<'_>,
         tx_idx: i64,
-        protocol_version: ProtocolVersion,
+        protocol_version: ProtocolVersionInt,
         slot_time: DateTime<Utc>,
     ) -> anyhow::Result<()> {
         match self {
