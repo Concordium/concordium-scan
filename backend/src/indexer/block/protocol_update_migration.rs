@@ -38,9 +38,9 @@ impl ProtocolUpdateMigration {
 
         let migration = match data.block_info.protocol_version.0 {
             P4_VERSION_INT => Some(ProtocolUpdateMigration::P4(
-                P4ProtocolUpdateMigration::prepare(node_client, data).await?
+                P4ProtocolUpdateMigration::prepare(node_client, data).await?,
             )),
-            _ => None
+            _ => None,
         };
 
         Ok(migration)
