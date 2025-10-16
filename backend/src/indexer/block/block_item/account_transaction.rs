@@ -22,7 +22,7 @@ use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
     base::transactions::{BlockItem, EncodedPayload},
     id::types::AccountAddress,
-    types::{AccountTransactionDetails, AccountTransactionEffects, ProtocolVersion},
+    types::{queries::ProtocolVersionInt, AccountTransactionDetails, AccountTransactionEffects},
     v2::{self},
 };
 
@@ -104,7 +104,7 @@ impl PreparedEventEnvelope {
         let event =
             PreparedEvent::prepare(node_client, data, details, item, sender, statistics).await?;
         let metadata = EventMetadata {
-            protocol_version: ProtocolVersion::try_from(data.block_info.protocol_version).context("Protocol version could not be parsed. Please update the concordium-rust-sdk version.")?,
+            protocol_version: data.block_info.protocol_version,
         };
         Ok(PreparedEventEnvelope { metadata, event })
     }
@@ -125,7 +125,7 @@ impl PreparedEventEnvelope {
 /// individual events.
 #[derive(Debug)]
 struct EventMetadata {
-    protocol_version: ProtocolVersion,
+    protocol_version: ProtocolVersionInt,
 }
 
 #[derive(Debug)]
@@ -357,7 +357,7 @@ impl PreparedEvent {
         &self,
         tx: &mut sqlx::PgTransaction<'_>,
         tx_idx: i64,
-        protocol_version: ProtocolVersion,
+        protocol_version: ProtocolVersionInt,
         slot_time: DateTime<Utc>,
     ) -> anyhow::Result<()> {
         match self {

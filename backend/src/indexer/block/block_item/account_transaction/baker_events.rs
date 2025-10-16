@@ -10,7 +10,9 @@ use crate::{
     transaction_event::baker::BakerPoolOpenStatus,
 };
 use anyhow::Context;
-use concordium_rust_sdk::types::{self as sdk_types, PartsPerHundredThousands, ProtocolVersion};
+use concordium_rust_sdk::types::{
+    self as sdk_types, queries::ProtocolVersionInt, PartsPerHundredThousands, ProtocolVersion,
+};
 use tracing::debug;
 
 /// Represents the event of a baker being removed, resulting in the delegators
@@ -70,7 +72,7 @@ impl PreparedBakerEvents {
         &self,
         tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
-        protocol_version: ProtocolVersion,
+        protocol_version: ProtocolVersionInt,
     ) -> anyhow::Result<()> {
         for event in &self.events {
             event
@@ -248,13 +250,14 @@ impl PreparedBakerEvent {
         &self,
         tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
-        protocol_version: ProtocolVersion,
+        protocol_version: ProtocolVersionInt,
     ) -> anyhow::Result<()> {
-        let bakers_expected_affected_range = if protocol_version > ProtocolVersion::P6 {
-            1..=1
-        } else {
-            0..=1
-        };
+        let bakers_expected_affected_range =
+            if protocol_version > ProtocolVersionInt::from(ProtocolVersion::P6) {
+                1..=1
+            } else {
+                0..=1
+            };
         match self {
             PreparedBakerEvent::Add {
                 baker_id,
