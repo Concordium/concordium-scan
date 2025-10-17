@@ -5,7 +5,7 @@
 use super::baker_events::BakerRemoved;
 use crate::indexer::{ensure_affected_rows::EnsureAffectedRows, statistics::Statistics};
 use anyhow::Context;
-use concordium_rust_sdk::types::ProtocolVersion;
+use concordium_rust_sdk::types::{queries::ProtocolVersionInt, ProtocolVersion};
 
 /// Represents the events from an account configuring a delegator.
 #[derive(Debug)]
@@ -19,7 +19,7 @@ impl PreparedAccountDelegationEvents {
         &self,
         tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
-        protocol_version: ProtocolVersion,
+        protocol_version: ProtocolVersionInt,
     ) -> anyhow::Result<()> {
         for event in &self.events {
             event.save(tx, transaction_index, protocol_version).await?;
@@ -120,13 +120,14 @@ impl PreparedAccountDelegationEvent {
         &self,
         tx: &mut sqlx::PgTransaction<'_>,
         transaction_index: i64,
-        protocol_version: ProtocolVersion,
+        protocol_version: ProtocolVersionInt,
     ) -> anyhow::Result<()> {
-        let bakers_expected_affected_range = if protocol_version > ProtocolVersion::P6 {
-            1..=1
-        } else {
-            0..=1
-        };
+        let bakers_expected_affected_range =
+            if protocol_version > ProtocolVersionInt::from(ProtocolVersion::P6) {
+                1..=1
+            } else {
+                0..=1
+            };
         match self {
             PreparedAccountDelegationEvent::StakeIncrease { account_id, staked }
             | PreparedAccountDelegationEvent::StakeDecrease { account_id, staked } => {
