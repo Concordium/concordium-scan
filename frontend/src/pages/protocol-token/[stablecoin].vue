@@ -154,7 +154,7 @@
 							<div class="flex items-center gap-2">
 								<p class="text-xl text-theme-faded">Paused</p>
 								<Tooltip
-									text="Whether token is currently paused or unpaused"
+									text="This indicates whether the PLT is paused or unpaused. The pause operation sets the token into a global pause state in which no balance-changing operations can be carried out. "
 									position="bottom"
 									x="25"
 									y="25"
