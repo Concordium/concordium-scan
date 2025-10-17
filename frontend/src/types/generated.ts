@@ -1553,11 +1553,11 @@ export type InitializationParameters = {
   allowList?: Maybe<Scalars['Boolean']>;
   burnable?: Maybe<Scalars['Boolean']>;
   denyList?: Maybe<Scalars['Boolean']>;
-  governanceAccount: CborHolderAccount;
+  governanceAccount?: Maybe<CborHolderAccount>;
   initialSupply?: Maybe<TokenAmount>;
-  metadata: MetadataUrl;
+  metadata?: Maybe<MetadataUrl>;
   mintable?: Maybe<Scalars['Boolean']>;
-  name: Scalars['String'];
+  name?: Maybe<Scalars['String']>;
 };
 
 /**
