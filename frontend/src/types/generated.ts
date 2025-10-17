@@ -1553,11 +1553,11 @@ export type InitializationParameters = {
   allowList?: Maybe<Scalars['Boolean']>;
   burnable?: Maybe<Scalars['Boolean']>;
   denyList?: Maybe<Scalars['Boolean']>;
-  governanceAccount: CborHolderAccount;
+  governanceAccount?: Maybe<CborHolderAccount>;
   initialSupply?: Maybe<TokenAmount>;
-  metadata: MetadataUrl;
+  metadata?: Maybe<MetadataUrl>;
   mintable?: Maybe<Scalars['Boolean']>;
-  name: Scalars['String'];
+  name?: Maybe<Scalars['String']>;
 };
 
 /**
@@ -2875,6 +2875,7 @@ export type SearchResult = {
   contracts: ContractConnection;
   modules: ModuleReferenceEventConnection;
   nodeStatuses: NodeStatusConnection;
+  pltTokens: PltTokenConnection;
   tokens: TokenConnection;
   transactions: TransactionConnection;
 };
@@ -2921,6 +2922,14 @@ export type SearchResultModulesArgs = {
 
 
 export type SearchResultNodeStatusesArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type SearchResultPltTokensArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;

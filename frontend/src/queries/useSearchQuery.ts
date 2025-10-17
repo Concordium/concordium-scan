@@ -10,6 +10,7 @@ import type {
 	NodeStatus,
 	ModuleReferenceEvent,
 	Token,
+	PltToken,
 } from '~/types/generated'
 type SearchResponse = {
 	search: {
@@ -20,6 +21,7 @@ type SearchResponse = {
 		accounts: { nodes: Account[]; pageInfo: PageInfo }
 		nodeStatuses: { nodes: NodeStatus[]; pageInfo: PageInfo }
 		tokens: { nodes: Token[]; pageInfo: PageInfo }
+		pltTokens: { nodes: PltToken[]; pageInfo: PageInfo }
 		bakers: {
 			nodes: Pick<Baker, 'id' | 'bakerId' | 'account'>[]
 			pageInfo: PageInfo
@@ -48,6 +50,22 @@ const SearchQuery = gql<SearchResponse>`
 					initialTransaction {
 						transactionHash
 					}
+				}
+				pageInfo {
+					hasNextPage
+				}
+			}
+			pltTokens(first: 3) {
+				nodes {
+					name
+					tokenId
+					transactionHash
+					issuer {
+						asString
+					}
+					totalSupply
+					decimal
+					index
 				}
 				pageInfo {
 					hasNextPage
