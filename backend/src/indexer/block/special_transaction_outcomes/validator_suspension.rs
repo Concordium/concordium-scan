@@ -7,6 +7,7 @@
 //! considered as part of consensus.
 
 use crate::indexer::{block_preprocessor::BlockData, ensure_affected_rows::EnsureAffectedRows};
+use concordium_rust_sdk::types::queries::ProtocolVersionInt;
 use concordium_rust_sdk::types::{AbsoluteBlockHeight, BakerId, ProtocolVersion};
 
 /// Update the flag on the baker, marking it primed for suspension.
@@ -54,7 +55,7 @@ pub struct PreparedUnmarkPrimedForSuspension {
 
 impl PreparedUnmarkPrimedForSuspension {
     pub fn prepare(data: &BlockData) -> anyhow::Result<Self> {
-        if data.block_info.protocol_version < ProtocolVersion::P8 {
+        if data.block_info.protocol_version < ProtocolVersionInt::from(ProtocolVersion::P8) {
             // Baker suspension was introduced as part of Concordium Protocol Version 8,
             // meaning for blocks prior to that no baker can be primed for
             // suspension.

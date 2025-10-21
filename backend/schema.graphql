@@ -1376,14 +1376,14 @@ type ImportState {
 }
 
 type InitializationParameters {
-	name: String!
-	metadata: MetadataUrl!
+	name: String
+	metadata: MetadataUrl
 	allowList: Boolean
 	denyList: Boolean
 	mintable: Boolean
 	burnable: Boolean
 	initialSupply: TokenAmount
-	governanceAccount: CborHolderAccount!
+	governanceAccount: CborHolderAccount
 }
 
 """
