@@ -9,6 +9,7 @@ Database schema version: 44
 ### Fixed
 
 - Fixed issue plt cumulative transfer amount was not normalized correctly in metrics_plt table for plt transfer events.
+- Updated Rust SDK to use the latest forward compatible changes. The indexer will stop/crash when an Unknown variant is encountered, which will require updating the `concordium-rust-sdk` dependency.
 
 ## [2.0.21] - 2025-09-16
 
