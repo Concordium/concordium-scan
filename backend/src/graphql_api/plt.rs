@@ -386,7 +386,7 @@ impl QueryPlt {
 }
 
 pub struct PltToken {
-    index: TokenIndex,
+    pub index: TokenIndex,
     name: Option<String>,
     token_id: TokenId,
     transaction_index: TransactionIndex,
@@ -400,6 +400,34 @@ pub struct PltToken {
 }
 
 impl PltToken {
+    pub fn new(
+        index: TokenIndex,
+        name: Option<String>,
+        token_id: TokenId,
+        transaction_index: TransactionIndex,
+        issuer_index: i64,
+        module_reference: Option<ModuleReference>,
+        metadata: Option<sqlx::types::Json<sqlx::types::JsonValue>>,
+        initial_supply: Option<BigDecimal>,
+        total_minted: Option<BigDecimal>,
+        total_burned: Option<BigDecimal>,
+        decimal: Option<i32>,
+    ) -> Self {
+        Self {
+            index,
+            name,
+            token_id,
+            transaction_index,
+            issuer_index,
+            module_reference,
+            metadata,
+            initial_supply,
+            total_minted,
+            total_burned,
+            decimal,
+        }
+    }
+
     pub async fn query_by_id(pool: &PgPool, token_id: TokenId) -> ApiResult<Option<Self>> {
         let result = sqlx::query_as!(
             PltToken,

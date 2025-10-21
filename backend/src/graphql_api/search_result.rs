@@ -698,31 +698,48 @@ impl SearchResult {
         )?;
         let mut connection = connection::Connection::new(false, false);
 
-        // Allow alphanumeric search for token names and token IDs
-        // This regex allows letters, numbers, spaces, and common symbols for token names/symbols
-        let plt_search_regex: Regex = Regex::new(r"^[a-zA-Z0-9\s\-_\.]+$")
+        // Input validation for the user-provided query:
+        // - name_or_token_id_regex: Accepts characters commonly used in PLT token NAMES and IDs
+        //   (alphanumeric, space, underscore, '-', '.', '%').
+        let name_or_token_id_regex: Regex = Regex::new(r"^[a-zA-Z0-9\s\-_\.%]+$")
             .map_err(|_| InternalError::InternalError("Invalid regex".to_string()))?;
 
         if self.query.trim().is_empty() || self.query.len() < 2 {
             return Ok(connection);
         }
 
-        // Check if it could be a Base58 address (for issuer search)
-        let base58_regex: Regex = Regex::new(r"^[1-9A-HJ-NP-Za-km-z]+$")
+        // Check if it could be a Base58 account address (issuer address search)
+        // If this does not match, we completely skip the issuer-address branch in SQL for performance.
+        let account_address_regex: Regex = Regex::new(r"^[1-9A-HJ-NP-Za-km-z]{1,50}$")
             .map_err(|_| InternalError::InternalError("Invalid regex".to_string()))?;
 
-        let is_base58 = base58_regex.is_match(&self.query);
-        let is_general_search = plt_search_regex.is_match(&self.query);
+        let is_base58 = account_address_regex.is_match(&self.query);
+        // True when the input looks like a PLT token NAME or ID prefix.
+        // Used as a toggle to proceed with name/token-id search paths only for matching input.
+        let matches_name_or_token_id = name_or_token_id_regex.is_match(&self.query);
 
-        if !is_base58 && !is_general_search {
+        // If the input is neither a name/token-id prefix nor a base58 address,
+        // we can skip the search entirely.
+        if !is_base58 && !matches_name_or_token_id {
             return Ok(connection);
         }
 
         let lower_case_query = self.query.to_lowercase();
 
-        // First, get the indices of matching PLT tokens
-        let index_rows = sqlx::query!(
-            r#"SELECT plt_tokens.index
+        // First, get the data of matching PLT tokens
+        let token_rows = sqlx::query!(
+            r#"SELECT 
+                plt_tokens.name,
+                plt_tokens.index,
+                plt_tokens.token_id, 
+                plt_tokens.transaction_index,
+                plt_tokens.issuer_index,
+                plt_tokens.module_reference,
+                plt_tokens.metadata as "metadata: sqlx::types::Json<sqlx::types::JsonValue>",
+                plt_tokens.initial_supply,
+                plt_tokens.total_minted,
+                plt_tokens.total_burned,
+                plt_tokens.decimal
             FROM plt_tokens
             LEFT JOIN accounts ON plt_tokens.issuer_index = accounts.index
             WHERE (
@@ -744,38 +761,46 @@ impl SearchResult {
             query.limit,           // $3
             query.is_last,         // $4
             lower_case_query,      // $5 - for name and token_id search
-            is_base58,             // $6 - flag to enable address search
+            is_base58,             // $6 - flag to enable address search to improve performance
             self.query             // $7 - original query for address search (case sensitive)
         )
         .fetch_all(pool)
         .await?;
 
-        // Now fetch the actual PLT tokens
         let mut first_index: Option<i64> = None;
         let mut last_index: Option<i64> = None;
 
-        for index_row in index_rows {
-            let token_id_result = sqlx::query_scalar!(
-                "SELECT token_id FROM plt_tokens WHERE index = $1",
-                index_row.index
-            )
-            .fetch_one(pool)
-            .await?;
-
-            let token_id: TokenId = token_id_result.parse().map_err(|e| {
+        // Process the fetched PLT token rows
+        for token_row in token_rows {
+            // Parse the token_id we already have from the query
+            let token_id: TokenId = token_row.token_id.parse().map_err(|e| {
                 InternalError::InternalError(format!("Failed to parse token ID: {}", e))
             })?;
-            if let Some(plt_token) = PltToken::query_by_id(pool, token_id).await? {
-                if first_index.is_none() {
-                    first_index = Some(index_row.index);
-                }
-                last_index = Some(index_row.index);
 
-                connection.edges.push(connection::Edge::new(
-                    index_row.index.to_string(),
-                    plt_token,
-                ));
+            // Construct the PltToken from the plt data fetched
+            let plt_token = PltToken::new(
+                token_row.index,
+                Some(token_row.name),
+                token_id,
+                token_row.transaction_index,
+                token_row.issuer_index,
+                token_row.module_reference,
+                token_row.metadata,
+                token_row.initial_supply,
+                token_row.total_minted,
+                token_row.total_burned,
+                Some(token_row.decimal),
+            );
+
+            if first_index.is_none() {
+                first_index = Some(token_row.index);
             }
+            last_index = Some(token_row.index);
+
+            connection.edges.push(connection::Edge::new(
+                token_row.index.to_string(),
+                plt_token,
+            ));
         }
 
         if let (Some(first_idx), Some(last_idx)) = (first_index, last_index) {

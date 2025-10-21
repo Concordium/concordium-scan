@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 - Updated Rust SDK to use the latest forward compatible changes. The indexer will stop/crash when an Unknown variant is encountered, which will require updating the `concordium-rust-sdk` dependency.
 
+### Added
+
+- Enabled plt search functionality in the `SearchResult::plt_tokens` query to return plt tokens matching the search criteria.
+
 ## [2.0.21] - 2025-09-16
 
 Database schema version: 43
