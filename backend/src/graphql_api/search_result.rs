@@ -761,7 +761,7 @@ impl SearchResult {
             query.limit,           // $3
             query.is_last,         // $4
             lower_case_query,      // $5 - for name and token_id search
-            is_base58,             // $6 - flag to enable address search to improve performance
+            is_base58,             // $6 - flag to enable or disable address search to improve performance
             self.query             // $7 - original query for address search (case sensitive)
         )
         .fetch_all(pool)

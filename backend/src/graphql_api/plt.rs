@@ -386,7 +386,7 @@ impl QueryPlt {
 }
 
 pub struct PltToken {
-    pub index: TokenIndex,
+    index: TokenIndex,
     name: Option<String>,
     token_id: TokenId,
     transaction_index: TransactionIndex,
