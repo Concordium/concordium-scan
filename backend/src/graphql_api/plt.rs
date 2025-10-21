@@ -399,32 +399,34 @@ pub struct PltToken {
     decimal: Option<i32>,
 }
 
+pub struct PltTokenParams {
+    pub index: TokenIndex,
+    pub name: Option<String>,
+    pub token_id: TokenId,
+    pub transaction_index: TransactionIndex,
+    pub issuer_index: i64,
+    pub module_reference: Option<ModuleReference>,
+    pub metadata: Option<sqlx::types::Json<sqlx::types::JsonValue>>,
+    pub initial_supply: Option<BigDecimal>,
+    pub total_minted: Option<BigDecimal>,
+    pub total_burned: Option<BigDecimal>,
+    pub decimal: Option<i32>,
+}
+
 impl PltToken {
-    pub fn new(
-        index: TokenIndex,
-        name: Option<String>,
-        token_id: TokenId,
-        transaction_index: TransactionIndex,
-        issuer_index: i64,
-        module_reference: Option<ModuleReference>,
-        metadata: Option<sqlx::types::Json<sqlx::types::JsonValue>>,
-        initial_supply: Option<BigDecimal>,
-        total_minted: Option<BigDecimal>,
-        total_burned: Option<BigDecimal>,
-        decimal: Option<i32>,
-    ) -> Self {
+    pub fn new(params: PltTokenParams) -> Self {
         Self {
-            index,
-            name,
-            token_id,
-            transaction_index,
-            issuer_index,
-            module_reference,
-            metadata,
-            initial_supply,
-            total_minted,
-            total_burned,
-            decimal,
+            index: params.index,
+            name: params.name,
+            token_id: params.token_id,
+            transaction_index: params.transaction_index,
+            issuer_index: params.issuer_index,
+            module_reference: params.module_reference,
+            metadata: params.metadata,
+            initial_supply: params.initial_supply,
+            total_minted: params.total_minted,
+            total_burned: params.total_burned,
+            decimal: params.decimal,
         }
     }
 

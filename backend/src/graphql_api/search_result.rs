@@ -5,7 +5,7 @@ use super::{
     db, get_config, get_pool,
     module_reference_event::ModuleReferenceEvent,
     node_status::NodeInfoReceiver,
-    plt::PltToken,
+    plt::{PltToken, PltTokenParams},
     token::Token,
     ApiResult, ConnectionQuery, InternalError,
 };
@@ -761,8 +761,8 @@ impl SearchResult {
             query.limit,           // $3
             query.is_last,         // $4
             lower_case_query,      // $5 - for name and token_id search
-            is_base58,             // $6 - flag to enable or disable address search to improve performance
-            self.query             // $7 - original query for address search (case sensitive)
+            is_base58, // $6 - flag to enable or disable address search to improve performance
+            self.query  // $7 - original query for address search (case sensitive)
         )
         .fetch_all(pool)
         .await?;
@@ -778,19 +778,19 @@ impl SearchResult {
             })?;
 
             // Construct the PltToken from the plt data fetched
-            let plt_token = PltToken::new(
-                token_row.index,
-                Some(token_row.name),
+            let plt_token = PltToken::new(PltTokenParams {
+                index: token_row.index,
+                name: Some(token_row.name),
                 token_id,
-                token_row.transaction_index,
-                token_row.issuer_index,
-                token_row.module_reference,
-                token_row.metadata,
-                token_row.initial_supply,
-                token_row.total_minted,
-                token_row.total_burned,
-                Some(token_row.decimal),
-            );
+                transaction_index: token_row.transaction_index,
+                issuer_index: token_row.issuer_index,
+                module_reference: token_row.module_reference,
+                metadata: token_row.metadata,
+                initial_supply: token_row.initial_supply,
+                total_minted: token_row.total_minted,
+                total_burned: token_row.total_burned,
+                decimal: Some(token_row.decimal),
+            });
 
             if first_index.is_none() {
                 first_index = Some(token_row.index);
