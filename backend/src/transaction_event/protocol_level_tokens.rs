@@ -683,12 +683,36 @@ impl PreparedTokenUpdate {
                         self.plt_amount_accross_tokens_by_account(tx, to).await?;
                     self.update_transfer_balances(tx, from, to, &self.plt_amount_change)
                         .await?;
+                    // Decimal value for the token being transferred
+                    let decimal = match &self.event {
+                        TokenEventDetails::Transfer(e) => {
+                            e.amount.decimals.parse::<u32>().map_err(|e| {
+                                anyhow::anyhow!(
+                                    "Failed to parse decimal places for transfer event: {}",
+                                    e
+                                )
+                            })?
+                        }
+                        _ => {
+                            return Err(anyhow::anyhow!(
+                                "Expected Transfer event details for transfer event type"
+                            ));
+                        }
+                    };
+
+                    // Calculate normalized amount
+                    let normalized_amount = if decimal > 0 {
+                        let divisor = BigDecimal::from(10_u64.pow(decimal));
+                        &self.plt_amount_change / divisor
+                    } else {
+                        self.plt_amount_change.clone()
+                    };
 
                     // This SQL block updates the global PLT metrics table (metrics_plt) for a
                     // transfer event:
                     // It fetches the latest cumulative transfer amount and unique account count.
                     // Inserts a new row for the current event timestamp, incrementing the transfer
-                    // amount by the normalized transferred value (divided by 10^decimal). If a row for the
+                    // amount by the pre-calculated normalized transferred value. If a row for the
                     // timestamp already exists, it updates the cumulative transfer amount using the
                     // maximum value (to ensure monotonic increase). The unique
                     // account count is preserved and not changed by this query.
@@ -701,9 +725,6 @@ impl PreparedTokenUpdate {
                             FROM metrics_plt 
                             ORDER BY event_timestamp DESC 
                             LIMIT 1
-                        ),
-                        token_info AS (
-                            SELECT decimal FROM plt_tokens WHERE token_id = $3
                         )
                         INSERT INTO metrics_plt (
                             event_timestamp, 
@@ -712,9 +733,9 @@ impl PreparedTokenUpdate {
                         )
                         SELECT 
                             $1,
-                            lm.prev_transfer_amount + ($2 / POWER(10::numeric, ti.decimal)),
+                            lm.prev_transfer_amount + $2,
                             lm.prev_unique_count
-                        FROM latest_metrics lm, token_info ti
+                        FROM latest_metrics lm
                         ON CONFLICT (event_timestamp) DO UPDATE SET
                             cumulative_transfer_amount = \
                          GREATEST(metrics_plt.cumulative_transfer_amount, \
@@ -723,8 +744,7 @@ impl PreparedTokenUpdate {
                          EXCLUDED.unique_account_count)
                         ",
                         slot_time,
-                        self.plt_amount_change,
-                        self.token_id
+                        normalized_amount
                     )
                     .execute(tx.as_mut())
                     .await?;
@@ -1101,10 +1121,10 @@ impl PreparedTokenUpdate {
         .await?;
 
         if unique_account_count < 0 {
-            panic!(
-                "unique_account_count went negative: {}",
+            return Err(anyhow::anyhow!(
+                "Data integrity error: unique_account_count went negative: {}",
                 unique_account_count
-            );
+            ));
         }
         Ok(())
     }
