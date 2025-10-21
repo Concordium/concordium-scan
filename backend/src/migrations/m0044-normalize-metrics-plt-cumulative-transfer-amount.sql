@@ -1,3 +1,30 @@
+-- Migration m0044: Normalize metrics_plt cumulative transfer amount
+--
+-- PURPOSE:
+-- This migration recalculates the cumulative_transfer_amount field in the metrics_plt table
+-- by properly normalizing PLT (Protocol Level Token) transfer amounts across all tokens.
+-- 
+-- BACKGROUND:
+-- Different PLT tokens can have different decimal places (e.g., 6, 8, 18 decimals).
+-- Raw transfer amounts are stored as integers but represent different actual values
+-- depending on each token's decimal configuration. To get meaningful aggregate
+-- volume metrics, we need to normalize all amounts to their actual decimal values.
+--
+-- PROCESS:
+-- 1. Calculate per-token deltas: For each token, compute the change in cumulative
+--    transfer amount since the last event for that specific token
+-- 2. Normalize amounts: Divide each delta by 10^(token_decimals) to get actual values
+-- 3. Aggregate by timestamp: Sum all normalized deltas occurring at the same time
+-- 4. Build cumulative series: Create running totals over time of normalized amounts
+-- 5. Fill timeline gaps: Ensure every timestamp has a value by forward-filling
+-- 6. Update metrics_plt: Insert/update the properly normalized cumulative amounts
+--
+-- EXAMPLE:
+-- Token A (6 decimals): raw_amount=1000000 → normalized=1.0
+-- Token B (18 decimals): raw_amount=1000000000000000000 → normalized=1.0  
+-- Combined normalized volume: 2.0 (instead of 1000001000000000000000 raw)
+
+
 -- 1) Compute per-token deltas (change since last event for that token)
 WITH per_token_deltas AS (
     SELECT
