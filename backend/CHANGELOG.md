@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
 Database schema version: 44
+Fixes incorrect PLT volume metrics by normalizing transfer amounts across tokens with different decimal places (e.g., 6-decimal vs 18-decimal tokens were being aggregated as raw integers instead of actual values).
 
 ### Fixed
 
