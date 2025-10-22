@@ -5,14 +5,14 @@ use super::{
     db, get_config, get_pool,
     module_reference_event::ModuleReferenceEvent,
     node_status::NodeInfoReceiver,
-    plt::{PltToken, PltTokenParams},
     token::Token,
     ApiResult, ConnectionQuery, InternalError,
 };
 use crate::{
     connection::{connection_from_slice, DescendingI64, NestedCursor},
     graphql_api::{
-        account::Account, baker::CurrentBaker, node_status::NodeStatus, transaction::Transaction,
+        account::Account, baker::CurrentBaker, node_status::NodeStatus, plt::PltToken,
+        transaction::Transaction,
     },
     scalar_types::TokenId,
     transaction_event::Event,
@@ -778,7 +778,7 @@ impl SearchResult {
             })?;
 
             // Construct the PltToken from the plt data fetched
-            let plt_token = PltToken::new(PltTokenParams {
+            let plt_token = PltToken::new(PltToken {
                 index: token_row.index,
                 name: Some(token_row.name),
                 token_id,
