@@ -49,7 +49,9 @@ pub async fn run(
             let (_, summary) = status
                 .is_finalized()
                 .context("Unexpected non-finalized transaction in the database")?;
-            let BlockItemSummaryDetails::AccountCreation(details) = &summary.details else {
+            let BlockItemSummaryDetails::AccountCreation(details) =
+                &summary.details.as_ref().known_or_err()?
+            else {
                 anyhow::bail!(
                     "Unexpected transaction type during migration of credential deployments"
                 );

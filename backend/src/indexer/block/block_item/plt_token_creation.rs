@@ -63,10 +63,13 @@ impl PreparedTokenCreationDetails {
             .map(|supply| supply.value.parse::<u64>().unwrap_or(0))
             .unwrap_or(0);
         let initial_supply = BigDecimal::from(value);
+
         let issuer = self
             .create_plt
             .initialization_parameters
             .governance_account
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("governance account required for create plt"))?
             .address
             .to_string();
         sqlx::query!(

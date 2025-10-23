@@ -11,13 +11,16 @@ use anyhow::Context;
 use concordium_rust_sdk::{
     base::transactions::{BlockItem, EncodedPayload},
     common::types::Amount,
-    indexer::TraverseError,
+    indexer::{OnFinalizationError, OnFinalizationResult, TraverseError},
     types::{
-        self as sdk_types, block_certificates::BlockCertificates, queries::BlockInfo,
+        self as sdk_types,
+        block_certificates::BlockCertificates,
+        queries::{BlockInfo, ProtocolVersionInt},
         BlockItemSummary, ProtocolVersion, RewardsOverview, SpecialTransactionOutcome,
     },
-    v2,
+    v2::{self},
 };
+use futures::TryFutureExt;
 use futures::TryStreamExt as _;
 use prometheus_client::{
     metrics::{counter::Counter, family::Family, gauge::Gauge, histogram},
@@ -156,12 +159,12 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
         mut client: v2::Client,
         label: &'a Self::Context,
         fbi: v2::FinalizedBlockInfo,
-    ) -> v2::QueryResult<Self::Data> {
+    ) -> OnFinalizationResult<Self::Data> {
         self.blocks_being_preprocessed.get_or_create(label).inc();
         debug!("Preprocessing block {}:{}", fbi.height, fbi.block_hash);
         // We block together the computation, so we can update the metric in the error
         // case, before returning early.
-        let result = async move {
+        let result: Result<PreparedBlock, OnFinalizationError> = async move {
             let mut client1 = client.clone();
             let mut client2 = client.clone();
             let mut client3 = client.clone();
@@ -170,10 +173,13 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
             let mut client6 = client.clone();
             let get_block_info = async move {
                 let block_info = client1.get_block_info(fbi.height).await?.response;
+
                 // Fetching the block certificates prior to P6 results in a InvalidArgument gRPC
                 // error, so we produce the empty type of certificates instead.
                 // The information is only used when preparing blocks for P8 and up.
-                let certificates = if block_info.protocol_version < ProtocolVersion::P8 {
+                let certificates = if block_info.protocol_version
+                    < ProtocolVersionInt::from(ProtocolVersion::P8)
+                {
                     BlockCertificates {
                         quorum_certificate: None,
                         timeout_certificate: None,
@@ -183,7 +189,7 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
                     let response = client1.get_block_certificates(fbi.height).await?;
                     response.response
                 };
-                Ok((block_info, certificates))
+                Ok::<_, OnFinalizationError>((block_info, certificates))
             };
 
             let get_events = async move {
@@ -198,33 +204,48 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
 
             let get_tokenomics_info = async move {
                 let tokenomics_info = client3.get_tokenomics_info(fbi.height).await?.response;
+
                 let computed_validator_staking_details = compute_validator_staking_information(
                     &mut client3,
                     v2::BlockIdentifier::AbsoluteHeight(fbi.height),
                 )
                 .await?;
+
                 Ok((tokenomics_info, computed_validator_staking_details))
             };
 
             let get_items = async move {
-                let items = client4
+                let upward_block_items = client4
                     .get_block_items(fbi.height)
                     .await?
                     .response
                     .try_collect::<Vec<_>>()
                     .await?;
+
+                let items = upward_block_items
+                    .into_iter()
+                    .flat_map(|a| a.known_or_err())
+                    .collect();
+
                 Ok(items)
             };
 
             let get_special_items = async move {
-                let items = client5
+                let upward_special_transaction_outcomes = client5
                     .get_block_special_events(fbi.height)
                     .await?
                     .response
                     .try_collect::<Vec<_>>()
                     .await?;
+
+                let items = upward_special_transaction_outcomes
+                    .into_iter()
+                    .flat_map(|a| a.known_or_err())
+                    .collect();
+
                 Ok(items)
             };
+
             let start_fetching = Instant::now();
             let (
                 (block_info, certificates),
@@ -235,7 +256,9 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
                 special_events,
             ) = try_join!(
                 get_block_info,
-                client6.get_block_chain_parameters(fbi.height),
+                client6
+                    .get_block_chain_parameters(fbi.height)
+                    .map_err(OnFinalizationError::from),
                 get_tokenomics_info,
                 get_events,
                 get_items,
@@ -254,9 +277,8 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
                 validator_staking_information,
             };
 
-            let prepared_block = PreparedBlock::prepare(&mut client, &data)
-                .await
-                .map_err(v2::RPCError::ParseError)?;
+            let prepared_block = PreparedBlock::prepare(&mut client, &data).await?;
+
             let node_response_time = start_fetching.elapsed();
             self.node_response_time
                 .get_or_create(label)
@@ -301,7 +323,7 @@ impl concordium_rust_sdk::indexer::Indexer for BlockPreProcessor {
 pub async fn compute_validator_staking_information(
     client: &mut v2::Client,
     block_height: v2::BlockIdentifier,
-) -> v2::QueryResult<(Amount, ValidatorStakingInformation)> {
+) -> OnFinalizationResult<(Amount, ValidatorStakingInformation)> {
     let mut total_staked = Amount::zero();
     let mut bakers = client.get_baker_list(block_height).await?.response;
 
@@ -338,7 +360,7 @@ pub async fn compute_validator_staking_information(
                 );
 
                 let baker_index = i64::try_from(baker_id.id.index).map_err(|e| {
-                    v2::RPCError::ParseError(anyhow::anyhow!(
+                    OnFinalizationError::OtherError(anyhow::anyhow!(
                         "Failed to convert baker index: {}",
                         e
                     ))
@@ -369,12 +391,15 @@ pub async fn compute_validator_staking_information(
 
             let validator_stake = account_info
                 .account_stake
-                .context("Expected baker to have account stake information")
-                .map_err(v2::RPCError::ParseError)?
-                .staked_amount();
+                .context("Expected staking information")
+                .map(|account_staking_info| account_staking_info.known_or_err())?
+                .map(|a| a.staked_amount())?;
 
             let baker_index = i64::try_from(baker_id.id.index).map_err(|e| {
-                v2::RPCError::ParseError(anyhow::anyhow!("Failed to convert baker index: {}", e))
+                OnFinalizationError::OtherError(anyhow::anyhow!(
+                    "Failed to convert baker index: {}",
+                    e
+                ))
             })?;
 
             validator_ids.push(baker_index);
