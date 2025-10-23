@@ -1,3 +1,4 @@
+-- Migration to add normalized_current_supply column to plt_tokens table so we can get a sorted list of tokens by normalized current supply
 ALTER TABLE plt_tokens
 ADD COLUMN normalized_current_supply NUMERIC
 GENERATED ALWAYS AS (
