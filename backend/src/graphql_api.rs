@@ -228,7 +228,7 @@ pub struct ApiServiceConfig {
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_PLT_TOKENS_COLLECTION_LIMIT",
-        default_value = "200"
+        default_value = "100"
     )]
     plt_tokens_collection_limit: u64,
     #[arg(
