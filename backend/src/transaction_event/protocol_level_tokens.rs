@@ -3,6 +3,7 @@ use crate::{
     decoded_text::DecodedText,
     graphql_api::{ApiResult, InternalError},
 };
+use anyhow::Context;
 use async_graphql::{ComplexObject, Enum, SimpleObject, Union};
 use bigdecimal::BigDecimal;
 use std::str::FromStr;
@@ -685,18 +686,15 @@ impl PreparedTokenUpdate {
                         .await?;
                     // Decimal value for the token being transferred
                     let decimal = match &self.event {
-                        TokenEventDetails::Transfer(e) => {
-                            e.amount.decimals.parse::<u32>().map_err(|e| {
-                                anyhow::anyhow!(
-                                    "Failed to parse decimal places for transfer event: {}",
-                                    e
-                                )
-                            })?
-                        }
+                        TokenEventDetails::Transfer(e) => e
+                            .amount
+                            .decimals
+                            .parse::<u32>()
+                            .context("Failed to parse decimal places for transfer event")?,
                         _ => {
-                            return Err(anyhow::anyhow!(
+                            anyhow::bail!(
                                 "Expected Transfer event details for transfer event type"
-                            ));
+                            );
                         }
                     };
 
@@ -1120,12 +1118,10 @@ impl PreparedTokenUpdate {
         .fetch_one(tx.as_mut())
         .await?;
 
-        if unique_account_count < 0 {
-            return Err(anyhow::anyhow!(
-                "Data integrity error: unique_account_count went negative: {}",
-                unique_account_count
-            ));
-        }
+        anyhow::ensure!(
+            unique_account_count >= 0,
+            "Data integrity error: unique_account_count went negative: {unique_account_count}"
+        );
         Ok(())
     }
     async fn update_paused_state(
