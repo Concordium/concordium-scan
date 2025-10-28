@@ -51,9 +51,7 @@ pub async fn run(
         .context(
             "Expect the node to have caught up enough for the `reward_period_length` value to be available.",
         )?;
-    let staking_parameters = current_chain_parmeters
-        .staking_parameters
-        .context("Expect the staking parameters to be available.")?;
+    let staking_parameters = current_chain_parmeters.staking_parameters;
     let capital_bound = staking_parameters.capital_bound.context(
         "Expect the node to have caught up enough for the `capital_bound` value to be available.",
     )?;
