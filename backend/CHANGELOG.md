@@ -13,6 +13,7 @@ Database schema version: 43
 ## Added
 
 - Added `token_module_pause_unpause_status` column to `plt_tokens` query to get the current status of the token module (paused or unpaused).
+- New env added ccdscan-api: `CCDSCAN_API_CONFIG_PLT_TOKENS_COLLECTION_LIMIT` to configure the maximum number of plt tokens returned in the `PltTokens` query. Default is 100.
 
 ## [2.0.20] - 2025-09-10
 
