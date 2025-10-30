@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased 
 
+## [1.7.27] - 2025-10-30
+
 ### Added
 
 - Enabled plt search functionality in the ui to show the search results for plt tokens.
