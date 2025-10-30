@@ -727,8 +727,8 @@ impl SchemaVersion {
                 SchemaVersion::NormalizePltCumulativeTransferAmount
             }
             SchemaVersion::NormalizePltCumulativeTransferAmount => {
-                tx.as_mut().execute(sqlx::raw_sql(
-                    include_str!(
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
                         "./migrations/m0045-alter-plt-tokens-current-supply.sql"
                     )))
                     .await?;
