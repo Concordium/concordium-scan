@@ -4,7 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased 
 
-### Fixed 
+### Fixed
+
+- Fixed totals supply discrepancy between actual data and ccdscan data on plt overview page.
 
 - Fixed plt dashboard now displays total `10` plt sorted by current supply.
 
