@@ -40,27 +40,64 @@ const props = defineProps<{
 	chartType?: 'supply' | 'uniqueHolders'
 }>()
 
+const MAX_ITEMS = 10
+
 // Computed Properties
 const chartLabels = computed(() => {
-	const coins = props.stableCoinsData?.slice(0, 10) ?? []
-	return coins.map(item => item.tokenId ?? '')
+	const coins = props.stableCoinsData ?? []
+	const labels = coins.slice(0, MAX_ITEMS).map(item => item.tokenId ?? '')
+
+	// Add "Others" if there are more items
+	if (coins.length > MAX_ITEMS) {
+		labels.push('Others')
+	}
+
+	return labels
 })
 
 const tokenNames = computed(() => {
-	const coins = props.stableCoinsData?.slice(0, 10) ?? []
-	return coins.map(item => item.name ?? '')
+	const coins = props.stableCoinsData ?? []
+	const names = coins.slice(0, MAX_ITEMS).map(item => item.name ?? '')
+
+	// Add "Others" if there are more items
+	if (coins.length > MAX_ITEMS) {
+		names.push(`Others (${coins.length - MAX_ITEMS} tokens)`)
+	}
+
+	return names
 })
 
 const chartData = computed(() => {
-	const coins = props.stableCoinsData?.slice(0, 10) ?? []
-	return coins.map(item =>
-		props.chartType === 'supply'
-			? item.totalSupply != null && item.decimal != null
-				? item.totalSupply / Math.pow(10, item.decimal)
+	const coins = props.stableCoinsData ?? []
+	const mainData = coins
+		.slice(0, MAX_ITEMS)
+		.map(item =>
+			props.chartType === 'supply'
+				? item.normalizedCurrentSupply != null
+					? item.normalizedCurrentSupply
+					: null
+				: item.totalUniqueHolders != null
+				? item.totalUniqueHolders
 				: null
-			: item.totalUniqueHolders != null
-			? item.totalUniqueHolders
-			: null
-	)
+		)
+
+	// Calculate cumulative value for remaining items
+	if (coins.length > MAX_ITEMS) {
+		const othersTotal = coins.slice(MAX_ITEMS).reduce((sum, item) => {
+			const value =
+				props.chartType === 'supply'
+					? item.normalizedCurrentSupply != null
+						? item.normalizedCurrentSupply
+						: 0
+					: item.totalUniqueHolders != null
+					? item.totalUniqueHolders
+					: 0
+			return sum + (value ?? 0)
+		}, 0)
+
+		mainData.push(othersTotal)
+	}
+
+	return mainData
 })
 </script>

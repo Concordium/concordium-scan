@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+Database schema version: 44
+ Adds a normalized current supply column to `plt_tokens` (for decimal-adjusted sorting), creates an index `idx_tokens_normalized_current_supply_desc` for performance, and implements real-time holder count tracking via database triggers.
+
+### Changed
+
 - Updated Rust SDK to use the latest forward compatible changes. The indexer will stop/crash when an Unknown variant is encountered, which will require updating the `concordium-rust-sdk` dependency.
 
 ## [2.0.21] - 2025-09-16

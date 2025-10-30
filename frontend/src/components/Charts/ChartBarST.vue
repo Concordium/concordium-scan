@@ -28,6 +28,30 @@ const canvasRef = ref()
 Chart.register(...registerables)
 const props = defineProps<Props>()
 
+// Create background colors array, using gray for "Others"
+const getBackgroundColors = () => {
+	const defaultColors = [
+		'#2AE8B8', // Bright Mint
+		'#3C8AFF', // Vivid Blue
+		'#FFD116', // Gold Yellow
+		'#FFB21D', // Rich Amber
+		'#4FD1FF', // Aqua Blue
+		'#1CC6AE', // Electric Teal
+		'#A393FF', // Periwinkle
+		'#FF6B6B', // Coral Red
+		'#D9D9D9', // Silver Grey
+		'#FFA3D7', // Soft Pink
+	]
+
+	const labels = props.xValues?.filter(x => !!x) || []
+	return labels.map((label, index) => {
+		if (label === 'Others') {
+			return '#686868' // Gray for Others
+		}
+		return defaultColors[index % defaultColors.length]
+	})
+}
+
 const chartData = {
 	labels: props.xValues?.filter(x => !!x) || [],
 	datasets: [
@@ -42,18 +66,7 @@ const chartData = {
 			pointRadius: 0, // Disables the small points
 			hoverBackgroundColor: undefined, // Remove hover background to prevent glitches
 			hoverBorderWidth: 0,
-			backgroundColor: [
-				'#2AE8B8', // Bright Mint
-				'#3C8AFF', // Vivid Blue
-				'#FFD116', // Gold Yellow
-				'#FFB21D', // Rich Amber
-				'#4FD1FF', // Aqua Blue
-				'#1CC6AE', // Electric Teal
-				'#A393FF', // Periwinkle
-				'#FF6B6B', // Coral Red
-				'#D9D9D9', // Silver Grey
-				'#FFA3D7', // Soft Pink
-			],
+			backgroundColor: getBackgroundColors(),
 		},
 	],
 }
@@ -71,6 +84,7 @@ watch(props, () => {
 	chartInstance.data.labels = props.xValues
 	chartInstance.data.datasets[0].data =
 		props.yValues?.filter(x => x !== undefined) || []
+	chartInstance.data.datasets[0].backgroundColor = getBackgroundColors()
 	chartInstance.resize() // Ensure resizing happens
 
 	chartInstance.update()
