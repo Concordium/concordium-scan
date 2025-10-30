@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [2.0.22] - 2025-10-30
+
 Database schema version: 45
  Adds a normalized current supply column to `plt_tokens` (for decimal-adjusted sorting), creates an index `idx_tokens_normalized_current_supply_desc` for performance.
 
