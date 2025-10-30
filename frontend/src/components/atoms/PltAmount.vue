@@ -1,5 +1,9 @@
 <template>
-	<span class="inline-block" data-testid="amount">
+	<span
+		class="inline-block"
+		data-testid="amount"
+		:title="formatBigIntWithDecimals(value, decimals)"
+	>
 		<span class="numerical">{{ amounts[0] }}</span>
 		<span v-if="amounts[1]" class="numerical text opacity-50 mr-1"
 			>.{{ amounts[1] }}</span
@@ -32,6 +36,42 @@ type Props = {
 }
 
 const props = defineProps<Props>()
+
+/**
+ * Formats a BigInt value with decimal places for display in tooltips
+ * Preserves precision for large u64 values
+ * @param value - The raw token amount as a string
+ * @param decimals - Number of decimal places
+ * @returns Formatted string with proper decimal representation
+ */
+const formatBigIntWithDecimals = (
+	value: string,
+	decimals: number,
+	fixedAfterDecimals: number = 18
+): string => {
+	const bigIntValue = BigInt(value)
+
+	// Early return for zero decimals
+	if (decimals === 0) return bigIntValue.toString()
+
+	const divisor = BigInt(10 ** decimals)
+	const integerPart = bigIntValue / divisor
+	const remainder = bigIntValue % divisor
+
+	// Early return if no decimal part
+	if (remainder === 0n) return integerPart.toString()
+
+	// Convert remainder to decimal string with proper padding
+	let decimalPart = remainder.toString().padStart(decimals, '0')
+
+	// Limit decimal places and remove trailing zeros efficiently
+	if (decimalPart.length > fixedAfterDecimals) {
+		decimalPart = decimalPart.slice(0, fixedAfterDecimals)
+	}
+	decimalPart = decimalPart.replace(/0+$/, '')
+
+	return `${integerPart}.${decimalPart}`
+}
 
 /**
  * Formats large numbers with appropriate suffixes (K, M, B, T)

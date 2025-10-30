@@ -736,6 +736,7 @@ impl SearchResult {
                 plt_tokens.issuer_index,
                 plt_tokens.module_reference,
                 plt_tokens.metadata as "metadata: sqlx::types::Json<sqlx::types::JsonValue>",
+                plt_tokens.normalized_current_supply::DOUBLE PRECISION AS normalized_current_supply,
                 plt_tokens.initial_supply,
                 plt_tokens.total_minted,
                 plt_tokens.total_burned,
@@ -790,6 +791,7 @@ impl SearchResult {
                 total_minted: token_row.total_minted,
                 total_burned: token_row.total_burned,
                 decimal: Some(token_row.decimal),
+                normalized_current_supply: token_row.normalized_current_supply,
             });
 
             if first_index.is_none() {
