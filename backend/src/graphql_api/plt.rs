@@ -388,21 +388,38 @@ impl QueryPlt {
 }
 
 pub struct PltToken {
-    index: TokenIndex,
-    name: Option<String>,
-    token_id: TokenId,
-    transaction_index: TransactionIndex,
-    issuer_index: i64,
-    module_reference: Option<ModuleReference>,
-    metadata: Option<sqlx::types::Json<sqlx::types::JsonValue>>,
-    initial_supply: Option<BigDecimal>,
-    total_minted: Option<BigDecimal>,
-    total_burned: Option<BigDecimal>,
-    normalized_current_supply: Option<f64>,
-    decimal: Option<i32>,
+    pub index: TokenIndex,
+    pub name: Option<String>,
+    pub token_id: TokenId,
+    pub transaction_index: TransactionIndex,
+    pub issuer_index: i64,
+    pub module_reference: Option<ModuleReference>,
+    pub metadata: Option<sqlx::types::Json<sqlx::types::JsonValue>>,
+    pub initial_supply: Option<BigDecimal>,
+    pub total_minted: Option<BigDecimal>,
+    pub total_burned: Option<BigDecimal>,
+    pub normalized_current_supply: Option<f64>,
+    pub decimal: Option<i32>,
 }
 
 impl PltToken {
+    pub fn new(params: PltToken) -> Self {
+        Self {
+            index: params.index,
+            name: params.name,
+            token_id: params.token_id,
+            transaction_index: params.transaction_index,
+            issuer_index: params.issuer_index,
+            module_reference: params.module_reference,
+            metadata: params.metadata,
+            initial_supply: params.initial_supply,
+            total_minted: params.total_minted,
+            total_burned: params.total_burned,
+            normalized_current_supply: params.normalized_current_supply,
+            decimal: params.decimal,
+        }
+    }
+
     pub async fn query_by_id(pool: &PgPool, token_id: TokenId) -> ApiResult<Option<Self>> {
         let result = sqlx::query_as!(
             PltToken,

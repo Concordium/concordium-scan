@@ -12,7 +12,7 @@
 				v-model="searchValue"
 				:class="$style.input"
 				class="rounded p-2 w-full focus:ring-2 focus:ring-pink-500 outline-none md:block pl-9"
-				placeholder="Search for account, validator, block or transaction &hellip;"
+				placeholder="Search for account, validator, block, transaction, PLT token &hellip;"
 				type="search"
 				@blur="lostFocusOnSearch"
 				@keyup.enter="gotoSearchResult"
@@ -187,6 +187,33 @@
 						</div>
 					</SearchResultCategory>
 					<SearchResultCategory
+						v-if="resultCount.pltTokens"
+						title="PLT Tokens"
+						:has-more-results="data.search.pltTokens.pageInfo.hasNextPage"
+					>
+						<div
+							v-for="pltToken in data.search.pltTokens.nodes"
+							:key="pltToken.tokenId"
+							:class="$style.searchColumns"
+						>
+							<PltTokenId
+								:token-id="pltToken.tokenId"
+								@blur="lostFocusOnSearch"
+							/>
+							<div :class="$style.twoColumns">
+								{{ pltToken.name || 'N/A' }}
+							</div>
+
+							<div :class="$style.threeColumns">
+								<AccountLink
+									:address="pltToken.issuer.asString"
+									:hide-tooltip="true"
+									@blur="lostFocusOnSearch"
+								/>
+							</div>
+						</div>
+					</SearchResultCategory>
+					<SearchResultCategory
 						v-if="resultCount.modules"
 						title="Modules"
 						:has-more-results="data.search.modules.pageInfo.hasNextPage"
@@ -270,6 +297,7 @@
 import ModuleLink from '../molecules/ModuleLink.vue'
 import TransactionLink from '../molecules/TransactionLink.vue'
 import TokenLink from '../molecules/TokenLink.vue'
+import PltTokenId from '../molecules/PltTokenId.vue'
 import SearchResultCategory from './SearchResultCategory.vue'
 import { useSearchQuery } from '~/queries/useSearchQuery'
 import { useDrawer } from '~/composables/useDrawer'
@@ -319,7 +347,7 @@ watch(searchValue, newValue => {
 		}, 500)
 })
 
-const gotoSearchResult = () => {
+const gotoSearchResult = async () => {
 	if (status.value !== 'done' || !data.value || resultCount.value.total > 1)
 		return
 
@@ -362,6 +390,13 @@ const gotoSearchResult = () => {
 			contractAddressSubIndex:
 				data.value.search.contracts.nodes[0].contractAddressSubIndex,
 		})
+	else if (data.value.search.pltTokens.nodes[0]) {
+		// Navigate directly to PLT token page since there's no drawer type for it
+		await navigateTo(
+			`/protocol-token/${data.value.search.pltTokens.nodes[0].tokenId}`
+		)
+		return
+	}
 	searchValue.value = ''
 	status.value = 'idle'
 	isMaskVisible.value = false
@@ -386,6 +421,7 @@ const resultCount = computed(() => ({
 	bakers: data.value?.search.bakers.nodes.length,
 	nodeStatuses: data.value?.search.nodeStatuses.nodes.length,
 	tokens: data.value?.search.tokens.nodes.length,
+	pltTokens: data.value?.search.pltTokens.nodes.length,
 	total:
 		(data.value?.search.contracts.nodes.length ?? 0) +
 		(data.value?.search.blocks.nodes.length ?? 0) +
@@ -394,7 +430,8 @@ const resultCount = computed(() => ({
 		(data.value?.search.bakers.nodes.length ?? 0) +
 		(data.value?.search.nodeStatuses.nodes.length ?? 0) +
 		(data.value?.search.modules?.nodes.length ?? 0) +
-		(data.value?.search.tokens?.nodes.length ?? 0),
+		(data.value?.search.tokens?.nodes.length ?? 0) +
+		(data.value?.search.pltTokens?.nodes.length ?? 0),
 }))
 </script>
 

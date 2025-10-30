@@ -2876,6 +2876,7 @@ export type SearchResult = {
   contracts: ContractConnection;
   modules: ModuleReferenceEventConnection;
   nodeStatuses: NodeStatusConnection;
+  pltTokens: PltTokenConnection;
   tokens: TokenConnection;
   transactions: TransactionConnection;
 };
@@ -2922,6 +2923,14 @@ export type SearchResultModulesArgs = {
 
 
 export type SearchResultNodeStatusesArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type SearchResultPltTokensArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;

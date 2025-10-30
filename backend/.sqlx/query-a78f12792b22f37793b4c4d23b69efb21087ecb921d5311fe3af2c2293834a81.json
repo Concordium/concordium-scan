@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT MAX(plt_tokens.index) as max_index, MIN(plt_tokens.index) as min_index\n                FROM plt_tokens\n                LEFT JOIN accounts ON plt_tokens.issuer_index = accounts.index\n                WHERE (\n                    LOWER(plt_tokens.name) LIKE $1 || '%'\n                    OR LOWER(plt_tokens.token_id) LIKE $1 || '%'\n                    OR ($2 AND accounts.address LIKE $3 || '%')\n                )",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "max_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "min_index",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "a78f12792b22f37793b4c4d23b69efb21087ecb921d5311fe3af2c2293834a81"
+}

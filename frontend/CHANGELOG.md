@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased 
 
+### Added
+
+- Enabled plt search functionality in the ui to show the search results for plt tokens.
+
 ### Fixed
 
 - Fixed totals supply discrepancy between actual data and ccdscan data on plt overview page.
