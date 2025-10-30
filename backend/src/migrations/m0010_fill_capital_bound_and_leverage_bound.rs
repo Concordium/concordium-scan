@@ -9,7 +9,7 @@ use super::SchemaVersion;
 use anyhow::Context;
 use concordium_rust_sdk::{
     types::PartsPerHundredThousands,
-    v2::{self, BlockIdentifier, ChainParameters},
+    v2::{self, BlockIdentifier},
 };
 use sqlx::Executor;
 
@@ -46,28 +46,18 @@ pub async fn run(
         .get_block_chain_parameters(BlockIdentifier::LastFinal)
         .await?
         .response;
-    let (current_reward_period_length, capital_bound, leverage_bound) =
-        match current_chain_parmeters {
-            ChainParameters::V3(chain_parameters_v3) => (
-                chain_parameters_v3.time_parameters.reward_period_length,
-                chain_parameters_v3.pool_parameters.capital_bound,
-                chain_parameters_v3.pool_parameters.leverage_bound,
-            ),
-            ChainParameters::V2(chain_parameters_v2) => (
-                chain_parameters_v2.time_parameters.reward_period_length,
-                chain_parameters_v2.pool_parameters.capital_bound,
-                chain_parameters_v2.pool_parameters.leverage_bound,
-            ),
-            ChainParameters::V1(chain_parameters_v1) => (
-                chain_parameters_v1.time_parameters.reward_period_length,
-                chain_parameters_v1.pool_parameters.capital_bound,
-                chain_parameters_v1.pool_parameters.leverage_bound,
-            ),
-            ChainParameters::V0(_) => unimplemented!(
-                "Expect the node to have caught up enough for the `reward_period_length`, \
-                 `capital_bound` and `leverage_bound` values to be available."
-            ),
-        };
+    let current_reward_period_length = current_chain_parmeters
+        .reward_period_length
+        .context(
+            "Expect the node to have caught up enough for the `reward_period_length` value to be available.",
+        )?;
+    let staking_parameters = current_chain_parmeters.staking_parameters;
+    let capital_bound = staking_parameters.capital_bound.context(
+        "Expect the node to have caught up enough for the `capital_bound` value to be available.",
+    )?;
+    let leverage_bound = staking_parameters.leverage_bound.context(
+        "Expect the node to have caught up enough for the `leverage_bound` value to be available.",
+    )?;
 
     let capital_bound = i64::from(u32::from(PartsPerHundredThousands::from(
         capital_bound.bound,
