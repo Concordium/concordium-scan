@@ -4,12 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+Database schema version: 45
+ Adds a normalized current supply column to `plt_tokens` (for decimal-adjusted sorting), creates an index `idx_tokens_normalized_current_supply_desc` for performance.
+
 Database schema version: 44
-Fixes incorrect PLT volume metrics by normalizing transfer amounts across tokens with different decimal places (e.g., 6-decimal vs 18-decimal tokens were being aggregated as raw integers instead of actual values).
+ Fixes incorrect PLT volume metrics by normalizing transfer amounts across tokens with different decimal places (e.g., 6-decimal vs 18-decimal tokens were being aggregated as raw integers instead of actual values).
 
 ### Fixed
 
 - Fixed issue plt cumulative transfer amount was not normalized correctly in metrics_plt table for plt transfer events.
+
+### Changed
+
 - Updated Rust SDK to use the latest forward compatible changes. The indexer will stop/crash when an Unknown variant is encountered, which will require updating the `concordium-rust-sdk` dependency.
 
 ## [2.0.21] - 2025-09-16
@@ -19,6 +25,7 @@ Database schema version: 43
 ### Added
 
 - Added `token_module_pause_unpause_status` column to `plt_tokens` query to get the current status of the token module (paused or unpaused).
+- New env added ccdscan-api: `CCDSCAN_API_CONFIG_PLT_TOKENS_COLLECTION_LIMIT` to configure the maximum number of plt tokens returned in the `PltTokens` query. Default is 100.
 
 ## [2.0.20] - 2025-09-10
 

@@ -332,7 +332,7 @@ impl QueryPlt {
             after,
             last,
             before,
-            config.plt_token_events_collection_limit,
+            config.plt_tokens_collection_limit,
         )?;
 
         let mut row_stream = sqlx::query_as!(
@@ -347,10 +347,12 @@ impl QueryPlt {
                 initial_supply,
                 total_minted,
                 total_burned,
+                normalized_current_supply::DOUBLE PRECISION AS normalized_current_supply,
                 decimal
             FROM plt_tokens 
             WHERE $2 < index AND index < $1
             ORDER BY 
+                normalized_current_supply DESC,
                 CASE WHEN $3 THEN index END ASC,
                 CASE WHEN NOT $3 THEN index END DESC
             LIMIT $4"#,
@@ -396,6 +398,7 @@ pub struct PltToken {
     initial_supply: Option<BigDecimal>,
     total_minted: Option<BigDecimal>,
     total_burned: Option<BigDecimal>,
+    normalized_current_supply: Option<f64>,
     decimal: Option<i32>,
 }
 
@@ -413,6 +416,7 @@ impl PltToken {
                     initial_supply,
                     total_minted,
                     total_burned,
+                    normalized_current_supply as "normalized_current_supply: f64",
                     decimal
             FROM plt_tokens WHERE token_id = $1"#,
             token_id.to_string()
@@ -567,6 +571,9 @@ impl PltToken {
                 .await?;
 
         Ok(is_paused.to_string())
+    }
+    async fn normalized_current_supply(&self) -> ApiResult<Option<f64>> {
+        Ok(self.normalized_current_supply)
     }
 }
 
@@ -789,12 +796,12 @@ impl PltAccountAmount {
             .ok_or(ApiError::NotFound)?;
         let result = sqlx::query_as!(
             PltAccountAmount,
-            r#"SELECT 
+            r#"SELECT
                 account_index,
                 token_index,
                 amount,
                 decimal
-            FROM plt_accounts         
+            FROM plt_accounts
             WHERE token_index = $1"#,
             token.index
         )

@@ -28,6 +28,7 @@ const PLT_TOKENS_PAGED_QUERY = gql<PltTokensPagedQueryResponse>`
 					asString
 				}
 				totalUniqueHolders
+				normalizedCurrentSupply
 				block {
 					blockSlotTime
 				}

@@ -250,14 +250,54 @@ export const numberFormatter = (num?: number): string => {
 		: num.toFixed(2)
 }
 
-// calculates actual value by addressing decimals
-export const calculateActualValue = (value: string, decimals: number) => {
-	// value is BigInt, so we need to convert it to a number
+// Cache for scale factors to avoid repeated BigInt exponentiations
+const scaleFactorCache = new Map<number, bigint>()
+
+/**
+ * Calculates actual value by addressing decimals while preserving precision
+ * This function converts a token amount from its smallest unit to its display unit
+ * while maintaining precision for BigInt arithmetic operations.
+ *
+ * @param value - The raw token amount as a string
+ * @param decimals - Number of decimal places for the token (can be up to 255)
+ * @returns The actual value scaled to a common precision for arithmetic
+ */
+export const calculateActualValue = (
+	value: string,
+	decimals: number
+): bigint => {
 	const bigIntValue = BigInt(value)
-	// calculate the actual value by dividing by 10^decimals
-	const actualValue = bigIntValue / BigInt(10 ** decimals)
-	// return the actual value as a string
-	return actualValue
+
+	// For tokens with different decimal places, we need to normalize them
+	// to a common scale for proper addition. We'll use 255 decimals as the maximum
+	const COMMON_DECIMALS = 255
+
+	switch (true) {
+		case decimals === COMMON_DECIMALS:
+			// Already at common scale
+			return bigIntValue
+
+		case decimals < COMMON_DECIMALS: {
+			// Scale up to common decimals efficiently with caching
+			const scaleDiff = COMMON_DECIMALS - decimals
+
+			// Check cache first to avoid repeated expensive calculations
+			let scaleUp = scaleFactorCache.get(scaleDiff)
+			if (!scaleUp) {
+				scaleUp = BigInt(10) ** BigInt(scaleDiff)
+				scaleFactorCache.set(scaleDiff, scaleUp)
+			}
+
+			return bigIntValue * scaleUp
+		}
+
+		default:
+			// This case shouldn't happen since 255 is the maximum, but handle it just in case
+			console.warn(
+				`Token has more than ${COMMON_DECIMALS} decimals: ${decimals}`
+			)
+			return bigIntValue
+	}
 }
 
 /**
