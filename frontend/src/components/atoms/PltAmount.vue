@@ -59,7 +59,7 @@ const formatBigIntWithDecimals = (
 	const remainder = bigIntValue % divisor
 
 	// Early return if no decimal part
-	if (remainder === 0n) return integerPart.toString()
+	if (remainder === BigInt(0)) return integerPart.toString()
 
 	// Convert remainder to decimal string with proper padding
 	let decimalPart = remainder.toString().padStart(decimals, '0')
