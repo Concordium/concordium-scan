@@ -6,7 +6,7 @@
 	>
 		<span
 			v-show="isVisible"
-			class="text-sm left-1/2 p-3 rounded-lg z-50 tooltip pointer-events-none"
+			class="text-xs left-1/2 p-3 rounded-lg z-50 tooltip pointer-events-none"
 			:class="textClass"
 		>
 			{{ text }}
