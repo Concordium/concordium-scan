@@ -290,15 +290,16 @@ pub enum SchemaVersion {
     NormalizePltCumulativeTransferAmount,
     #[display("0045: Alter PLT tokens add current_supply column")]
     AlterPltTokensAddCurrentSupplyColumn,
+    #[display("0046: Plt Accounts statement table to track balance changes")]
+    PltAccountsStatements,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking (destructive) database schema versions
     /// have been introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
-        SchemaVersion::AlterPltTokensAddCurrentSupplyColumn;
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::PltAccountsStatements;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::AlterPltTokensAddCurrentSupplyColumn;
+    const LATEST: SchemaVersion = SchemaVersion::PltAccountsStatements;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -365,6 +366,7 @@ impl SchemaVersion {
             SchemaVersion::AddTokenModulePauseUnpauseStatus => false,
             SchemaVersion::NormalizePltCumulativeTransferAmount => false,
             SchemaVersion::AlterPltTokensAddCurrentSupplyColumn => false,
+            SchemaVersion::PltAccountsStatements => false,
         }
     }
 
@@ -420,6 +422,7 @@ impl SchemaVersion {
             SchemaVersion::AddTokenModulePauseUnpauseStatus => false,
             SchemaVersion::NormalizePltCumulativeTransferAmount => false,
             SchemaVersion::AlterPltTokensAddCurrentSupplyColumn => false,
+            SchemaVersion::PltAccountsStatements => false,
         }
     }
 
@@ -734,7 +737,15 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::AlterPltTokensAddCurrentSupplyColumn
             }
-            SchemaVersion::AlterPltTokensAddCurrentSupplyColumn => unimplemented!(
+            SchemaVersion::AlterPltTokensAddCurrentSupplyColumn => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0046-plt-accounts-statement.sql"
+                    )))
+                    .await?;
+                SchemaVersion::PltAccountsStatements
+            }
+            SchemaVersion::PltAccountsStatements => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
