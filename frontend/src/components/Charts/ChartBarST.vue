@@ -206,7 +206,7 @@ const handleBarClick = (event: MouseEvent) => {
 		// You can tweak the range depending on font size
 		if (y >= pixel - 10 && y <= pixel + 10 && x < yScale.left) {
 			const label = chartData.labels?.[i]
-			if (label) {
+			if (label && label !== 'Others') {
 				window.open(`/protocol-token/${label}`, '_self')
 			}
 			return
@@ -223,7 +223,7 @@ const handleBarClick = (event: MouseEvent) => {
 	if (elements.length > 0) {
 		const index = elements[0].index
 		const label = chartData.labels?.[index] as string
-		if (label) {
+		if (label && label !== 'Others') {
 			window.open(`/protocol-token/${label}`, '_self')
 		}
 	}
