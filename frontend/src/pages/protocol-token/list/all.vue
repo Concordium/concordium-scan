@@ -36,7 +36,7 @@
 				<TableHead>
 					<TableRow>
 						<TableTh>Name</TableTh>
-						<TableTh>Token ID</TableTh>
+						<TableTh>Symbol</TableTh>
 						<TableTh>Total Supply</TableTh>
 						<TableTh>Minted</TableTh>
 						<TableTh>Burned</TableTh>
