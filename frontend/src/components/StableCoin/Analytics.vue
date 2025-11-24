@@ -68,7 +68,7 @@ watch(days, newValue => {
 	selectedMetricsPeriod.value = newValue
 })
 
-const selectedMetricsPeriod = ref(MetricsPeriod.Last24Hours)
+const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
 
 const { data: pltTransferMetricsData, loading: isLoading } =
 	usePltTransferMetricsQueryByTokenId(selectedMetricsPeriod, coinId)
