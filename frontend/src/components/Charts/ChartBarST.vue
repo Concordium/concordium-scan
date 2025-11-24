@@ -13,6 +13,7 @@ import {
 } from 'chart.js/dist/chart.esm'
 import type { LabelFormatterFunc } from './ChartUtils'
 import { prettyFormatBucketDuration } from '~/utils/format'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 
 type Props = {
 	xValues?: string[]
@@ -234,13 +235,12 @@ onMounted(() => {
 	chartInstance = new Chart(canvasRef.value as HTMLCanvasElement, {
 		type: 'bar',
 		data: chartData,
-		options: {
-			...(defaultOptions.value as ChartOptions<'bar'>),
-			animation: {
-				onComplete: function () {
-					if (!chartInstance) return
-
-					const ctx = chartInstance.ctx
+		options: defaultOptions.value as ChartOptions<'bar'>,
+		plugins: [
+			{
+				id: 'customValueLabels',
+				afterDatasetsDraw: chart => {
+					const ctx = chart.ctx
 					if (!ctx) return
 
 					ctx.font = '11px'
@@ -248,8 +248,8 @@ onMounted(() => {
 					ctx.textAlign = 'center'
 					ctx.textBaseline = 'bottom'
 
-					chartInstance.data.datasets.forEach((dataset, i) => {
-						const meta = chartInstance.getDatasetMeta(i)
+					chart.data.datasets.forEach((dataset, i) => {
+						const meta = chart.getDatasetMeta(i)
 						meta.data.forEach((bar, index) => {
 							const rawValue = dataset.data[index]
 							if (rawValue !== null && typeof rawValue === 'number') {
@@ -262,7 +262,7 @@ onMounted(() => {
 					})
 				},
 			},
-		},
+		],
 	})
 	if (props.labelClickable) {
 		canvasRef.value.style.cursor = 'pointer'
