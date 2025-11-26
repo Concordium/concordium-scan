@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT MAX(e.id) as max_id, MIN(e.id) as min_id \n                FROM plt_events e\n                JOIN plt_tokens t ON e.token_index = t.index\n                WHERE t.token_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "max_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "min_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "81cb778534817676235f88346816b8fb08dd4409550a81377f3bebb9af955ee3"
+}
