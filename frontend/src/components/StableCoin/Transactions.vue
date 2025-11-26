@@ -93,9 +93,9 @@
 						</TableBody>
 					</Table>
 					<LoadMore
-					v-if="pltEventsData?.pltEventsByTokenId?.pageInfo"
-					:page-info="pltEventsData.pltEventsByTokenId.pageInfo"
-					:on-load-more="loadMore"
+						v-if="pltEventsData?.pltEventsByTokenId?.pageInfo"
+						:page-info="pltEventsData.pltEventsByTokenId.pageInfo"
+						:on-load-more="loadMore"
 					/>
 				</CarouselSlide>
 			</FtbCarousel>
@@ -131,11 +131,8 @@ const coinId = props.coinId ?? ''
 
 const pageSize = 10
 const maxPageSize = 20
-const { first, last, after, before, pagedData, addPagedData, loadMore } = usePagedData<PltEvent>(
-	[],
-	pageSize,
-	maxPageSize
-)
+const { first, last, after, before, pagedData, addPagedData, loadMore } =
+	usePagedData<PltEvent>([], pageSize, maxPageSize)
 
 first.value = lastNTransactions.value
 
@@ -156,7 +153,7 @@ const { data: pltEventsData, loading: pltEventsLoading } = usePltEventByIdQuery(
 		first,
 		last,
 		after,
-		before
+		before,
 	}
 )
 
