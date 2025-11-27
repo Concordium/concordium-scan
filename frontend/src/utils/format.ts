@@ -229,6 +229,13 @@ export const formatPercentage = (num: number) => {
 	return new Intl.NumberFormat(undefined, {
 		minimumFractionDigits: 2,
 		maximumFractionDigits: 2,
+	}).format(num * 100)
+}
+
+export const formatNumbers = (num: number) => {
+	return new Intl.NumberFormat(undefined, {
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2,
 	}).format(num)
 }
 
