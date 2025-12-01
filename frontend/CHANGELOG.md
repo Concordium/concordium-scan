@@ -14,6 +14,8 @@ All notable changes to this project will be documented in this file.
 
 - Fixed mis-alignment of plt token profile layout on long token names.
 
+- Remove duplicate plt token symbol in the all plt list page.
+
 - Fixed bug when 7-day analytics charts on plt specific page do not load data properly on the first load.
 
 - Fixed the percentage for all total staked CCD in the validator details sidebar.
