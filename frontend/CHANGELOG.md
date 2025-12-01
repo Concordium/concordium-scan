@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased 
 
+### Fixed
+
+-  Fix bug when 7-day analytics charts on plt specific page do not load data properly on the first load.
+
 ## [1.7.27] - 2025-10-30
 
 ### Added
