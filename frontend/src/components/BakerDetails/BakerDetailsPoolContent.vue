@@ -7,7 +7,7 @@
 					<template #title>Total stake</template>
 					<template #default>
 						<Tooltip
-							:text="`${formatPercentage(
+							:text="`${formatNumbers(
 								baker.state.pool.totalStakePercentage
 							)}% of all CCD in existence`"
 							class="text-theme-white"

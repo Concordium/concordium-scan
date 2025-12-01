@@ -87,7 +87,7 @@ const defaultOptions: ChartOptions<'doughnut'> = {
 				const index = legendItem.index
 				if (index !== undefined) {
 					const label = chartData.value.labels?.[index]
-					if (label) {
+					if (label && label !== 'Others') {
 						window.open(`/protocol-token/${label}`, '_self')
 					}
 				}
@@ -134,7 +134,7 @@ const handleSliceClick = (event: MouseEvent) => {
 	if (elements.length > 0) {
 		const index = elements[0].index
 		const label = chartInstance.data.labels?.[index] as string
-		if (label) {
+		if (label && label !== 'Others') {
 			window.open(`/protocol-token/${label}`, '_self')
 		}
 	}
