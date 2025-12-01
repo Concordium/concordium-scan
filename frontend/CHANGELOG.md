@@ -12,13 +12,15 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-- Fix mis-alignment of plt token profile layout on long token names.
+- Fixed mis-alignment of plt token profile layout on long token names.
 
-- Fix bug when 7-day analytics charts on plt specific page do not load data properly on the first load.
+- Fixed bug when 7-day analytics charts on plt specific page do not load data properly on the first load.
 
 - Fixed the percentage for all total staked CCD in the validator details sidebar.
 
 - Fixed the incorrect display of transaction commission in the validator details sidebar. 
+
+- Fixed the bug while hovering over the plt chart tooltip, the other charts' labels disappear.
 
 ## [1.7.27] - 2025-10-30
 
