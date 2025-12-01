@@ -232,6 +232,13 @@ export const formatPercentage = (num: number) => {
 	}).format(num * 100)
 }
 
+export const formatNumbers = (num: number) => {
+	return new Intl.NumberFormat(undefined, {
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2,
+	}).format(num)
+}
+
 export const formatBytesPerSecond = (bytes: number) => {
 	if (bytes > 1024) return (bytes / 1024).toFixed(2) + ' kB/s'
 	else return bytes + ' B/s'
