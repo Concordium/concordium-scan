@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased 
 
+### Added
+
+- Added `RegisterData` transaction details display with CBOR decoded data.
+
 ### Fixed
 
 - Fixed the percentage for all total staked CCD in the validator details sidebar.
