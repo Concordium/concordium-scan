@@ -12,7 +12,7 @@ on:
         - frontend/**
 
 env:
-  NODE_VERSION: "18.18.2"
+  NODE_VERSION: "20.19.5"
 
 jobs:
   checks:
