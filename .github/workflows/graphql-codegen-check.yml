@@ -15,7 +15,7 @@ on:
         - frontend/src/types/generated.ts
         - .github/**
 env:
-  NODE_VERSION: "18.18.2"
+  NODE_VERSION: "20.19.5"
 
 jobs:
   check:
