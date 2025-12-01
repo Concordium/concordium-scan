@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased 
 
+### Fixed 
+
+- Fix mis-alignment of plt token profile layout on long token names.
+
 ## [1.7.27] - 2025-10-30
 
 ### Added
