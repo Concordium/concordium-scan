@@ -8,6 +8,18 @@ All notable changes to this project will be documented in this file.
 
 - Fixed the percentage for all total staked CCD in the validator details sidebar.
 
+## [1.7.27] - 2025-10-30
+
+### Added
+
+- Enabled plt search functionality in the ui to show the search results for plt tokens.
+
+### Fixed
+
+- Fixed totals supply discrepancy between actual data and ccdscan data on plt overview page.
+
+- Fixed plt dashboard now displays total `10` plt sorted by current supply.
+
 ## [1.7.26] - 2025-09-16
 
 ### Fixed

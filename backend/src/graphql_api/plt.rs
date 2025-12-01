@@ -332,7 +332,7 @@ impl QueryPlt {
             after,
             last,
             before,
-            config.plt_token_events_collection_limit,
+            config.plt_tokens_collection_limit,
         )?;
 
         let mut row_stream = sqlx::query_as!(
@@ -347,10 +347,12 @@ impl QueryPlt {
                 initial_supply,
                 total_minted,
                 total_burned,
+                normalized_current_supply::DOUBLE PRECISION AS normalized_current_supply,
                 decimal
             FROM plt_tokens 
             WHERE $2 < index AND index < $1
             ORDER BY 
+                normalized_current_supply DESC,
                 CASE WHEN $3 THEN index END ASC,
                 CASE WHEN NOT $3 THEN index END DESC
             LIMIT $4"#,
@@ -386,20 +388,38 @@ impl QueryPlt {
 }
 
 pub struct PltToken {
-    index: TokenIndex,
-    name: Option<String>,
-    token_id: TokenId,
-    transaction_index: TransactionIndex,
-    issuer_index: i64,
-    module_reference: Option<ModuleReference>,
-    metadata: Option<sqlx::types::Json<sqlx::types::JsonValue>>,
-    initial_supply: Option<BigDecimal>,
-    total_minted: Option<BigDecimal>,
-    total_burned: Option<BigDecimal>,
-    decimal: Option<i32>,
+    pub index: TokenIndex,
+    pub name: Option<String>,
+    pub token_id: TokenId,
+    pub transaction_index: TransactionIndex,
+    pub issuer_index: i64,
+    pub module_reference: Option<ModuleReference>,
+    pub metadata: Option<sqlx::types::Json<sqlx::types::JsonValue>>,
+    pub initial_supply: Option<BigDecimal>,
+    pub total_minted: Option<BigDecimal>,
+    pub total_burned: Option<BigDecimal>,
+    pub normalized_current_supply: Option<f64>,
+    pub decimal: Option<i32>,
 }
 
 impl PltToken {
+    pub fn new(params: PltToken) -> Self {
+        Self {
+            index: params.index,
+            name: params.name,
+            token_id: params.token_id,
+            transaction_index: params.transaction_index,
+            issuer_index: params.issuer_index,
+            module_reference: params.module_reference,
+            metadata: params.metadata,
+            initial_supply: params.initial_supply,
+            total_minted: params.total_minted,
+            total_burned: params.total_burned,
+            normalized_current_supply: params.normalized_current_supply,
+            decimal: params.decimal,
+        }
+    }
+
     pub async fn query_by_id(pool: &PgPool, token_id: TokenId) -> ApiResult<Option<Self>> {
         let result = sqlx::query_as!(
             PltToken,
@@ -413,6 +433,7 @@ impl PltToken {
                     initial_supply,
                     total_minted,
                     total_burned,
+                    normalized_current_supply as "normalized_current_supply: f64",
                     decimal
             FROM plt_tokens WHERE token_id = $1"#,
             token_id.to_string()
@@ -567,6 +588,9 @@ impl PltToken {
                 .await?;
 
         Ok(is_paused.to_string())
+    }
+    async fn normalized_current_supply(&self) -> ApiResult<Option<f64>> {
+        Ok(self.normalized_current_supply)
     }
 }
 
@@ -789,12 +813,12 @@ impl PltAccountAmount {
             .ok_or(ApiError::NotFound)?;
         let result = sqlx::query_as!(
             PltAccountAmount,
-            r#"SELECT 
+            r#"SELECT
                 account_index,
                 token_index,
                 amount,
                 decimal
-            FROM plt_accounts         
+            FROM plt_accounts
             WHERE token_index = $1"#,
             token.index
         )

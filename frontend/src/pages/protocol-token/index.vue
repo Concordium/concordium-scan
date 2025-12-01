@@ -33,7 +33,7 @@
 											)
 											.toString()
 									"
-									:decimals="0"
+									:decimals="255"
 									:fixed-decimals="3"
 									:format-number="true"
 								/>
@@ -229,24 +229,23 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import { ref, watch } from 'vue'
+import { ref, watch, type Ref } from 'vue'
+import { calculateActualValue } from '~/utils/format'
 
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 import CarouselSlide from '~/components/molecules/CarouselSlide.vue'
 import StableCoinDistributionChart from '~/components/molecules/ChartCards/StableCoinDistributionChart.vue'
 import StableCoinSupplyBarChart from '~/components/molecules/ChartCards/StableCoinSupplyBarChart.vue'
-import {
-	usePltTokenQuery,
-	usePltUniqueAccountsQuery,
-} from '~/queries/usePltTokenQuery'
+import { usePltUniqueAccountsQuery } from '~/queries/usePltTokenQuery'
 import { usePagedData } from '~/composables/usePagedData'
 import { usePltEventsQuery } from '~/queries/usePltEventsQuery'
-import type { PltEvent } from '~/types/generated'
+import type { PltEvent, PltToken } from '~/types/generated'
 import { useDateNow } from '~/composables/useDateNow'
 import HolderByStableCoin from '~/components/molecules/ChartCards/HolderByStableCoin.vue'
 import KeyValueChartCard from '~/components/molecules/KeyValueChartCard.vue'
 import { usePltMetricsQuery } from '~/queries/usePltTransferMetricsQuery'
 import { MetricsPeriod } from '~/types/generated'
+import { usePltTokensPagedQuery } from '~/queries/usePltTokensPagedQuery'
 definePageMeta({
 	middleware: 'plt-features-guard',
 })
@@ -256,20 +255,60 @@ const pageSize = 10
 const maxPageSize = 20
 const { pagedData, first, last, after, before, addPagedData, loadMore } =
 	usePagedData<PltEvent>([], pageSize, maxPageSize)
-
-const { data: pltTokenData, loading: pltTokenLoading } = usePltTokenQuery()
+const pltTokenPageSize = 100
+const pltTokenMaxPageSize = 100
+const {
+	first: pltTokenFirst,
+	last: pltTokenLast,
+	after: pltTokenAfter,
+	before: pltTokenBefore,
+} = usePagedData<PltToken>([], pltTokenPageSize, pltTokenMaxPageSize)
+const {
+	data: pltTokenData,
+	loading: pltTokenLoading,
+	pageInfo: pltTokenPageInfo,
+} = usePltTokensPagedQuery({
+	first: pltTokenFirst,
+	last: pltTokenLast,
+	after: pltTokenAfter,
+	before: pltTokenBefore,
+})
 
 const { NOW } = useDateNow()
 
-const pltTokenDataRef = ref(pltTokenData)
+const pltTokenDataRef: Ref<PltToken[]> = ref([])
 const selectedMetricsPeriod = ref(MetricsPeriod.Last24Hours)
 
+// Watch for new token data and append it
 watch(
 	pltTokenData,
 	newData => {
-		pltTokenDataRef.value = newData
+		if (newData && Array.isArray(newData)) {
+			// Only add tokens that aren't already in the array
+			const existingTokenIds = new Set(
+				pltTokenDataRef.value.map(token => token.tokenId)
+			)
+			const newTokens = newData.filter(
+				token => !existingTokenIds.has(token.tokenId)
+			)
+			if (newTokens.length > 0) {
+				pltTokenDataRef.value.push(...newTokens)
+			}
+		}
 	},
-	{ immediate: true, deep: true }
+	{ immediate: true }
+)
+
+// Watch for page info changes and fetch next page if available
+watch(
+	pltTokenPageInfo,
+	pageInfo => {
+		if (pageInfo?.hasNextPage && pageInfo.endCursor) {
+			// Set the cursor for next page and trigger fetch
+			pltTokenAfter.value = pageInfo.endCursor
+		}
+	},
+	{ immediate: true }
 )
 
 const { data: pltEventsData } = usePltEventsQuery({

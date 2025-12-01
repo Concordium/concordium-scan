@@ -11,8 +11,10 @@ use super::{
 use crate::{
     connection::{connection_from_slice, DescendingI64, NestedCursor},
     graphql_api::{
-        account::Account, baker::CurrentBaker, node_status::NodeStatus, transaction::Transaction,
+        account::Account, baker::CurrentBaker, node_status::NodeStatus, plt::PltToken,
+        transaction::Transaction,
     },
+    scalar_types::TokenId,
     transaction_event::Event,
     transaction_reject::TransactionRejectReason,
     transaction_type::{
@@ -670,6 +672,161 @@ impl SearchResult {
                 .min_index
                 .is_some_and(|db_min| db_min < page_min.node.index);
         }
+        Ok(connection)
+    }
+
+    async fn plt_tokens(
+        &self,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
+        before: Option<String>,
+    ) -> ApiResult<connection::Connection<String, PltToken>> {
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+        let query = ConnectionQuery::<DescendingI64>::new(
+            first,
+            after,
+            last,
+            before,
+            config.plt_token_events_collection_limit,
+        )?;
+        let mut connection = connection::Connection::new(false, false);
+
+        // Input validation for the user-provided query:
+        // - name_or_token_id_regex: Accepts characters commonly used in PLT token NAMES and IDs
+        //   (alphanumeric, space, underscore, '-', '.', '%').
+        let name_or_token_id_regex: Regex = Regex::new(r"^[a-zA-Z0-9\s\-_\.%]+$")
+            .map_err(|_| InternalError::InternalError("Invalid regex".to_string()))?;
+
+        if self.query.trim().is_empty() || self.query.len() < 2 {
+            return Ok(connection);
+        }
+
+        // Check if it could be a Base58 account address (issuer address search)
+        // If this does not match, we completely skip the issuer-address branch in SQL for performance.
+        let account_address_regex: Regex = Regex::new(r"^[1-9A-HJ-NP-Za-km-z]{1,50}$")
+            .map_err(|_| InternalError::InternalError("Invalid regex".to_string()))?;
+
+        let is_base58 = account_address_regex.is_match(&self.query);
+        // True when the input looks like a PLT token NAME or ID prefix.
+        // Used as a toggle to proceed with name/token-id search paths only for matching input.
+        let matches_name_or_token_id = name_or_token_id_regex.is_match(&self.query);
+
+        // If the input is neither a name/token-id prefix nor a base58 address,
+        // we can skip the search entirely.
+        if !is_base58 && !matches_name_or_token_id {
+            return Ok(connection);
+        }
+
+        let lower_case_query = self.query.to_lowercase();
+
+        // First, get the data of matching PLT tokens
+        let token_rows = sqlx::query!(
+            r#"SELECT 
+                plt_tokens.name,
+                plt_tokens.index,
+                plt_tokens.token_id, 
+                plt_tokens.transaction_index,
+                plt_tokens.issuer_index,
+                plt_tokens.module_reference,
+                plt_tokens.metadata as "metadata: sqlx::types::Json<sqlx::types::JsonValue>",
+                plt_tokens.normalized_current_supply::DOUBLE PRECISION AS normalized_current_supply,
+                plt_tokens.initial_supply,
+                plt_tokens.total_minted,
+                plt_tokens.total_burned,
+                plt_tokens.decimal
+            FROM plt_tokens
+            LEFT JOIN accounts ON plt_tokens.issuer_index = accounts.index
+            WHERE (
+                -- Search by token name (case insensitive)
+                LOWER(plt_tokens.name) LIKE $5 || '%'
+                -- Search by token ID (case insensitive) 
+                OR LOWER(plt_tokens.token_id) LIKE $5 || '%'
+                -- Search by issuer address if it's a valid Base58 format
+                OR ($6 AND accounts.address LIKE $7 || '%')
+            )
+            AND $2 < plt_tokens.index 
+            AND plt_tokens.index < $1
+            ORDER BY
+                (CASE WHEN $4 THEN plt_tokens.index END) ASC,
+                (CASE WHEN NOT $4 THEN plt_tokens.index END) DESC
+            LIMIT $3"#,
+            i64::from(query.from), // $1
+            i64::from(query.to),   // $2
+            query.limit,           // $3
+            query.is_last,         // $4
+            lower_case_query,      // $5 - for name and token_id search
+            is_base58, // $6 - flag to enable or disable address search to improve performance
+            self.query  // $7 - original query for address search (case sensitive)
+        )
+        .fetch_all(pool)
+        .await?;
+
+        let mut first_index: Option<i64> = None;
+        let mut last_index: Option<i64> = None;
+
+        // Process the fetched PLT token rows
+        for token_row in token_rows {
+            // Parse the token_id we already have from the query
+            let token_id: TokenId = token_row.token_id.parse().map_err(|e| {
+                InternalError::InternalError(format!("Failed to parse token ID: {}", e))
+            })?;
+
+            // Construct the PltToken from the plt data fetched
+            let plt_token = PltToken::new(PltToken {
+                index: token_row.index,
+                name: Some(token_row.name),
+                token_id,
+                transaction_index: token_row.transaction_index,
+                issuer_index: token_row.issuer_index,
+                module_reference: token_row.module_reference,
+                metadata: token_row.metadata,
+                initial_supply: token_row.initial_supply,
+                total_minted: token_row.total_minted,
+                total_burned: token_row.total_burned,
+                decimal: Some(token_row.decimal),
+                normalized_current_supply: token_row.normalized_current_supply,
+            });
+
+            if first_index.is_none() {
+                first_index = Some(token_row.index);
+            }
+            last_index = Some(token_row.index);
+
+            connection.edges.push(connection::Edge::new(
+                token_row.index.to_string(),
+                plt_token,
+            ));
+        }
+
+        if let (Some(first_idx), Some(last_idx)) = (first_index, last_index) {
+            let result = sqlx::query!(
+                r#"SELECT MAX(plt_tokens.index) as max_index, MIN(plt_tokens.index) as min_index
+                FROM plt_tokens
+                LEFT JOIN accounts ON plt_tokens.issuer_index = accounts.index
+                WHERE (
+                    LOWER(plt_tokens.name) LIKE $1 || '%'
+                    OR LOWER(plt_tokens.token_id) LIKE $1 || '%'
+                    OR ($2 AND accounts.address LIKE $3 || '%')
+                )"#,
+                lower_case_query, // $1
+                is_base58,        // $2
+                self.query        // $3
+            )
+            .fetch_one(pool)
+            .await?;
+
+            connection.has_next_page = result.min_index.is_some_and(|db_min| db_min < last_idx);
+            connection.has_previous_page =
+                result.max_index.is_some_and(|db_max| db_max > first_idx);
+        }
+
         Ok(connection)
     }
 

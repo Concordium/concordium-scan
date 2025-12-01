@@ -898,7 +898,7 @@ dependencies = [
 
 [[package]]
 name = "concordium-rust-sdk"
-version = "7.0.0-alpha.4"
+version = "8.0.0"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -930,7 +930,7 @@ dependencies = [
 
 [[package]]
 name = "concordium-scan"
-version = "2.0.21"
+version = "2.0.22"
 dependencies = [
  "anyhow",
  "async-graphql",
@@ -1003,7 +1003,7 @@ dependencies = [
 
 [[package]]
 name = "concordium_base"
-version = "8.0.0"
+version = "8.0.0-alpha.3"
 dependencies = [
  "aes",
  "anyhow",
@@ -1051,7 +1051,7 @@ dependencies = [
 
 [[package]]
 name = "concordium_base_derive"
-version = "1.1.0"
+version = "1.1.0-alpha.3"
 dependencies = [
  "convert_case 0.8.0",
  "darling",

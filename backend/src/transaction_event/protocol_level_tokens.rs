@@ -3,6 +3,7 @@ use crate::{
     decoded_text::DecodedText,
     graphql_api::{ApiResult, InternalError},
 };
+use anyhow::Context;
 use async_graphql::{ComplexObject, Enum, SimpleObject, Union};
 use bigdecimal::BigDecimal;
 use std::str::FromStr;
@@ -683,12 +684,33 @@ impl PreparedTokenUpdate {
                         self.plt_amount_accross_tokens_by_account(tx, to).await?;
                     self.update_transfer_balances(tx, from, to, &self.plt_amount_change)
                         .await?;
+                    // Decimal value for the token being transferred
+                    let decimal = match &self.event {
+                        TokenEventDetails::Transfer(e) => e
+                            .amount
+                            .decimals
+                            .parse::<u32>()
+                            .context("Failed to parse decimal places for transfer event")?,
+                        _ => {
+                            anyhow::bail!(
+                                "Expected Transfer event details for transfer event type"
+                            );
+                        }
+                    };
+
+                    // Calculate normalized amount
+                    let normalized_amount = if decimal > 0 {
+                        let divisor = BigDecimal::from(10_u64.pow(decimal));
+                        &self.plt_amount_change / divisor
+                    } else {
+                        self.plt_amount_change.clone()
+                    };
 
                     // This SQL block updates the global PLT metrics table (metrics_plt) for a
                     // transfer event:
                     // It fetches the latest cumulative transfer amount and unique account count.
                     // Inserts a new row for the current event timestamp, incrementing the transfer
-                    // amount by the transferred value. If a row for the
+                    // amount by the pre-calculated normalized transferred value. If a row for the
                     // timestamp already exists, it updates the cumulative transfer amount using the
                     // maximum value (to ensure monotonic increase). The unique
                     // account count is preserved and not changed by this query.
@@ -720,7 +742,7 @@ impl PreparedTokenUpdate {
                          EXCLUDED.unique_account_count)
                         ",
                         slot_time,
-                        self.plt_amount_change
+                        normalized_amount
                     )
                     .execute(tx.as_mut())
                     .await?;
@@ -1096,12 +1118,10 @@ impl PreparedTokenUpdate {
         .fetch_one(tx.as_mut())
         .await?;
 
-        if unique_account_count < 0 {
-            panic!(
-                "unique_account_count went negative: {}",
-                unique_account_count
-            );
-        }
+        anyhow::ensure!(
+            unique_account_count >= 0,
+            "Data integrity error: unique_account_count went negative: {unique_account_count}"
+        );
         Ok(())
     }
     async fn update_paused_state(

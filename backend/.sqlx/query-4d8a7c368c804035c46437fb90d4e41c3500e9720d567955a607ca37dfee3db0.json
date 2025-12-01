@@ -1,0 +1,94 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT \n                plt_tokens.name,\n                plt_tokens.index,\n                plt_tokens.token_id, \n                plt_tokens.transaction_index,\n                plt_tokens.issuer_index,\n                plt_tokens.module_reference,\n                plt_tokens.metadata as \"metadata: sqlx::types::Json<sqlx::types::JsonValue>\",\n                plt_tokens.normalized_current_supply::DOUBLE PRECISION AS normalized_current_supply,\n                plt_tokens.initial_supply,\n                plt_tokens.total_minted,\n                plt_tokens.total_burned,\n                plt_tokens.decimal\n            FROM plt_tokens\n            LEFT JOIN accounts ON plt_tokens.issuer_index = accounts.index\n            WHERE (\n                -- Search by token name (case insensitive)\n                LOWER(plt_tokens.name) LIKE $5 || '%'\n                -- Search by token ID (case insensitive) \n                OR LOWER(plt_tokens.token_id) LIKE $5 || '%'\n                -- Search by issuer address if it's a valid Base58 format\n                OR ($6 AND accounts.address LIKE $7 || '%')\n            )\n            AND $2 < plt_tokens.index \n            AND plt_tokens.index < $1\n            ORDER BY\n                (CASE WHEN $4 THEN plt_tokens.index END) ASC,\n                (CASE WHEN NOT $4 THEN plt_tokens.index END) DESC\n            LIMIT $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "token_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "transaction_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "issuer_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "module_reference",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "metadata: sqlx::types::Json<sqlx::types::JsonValue>",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 7,
+        "name": "normalized_current_supply",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 8,
+        "name": "initial_supply",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "total_minted",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 10,
+        "name": "total_burned",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 11,
+        "name": "decimal",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Bool",
+        "Text",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      null,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "4d8a7c368c804035c46437fb90d4e41c3500e9720d567955a607ca37dfee3db0"
+}

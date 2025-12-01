@@ -425,7 +425,7 @@ pub struct BlockData {
     pub block_info: BlockInfo,
     pub events: Vec<BlockItemSummary>,
     pub items: Vec<BlockItem<EncodedPayload>>,
-    pub chain_parameters: v2::ChainParameters,
+    pub chain_parameters: sdk_types::chain_parameters::ChainParameters,
     pub tokenomics_info: RewardsOverview,
     pub total_staked: Amount,
     pub special_events: Vec<SpecialTransactionOutcome>,

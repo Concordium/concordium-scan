@@ -286,15 +286,19 @@ pub enum SchemaVersion {
     AlterPltAccountsAddNotNullConstraint,
     #[display("0043: Add token module pause/unpause status to plt_tokens table")]
     AddTokenModulePauseUnpauseStatus,
+    #[display("0044: Normalize metrics for PLT cumulative transfer amount")]
+    NormalizePltCumulativeTransferAmount,
+    #[display("0045: Alter PLT tokens add current_supply column")]
+    AlterPltTokensAddCurrentSupplyColumn,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking (destructive) database schema versions
     /// have been introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
-        SchemaVersion::AddTokenModulePauseUnpauseStatus;
+        SchemaVersion::AlterPltTokensAddCurrentSupplyColumn;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::AddTokenModulePauseUnpauseStatus;
+    const LATEST: SchemaVersion = SchemaVersion::AlterPltTokensAddCurrentSupplyColumn;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -359,6 +363,8 @@ impl SchemaVersion {
             SchemaVersion::ReAddBakerRelatedTransactionsIndex => false,
             SchemaVersion::AlterPltAccountsAddNotNullConstraint => false,
             SchemaVersion::AddTokenModulePauseUnpauseStatus => false,
+            SchemaVersion::NormalizePltCumulativeTransferAmount => false,
+            SchemaVersion::AlterPltTokensAddCurrentSupplyColumn => false,
         }
     }
 
@@ -412,6 +418,8 @@ impl SchemaVersion {
             SchemaVersion::ReAddBakerRelatedTransactionsIndex => false,
             SchemaVersion::AlterPltAccountsAddNotNullConstraint => false,
             SchemaVersion::AddTokenModulePauseUnpauseStatus => false,
+            SchemaVersion::NormalizePltCumulativeTransferAmount => false,
+            SchemaVersion::AlterPltTokensAddCurrentSupplyColumn => false,
         }
     }
 
@@ -710,7 +718,23 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::AddTokenModulePauseUnpauseStatus
             }
-            SchemaVersion::AddTokenModulePauseUnpauseStatus => unimplemented!(
+            SchemaVersion::AddTokenModulePauseUnpauseStatus => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0044-normalize-metrics-plt-cumulative-transfer-amount.sql"
+                    )))
+                    .await?;
+                SchemaVersion::NormalizePltCumulativeTransferAmount
+            }
+            SchemaVersion::NormalizePltCumulativeTransferAmount => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0045-alter-plt-tokens-current-supply.sql"
+                    )))
+                    .await?;
+                SchemaVersion::AlterPltTokensAddCurrentSupplyColumn
+            }
+            SchemaVersion::AlterPltTokensAddCurrentSupplyColumn => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
