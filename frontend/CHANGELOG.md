@@ -16,6 +16,8 @@ All notable changes to this project will be documented in this file.
 
 - Fixed the percentage for all total staked CCD in the validator details sidebar.
 
+- Fixed the incorrect display of transaction commission in the validator details sidebar. 
+
 ## [1.7.27] - 2025-10-30
 
 ### Added
