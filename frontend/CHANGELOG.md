@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased 
 
+### Fixed
+
+- Remove duplicate plt token symbol in the all plt list page.
+
 ## [1.7.27] - 2025-10-30
 
 ### Added
