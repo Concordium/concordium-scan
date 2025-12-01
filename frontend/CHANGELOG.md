@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased 
 
+### Added
+
+- Added `RegisterData` transaction details display with CBOR decoded data.
+
 ## [1.7.27] - 2025-10-30
 
 ### Added
