@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased 
 
+### Fixed
+
+- Fixed the percentage for all total staked CCD in the validator details sidebar.
+
 ## [1.7.26] - 2025-09-16
 
 ### Fixed
