@@ -7,6 +7,7 @@ import {
 
 import * as duration from 'duration-fns'
 import type { UnwrapRef } from 'vue'
+import { decode, diagnose, encode } from 'cbor2'
 
 /**
  * Converts an ISO 8601 duration (e.g. PT10M) to an object with the amount in years, days, months, hours, seconds, etc.
@@ -228,8 +229,16 @@ export const formatSeconds = (seconds: number) =>
 export const formatPercentage = (num: number) => {
 	return new Intl.NumberFormat(undefined, {
 		minimumFractionDigits: 2,
-		maximumFractionDigits: 2,
+		// Max 8 to accommodate very small percentages other wise it shows as 0.00% or getting rounded off
+		maximumFractionDigits: 8,
 	}).format(num * 100)
+}
+
+export const formatNumbers = (num: number) => {
+	return new Intl.NumberFormat(undefined, {
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2,
+	}).format(num)
 }
 
 export const formatBytesPerSecond = (bytes: number) => {
@@ -340,5 +349,362 @@ export const calculatePercentageforBigInt = (
 		const integerPart = resultString.slice(0, -DECIMAL_PLACES)
 		const decimalPart = resultString.slice(-DECIMAL_PLACES)
 		return `${integerPart}.${decimalPart}`
+	}
+}
+
+/**
+ * Validates if a string represents valid hexadecimal data
+ * Removes '0x' prefix if present and checks for valid hex characters and even length
+ * @param str - The string to validate as hex
+ * @returns True if the string is valid hex, false otherwise
+ */
+export const isValidHex = (str: string): boolean => {
+	const cleanHex = str.startsWith('0x') ? str.slice(2) : str
+	return /^[0-9a-fA-F]*$/.test(cleanHex) && cleanHex.length % 2 === 0
+}
+
+/**
+ * Validates and cleans a hex string, returning the cleaned hex or null if invalid
+ * @param hex - The hex string to validate and clean
+ * @returns Cleaned hex string without '0x' prefix, or null if invalid
+ */
+const validateAndCleanHex = (hex: string): string | null => {
+	if (!hex || hex.trim() === '') {
+		return null
+	}
+
+	const cleanHex = hex.startsWith('0x') ? hex.slice(2) : hex
+
+	if (!isValidHex(cleanHex) || cleanHex.length < 2) {
+		return null
+	}
+
+	return cleanHex
+}
+
+/**
+ * Converts a validated hex string to a Uint8Array byte array
+ * @param cleanHex - The validated and cleaned hex string
+ * @returns Uint8Array of bytes
+ */
+const hexToBytes = (cleanHex: string): Uint8Array => {
+	const bytes = new Uint8Array(cleanHex.length / 2)
+	for (let i = 0; i < bytes.length; i++) {
+		const byteStr = cleanHex.substr(i * 2, 2)
+		const byteVal = parseInt(byteStr, 16)
+		if (isNaN(byteVal)) {
+			throw new Error(`Invalid hex byte at position ${i}: ${byteStr}`)
+		}
+		bytes[i] = byteVal
+	}
+	return bytes
+}
+
+/**
+ * Attempts to decode CBOR data and return formatted result
+ * @param bytes - The byte array to decode
+ * @param useDiagnostic - Whether to use diagnostic notation
+ * @returns Decoded result or error marker
+ */
+const decodeCborBytes = (bytes: Uint8Array, useDiagnostic: boolean): string => {
+	try {
+		if (useDiagnostic) {
+			return diagnose(bytes)
+		} else {
+			const decoded = decode(bytes)
+			return JSON.stringify(decoded, null, 2)
+		}
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : String(error)
+		const errorPrefix = useDiagnostic
+			? '__CBOR_DIAGNOSTIC_ERROR__'
+			: '__CBOR_DECODE_ERROR__'
+		return `${errorPrefix}${errorMessage}`
+	}
+}
+
+/**
+ * Determines if decoded text appears to be binary data rather than readable text
+ * Analyzes character distribution to detect non-printable content
+ * @param str - The decoded string to analyze
+ * @returns True if the string appears to be binary data (less than 70% printable chars)
+ */
+export const isLikelyBinary = (str: string): boolean => {
+	// Count printable vs non-printable characters
+	let printable = 0
+	let total = 0
+
+	for (let i = 0; i < str.length; i++) {
+		const charCode = str.charCodeAt(i)
+		total++
+		// Consider printable: ASCII 32-126, tabs, newlines, carriage returns
+		if (
+			(charCode >= 32 && charCode <= 126) ||
+			charCode === 9 || // tab
+			charCode === 10 || // newline
+			charCode === 13 // carriage return
+		) {
+			printable++
+		}
+	}
+
+	// If less than 70% printable and string is long enough, likely binary
+	return total > 10 && printable / total < 0.7
+}
+
+/**
+ * Safely truncates very long strings to prevent UI performance issues
+ * Adds a truncation indicator showing how many characters were removed
+ * @param str - The string to potentially truncate
+ * @param maxLength - Maximum allowed length before truncation (default: 10000)
+ * @returns Original string if short enough, or truncated version with indicator
+ */
+export const safeTruncate = (
+	str: string,
+	maxLength: number = 10000
+): string => {
+	if (str.length <= maxLength) return str
+
+	const truncated = str.substring(0, maxLength)
+	return `${truncated}... [${str.length - maxLength} more characters truncated]`
+}
+
+/**
+ * Converts hexadecimal string to human-readable text with comprehensive error handling
+ * Handles validation, decoding, binary detection, and safe truncation
+ * @param hex - The hexadecimal string to convert (may include '0x' prefix)
+ * @returns Readable UTF-8 text, binary data indicator, or error message
+ */
+export const hexToString = (hex: string): string => {
+	try {
+		// Handle empty/null input
+		if (!hex || hex.trim() === '') {
+			return '(empty hex data)'
+		}
+
+		// Validate hex format before processing
+		if (!isValidHex(hex)) {
+			return `(invalid hex format: ${hex.substring(0, 50)}${
+				hex.length > 50 ? '...' : ''
+			})`
+		}
+
+		const cleanHex = hex.startsWith('0x') ? hex.slice(2) : hex
+
+		// Handle incomplete hex data
+		if (cleanHex.length < 2) {
+			return `(incomplete hex: ${cleanHex})`
+		}
+
+		// Convert hex string to byte array
+		const bytes = new Uint8Array(cleanHex.length / 2)
+		for (let i = 0; i < bytes.length; i++) {
+			const byteStr = cleanHex.substr(i * 2, 2)
+			const byteVal = parseInt(byteStr, 16)
+			if (isNaN(byteVal)) {
+				return `(invalid hex byte at position ${i}: ${byteStr})`
+			}
+			bytes[i] = byteVal
+		}
+
+		// Decode bytes as UTF-8 text
+		const decoder = new TextDecoder('utf-8', { fatal: false })
+		const decodedText = decoder.decode(bytes)
+
+		// Check if the result appears to be binary data
+		if (isLikelyBinary(decodedText)) {
+			// For binary data, show hex representation instead
+			return `(binary data: ${cleanHex.substring(0, 100)}${
+				cleanHex.length > 100 ? '...' : ''
+			})`
+		}
+
+		// Return safely truncated readable text
+		return safeTruncate(decodedText)
+	} catch (error) {
+		console.warn('Hex to string conversion failed:', error)
+		return `(conversion error: ${hex.substring(0, 50)}${
+			hex.length > 50 ? '...' : ''
+		})`
+	}
+}
+
+/**
+ * Intelligently formats hex data by detecting if it's actually CBOR-encoded
+ * This is the main logic for handling data marked as 'HEX' type:
+ * 1. Validates hex format
+ * 2. Attempts CBOR decoding
+ * 3. If CBOR decoding produces structured data, displays as JSON or diagnostic notation
+ * 4. Otherwise falls back to text conversion
+ * @param hex - The hex string that might be CBOR-encoded data
+ * @param useDiagnostic - Whether to use CBOR diagnostic notation instead of JSON
+ * @returns Formatted JSON/diagnostic if CBOR detected, readable text if plain hex, or error message
+ */
+export const formatHexData = (hex: string, useDiagnostic = false): string => {
+	try {
+		// Handle empty input
+		if (!hex || hex.trim() === '') {
+			return '(empty hex data)'
+		}
+
+		// Early validation of hex format
+		if (!isValidHex(hex)) {
+			return `(invalid hex format: ${safeTruncate(hex, 100)})`
+		}
+
+		const cleanHex = hex.startsWith('0x') ? hex.slice(2) : hex
+
+		// Handle incomplete hex
+		if (cleanHex.length < 2) {
+			return `(incomplete hex: ${cleanHex})`
+		}
+
+		// Attempt CBOR decoding first
+		const cborResult = useDiagnostic
+			? decodeCborHexDiagnostic(cleanHex)
+			: decodeCborHex(cleanHex)
+
+		// Check if CBOR decoding succeeded (not an error)
+		const errorPrefix = useDiagnostic
+			? '__CBOR_DIAGNOSTIC_ERROR__'
+			: '__CBOR_DECODE_ERROR__'
+		if (!cborResult.startsWith(errorPrefix)) {
+			try {
+				if (!useDiagnostic) {
+					const parsed = JSON.parse(cborResult)
+					// If decoding produced structured data (object/array), it's likely CBOR
+					if (typeof parsed === 'object' && parsed !== null) {
+						// Return formatted JSON, safely truncated for performance
+						return safeTruncate(cborResult, 5000)
+					}
+				} else {
+					// For diagnostic format, check if it looks like diagnostic notation
+					// Diagnostic notation typically contains brackets, braces, or specific CBOR syntax
+					if (
+						cborResult.includes('[') ||
+						cborResult.includes('{') ||
+						cborResult.includes("h'") ||
+						cborResult.includes('<<')
+					) {
+						return safeTruncate(cborResult, 5000)
+					}
+				}
+			} catch {
+				// JSON parsing failed, not structured CBOR data
+			}
+		}
+
+		// Fall back to standard hex-to-text conversion
+		return hexToString(hex)
+	} catch (error) {
+		console.warn('HEX data formatting failed:', error)
+		// Return safe truncated version with error indication
+		return `(formatting error: ${safeTruncate(hex, 100)})`
+	}
+}
+
+/**
+ * Decodes CBOR-encoded hex data to JSON string using cbor2 library
+ * cbor2 is a fast, RFC 8949 compliant CBOR decoder
+ * @param hex - The CBOR-encoded hexadecimal string
+ * @returns JSON string representation of decoded CBOR data, or error marker
+ */
+export const decodeCborHex = (hex: string): string => {
+	try {
+		const cleanHex = validateAndCleanHex(hex)
+		if (!cleanHex) {
+			return '(empty CBOR data)'
+		}
+
+		const bytes = hexToBytes(cleanHex)
+		return decodeCborBytes(bytes, false)
+	} catch (error) {
+		console.warn('CBOR decoding failed:', error)
+		const errorMessage = error instanceof Error ? error.message : String(error)
+		return `__CBOR_DECODE_ERROR__${errorMessage}`
+	}
+}
+
+/**
+ * Decodes CBOR-encoded hex data to diagnostic notation using cbor2 library
+ * CBOR diagnostic notation provides human-readable representation of CBOR data structures
+ * @param hex - The CBOR-encoded hexadecimal string
+ * @returns CBOR diagnostic notation string, or error marker
+ */
+export const decodeCborHexDiagnostic = (hex: string): string => {
+	try {
+		const cleanHex = validateAndCleanHex(hex)
+		if (!cleanHex) {
+			return '(empty CBOR data)'
+		}
+
+		const bytes = hexToBytes(cleanHex)
+		return decodeCborBytes(bytes, true)
+	} catch (error) {
+		console.warn('CBOR diagnostic decoding failed:', error)
+		const errorMessage = error instanceof Error ? error.message : String(error)
+		return `__CBOR_DIAGNOSTIC_ERROR__${errorMessage}`
+	}
+}
+
+/**
+ * Formats CBOR data for display, handling both pre-decoded JSON and raw CBOR hex
+ * This is the main logic for handling data marked as 'CBOR' type:
+ * 1. Try to parse as already-decoded JSON
+ * 2. If that fails, try to decode as CBOR hex
+ * 3. Format appropriately or show error
+ * @param text - The CBOR data (either JSON string or CBOR hex)
+ * @param useDiagnostic - Whether to use CBOR diagnostic notation instead of JSON
+ * @returns Formatted JSON/diagnostic for display, or error message
+ */
+export const formatCborData = (text: string, useDiagnostic = false): string => {
+	try {
+		// Handle empty input
+		if (!text || text.trim() === '') {
+			return '(empty CBOR data)'
+		}
+
+		// First attempt: parse as already-decoded JSON
+		try {
+			const parsed = JSON.parse(text)
+			// Ensure it's structured data (object or array)
+			if (typeof parsed === 'object' && parsed !== null) {
+				// Return pretty-printed JSON or convert to diagnostic notation
+				if (useDiagnostic) {
+					// Convert JSON back to CBOR bytes and then to diagnostic
+					const cborBytes = encode(parsed)
+					return diagnose(cborBytes)
+				} else {
+					return safeTruncate(JSON.stringify(parsed, null, 2), 5000)
+				}
+			}
+			// Handle primitive values
+			if (useDiagnostic) {
+				// For primitives, convert to CBOR and then to diagnostic
+				const cborBytes = encode(parsed)
+				return diagnose(cborBytes)
+			} else {
+				return JSON.stringify(parsed, null, 2)
+			}
+		} catch {
+			// Not valid JSON, check if it's hex-encoded CBOR
+			if (isValidHex(text)) {
+				const cborResult = useDiagnostic
+					? decodeCborHexDiagnostic(text)
+					: decodeCborHex(text)
+				// Check if decoding succeeded
+				const errorPrefix = useDiagnostic
+					? '__CBOR_DIAGNOSTIC_ERROR__'
+					: '__CBOR_DECODE_ERROR__'
+				if (!cborResult.startsWith(errorPrefix)) {
+					return cborResult
+				}
+			}
+			// Neither JSON nor valid CBOR hex
+			return `(unrecognized CBOR format: ${safeTruncate(text, 100)})`
+		}
+	} catch (error) {
+		console.warn('CBOR data formatting failed:', error)
+		return `(CBOR formatting error: ${safeTruncate(text, 100)})`
 	}
 }

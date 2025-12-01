@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased 
 
+### Added
+
+- Added `RegisterData` transaction details display with CBOR decoded data.
+
+- Added a Pagination `Load More` button to load more plt activities on the plt specific page.
+
+### Fixed
+
+- Fix mis-alignment of plt token profile layout on long token names.
+
+- Fix bug when 7-day analytics charts on plt specific page do not load data properly on the first load.
+
+- Fixed the percentage for all total staked CCD in the validator details sidebar.
+
+- Fixed the incorrect display of transaction commission in the validator details sidebar. 
+
 ## [1.7.27] - 2025-10-30
 
 ### Added
