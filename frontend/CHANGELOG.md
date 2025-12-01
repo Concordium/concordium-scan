@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 
 - Added `RegisterData` transaction details display with CBOR decoded data.
 
+- Added a Pagination `Load More` button to load more plt activities on the plt specific page.
+
 ### Fixed
 
 - Fix mis-alignment of plt token profile layout on long token names.

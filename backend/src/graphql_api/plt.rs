@@ -171,6 +171,25 @@ impl QueryPltEvent {
                 .edges
                 .push(connection::Edge::new(tx.id.to_string(), tx));
         }
+        if let (Some(page_min), Some(page_max)) =
+            (connection.edges.last(), connection.edges.first())
+        {
+            let result = sqlx::query!(
+                "SELECT MAX(e.id) as max_id, MIN(e.id) as min_id 
+                FROM plt_events e
+                JOIN plt_tokens t ON e.token_index = t.index
+                WHERE t.token_id = $1",
+                token_id.to_string()
+            )
+            .fetch_one(pool)
+            .await?;
+            connection.has_next_page = result
+                .min_id
+                .is_some_and(|db_min| db_min < page_min.node.id);
+            connection.has_previous_page = result
+                .max_id
+                .is_some_and(|db_max| db_max > page_max.node.id);
+        }
         Ok(connection)
     }
 }
