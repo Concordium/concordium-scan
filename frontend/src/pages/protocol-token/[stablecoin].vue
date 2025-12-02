@@ -23,9 +23,11 @@
 								{{ dataTransferSummary?.stablecoin?.name }}
 							</p>
 						</div> -->
-						<div class="flex justify-between pt-4">
-							<p class="text-xl text-theme-faded">Name</p>
-							<p class="font-bold text-xl text-theme-interactive">
+						<div class="flex justify-between pt-4 gap-4">
+							<p class="text-xl text-theme-faded flex-shrink-0">Name</p>
+							<p
+								class="font-bold text-xl text-theme-interactive text-right break-words overflow-wrap-anywhere max-w-[60%]"
+							>
 								{{ pltTokenDataRef?.name }}
 							</p>
 						</div>
@@ -35,16 +37,18 @@
 								{{ pltTokenDataRef?.tokenId }}
 							</p>
 						</div>
-						<div class="flex justify-between pt-4">
-							<p class="text-xl text-theme-faded">Decimals</p>
-							<p class="font-bold text-xl text-theme-interactive">
+						<div class="flex justify-between pt-4 gap-4">
+							<p class="text-xl text-theme-faded flex-shrink-0">Decimals</p>
+							<p
+								class="font-bold text-xl text-theme-interactive text-right break-words overflow-wrap-anywhere max-w-[60%]"
+							>
 								{{ pltTokenDataRef?.decimal }}
 							</p>
 						</div>
-						<div class="flex justify-between pt-4">
-							<p class="text-xl text-theme-faded">Issuer</p>
+						<div class="flex justify-between pt-4 gap-4">
+							<p class="text-xl text-theme-faded flex-shrink-0">Issuer</p>
 							<p
-								class="font-bold text-xl text-theme-interactive flex flex-row items-center"
+								class="font-bold text-xl text-theme-interactive flex flex-row items-center text-right break-words overflow-wrap-anywhere max-w-[60%]"
 							>
 								<AccountLink :address="pltTokenDataRef?.issuer.asString" />
 							</p>
@@ -185,9 +189,13 @@
 								${{ dataTransferSummary?.stablecoin?.valueInDollar }}
 							</p>
 						</div> -->
-						<div class="flex justify-between pt-4">
-							<p class="text-xl text-theme-faded">Initial Supply</p>
-							<p class="font-bold text-xl text-theme-interactive">
+						<div class="flex justify-between pt-4 gap-4">
+							<p class="text-xl text-theme-faded flex-shrink-0">
+								Initial Supply
+							</p>
+							<p
+								class="font-bold text-xl text-theme-interactive text-right break-words overflow-wrap-anywhere max-w-[60%]"
+							>
 								<PltAmount
 									:value="(pltTokenDataRef?.initialSupply ?? 0).toString()"
 									:decimals="pltTokenDataRef?.decimal ?? 0"
@@ -195,9 +203,13 @@
 								/>
 							</p>
 						</div>
-						<div class="flex justify-between pt-4">
-							<p class="text-xl text-theme-faded">Current Supply</p>
-							<p class="font-bold text-xl text-theme-interactive">
+						<div class="flex justify-between pt-4 gap-4">
+							<p class="text-xl text-theme-faded flex-shrink-0">
+								Current Supply
+							</p>
+							<p
+								class="font-bold text-xl text-theme-interactive text-right break-words overflow-wrap-anywhere max-w-[60%]"
+							>
 								<PltAmount
 									:value="(pltTokenDataRef?.totalSupply ?? 0).toString()"
 									:decimals="pltTokenDataRef?.decimal ?? 0"
@@ -205,9 +217,11 @@
 								/>
 							</p>
 						</div>
-						<div class="flex justify-between pt-4">
-							<p class="text-xl text-theme-faded"># of Holders</p>
-							<p class="font-bold text-xl text-theme-interactive">
+						<div class="flex justify-between pt-4 gap-4">
+							<p class="text-xl text-theme-faded flex-shrink-0"># of Holders</p>
+							<p
+								class="font-bold text-xl text-theme-interactive text-right break-words overflow-wrap-anywhere max-w-[60%]"
+							>
 								{{ pltTokenDataRef?.totalUniqueHolders }}
 							</p>
 						</div>
