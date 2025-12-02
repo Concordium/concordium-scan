@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT name,\n                index,\n                token_id,\n                transaction_index,\n                issuer_index,\n                module_reference,\n                metadata as \"metadata: sqlx::types::Json<sqlx::types::JsonValue>\",\n                initial_supply,\n                total_minted,\n                total_burned,\n                normalized_current_supply::DOUBLE PRECISION AS normalized_current_supply,\n                decimal\n            FROM plt_tokens \n            WHERE $2 < index AND index < $1\n            ORDER BY \n                normalized_current_supply DESC,\n                CASE WHEN $3 THEN index END ASC,\n                CASE WHEN NOT $3 THEN index END DESC\n            LIMIT $4",
+  "query": "SELECT name,\n                index,\n                token_id,\n                transaction_index,\n                issuer_index,\n                module_reference,\n                metadata as \"metadata: sqlx::types::Json<sqlx::types::JsonValue>\",\n                initial_supply,\n                total_minted,\n                total_burned,\n                normalized_current_supply::DOUBLE PRECISION AS normalized_current_supply,\n                decimal\n            FROM (\n                SELECT *\n                FROM plt_tokens \n                WHERE $2 < index AND index < $1\n                ORDER BY \n                    CASE WHEN $3 THEN index END ASC,\n                    CASE WHEN NOT $3 THEN index END DESC\n                LIMIT $4\n            ) AS token_data\n            ORDER BY normalized_current_supply DESC",
   "describe": {
     "columns": [
       {
@@ -87,5 +87,5 @@
       false
     ]
   },
-  "hash": "3e697c28a1e582a1b86caa0d39340b85a0573d30eaafe35b4ce74120d7b16be5"
+  "hash": "b8a2c3e8a8ea2b85fe4092f86b635020d9cb62409f8501fcf93edcf9d1dc8e3c"
 }

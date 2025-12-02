@@ -368,13 +368,16 @@ impl QueryPlt {
                 total_burned,
                 normalized_current_supply::DOUBLE PRECISION AS normalized_current_supply,
                 decimal
-            FROM plt_tokens 
-            WHERE $2 < index AND index < $1
-            ORDER BY 
-                normalized_current_supply DESC,
-                CASE WHEN $3 THEN index END ASC,
-                CASE WHEN NOT $3 THEN index END DESC
-            LIMIT $4"#,
+            FROM (
+                SELECT *
+                FROM plt_tokens 
+                WHERE $2 < index AND index < $1
+                ORDER BY 
+                    CASE WHEN $3 THEN index END ASC,
+                    CASE WHEN NOT $3 THEN index END DESC
+                LIMIT $4
+            ) AS token_data
+            ORDER BY normalized_current_supply DESC"#,
             i64::from(query.from),
             i64::from(query.to),
             query.is_last,
@@ -382,25 +385,34 @@ impl QueryPlt {
         )
         .fetch(pool);
         let mut connection = connection::Connection::new(false, false);
+        let mut page_max_index = None;
+        let mut page_min_index = None;
+
         while let Some(token) = row_stream.try_next().await? {
+            page_max_index = Some(match page_max_index {
+                None => token.index,
+                Some(current_max) => std::cmp::max(current_max, token.index),
+            });
+
+            page_min_index = Some(match page_min_index {
+                None => token.index,
+                Some(current_min) => std::cmp::min(current_min, token.index),
+            });
+
             connection
                 .edges
                 .push(connection::Edge::new(token.index.to_string(), token));
         }
-        if let (Some(page_min), Some(page_max)) =
-            (connection.edges.last(), connection.edges.first())
-        {
+        if let (Some(page_min_id), Some(page_max_id)) = (page_min_index, page_max_index) {
             let result = sqlx::query!(
                 "SELECT MAX(index) as max_index, MIN(index) as min_index FROM plt_tokens"
             )
             .fetch_one(pool)
             .await?;
-            connection.has_next_page = result
-                .min_index
-                .is_some_and(|db_min| db_min < page_min.node.index);
-            connection.has_previous_page = result
-                .max_index
-                .is_some_and(|db_max| db_max > page_max.node.index);
+
+            connection.has_previous_page =
+                result.max_index.is_some_and(|db_max| db_max > page_max_id);
+            connection.has_next_page = result.min_index.is_some_and(|db_min| db_min < page_min_id);
         }
         Ok(connection)
     }

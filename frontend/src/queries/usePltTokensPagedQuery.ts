@@ -4,7 +4,8 @@ import type { QueryVariables } from '~/types/queryVariables'
 
 export type PltTokensPagedQueryResponse = {
 	pltTokens: {
-		nodes: PltToken[]
+		edges: PltToken[]
+
 		pageInfo: PageInfo
 	}
 }
@@ -12,7 +13,7 @@ export type PltTokensPagedQueryResponse = {
 const PLT_TOKENS_PAGED_QUERY = gql<PltTokensPagedQueryResponse>`
 	query ($after: String, $before: String, $first: Int, $last: Int) {
 		pltTokens(first: $first, last: $last, after: $after, before: $before) {
-			nodes {
+			edges {
 				name
 				tokenId
 				transactionHash
@@ -46,7 +47,7 @@ const PLT_TOKENS_PAGED_QUERY = gql<PltTokensPagedQueryResponse>`
 function getData(
 	value: PltTokensPagedQueryResponse | undefined | null
 ): PltToken[] {
-	return value?.pltTokens?.nodes ?? []
+	return value?.pltTokens?.edges ?? []
 }
 
 function getPageInfo(
