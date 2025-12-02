@@ -30,7 +30,7 @@
 							</p>
 						</div>
 						<div class="flex justify-between pt-4">
-							<p class="text-xl text-theme-faded">Symbol</p>
+							<p class="text-xl text-theme-faded">Token ID</p>
 							<p class="font-bold text-xl text-theme-interactive">
 								{{ pltTokenDataRef?.tokenId }}
 							</p>
