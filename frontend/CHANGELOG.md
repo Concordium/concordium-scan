@@ -12,6 +12,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Changed `Symbol` to `Token ID` in the all plt and plt specific pages.
+
 - Fixed mis-alignment of plt token profile layout on long token names.
 
 - Remove duplicate plt token symbol in the all plt list page.
