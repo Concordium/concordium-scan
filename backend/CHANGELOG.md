@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [2.0.23] - 2025-12-03
+
+### Fixed
+
+- Fixed pagination issue for the `plt_events_by_token_id` query.
+
 ## [2.0.22] - 2025-10-30
 
 Database schema version: 45
