@@ -40,7 +40,7 @@ impl PreparedValidatorPrimedForSuspension {
         )
         .execute(tx.as_mut())
         .await?
-        .ensure_affected_one_row()?;
+        .ensure_affected_rows_in_range(0..=1)?; // No row affected when validater/baker was removed.
         Ok(())
     }
 }
