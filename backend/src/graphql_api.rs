@@ -1042,6 +1042,15 @@ pub enum AccountStatementEntryType {
     TransactionFeeReward,
 }
 
+#[derive(Debug, Enum, Clone, Copy, Display, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "plt_account_statement_entry_type")]
+pub enum PltAccountStatementEntryType {
+    Mint,
+    Burn,
+    TransferIn,
+    TransferOut,
+}
+
 /// A sort direction, either ascending or descending.
 #[derive(Debug, Clone, Copy)]
 enum OrderDir {
