@@ -290,6 +290,8 @@ pub enum SchemaVersion {
     NormalizePltCumulativeTransferAmount,
     #[display("0045: Alter PLT tokens add current_supply column")]
     AlterPltTokensAddCurrentSupplyColumn,
+    #[display("0046: Alter transaction table to add sponsored transaction fields")]
+    AlterTxnAddSponsoredTxn,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -298,7 +300,7 @@ impl SchemaVersion {
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
         SchemaVersion::AlterPltTokensAddCurrentSupplyColumn;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::AlterPltTokensAddCurrentSupplyColumn;
+    const LATEST: SchemaVersion = SchemaVersion::AlterTxnAddSponsoredTxn;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -365,6 +367,7 @@ impl SchemaVersion {
             SchemaVersion::AddTokenModulePauseUnpauseStatus => false,
             SchemaVersion::NormalizePltCumulativeTransferAmount => false,
             SchemaVersion::AlterPltTokensAddCurrentSupplyColumn => false,
+            SchemaVersion::AlterTxnAddSponsoredTxn => false,
         }
     }
 
@@ -420,6 +423,7 @@ impl SchemaVersion {
             SchemaVersion::AddTokenModulePauseUnpauseStatus => false,
             SchemaVersion::NormalizePltCumulativeTransferAmount => false,
             SchemaVersion::AlterPltTokensAddCurrentSupplyColumn => false,
+            SchemaVersion::AlterTxnAddSponsoredTxn => false,
         }
     }
 
@@ -734,7 +738,15 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::AlterPltTokensAddCurrentSupplyColumn
             }
-            SchemaVersion::AlterPltTokensAddCurrentSupplyColumn => unimplemented!(
+            SchemaVersion::AlterPltTokensAddCurrentSupplyColumn => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0046-alter-txn-add-sponsored-txn.sql"
+                    )))
+                    .await?;
+                SchemaVersion::AlterTxnAddSponsoredTxn
+            }
+            SchemaVersion::AlterTxnAddSponsoredTxn => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),

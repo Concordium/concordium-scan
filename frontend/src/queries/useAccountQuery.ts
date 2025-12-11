@@ -147,6 +147,9 @@ transactions(
 			senderAccountAddress {
 				asString
 			}
+			sponsorAccountAddress {
+				asString
+			}	
 			ccdCost
 			block {
 				blockSlotTime
@@ -208,6 +211,9 @@ releaseSchedule {
 				senderAccountAddress {
 					asString
 				}
+				sponsorAccountAddress {
+					asString
+				}	
 				ccdCost
 				block {
 					blockSlotTime

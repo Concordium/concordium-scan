@@ -7,6 +7,7 @@
 					<TableTh>Type</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.LG">Age</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.XXL">Sender</TableTh>
+					<TableTh v-if="breakpoint >= Breakpoint.XXL">Sponsor</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.XXL" align="right">
 						Cost (Ͼ)
 					</TableTh>
@@ -25,12 +26,19 @@
 						/>
 					</TableTd>
 					<TableTd>
-						<div class="whitespace-normal">
-							{{
-								translateTransactionType(
-									accountTxRelation.transaction.transactionType
-								)
-							}}
+						<div class="flex items-center gap-2 whitespace-normal">
+							<span>
+								{{
+									translateTransactionType(
+										accountTxRelation.transaction.transactionType
+									)
+								}}
+							</span>
+							<SponsorIcon
+								v-if="accountTxRelation.transaction.sponsorAccountAddress"
+								:glow-on="true"
+								class="flex-shrink-0"
+							/>
 						</div>
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.LG">
@@ -56,6 +64,14 @@
 							"
 						/>
 					</TableTd>
+					<TableTd v-if="breakpoint >= Breakpoint.XXL" class="numerical">
+						<AccountLink
+							v-if="accountTxRelation.transaction.sponsorAccountAddress"
+							:address="
+								accountTxRelation.transaction.sponsorAccountAddress.asString
+							"
+						/>
+					</TableTd>
 					<TableTd
 						v-if="breakpoint >= Breakpoint.XXL"
 						align="right"
@@ -76,6 +92,7 @@
 
 <script lang="ts" setup>
 import Tooltip from '~/components/atoms/Tooltip.vue'
+import SponsorIcon from '~/components/icons/SponsorIcon.vue'
 import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'

@@ -9,6 +9,7 @@ const translations = {
 		FOUNDATION_REWARD: 'Reward',
 		TRANSACTION_FEE: 'Fee',
 		TRANSACTION_FEE_REWARD: 'Reward',
+		SPONSORED_TRANSACTION_FEE: 'Sponsored Fee',
 		TRANSFER_IN: 'Transfer',
 		TRANSFER_OUT: 'Transfer',
 		UNKNOWN: 'Unknown',

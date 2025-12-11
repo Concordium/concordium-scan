@@ -25,6 +25,12 @@
 						transaction.result.__typename === 'Success' ? 'Success' : 'Rejected'
 					}}
 				</Badge>
+
+				<SponsorIcon
+					v-if="transaction.sponsorAccountAddress"
+					:glow-on="true"
+					class="ml-3 w-6 h-6 text-theme-green"
+				/>
 			</div>
 		</div>
 	</DrawerTitle>
@@ -32,6 +38,7 @@
 
 <script lang="ts" setup>
 import TransactionIcon from '~/components/icons/TransactionIcon.vue'
+import SponsorIcon from '~/components/icons/SponsorIcon.vue'
 import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
 import Badge from '~/components/Badge.vue'
 import TextCopy from '~/components/atoms/TextCopy.vue'

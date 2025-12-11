@@ -671,6 +671,9 @@ const TransactionQuery = gql<TransactionResponse>`
 			senderAccountAddress {
 				asString
 			}
+			sponsorAccountAddress {
+				asString
+			}		
 			block {
 				id
 				blockHash
@@ -723,6 +726,9 @@ const TransactionQueryByHash = gql<TransactionByTransactionHashResponse>`
 			senderAccountAddress {
 				asString
 			}
+			sponsorAccountAddress {
+				asString
+			}	
 			block {
 				id
 				blockHash

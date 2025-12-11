@@ -37,6 +37,9 @@
 					<TableTh v-if="breakpoint >= Breakpoint.XL" width="10%">
 						Sender
 					</TableTh>
+					<TableTh v-if="breakpoint >= Breakpoint.XL" width="10%">
+						Sponsor
+					</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.LG" width="10%" align="right">
 						Cost (Ͼ)
 					</TableTh>
@@ -66,8 +69,15 @@
 						</Tooltip>
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.MD">
-						<div class="whitespace-normal">
-							{{ translateTransactionType(transaction.transactionType) }}
+						<div class="flex items-center gap-2">
+							<span class="whitespace-normal">
+								{{ translateTransactionType(transaction.transactionType) }}
+							</span>
+							<SponsorIcon
+								v-if="transaction.sponsorAccountAddress"
+								:glow-on="true"
+								class="flex-shrink-0"
+							/>
 						</div>
 					</TableTd>
 					<TableTd class="numerical">
@@ -76,6 +86,11 @@
 					<TableTd v-if="breakpoint >= Breakpoint.XL" class="numerical">
 						<AccountLink
 							:address="transaction.senderAccountAddress?.asString"
+						/>
+					</TableTd>
+					<TableTd v-if="breakpoint >= Breakpoint.XL" class="numerical">
+						<AccountLink
+							:address="transaction.sponsorAccountAddress?.asString"
 						/>
 					</TableTd>
 					<TableTd

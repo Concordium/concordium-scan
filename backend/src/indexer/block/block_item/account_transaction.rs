@@ -39,6 +39,8 @@ pub struct PreparedAccountTransaction {
     /// Update the balance of the sender account with the cost (transaction
     /// fee).
     fee: PreparedUpdateAccountBalance,
+    /// Update balance of the sponsored account if applicable.
+    sponsor_fee: Option<PreparedUpdateAccountBalance>,
     /// Updates based on the events of the account transaction.
     event: PreparedEventEnvelope,
 }
@@ -57,6 +59,16 @@ impl PreparedAccountTransaction {
             data.block_info.block_height,
             AccountStatementEntryType::TransactionFee,
         )?;
+        let sponsor_fee = if let Some(sponsor_details) = &details.sponsor {
+            Some(PreparedUpdateAccountBalance::prepare(
+                &sponsor_details.sponsor,
+                -i64::try_from(sponsor_details.cost.micro_ccd())?,
+                data.block_info.block_height,
+                AccountStatementEntryType::SponsoredTransactionFee,
+            )?)
+        } else {
+            None
+        };
         let event = PreparedEventEnvelope::prepare(
             node_client,
             data,
@@ -66,7 +78,11 @@ impl PreparedAccountTransaction {
             statistics,
         )
         .await?;
-        Ok(Self { fee, event })
+        Ok(Self {
+            fee,
+            sponsor_fee,
+            event,
+        })
     }
 
     pub async fn save(
@@ -76,6 +92,9 @@ impl PreparedAccountTransaction {
         slot_time: DateTime<Utc>,
     ) -> anyhow::Result<()> {
         self.fee.save(tx, Some(transaction_index)).await?;
+        if let Some(sponsor_fee) = &self.sponsor_fee {
+            sponsor_fee.save(tx, Some(transaction_index)).await?;
+        }
         self.event.save(tx, transaction_index, slot_time).await
     }
 }

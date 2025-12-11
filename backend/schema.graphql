@@ -274,6 +274,7 @@ enum AccountStatementEntryType {
 	FOUNDATION_REWARD
 	BAKER_REWARD
 	TRANSACTION_FEE_REWARD
+	SPONSORED_TRANSACTION_FEE
 }
 
 type AccountToken {
@@ -2756,6 +2757,7 @@ type Transaction {
 	energyCost: Int!
 	block: Block!
 	senderAccountAddress: AccountAddress
+	sponsorAccountAddress: AccountAddress
 	transactionType: TransactionType!
 	result: TransactionResult!
 }
