@@ -37,9 +37,6 @@
 					<TableTh v-if="breakpoint >= Breakpoint.XL" width="10%">
 						Sender
 					</TableTh>
-					<TableTh v-if="breakpoint >= Breakpoint.XL" width="10%">
-						Sponsor
-					</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.LG" width="10%" align="right">
 						Cost (Ͼ)
 					</TableTh>
@@ -86,11 +83,6 @@
 					<TableTd v-if="breakpoint >= Breakpoint.XL" class="numerical">
 						<AccountLink
 							:address="transaction.senderAccountAddress?.asString"
-						/>
-					</TableTd>
-					<TableTd v-if="breakpoint >= Breakpoint.XL" class="numerical">
-						<AccountLink
-							:address="transaction.sponsorAccountAddress?.asString"
 						/>
 					</TableTd>
 					<TableTd

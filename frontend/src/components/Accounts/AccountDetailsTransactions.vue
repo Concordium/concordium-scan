@@ -7,7 +7,6 @@
 					<TableTh>Type</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.LG">Age</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.XXL">Sender</TableTh>
-					<TableTh v-if="breakpoint >= Breakpoint.XXL">Sponsor</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.XXL" align="right">
 						Cost (Ͼ)
 					</TableTh>
@@ -61,14 +60,6 @@
 						<AccountLink
 							:address="
 								accountTxRelation.transaction.senderAccountAddress?.asString
-							"
-						/>
-					</TableTd>
-					<TableTd v-if="breakpoint >= Breakpoint.XXL" class="numerical">
-						<AccountLink
-							v-if="accountTxRelation.transaction.sponsorAccountAddress"
-							:address="
-								accountTxRelation.transaction.sponsorAccountAddress.asString
 							"
 						/>
 					</TableTd>
