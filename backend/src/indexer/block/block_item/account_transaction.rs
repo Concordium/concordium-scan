@@ -39,7 +39,7 @@ pub struct PreparedAccountTransaction {
     /// Update the balance of the sender account with the cost (transaction
     /// fee).
     fee: PreparedUpdateAccountBalance,
-    /// Update balance of the sponsored account if applicable.
+    /// Update balance of the sponsor account if applicable.
     sponsor_fee: Option<PreparedUpdateAccountBalance>,
     /// Updates based on the events of the account transaction.
     event: PreparedEventEnvelope,

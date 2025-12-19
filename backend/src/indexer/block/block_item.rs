@@ -47,12 +47,11 @@ pub struct PreparedBlockItem {
     /// Base58check representation of the account address which signed the
     /// block, none for update and credential deployments.
     sender: Option<String>,
-    // /// Base58check representation of the account address which sponsored the
-    // /// block, none for update and credential deployments.
+    /// Base58check representation of the account address which sponsored the
+    /// block item, none for update and credential deployments.
     sponsor: Option<String>,
-
+    /// Cost for the account sponsoring the block item (in microCCD).
     sponsor_ccd_cost: Option<i64>,
-
     /// Whether the block item is an account transaction, update or credential
     /// deployment.
     transaction_type: DbTransactionType,
