@@ -22,6 +22,9 @@ nodes {
 	senderAccountAddress {
 		asString
 	}
+	sponsorAccountAddress {
+		asString
+	}
 	ccdCost
 	result {
 		__typename

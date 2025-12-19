@@ -1040,6 +1040,7 @@ pub enum AccountStatementEntryType {
     FoundationReward,
     BakerReward,
     TransactionFeeReward,
+    SponsoredTransactionFee,
 }
 
 /// A sort direction, either ascending or descending.

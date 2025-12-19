@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO transactions (\n                index,\n                hash,\n                ccd_cost,\n                energy_cost,\n                block_height,\n                sender_index,\n                type,\n                type_account,\n                type_credential_deployment,\n                type_update,\n                success,\n                events,\n                reject\n            ) VALUES (\n                (SELECT COALESCE(MAX(index) + 1, 0) FROM transactions),\n                $1,\n                $2,\n                $3,\n                $4,\n                (SELECT index FROM accounts WHERE address = $5),\n                $6,\n                $7,\n                $8,\n                $9,\n                $10,\n                $11,\n                $12\n            ) RETURNING index",
+  "query": "INSERT INTO transactions (\n                index,\n                hash,\n                ccd_cost,\n                energy_cost,\n                block_height,\n                sender_index,\n                sponsor_index,\n                sponsored_ccd_cost,\n                type,\n                type_account,\n                type_credential_deployment,\n                type_update,\n                success,\n                events,\n                reject\n            ) VALUES (\n                (SELECT COALESCE(MAX(index) + 1, 0) FROM transactions),\n                $1,\n                $2,\n                $3,\n                $4,\n                (SELECT index FROM accounts WHERE address = $5),\n                (SELECT index FROM accounts WHERE address = $6),\n                $7,\n                $8,\n                $9,\n                $10,\n                $11,\n                $12,\n                $13,\n                $14\n            ) RETURNING index",
   "describe": {
     "columns": [
       {
@@ -16,6 +16,8 @@
         "Int8",
         "Int8",
         "Text",
+        "Text",
+        "Int8",
         {
           "Custom": {
             "name": "transaction_type",
@@ -113,5 +115,5 @@
       false
     ]
   },
-  "hash": "d93facff216297d1136309f1247d0afdfc8018cdb149a5ad808a10e91e108bb8"
+  "hash": "48b398793199197edfc359135e17cc5e0f044d30ab95fff0731424c792abbe8c"
 }

@@ -47,6 +47,11 @@ pub struct PreparedBlockItem {
     /// Base58check representation of the account address which signed the
     /// block, none for update and credential deployments.
     sender: Option<String>,
+    /// Base58check representation of the account address which sponsored the
+    /// block item, none for update and credential deployments.
+    sponsor: Option<String>,
+    /// Cost for the account sponsoring the block item (in microCCD).
+    sponsor_ccd_cost: Option<i64>,
     /// Whether the block item is an account transaction, update or credential
     /// deployment.
     transaction_type: DbTransactionType,
@@ -99,44 +104,76 @@ impl PreparedBlockItem {
 
         let energy_cost = i64::try_from(item_summary.energy_cost.energy)?;
         let sender = item_summary.sender_account().map(|a| a.to_string());
-        let (transaction_type, account_type, credential_type, update_type) =
-            match item_summary.details.as_ref().known_or_err()? {
-                BlockItemSummaryDetails::AccountTransaction(details) => {
-                    let transaction_type = details
-                        .transaction_type()
-                        .map(|tx| tx.map(AccountTransactionType::from).known_or_err())
-                        .transpose()?;
-                    (DbTransactionType::Account, transaction_type, None, None)
-                }
-                BlockItemSummaryDetails::AccountCreation(details) => {
-                    let credential_type =
-                        CredentialDeploymentTransactionType::from(details.credential_type);
-                    (
-                        DbTransactionType::CredentialDeployment,
-                        None,
-                        Some(credential_type),
-                        None,
-                    )
-                }
-                BlockItemSummaryDetails::Update(details) => {
-                    let update_type =
-                        UpdateTransactionType::from(details.update_type().known_or_err()?);
-                    (DbTransactionType::Update, None, None, Some(update_type))
-                }
-                BlockItemSummaryDetails::TokenCreationDetails(_token_creation_details) => (
+
+        let (
+            transaction_type,
+            account_type,
+            credential_type,
+            update_type,
+            sponsor,
+            sponsor_ccd_cost,
+        ) = match item_summary.details.as_ref().known_or_err()? {
+            BlockItemSummaryDetails::AccountTransaction(details) => {
+                let transaction_type = details
+                    .transaction_type()
+                    .map(|tx| tx.map(AccountTransactionType::from).known_or_err())
+                    .transpose()?;
+                let sponsor_details = details.sponsor.clone();
+                let sponsor = sponsor_details.as_ref().map(|s| s.sponsor.to_string());
+                let sponsor_ccd_cost = sponsor_details
+                    .as_ref()
+                    .map(|s| i64::try_from(s.cost.micro_ccd()))
+                    .transpose()?;
+                (
+                    DbTransactionType::Account,
+                    transaction_type,
+                    None,
+                    None,
+                    sponsor,
+                    sponsor_ccd_cost,
+                )
+            }
+            BlockItemSummaryDetails::AccountCreation(details) => {
+                let credential_type =
+                    CredentialDeploymentTransactionType::from(details.credential_type);
+                (
+                    DbTransactionType::CredentialDeployment,
+                    None,
+                    Some(credential_type),
+                    None,
+                    None,
+                    None,
+                )
+            }
+            BlockItemSummaryDetails::Update(details) => {
+                let update_type =
+                    UpdateTransactionType::from(details.update_type().known_or_err()?);
+                (
                     DbTransactionType::Update,
                     None,
                     None,
-                    Some(UpdateTransactionType::CreatePltUpdate),
-                ),
-            };
+                    Some(update_type),
+                    None,
+                    None,
+                )
+            }
+            BlockItemSummaryDetails::TokenCreationDetails(_token_creation_details) => (
+                DbTransactionType::Update,
+                None,
+                None,
+                Some(UpdateTransactionType::CreatePltUpdate),
+                None,
+                None,
+            ),
+        };
 
         let success = item_summary.is_success().known_or_err()?;
         let (events, reject) = if success {
-            let events = serde_json::to_value(transaction_event::events_from_summary(
-                item_summary.details.as_ref().known_or_err()?.clone(),
-                data.block_info.block_slot_time,
-            )?)?;
+            let events: serde_json::Value =
+                serde_json::to_value(transaction_event::events_from_summary(
+                    item_summary.details.as_ref().known_or_err()?.clone(),
+                    data.block_info.block_slot_time,
+                )?)?;
             (Some(events), None)
         } else {
             let reject =
@@ -181,6 +218,8 @@ impl PreparedBlockItem {
             reject,
             affected_accounts,
             prepared_event,
+            sponsor,
+            sponsor_ccd_cost,
         })
     }
 
@@ -203,6 +242,8 @@ impl PreparedBlockItem {
                 energy_cost,
                 block_height,
                 sender_index,
+                sponsor_index,
+                sponsored_ccd_cost,
                 type,
                 type_account,
                 type_credential_deployment,
@@ -217,19 +258,23 @@ impl PreparedBlockItem {
                 $3,
                 $4,
                 (SELECT index FROM accounts WHERE address = $5),
-                $6,
+                (SELECT index FROM accounts WHERE address = $6),
                 $7,
                 $8,
                 $9,
                 $10,
                 $11,
-                $12
+                $12,
+                $13,
+                $14
             ) RETURNING index",
             self.block_item_hash,
             self.ccd_cost,
             self.energy_cost,
             self.block_height,
             self.sender,
+            self.sponsor,
+            self.sponsor_ccd_cost,
             self.transaction_type as DbTransactionType,
             self.account_type as Option<AccountTransactionType>,
             self.credential_type as Option<CredentialDeploymentTransactionType>,

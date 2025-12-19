@@ -34,7 +34,8 @@
                 "FinalizationReward",
                 "FoundationReward",
                 "BakerReward",
-                "TransactionFeeReward"
+                "TransactionFeeReward",
+                "SponsoredTransactionFee"
               ]
             }
           }

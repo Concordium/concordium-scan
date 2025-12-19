@@ -75,6 +75,14 @@
 							"
 							class="h-4 text-theme-white inline align-text-top"
 						/>
+						<SponsorIcon
+							v-else-if="
+								accountStatementItem.entryType ===
+								AccountStatementEntryType.SponsoredTransactionFee
+							"
+							:glow-on="true"
+							class="h-4 text-theme-white inline align-text-top"
+						/>
 						<Tooltip
 							v-if="
 								accountStatementItem.entryType ===

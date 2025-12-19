@@ -23,6 +23,9 @@ const BlockSubscription = gql<Subscription>`
 					senderAccountAddress {
 						asString
 					}
+					sponsorAccountAddress {
+						asString
+					}
 					block {
 						blockHeight
 						blockSlotTime

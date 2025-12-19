@@ -77,6 +77,7 @@ impl QueryTransactions {
                     ccd_cost,
                     energy_cost,
                     sender_index,
+                    sponsor_index,
                     type as "tx_type: DbTransactionType",
                     type_account as "type_account: AccountTransactionType",
                     type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
@@ -128,6 +129,7 @@ pub struct Transaction {
     pub ccd_cost: i64,
     pub energy_cost: Energy,
     pub sender_index: Option<AccountIndex>,
+    pub sponsor_index: Option<AccountIndex>,
     pub tx_type: DbTransactionType,
     pub type_account: Option<AccountTransactionType>,
     pub type_credential_deployment: Option<CredentialDeploymentTransactionType>,
@@ -148,6 +150,7 @@ impl Transaction {
                 ccd_cost,
                 energy_cost,
                 sender_index,
+                sponsor_index,
                 type as "tx_type: DbTransactionType",
                 type_account as "type_account: AccountTransactionType",
                 type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
@@ -178,6 +181,7 @@ impl Transaction {
                 ccd_cost,
                 energy_cost,
                 sender_index,
+                sponsor_index,
                 type as "tx_type: DbTransactionType",
                 type_account as "type_account: AccountTransactionType",
                 type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
@@ -227,6 +231,19 @@ impl Transaction {
         ctx: &Context<'a>,
     ) -> ApiResult<Option<AccountAddress>> {
         let Some(account_index) = self.sender_index else {
+            return Ok(None);
+        };
+        let result = sqlx::query!("SELECT address FROM accounts WHERE index=$1", account_index)
+            .fetch_one(get_pool(ctx)?)
+            .await?;
+        Ok(Some(result.address.into()))
+    }
+
+    async fn sponsor_account_address<'a>(
+        &self,
+        ctx: &Context<'a>,
+    ) -> ApiResult<Option<AccountAddress>> {
+        let Some(account_index) = self.sponsor_index else {
             return Ok(None);
         };
         let result = sqlx::query!("SELECT address FROM accounts WHERE index=$1", account_index)

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                index,\n                block_height,\n                hash,\n                ccd_cost,\n                energy_cost,\n                sender_index,\n                type as \"tx_type: DbTransactionType\",\n                type_account as \"type_account: AccountTransactionType\",\n                type_credential_deployment as \"type_credential_deployment: CredentialDeploymentTransactionType\",\n                type_update as \"type_update: UpdateTransactionType\",\n                success,\n                events as \"events: sqlx::types::Json<Vec<Event>>\",\n                reject as \"reject: sqlx::types::Json<TransactionRejectReason>\"\n            FROM transactions\n            WHERE hash = $1",
+  "query": "SELECT\n                index,\n                block_height,\n                hash,\n                ccd_cost,\n                energy_cost,\n                sender_index,\n                sponsor_index,\n                type as \"tx_type: DbTransactionType\",\n                type_account as \"type_account: AccountTransactionType\",\n                type_credential_deployment as \"type_credential_deployment: CredentialDeploymentTransactionType\",\n                type_update as \"type_update: UpdateTransactionType\",\n                success,\n                events as \"events: sqlx::types::Json<Vec<Event>>\",\n                reject as \"reject: sqlx::types::Json<TransactionRejectReason>\"\n            FROM transactions\n            WHERE index = $1",
   "describe": {
     "columns": [
       {
@@ -35,6 +35,11 @@
       },
       {
         "ordinal": 6,
+        "name": "sponsor_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
         "name": "tx_type: DbTransactionType",
         "type_info": {
           "Custom": {
@@ -50,7 +55,7 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "type_account: AccountTransactionType",
         "type_info": {
           "Custom": {
@@ -85,7 +90,7 @@
         }
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "type_credential_deployment: CredentialDeploymentTransactionType",
         "type_info": {
           "Custom": {
@@ -100,7 +105,7 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "type_update: UpdateTransactionType",
         "type_info": {
           "Custom": {
@@ -138,24 +143,24 @@
         }
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "success",
         "type_info": "Bool"
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "events: sqlx::types::Json<Vec<Event>>",
         "type_info": "Jsonb"
       },
       {
-        "ordinal": 12,
+        "ordinal": 13,
         "name": "reject: sqlx::types::Json<TransactionRejectReason>",
         "type_info": "Jsonb"
       }
     ],
     "parameters": {
       "Left": [
-        "Text"
+        "Int8"
       ]
     },
     "nullable": [
@@ -164,6 +169,7 @@
       false,
       false,
       false,
+      true,
       true,
       false,
       true,
@@ -174,5 +180,5 @@
       true
     ]
   },
-  "hash": "5ce92748173d987a60a1a5d84c1e07cb414b0924871ae1caf6b8db9c0c7b3f2e"
+  "hash": "e875e6f3724d3826805db8d7386363c52d888be3f5248e11bd3e33c015fd8538"
 }

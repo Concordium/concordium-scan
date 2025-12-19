@@ -25,12 +25,19 @@
 						/>
 					</TableTd>
 					<TableTd>
-						<div class="whitespace-normal">
-							{{
-								translateTransactionType(
-									accountTxRelation.transaction.transactionType
-								)
-							}}
+						<div class="flex items-center gap-2 whitespace-normal">
+							<span>
+								{{
+									translateTransactionType(
+										accountTxRelation.transaction.transactionType
+									)
+								}}
+							</span>
+							<SponsorIcon
+								v-if="accountTxRelation.transaction.sponsorAccountAddress"
+								:glow-on="true"
+								class="flex-shrink-0"
+							/>
 						</div>
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.LG">
@@ -76,6 +83,7 @@
 
 <script lang="ts" setup>
 import Tooltip from '~/components/atoms/Tooltip.vue'
+import SponsorIcon from '~/components/icons/SponsorIcon.vue'
 import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'

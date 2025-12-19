@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+Database schema version: 46
+
+### Added
+
+- Sponsord Transactions support: Added indexing and GraphQL API support for sponsored transactions.
+
 ## [2.0.24] - 2025-12-04
 
 ### Fixed
