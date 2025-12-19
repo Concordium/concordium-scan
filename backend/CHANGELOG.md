@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [2.0.25] - 2025-12-19
+
 Database schema version: 46
 
 ### Added
