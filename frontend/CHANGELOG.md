@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased 
 
+## [1.7.29] - 2025-12-19
+
+### Added
+
+- Added support for sponsored transactions in the explorer UI, including display of sponsor.
+
 ## [1.7.28] - 2025-12-03
 
 ### Added
