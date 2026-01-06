@@ -80,7 +80,7 @@
 								accountStatementItem.entryType ===
 								AccountStatementEntryType.SponsoredTransactionFee
 							"
-							:glow-on="true"
+							:glow-on="false"
 							class="h-4 text-theme-white inline align-text-top"
 						/>
 						<Tooltip
@@ -100,15 +100,15 @@
 								translateAccountStatementEntryType(
 									accountStatementItem.entryType
 								)
-							}}</span></Tooltip
-						>
+							}}</span>
+						</Tooltip>
 
 						<span v-else-if="breakpoint >= Breakpoint.LG" class="pl-2">{{
 							translateAccountStatementEntryType(accountStatementItem.entryType)
 						}}</span>
 					</TableTd>
-					<TableTd v-if="breakpoint >= Breakpoint.XL"
-						><TransactionLink
+					<TableTd v-if="breakpoint >= Breakpoint.XL">
+						<TransactionLink
 							v-if="accountStatementItem.reference.__typename === 'Transaction'"
 							:hash="accountStatementItem.reference.transactionHash"
 						/>
