@@ -9,7 +9,7 @@
 						<Tooltip
 							:text="`${formatNumbers(
 								baker.state.pool.totalStakePercentage
-							)}% of all CCD in existence`"
+							)}% of all staked CCD`"
 							class="text-theme-white"
 						>
 							<Amount
