@@ -677,6 +677,7 @@ impl QueryPltAccountAmount {
             FROM plt_accounts pa
             JOIN plt_tokens pt ON pa.token_index = pt.index
             WHERE pt.token_id = $1
+              AND COALESCE(pa.amount, 0) > 0
               AND (
                   (COALESCE(pa.amount, 0) > $3 AND COALESCE(pa.amount, 0) < $2)
                   OR ($2 != $3 AND (
@@ -725,7 +726,7 @@ impl QueryPltAccountAmount {
                             COALESCE(amount, 0) AS start_amount
                         FROM plt_accounts pa
                         JOIN plt_tokens pt ON pa.token_index = pt.index
-                        WHERE pt.token_id = $1
+                        WHERE pt.token_id = $1 AND COALESCE(pa.amount, 0) > 0
                         ORDER BY COALESCE(amount, 0) DESC, account_index DESC
                         LIMIT 1
                     ),
@@ -735,7 +736,7 @@ impl QueryPltAccountAmount {
                             COALESCE(amount, 0) AS end_amount
                         FROM plt_accounts pa
                         JOIN plt_tokens pt ON pa.token_index = pt.index
-                        WHERE pt.token_id = $1
+                        WHERE pt.token_id = $1 AND COALESCE(pa.amount, 0) > 0
                         ORDER BY COALESCE(amount, 0) ASC, account_index ASC
                         LIMIT 1
                     )
@@ -838,7 +839,7 @@ impl PltAccountAmount {
                 amount,
                 decimal
             FROM plt_accounts
-            WHERE token_index = $1"#,
+            WHERE token_index = $1 AND COALESCE(amount, 0) > 0"#,
             token.index
         )
         .fetch_all(pool)
