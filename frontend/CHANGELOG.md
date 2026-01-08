@@ -2,7 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased 
+## Unreleased
+
+## [1.7.30] - 2026-01-08
+
+### Fixed
+
+- Updated sponsored transaction icon.
+
+- Fixed tooltip percentage is for staked CCD in validator details sidebar.
 
 ## [1.7.29] - 2025-12-19
 
