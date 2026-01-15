@@ -255,8 +255,8 @@ const pageSize = 10
 const maxPageSize = 20
 const { pagedData, first, last, after, before, addPagedData, loadMore } =
 	usePagedData<PltEvent>([], pageSize, maxPageSize)
-const pltTokenPageSize = 100
-const pltTokenMaxPageSize = 100
+const pltTokenPageSize = 200
+const pltTokenMaxPageSize = 200
 const {
 	first: pltTokenFirst,
 	last: pltTokenLast,

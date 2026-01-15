@@ -1,6 +1,20 @@
 import { useQuery, gql } from '@urql/vue'
-import type { PltToken, PageInfo } from '~/types/generated'
-import type { QueryVariables } from '~/types/queryVariables'
+import type {
+	PltToken,
+	PageInfo,
+	PltTokenSort,
+	PltTokenFilterInput,
+} from '~/types/generated'
+import type { Ref } from 'vue'
+
+export type PltTokensQueryVariables = {
+	after: Ref<string | null | undefined>
+	before: Ref<string | null | undefined>
+	first: Ref<number | undefined>
+	last: Ref<number | undefined>
+	sort?: Ref<PltTokenSort>
+	filter?: Ref<PltTokenFilterInput | undefined>
+}
 
 export type PltTokensPagedQueryResponse = {
 	pltTokens: {
@@ -10,8 +24,22 @@ export type PltTokensPagedQueryResponse = {
 }
 
 const PLT_TOKENS_PAGED_QUERY = gql<PltTokensPagedQueryResponse>`
-	query ($after: String, $before: String, $first: Int, $last: Int) {
-		pltTokens(first: $first, last: $last, after: $after, before: $before) {
+	query (
+		$after: String
+		$before: String
+		$first: Int
+		$last: Int
+		$sort: PltTokenSort
+		$filter: PltTokenFilterInput
+	) {
+		pltTokens(
+			first: $first
+			last: $last
+			after: $after
+			before: $before
+			sort: $sort
+			filter: $filter
+		) {
 			nodes {
 				name
 				tokenId
@@ -55,7 +83,9 @@ function getPageInfo(
 	return value?.pltTokens?.pageInfo ?? null
 }
 
-export const usePltTokensPagedQuery = (eventsVariables?: QueryVariables) => {
+export const usePltTokensPagedQuery = (
+	eventsVariables?: PltTokensQueryVariables
+) => {
 	const { data, fetching, error } = useQuery({
 		query: PLT_TOKENS_PAGED_QUERY,
 		requestPolicy: 'cache-and-network',

@@ -1,0 +1,43 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n                        min_token as (\n                            SELECT index,\n                                CASE\n                                    WHEN $2 THEN index\n                                    WHEN $3 THEN normalized_current_supply\n                                ELSE NULL\n                            END AS min_value\n                            FROM plt_tokens\n                            WHERE\n                                (NOT $1 OR paused = $4)\n                            ORDER BY min_value ASC, index ASC\n                            LIMIT 1\n                        ),\n                        max_token as (\n                            SELECT\n                                index,\n                                CASE\n                                    WHEN $2 THEN index\n                                    WHEN $3 THEN normalized_current_supply\n                                ELSE NULL\n                                END AS max_value\n                            FROM plt_tokens\n                            WHERE\n                                (NOT $1 OR paused = $4)\n                            ORDER BY max_value DESC, index DESC\n                            LIMIT 1\n                        )\n                    SELECT\n                        min_token.index AS min_index,\n                        min_token.min_value AS min_value,\n                        max_token.index AS max_index,\n                        max_token.max_value AS max_value\n                    FROM min_token, max_token",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "min_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "min_value",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 2,
+        "name": "max_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "max_value",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false,
+      null
+    ]
+  },
+  "hash": "bf1d8101e885dd45690fceea37bce50d539e4adb595fc7d904cabfbce2366aca"
+}
