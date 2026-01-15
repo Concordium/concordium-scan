@@ -3,32 +3,38 @@
 		<Title>CCDScan | All Protocol Level Tokens</Title>
 
 		<div class="mb-8">
-			<header class="flex justify-between items-center mb-6">
-				<div>
-					<h1 class="text-2xl font-bold">All Protocol Level Tokens</h1>
-					<p class="text-theme-text-secondary mt-1">
-						List of all available tokens on the network
-					</p>
+			<header class="mb-6">
+				<div class="flex justify-between items-center">
+					<div>
+						<h1 class="text-2xl font-bold">All Protocol Level Tokens</h1>
+						<p class="text-theme-text-secondary mt-1">
+							List of all available tokens on the network
+						</p>
+					</div>
+					<div class="flex gap-2">
+						<NuxtLink
+							to="/protocol-token"
+							class="text-sm text-theme-text-secondary hover:text-theme-interactive transition-colors duration-200 flex items-center gap-1"
+						>
+							<svg
+								class="w-4 h-4"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M15 19l-7-7 7-7"
+								></path>
+							</svg>
+							<span>Back to Overview</span>
+						</NuxtLink>
+						<PltTokenFilterSelect v-model="pausedFilter" />
+						<PltTokenSortSelect v-model="sortOption" />
+					</div>
 				</div>
-				<NuxtLink
-					to="/protocol-token"
-					class="text-sm text-theme-text-secondary hover:text-theme-interactive transition-colors duration-200 flex items-center gap-1"
-				>
-					<svg
-						class="w-4 h-4"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M15 19l-7-7 7-7"
-						></path>
-					</svg>
-					<span>Back to Overview</span>
-				</NuxtLink>
 			</header>
 
 			<!-- Tokens List -->
@@ -152,19 +158,38 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { usePltTokensPagedQuery } from '~/queries/usePltTokensPagedQuery'
 import { usePagination } from '~/composables/usePagination'
 import { useDateNow } from '~/composables/useDateNow'
 import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
+import { PltTokenSort } from '~/types/generated'
+import PltTokenSortSelect from '~/components/molecules/PltTokenSortSelect.vue'
+import PltTokenFilterSelect from '~/components/molecules/PltTokenFilterSelect.vue'
 
 const { NOW } = useDateNow()
 
 const pageSize = 25
 
-const { after, before, first, last, goToPage } = usePagination({
-	pageSize,
+// Filter and sort state
+const sortOption = ref<PltTokenSort>(PltTokenSort.SupplyDesc)
+const pausedFilter = ref<boolean | null>(null)
+
+const { after, before, first, last, goToPage, resetPagination } = usePagination(
+	{
+		pageSize,
+	}
+)
+
+// Reset pagination when filters change
+watch([sortOption, pausedFilter], () => {
+	resetPagination()
 })
+
+// Build filter object
+const filter = computed(() =>
+	pausedFilter.value !== null ? { isPaused: pausedFilter.value } : undefined
+)
 
 const {
 	data,
@@ -175,6 +200,8 @@ const {
 	last,
 	after,
 	before,
+	sort: sortOption,
+	filter,
 })
 
 const pltTokenData = computed(() => data.value || [])
