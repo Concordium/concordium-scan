@@ -1,4 +1,4 @@
-import type { Ref } from 'vue'
+import { ref, isRef, unref, type Ref } from 'vue'
 import type { PageInfo } from '~/types/generated'
 
 const PAGE_SIZE = 25
@@ -10,13 +10,17 @@ export const MAX_PAGE_SIZE = 50
  */
 export const usePagedData = <PageData>(
 	initialData: PageData[] = [],
-	pageSize: number = PAGE_SIZE,
-	maxPageSize: number = MAX_PAGE_SIZE
+	pageSize: number | Ref<number> = PAGE_SIZE,
+	maxPageSize: number | Ref<number> = MAX_PAGE_SIZE
 ) => {
 	const pagedData = ref<PageData[]>(initialData) as Ref<PageData[]>
 	const intention = ref<'fetchNew' | 'loadMore' | 'refresh'>('loadMore')
 
-	const first = ref<number | undefined>(pageSize)
+	// Convert to refs if they aren't already
+	const pageSizeRef = isRef(pageSize) ? pageSize : ref(pageSize)
+	const maxPageSizeRef = isRef(maxPageSize) ? maxPageSize : ref(maxPageSize)
+
+	const first = ref<number | undefined>(unref(pageSizeRef))
 	const last = ref<number | undefined>(undefined)
 	const after = ref<PageInfo['endCursor']>(undefined)
 	const before = ref<PageInfo['endCursor']>(undefined)
@@ -32,9 +36,9 @@ export const usePagedData = <PageData>(
 	 * @param { newItemsCount } - Amount of new items to fetch
 	 */
 	const fetchNew = (newItems: number) => {
-		if (newItems > maxPageSize) {
+		if (newItems > unref(maxPageSizeRef)) {
 			intention.value = 'refresh'
-			first.value = pageSize
+			first.value = unref(pageSizeRef)
 			last.value = undefined
 			after.value = undefined
 			before.value = topCursor.value
@@ -52,7 +56,7 @@ export const usePagedData = <PageData>(
 	 */
 	const loadMore = () => {
 		intention.value = 'loadMore'
-		first.value = pageSize
+		first.value = unref(pageSizeRef)
 		last.value = undefined
 		after.value = lastAfterCursor?.value
 		before.value = undefined
