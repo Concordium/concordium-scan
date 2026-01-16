@@ -43,6 +43,11 @@
 							</TableRow>
 						</TableBody>
 					</Table>
+					<LoadMore
+						v-if="pltHolderData?.pltAccountsByTokenId?.pageInfo"
+						:page-info="pltHolderData.pltAccountsByTokenId.pageInfo"
+						:on-load-more="loadMore"
+					/>
 				</CarouselSlide>
 			</FtbCarousel>
 		</div>
@@ -53,6 +58,7 @@ import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 import CarouselSlide from '~/components/molecules/CarouselSlide.vue'
 import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
 import Filter from '~/components/StableCoin/Filter.vue'
+import LoadMore from '~/components/LoadMore.vue'
 import { usePltTokenHolderQuery } from '~/queries/usePltTokenHolderQuery'
 import type { PltAccountAmount } from '~/types/generated'
 import { usePagedData } from '~/composables/usePagedData'
@@ -75,25 +81,30 @@ const lastNTransactions = ref(TransactionFilterOption.Top20)
 const coinId = props.coinId
 const totalSupply = props.totalSupply
 
-const { pagedData, addPagedData } = usePagedData<PltAccountAmount>(
-	[],
-	lastNTransactions.value,
-	lastNTransactions.value
-)
-
-const queryFirst = ref(lastNTransactions.value)
+const pageSize = ref(lastNTransactions.value)
+const maxPageSize = ref(lastNTransactions.value)
+const { first, last, after, before, pagedData, addPagedData, loadMore } =
+	usePagedData<PltAccountAmount>([], pageSize, maxPageSize)
 
 watch(
 	() => lastNTransactions.value,
 	newValue => {
-		queryFirst.value = newValue
+		// Update page size and reset pagination when filter changes
+		pageSize.value = newValue
+		maxPageSize.value = newValue
+		first.value = newValue
+		after.value = undefined
+		before.value = undefined
 		pagedData.value = []
 	}
 )
 
 const { data: pltHolderData, fetching: pltHolderLoading } =
 	usePltTokenHolderQuery(coinId, {
-		first: queryFirst,
+		first,
+		last,
+		after,
+		before,
 	})
 
 watch(
