@@ -2,7 +2,45 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased 
+## Unreleased
+
+## [1.7.30] - 2026-01-08
+
+### Fixed
+
+- Updated sponsored transaction icon.
+
+- Fixed tooltip percentage is for staked CCD in validator details sidebar.
+
+## [1.7.29] - 2025-12-19
+
+### Added
+
+- Added support for sponsored transactions in the explorer UI, including display of sponsor.
+
+## [1.7.28] - 2025-12-03
+
+### Added
+
+- Added `RegisterData` transaction details display with CBOR decoded data.
+
+- Added a Pagination `Load More` button to load more plt activities on the plt specific page.
+
+### Fixed
+
+- Changed `Symbol` to `Token ID` in the all plt and plt specific pages.
+
+- Fixed mis-alignment of plt token profile layout on long token names.
+
+- Remove duplicate plt token symbol in the all plt list page.
+
+- Fixed bug when 7-day analytics charts on plt specific page do not load data properly on the first load.
+
+- Fixed the percentage for all total staked CCD in the validator details sidebar.
+
+- Fixed the incorrect display of transaction commission in the validator details sidebar. 
+
+- Fixed the bug while hovering over the plt chart tooltip, the other charts' labels disappear.
 
 ## [1.7.27] - 2025-10-30
 

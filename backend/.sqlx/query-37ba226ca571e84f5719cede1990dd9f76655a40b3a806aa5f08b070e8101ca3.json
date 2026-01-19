@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT * FROM (\n                SELECT\n                    index,\n                    block_height,\n                    hash,\n                    ccd_cost,\n                    energy_cost,\n                    sender_index,\n                    type as \"tx_type: DbTransactionType\",\n                    type_account as \"type_account: AccountTransactionType\",\n                    type_credential_deployment as \"type_credential_deployment: CredentialDeploymentTransactionType\",\n                    type_update as \"type_update: UpdateTransactionType\",\n                    success,\n                    events as \"events: sqlx::types::Json<Vec<Event>>\",\n                    reject as \"reject: sqlx::types::Json<TransactionRejectReason>\"\n                FROM transactions\n                WHERE transactions.block_height = $5\n                AND index > $1 AND index < $2\n                ORDER BY\n                    CASE WHEN $3 THEN index END DESC,\n                    CASE WHEN NOT $3 THEN index END ASC\n                LIMIT $4\n            ) ORDER BY index ASC",
+  "query": "SELECT * FROM (\n                SELECT\n                    index,\n                    block_height,\n                    hash,\n                    ccd_cost,\n                    energy_cost,\n                    sender_index,\n                    sponsor_index,\n                    type as \"tx_type: DbTransactionType\",\n                    type_account as \"type_account: AccountTransactionType\",\n                    type_credential_deployment as \"type_credential_deployment: CredentialDeploymentTransactionType\",\n                    type_update as \"type_update: UpdateTransactionType\",\n                    success,\n                    events as \"events: sqlx::types::Json<Vec<Event>>\",\n                    reject as \"reject: sqlx::types::Json<TransactionRejectReason>\"\n                FROM transactions\n                WHERE $2 < index AND index < $1\n                ORDER BY\n                    (CASE WHEN $3 THEN index END) ASC,\n                    (CASE WHEN NOT $3 THEN index END) DESC\n                LIMIT $4\n            ) ORDER BY index DESC",
   "describe": {
     "columns": [
       {
@@ -35,6 +35,11 @@
       },
       {
         "ordinal": 6,
+        "name": "sponsor_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
         "name": "tx_type: DbTransactionType",
         "type_info": {
           "Custom": {
@@ -50,7 +55,7 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "type_account: AccountTransactionType",
         "type_info": {
           "Custom": {
@@ -85,7 +90,7 @@
         }
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "type_credential_deployment: CredentialDeploymentTransactionType",
         "type_info": {
           "Custom": {
@@ -100,7 +105,7 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "type_update: UpdateTransactionType",
         "type_info": {
           "Custom": {
@@ -138,17 +143,17 @@
         }
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "success",
         "type_info": "Bool"
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "events: sqlx::types::Json<Vec<Event>>",
         "type_info": "Jsonb"
       },
       {
-        "ordinal": 12,
+        "ordinal": 13,
         "name": "reject: sqlx::types::Json<TransactionRejectReason>",
         "type_info": "Jsonb"
       }
@@ -158,7 +163,6 @@
         "Int8",
         "Int8",
         "Bool",
-        "Int8",
         "Int8"
       ]
     },
@@ -169,6 +173,7 @@
       false,
       false,
       true,
+      true,
       false,
       true,
       true,
@@ -178,5 +183,5 @@
       true
     ]
   },
-  "hash": "531f3269033c018f0e75869fe072d39de8cfbc091c36296f84947594d3ab8985"
+  "hash": "37ba226ca571e84f5719cede1990dd9f76655a40b3a806aa5f08b070e8101ca3"
 }

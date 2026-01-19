@@ -1,7 +1,7 @@
 {
 	"name": "ccscan-frontend",
 	"description": "CCDScan frontend",
-	"version": "1.7.27",
+	"version": "1.7.30",
 	"engine": "16",
 	"type": "module",
 	"private": true,
@@ -23,6 +23,7 @@
 		"@heroicons/vue": "^1.0.5",
 		"@urql/devtools": "^2.0.3",
 		"@urql/vue": "^0.6.1",
+		"cbor2": "2.0.1",
 		"chart.js": "^3.7.1",
 		"cross-env": "^7.0.3",
 		"date-fns": "^2.27.0",
@@ -59,7 +60,7 @@
 		"vue-tsc": "^2.1.10"
 	},
 	"volta": {
-		"node": "18.18.2"
+		"node": "20.19.5"
 	},
 	"packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

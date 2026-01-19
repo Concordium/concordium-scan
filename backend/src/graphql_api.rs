@@ -1040,6 +1040,7 @@ pub enum AccountStatementEntryType {
     FoundationReward,
     BakerReward,
     TransactionFeeReward,
+    SponsoredTransactionFee,
 }
 
 #[derive(Debug, Enum, Clone, Copy, Display, PartialEq, Eq, sqlx::Type)]

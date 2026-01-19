@@ -42,7 +42,7 @@ CREATE TABLE plt_accounts_statement (
     -- Store the account balance after this operation (computed during backfill)
     account_balance NUMERIC NOT NULL DEFAULT 0,
     
-    PRIMARY KEY (account_index, plt_event_id)
+    PRIMARY KEY (account_index, plt_event_id, entry_type)
 );
 
 -- Index for efficient queries by account and time

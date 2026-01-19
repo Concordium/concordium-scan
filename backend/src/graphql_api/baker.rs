@@ -2899,6 +2899,7 @@ impl Baker {
                     ccd_cost,
                     energy_cost,
                     sender_index,
+                    sponsor_index,
                     type as "tx_type: DbTransactionType",
                     type_account as "type_account: AccountTransactionType",
                     type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",

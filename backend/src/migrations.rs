@@ -290,7 +290,9 @@ pub enum SchemaVersion {
     NormalizePltCumulativeTransferAmount,
     #[display("0045: Alter PLT tokens add current_supply column")]
     AlterPltTokensAddCurrentSupplyColumn,
-    #[display("0046: Plt Accounts statement table to track balance changes")]
+    #[display("0046: Alter transaction table to add sponsored transaction fields")]
+    AlterTxnAddSponsoredTxn,
+    #[display("0047: Plt Accounts statement table to track balance changes")]
     PltAccountsStatements,
 }
 impl SchemaVersion {
@@ -367,6 +369,7 @@ impl SchemaVersion {
             SchemaVersion::NormalizePltCumulativeTransferAmount => false,
             SchemaVersion::AlterPltTokensAddCurrentSupplyColumn => false,
             SchemaVersion::PltAccountsStatements => false,
+            SchemaVersion::AlterTxnAddSponsoredTxn => false,
         }
     }
 
@@ -423,6 +426,7 @@ impl SchemaVersion {
             SchemaVersion::NormalizePltCumulativeTransferAmount => false,
             SchemaVersion::AlterPltTokensAddCurrentSupplyColumn => false,
             SchemaVersion::PltAccountsStatements => false,
+            SchemaVersion::AlterTxnAddSponsoredTxn => false,
         }
     }
 
@@ -740,7 +744,15 @@ impl SchemaVersion {
             SchemaVersion::AlterPltTokensAddCurrentSupplyColumn => {
                 tx.as_mut()
                     .execute(sqlx::raw_sql(include_str!(
-                        "./migrations/m0046-plt-accounts-statement.sql"
+                        "./migrations/m0046-alter-txn-add-sponsored-txn.sql"
+                    )))
+                    .await?;
+                SchemaVersion::AlterTxnAddSponsoredTxn
+            }
+            SchemaVersion::AlterTxnAddSponsoredTxn => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0047-plt-accounts-statement.sql"
                     )))
                     .await?;
                 SchemaVersion::PltAccountsStatements

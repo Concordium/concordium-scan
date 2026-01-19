@@ -138,12 +138,16 @@
 							:key="transaction.transactionHash"
 						>
 							<TableTd>
-								<div class="flex">
+								<div class="flex items-center gap-2">
 									<TransactionResult :result="transaction.result" />
-
-									<div class="whitespace-normal lg:whitespace-nowrap">
+									<span class="whitespace-normal lg:whitespace-nowrap">
 										{{ translateTransactionType(transaction.transactionType) }}
-									</div>
+									</span>
+									<SponsorIcon
+										v-if="transaction.sponsorAccountAddress"
+										:glow-on="true"
+										class="flex-shrink-0"
+									/>
 								</div>
 							</TableTd>
 							<TableTd>

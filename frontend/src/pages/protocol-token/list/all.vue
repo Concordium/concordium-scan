@@ -72,9 +72,6 @@
 									<div class="font-medium">
 										{{ token.name || 'Unnamed Token' }}
 									</div>
-									<div class="text-sm text-theme-text-secondary">
-										{{ token.tokenId }}
-									</div>
 								</div>
 							</div>
 						</TableTd>

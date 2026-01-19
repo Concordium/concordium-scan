@@ -17,7 +17,7 @@
 								<TableTh width="12.5%">Transaction Hash</TableTh>
 								<TableTh width="12.5%">Age</TableTh>
 								<TableTh width="12.5%">Token Event</TableTh>
-								<TableTh width="12.5%">Symbol</TableTh>
+								<TableTh width="12.5%">Token ID</TableTh>
 								<TableTh width="12.5%">From</TableTh>
 								<TableTh width="12.5%">To</TableTh>
 								<TableTh width="12.5%">Target</TableTh>
@@ -92,6 +92,11 @@
 							</TableRow>
 						</TableBody>
 					</Table>
+					<LoadMore
+						v-if="pltEventsData?.pltEventsByTokenId?.pageInfo"
+						:page-info="pltEventsData.pltEventsByTokenId.pageInfo"
+						:on-load-more="loadMore"
+					/>
 				</CarouselSlide>
 			</FtbCarousel>
 		</div>
@@ -102,6 +107,7 @@ import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 import CarouselSlide from '~/components/molecules/CarouselSlide.vue'
 import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
 import Filter from '~/components/StableCoin/Filter.vue'
+import LoadMore from '~/components/LoadMore.vue'
 import {
 	TransactionFilterOption,
 	transactionFilterOptions,
@@ -123,18 +129,20 @@ const lastNTransactions = ref(TransactionFilterOption.Top20)
 
 const coinId = props.coinId ?? ''
 
-const { pagedData, addPagedData } = usePagedData<PltEvent>(
-	[],
-	lastNTransactions.value,
-	lastNTransactions.value
-)
+const pageSize = 10
+const maxPageSize = 20
+const { first, last, after, before, pagedData, addPagedData, loadMore } =
+	usePagedData<PltEvent>([], pageSize, maxPageSize)
 
-const queryFirst = ref(lastNTransactions.value)
+first.value = lastNTransactions.value
 
 watch(
 	() => lastNTransactions.value,
 	newValue => {
-		queryFirst.value = newValue
+		// Reset pagination when filter changes
+		first.value = newValue
+		after.value = undefined
+		before.value = undefined
 		pagedData.value = []
 	}
 )
@@ -142,7 +150,10 @@ watch(
 const { data: pltEventsData, loading: pltEventsLoading } = usePltEventByIdQuery(
 	coinId,
 	{
-		first: queryFirst,
+		first,
+		last,
+		after,
+		before,
 	}
 )
 

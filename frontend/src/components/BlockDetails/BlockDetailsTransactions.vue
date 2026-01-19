@@ -24,8 +24,15 @@
 						/>
 					</TableTd>
 					<TableTd>
-						<div class="whitespace-normal">
-							{{ translateTransactionType(transaction.transactionType) }}
+						<div class="flex items-center gap-2 whitespace-normal">
+							<span>
+								{{ translateTransactionType(transaction.transactionType) }}
+							</span>
+							<SponsorIcon
+								v-if="transaction.sponsorAccountAddress"
+								:glow-on="true"
+								class="flex-shrink-0"
+							/>
 						</div>
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.LG" class="numerical">
@@ -57,6 +64,7 @@ import type { PaginationTarget } from '~/composables/usePagination'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import type { PageInfo, Transaction } from '~/types/generated'
 import Amount from '~/components/atoms/Amount.vue'
+import SponsorIcon from '~/components/icons/SponsorIcon.vue'
 import TransactionResult from '~/components/molecules/TransactionResult.vue'
 
 const { breakpoint } = useBreakpoint()

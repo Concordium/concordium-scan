@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT * FROM (\n                SELECT\n                    index,\n                    block_height,\n                    hash,\n                    ccd_cost,\n                    energy_cost,\n                    sender_index,\n                    type as \"tx_type: DbTransactionType\",\n                    type_account as \"type_account: AccountTransactionType\",\n                    type_credential_deployment as \"type_credential_deployment: CredentialDeploymentTransactionType\",\n                    type_update as \"type_update: UpdateTransactionType\",\n                    success,\n                    events as \"events: sqlx::types::Json<Vec<Event>>\",\n                    reject as \"reject: sqlx::types::Json<TransactionRejectReason>\"\n                FROM transactions\n                WHERE transactions.sender_index = $5\n                AND type_account = ANY($6)\n                AND index < $1 AND index > $2\n                ORDER BY\n                    CASE WHEN NOT $3 THEN index END DESC,\n                    CASE WHEN $3 THEN index END ASC\n                LIMIT $4\n            ) ORDER BY index DESC",
+  "query": "SELECT * FROM (\n                SELECT\n                    index,\n                    block_height,\n                    hash,\n                    ccd_cost,\n                    energy_cost,\n                    sender_index,\n                    sponsor_index,\n                    type as \"tx_type: DbTransactionType\",\n                    type_account as \"type_account: AccountTransactionType\",\n                    type_credential_deployment as \"type_credential_deployment: CredentialDeploymentTransactionType\",\n                    type_update as \"type_update: UpdateTransactionType\",\n                    success,\n                    events as \"events: sqlx::types::Json<Vec<Event>>\",\n                    reject as \"reject: sqlx::types::Json<TransactionRejectReason>\"\n                FROM transactions t\n                WHERE\n                    index IN (\n                        SELECT transaction_index\n                        FROM affected_accounts\n                        WHERE account_index = $1\n                    )\n                    AND index > $3\n                    AND index < $2\n                ORDER BY\n                    (CASE WHEN $4 THEN index END) ASC,\n                    (CASE WHEN NOT $4 THEN index END) DESC\n                LIMIT $5\n            ) ORDER BY index DESC\n            ",
   "describe": {
     "columns": [
       {
@@ -35,6 +35,11 @@
       },
       {
         "ordinal": 6,
+        "name": "sponsor_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
         "name": "tx_type: DbTransactionType",
         "type_info": {
           "Custom": {
@@ -50,7 +55,7 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "type_account: AccountTransactionType",
         "type_info": {
           "Custom": {
@@ -85,7 +90,7 @@
         }
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "type_credential_deployment: CredentialDeploymentTransactionType",
         "type_info": {
           "Custom": {
@@ -100,7 +105,7 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "type_update: UpdateTransactionType",
         "type_info": {
           "Custom": {
@@ -138,17 +143,17 @@
         }
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "success",
         "type_info": "Bool"
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "events: sqlx::types::Json<Vec<Event>>",
         "type_info": "Jsonb"
       },
       {
-        "ordinal": 12,
+        "ordinal": 13,
         "name": "reject: sqlx::types::Json<TransactionRejectReason>",
         "type_info": "Jsonb"
       }
@@ -157,47 +162,9 @@
       "Left": [
         "Int8",
         "Int8",
+        "Int8",
         "Bool",
-        "Int8",
-        "Int8",
-        {
-          "Custom": {
-            "name": "account_transaction_type[]",
-            "kind": {
-              "Array": {
-                "Custom": {
-                  "name": "account_transaction_type",
-                  "kind": {
-                    "Enum": [
-                      "InitializeSmartContractInstance",
-                      "UpdateSmartContractInstance",
-                      "SimpleTransfer",
-                      "EncryptedTransfer",
-                      "SimpleTransferWithMemo",
-                      "EncryptedTransferWithMemo",
-                      "TransferWithScheduleWithMemo",
-                      "DeployModule",
-                      "AddBaker",
-                      "RemoveBaker",
-                      "UpdateBakerStake",
-                      "UpdateBakerRestakeEarnings",
-                      "UpdateBakerKeys",
-                      "UpdateCredentialKeys",
-                      "TransferToEncrypted",
-                      "TransferToPublic",
-                      "TransferWithSchedule",
-                      "UpdateCredentials",
-                      "RegisterData",
-                      "ConfigureBaker",
-                      "ConfigureDelegation",
-                      "TokenUpdate"
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        }
+        "Int8"
       ]
     },
     "nullable": [
@@ -206,6 +173,7 @@
       false,
       false,
       false,
+      true,
       true,
       false,
       true,
@@ -216,5 +184,5 @@
       true
     ]
   },
-  "hash": "9f91c92d6ee70c7e4b8abe7f7f2653b5479b6b1ca739ea0f815b6d4d2118f658"
+  "hash": "32528bf3f5683f658a5cb123cf4ff6ddb70e720bd2485e341ae2343b2847283d"
 }

@@ -66,8 +66,15 @@
 						</Tooltip>
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.MD">
-						<div class="whitespace-normal">
-							{{ translateTransactionType(transaction.transactionType) }}
+						<div class="flex items-center gap-2">
+							<span class="whitespace-normal">
+								{{ translateTransactionType(transaction.transactionType) }}
+							</span>
+							<SponsorIcon
+								v-if="transaction.sponsorAccountAddress"
+								:glow-on="true"
+								class="flex-shrink-0"
+							/>
 						</div>
 					</TableTd>
 					<TableTd class="numerical">
