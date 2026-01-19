@@ -16,7 +16,6 @@ use concordium_rust_sdk::{common::types::Amount, id::types::AccountAddress};
 use futures::TryStreamExt as _;
 use prometheus_client::registry::Registry;
 use reqwest::StatusCode;
-use rust_xlsxwriter::{Format, Workbook};
 use sqlx::PgPool;
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
@@ -59,8 +58,12 @@ impl Service {
                 get(Self::latest_balance_statistics),
             )
             .route(
-                "/rest/export/statement",
+                "/rest/export/account-statements",
                 get(Self::export_account_statements),
+            )
+            .route(
+                "/rest/export/plt-statements",
+                get(Self::export_plt_statements),
             )
             .layer(cors_layer)
             .layer(self.monitor_layer)
@@ -181,87 +184,30 @@ impl Service {
             plt_data.push(row);
         }
 
-        // Create Excel workbook with worksheets
-        let mut workbook = Workbook::new();
-
-        // Create header format for styling
-        let header_format = Format::new().set_bold().set_background_color("D9D9D9");
-
-        // Create and populate Account Statements worksheet
-        {
-            let worksheet = workbook.add_worksheet();
-            worksheet.set_name("Account Statements")?;
-
-            // Write headers for Account Statements
-            worksheet.write_string_with_format(0, 0, "Timestamp (UTC)", &header_format)?;
-            worksheet.write_string_with_format(0, 1, "Amount (CCD)", &header_format)?;
-            worksheet.write_string_with_format(0, 2, "Running Balance (CCD)", &header_format)?;
-            worksheet.write_string_with_format(0, 3, "Transaction Label", &header_format)?;
-
-            // Write CCD data
-            for (idx, row) in ccd_data.iter().enumerate() {
-                let row_num = (idx + 1) as u32;
+        // Create Account Statements CSV
+        let csv_content = if ccd_data.is_empty() {
+            "Time,Amount (CCD),Balance (CCD),Label\n".to_string()
+        } else {
+            let mut ccd_csv = String::from("Time,Amount (CCD),Balance (CCD),Label\n");
+            for row in ccd_data.iter() {
                 let account_balance = Amount::from_micro_ccd(row.account_balance.try_into()?);
                 let amount_sign = if row.amount.is_negative() { "-" } else { "" };
                 let amount = Amount::from_micro_ccd(row.amount.abs().try_into()?);
-
-                worksheet.write_string(
-                    row_num,
-                    0,
+                ccd_csv.push_str(&format!(
+                    "{},{}{},{},{}\n",
                     row.timestamp
                         .to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
-                )?;
-                worksheet.write_string(row_num, 1, format!("{}{}", amount_sign, amount))?;
-                worksheet.write_string(row_num, 2, account_balance.to_string())?;
-                worksheet.write_string(row_num, 3, row.entry_type.to_string())?;
+                    amount_sign,
+                    amount,
+                    account_balance,
+                    row.entry_type
+                ));
             }
-
-            // Auto-fit columns for better readability
-            worksheet.autofit();
-        }
-
-        // Create and populate PLT Account Statements worksheet
-        {
-            let worksheet = workbook.add_worksheet();
-            worksheet.set_name("PLT Account Statements")?;
-
-            // Write headers for PLT Account Statements
-            worksheet.write_string_with_format(0, 0, "Timestamp (UTC)", &header_format)?;
-            worksheet.write_string_with_format(0, 1, "Token Name", &header_format)?;
-            worksheet.write_string_with_format(0, 2, "Token ID", &header_format)?;
-            // Use 'Label' for the entry type column per request
-            worksheet.write_string_with_format(0, 3, "Label", &header_format)?;
-            worksheet.write_string_with_format(0, 4, "Amount", &header_format)?;
-            worksheet.write_string_with_format(0, 5, "Balance", &header_format)?;
-            worksheet.write_string_with_format(0, 6, "Decimals", &header_format)?;
-
-            // Write PLT data
-            for (idx, row) in plt_data.iter().enumerate() {
-                let row_num = (idx + 1) as u32;
-
-                worksheet.write_string(
-                    row_num,
-                    0,
-                    row.timestamp
-                        .to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
-                )?;
-                worksheet.write_string(row_num, 1, row.token_name.as_deref().unwrap_or(""))?;
-                worksheet.write_string(row_num, 2, &row.token_id)?;
-                worksheet.write_string(row_num, 3, row.entry_type.to_string())?;
-                worksheet.write_string(row_num, 4, row.amount.to_string())?;
-                worksheet.write_string(row_num, 5, row.account_balance.to_string())?;
-                worksheet.write_number(row_num, 6, row.decimals as f64)?;
-            }
-
-            // Auto-fit columns for better readability
-            worksheet.autofit();
-        }
-
-        // Save workbook to buffer
-        let excel_data = workbook.save_to_buffer()?;
+            ccd_csv
+        };
 
         let filename = format!(
-            "statement-{}_{}-{}.xlsx",
+            "account-statements-{}_{}-{}.csv",
             params.account_address,
             from.to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
             to.to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
@@ -269,7 +215,7 @@ impl Service {
         let headers = AppendHeaders([
             (
                 axum::http::header::CONTENT_TYPE,
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet".to_string(),
+                "text/csv; charset=utf-8".to_string(),
             ),
             (
                 axum::http::header::CONTENT_DISPOSITION,
@@ -277,7 +223,93 @@ impl Service {
             ),
         ]);
 
-        Ok((headers, excel_data))
+        Ok((headers, csv_content.into_bytes()))
+    }
+
+    async fn export_plt_statements(
+        Query(params): Query<ExportAccountStatement>,
+        State(state): State<RouterState>,
+    ) -> ApiResult<(AppendHeaders<[(HeaderName, String); 2]>, Vec<u8>)> {
+        let to = params.to_time.unwrap_or_else(Utc::now);
+        let account_statements_export_max_days =
+            i64::try_from(state.config.export_statement_max_days).unwrap_or(32);
+        let from = params
+            .from_time
+            .unwrap_or_else(|| to - TimeDelta::days(account_statements_export_max_days));
+        if to - from > TimeDelta::days(account_statements_export_max_days) {
+            return Err(ApiError::ExceedsMaxAllowedDaysForAccountStatementExport(
+                account_statements_export_max_days,
+            ));
+        }
+
+        // Collect PLT account statement data
+        let mut plt_data = Vec::new();
+        let mut plt_rows = sqlx::query_as!(
+            ExportPltAccountStatementEntry,
+            r#"SELECT
+                ps.slot_time as timestamp,
+                ps.amount,
+                ps.decimals,
+                ps.account_balance,
+                ps.entry_type as "entry_type: PltAccountStatementEntryType",
+                pt.token_id,
+                pt.name as token_name
+            FROM plt_accounts_statement ps
+            JOIN plt_tokens pt ON ps.token_index = pt.index
+            WHERE
+                ps.account_index = (SELECT index FROM accounts WHERE address = $1)
+                AND ps.slot_time between $2 and $3
+            ORDER BY ps.slot_time DESC"#,
+            params.account_address.to_string(),
+            from,
+            to
+        )
+        .fetch(&state.pool);
+
+        while let Some(row) = plt_rows.try_next().await? {
+            plt_data.push(row);
+        }
+
+        // Create PLT Account Statements CSV
+        let csv_content = if plt_data.is_empty() {
+            "Time,Token Name,Token ID,Label,Amount,Balance,Decimals\n".to_string()
+        } else {
+            let mut plt_csv =
+                String::from("Time,Token Name,Token ID,Label,Amount,Balance,Decimals\n");
+            for row in plt_data.iter() {
+                plt_csv.push_str(&format!(
+                    "{},{},{},{},{},{},{}\n",
+                    row.timestamp
+                        .to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+                    row.token_name.as_deref().unwrap_or("").replace(',', ";"), // Replace commas to avoid CSV issues
+                    row.token_id.replace(',', ";"), // Replace commas to avoid CSV issues
+                    row.entry_type,
+                    row.amount,
+                    row.account_balance,
+                    row.decimals
+                ));
+            }
+            plt_csv
+        };
+
+        let filename = format!(
+            "plt-statements-{}_{}-{}.csv",
+            params.account_address,
+            from.to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+            to.to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
+        );
+        let headers = AppendHeaders([
+            (
+                axum::http::header::CONTENT_TYPE,
+                "text/csv; charset=utf-8".to_string(),
+            ),
+            (
+                axum::http::header::CONTENT_DISPOSITION,
+                format!("attachment; filename=\"{}\"", filename),
+            ),
+        ]);
+
+        Ok((headers, csv_content.into_bytes()))
     }
 }
 
@@ -355,18 +387,10 @@ enum ApiError {
     FailedDatabaseQuery(Arc<sqlx::Error>),
     #[error("Invalid integer: {0}")]
     InvalidInt(#[from] std::num::TryFromIntError),
-    #[error("Excel generation error: {0}")]
-    ExcelError(String),
 }
 impl From<sqlx::Error> for ApiError {
     fn from(value: sqlx::Error) -> Self {
         ApiError::FailedDatabaseQuery(Arc::new(value))
-    }
-}
-
-impl From<rust_xlsxwriter::XlsxError> for ApiError {
-    fn from(value: rust_xlsxwriter::XlsxError) -> Self {
-        ApiError::ExcelError(value.to_string())
     }
 }
 
@@ -379,7 +403,6 @@ impl IntoResponse for ApiError {
             ApiError::FailedDatabaseQuery(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ApiError::InvalidInt(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ApiError::NotFound => StatusCode::NOT_FOUND,
-            ApiError::ExcelError(_) => StatusCode::INTERNAL_SERVER_ERROR,
         };
         (status, self.to_string()).into_response()
     }

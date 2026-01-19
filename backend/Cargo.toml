@@ -42,7 +42,6 @@ bigdecimal = "0.4.7"
 regex = "1.10.4"
 num-derive = "0.4.2"
 num-traits = "0.2.19"
-rust_xlsxwriter = "0.76"
 
 [dev-dependencies]
 mockito = "1.4"
