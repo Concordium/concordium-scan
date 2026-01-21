@@ -397,6 +397,11 @@ impl QueryPlt {
                         paused
                     FROM plt_tokens
                     WHERE
+                        -- Filter for only the tokens that are within the
+                        -- range that correspond to the requested page.
+                        -- The first condition is true only if we don't order by that field.
+                        -- Then the whole OR condition will be true, so the filter for that
+                        -- field will be ignored.
                         (NOT $3 OR index < $1 AND index > $2) AND
                         (NOT $4 OR 
                             (
@@ -405,16 +410,42 @@ impl QueryPlt {
                                 OR (normalized_current_supply::DOUBLE PRECISION = $9 AND index < $1)
                             )
                         ) AND
+                        -- Need to filter for only paused tokens if the user requests this.
                         (NOT $5 OR paused = $6)
                     ORDER BY
+                        -- Order primarily by the field requested. Depending on the order of the collection
+                        -- and whether it is the first or last being queried, this sub-query must
+                        -- order by:
+                        --
+                        -- | Collection | Operation | Sub-query |
+                        -- |------------|-----------|-----------|
+                        -- | ASC        | first     | ASC       |
+                        -- | DESC       | first     | DESC      |
+                        -- | ASC        | last      | DESC      |
+                        -- | DESC       | last      | ASC       |
+                        --
+                        -- Note that `$7` below represents `is_desc != is_last`.
+                        --
+                        -- The first condition is true if we order by that field.
+                        -- Otherwise false, which makes the CASE null, which means
+                        -- it will not affect the ordering at all.
+                        -- The `PltTokenOrderField::Age` is not mentioned here because its
+                        -- sorting instruction is equivalent and would be repeated in the next step.
                         (CASE WHEN $4 AND $7     THEN normalized_current_supply END) DESC,
                         (CASE WHEN $4 AND NOT $7 THEN normalized_current_supply END) ASC,
                         (CASE WHEN $3 AND $7     THEN index END) DESC,
                         (CASE WHEN $3 AND NOT $7 THEN index END) ASC,
                         (CASE WHEN NOT $3 AND $7     THEN index END) DESC,
                         (CASE WHEN NOT $3 AND NOT $7 THEN index END) ASC
+                        -- Since after the ordering above, there may exist elements with the same field value,
+                        -- apply a second ordering by the unique `token_id` (index) in addition.
+                        -- This ensures a strict ordering of elements as the `PltTokenFieldDescCursor` defines.
                     LIMIT $8
                 ) AS subquery
+                -- We need to order each page still, as we only use the DESC/ASC ordering above
+                -- to select page items from the start/end of the range.
+                -- Each page must still independently be ordered.
+                -- See also https://relay.dev/graphql/connections.htm#sec-Edge-order
                 ORDER BY
                     (CASE WHEN $3 THEN index END) DESC,
                     (CASE WHEN $4 THEN normalized_current_supply END) DESC,
