@@ -22,7 +22,13 @@
 				</TableRow>
 			</TableBody>
 		</Table>
-		<Pagination v-if="pageInfo" :page-info="pageInfo" :go-to-page="goToPage" />
+		<div class="mt-8">
+			<Pagination
+				v-if="pageInfo"
+				:page-info="pageInfo"
+				:go-to-page="goToPage"
+			/>
+		</div>
 	</div>
 </template>
 <script lang="ts" setup>
@@ -37,5 +43,6 @@ type Props = {
 	pageInfo: PageInfo
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
+
 defineProps<Props>()
 </script>
