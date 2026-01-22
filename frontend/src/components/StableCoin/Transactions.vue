@@ -17,7 +17,7 @@
 								<TableTh width="12.5%">Transaction Hash</TableTh>
 								<TableTh width="12.5%">Age</TableTh>
 								<TableTh width="12.5%">Token Event</TableTh>
-								<TableTh width="12.5%">Symbol</TableTh>
+								<TableTh width="12.5%">Token ID</TableTh>
 								<TableTh width="12.5%">From</TableTh>
 								<TableTh width="12.5%">To</TableTh>
 								<TableTh width="12.5%">Target</TableTh>

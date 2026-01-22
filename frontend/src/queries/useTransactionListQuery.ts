@@ -26,6 +26,9 @@ const TransactionsQuery = gql<TransactionListResponse>`
 				senderAccountAddress {
 					asString
 				}
+				sponsorAccountAddress {
+					asString
+				}
 				block {
 					blockHeight
 					blockSlotTime

@@ -5,7 +5,7 @@
 			:transaction="props.transaction"
 		/>
 		<DrawerContent v-if="props.transaction">
-			<div class="grid gap-8 md:grid-cols-2 mb-16">
+			<div class="grid gap-8 md:grid-cols-3 mb-16">
 				<DetailsCard>
 					<template #title>Block height / block hash</template>
 					<template #default>
@@ -33,6 +33,15 @@
 					</template>
 					<template #secondary>
 						{{ formatTimestamp(props.transaction?.block.blockSlotTime) }}
+					</template>
+				</DetailsCard>
+				<DetailsCard v-if="props.transaction?.sponsorAccountAddress?.asString">
+					<template #title>Sponsor</template>
+					<template #default>
+						<AccountLink
+							icon-size="big"
+							:address="props.transaction.sponsorAccountAddress.asString"
+						/>
 					</template>
 				</DetailsCard>
 				<DetailsCard v-if="props.transaction?.transactionType">
@@ -90,10 +99,10 @@
 
 <script lang="ts" setup>
 import TransactionDetailsHeader from './TransactionDetailsHeader.vue'
-import Amount from '~/components/atoms/Amount.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import Accordion from '~/components/Accordion.vue'
+import Amount from '~/components/atoms/Amount.vue'
 import TransactionEventList from '~/components/TransactionEventList/TransactionEventList.vue'
 import RejectionReason from '~/components/RejectionReason/RejectionReason.vue'
 import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'

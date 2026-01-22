@@ -315,6 +315,7 @@ export enum AccountStatementEntryType {
   BakerReward = 'BAKER_REWARD',
   FinalizationReward = 'FINALIZATION_REWARD',
   FoundationReward = 'FOUNDATION_REWARD',
+  SponsoredTransactionFee = 'SPONSORED_TRANSACTION_FEE',
   TransactionFee = 'TRANSACTION_FEE',
   TransactionFeeReward = 'TRANSACTION_FEE_REWARD',
   TransferIn = 'TRANSFER_IN',
@@ -3251,6 +3252,7 @@ export type Transaction = {
   id: Scalars['ID'];
   result: TransactionResult;
   senderAccountAddress?: Maybe<AccountAddress>;
+  sponsorAccountAddress?: Maybe<AccountAddress>;
   transactionHash: Scalars['String'];
   transactionIndex: Scalars['Int'];
   transactionType: TransactionType;
