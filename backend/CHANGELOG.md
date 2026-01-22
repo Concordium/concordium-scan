@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+Database schema version: 47
+
+### Fixed
+
+- Fixed: PLT holders list now excludes accounts with zero token amounts.
+
 ## [2.0.25] - 2025-12-19
 
 Database schema version: 46
