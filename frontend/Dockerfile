@@ -2,7 +2,10 @@ ARG NODE_VERSION=20.19.5
 
 FROM node:${NODE_VERSION} as build
 WORKDIR /app
-COPY package.json yarn.lock ./
+COPY package.json yarn.lock .yarnrc.yml ./
+
+RUN corepack enable
+
 RUN yarn
 COPY . .
 RUN yarn build
