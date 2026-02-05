@@ -156,34 +156,6 @@ impl Service {
             ccd_data.push(row);
         }
 
-        // Collect PLT account statement data
-        let mut plt_data = Vec::new();
-        let mut plt_rows = sqlx::query_as!(
-            ExportPltAccountStatementEntry,
-            r#"SELECT
-                ps.slot_time as timestamp,
-                ps.amount,
-                ps.decimals,
-                ps.account_balance,
-                ps.entry_type as "entry_type: PltAccountStatementEntryType",
-                pt.token_id,
-                pt.name as token_name
-            FROM plt_accounts_statement ps
-            JOIN plt_tokens pt ON ps.token_index = pt.index
-            WHERE
-                ps.account_index = (SELECT index FROM accounts WHERE address = $1)
-                AND ps.slot_time between $2 and $3
-            ORDER BY ps.slot_time DESC"#,
-            params.account_address.to_string(),
-            from,
-            to
-        )
-        .fetch(&state.pool);
-
-        while let Some(row) = plt_rows.try_next().await? {
-            plt_data.push(row);
-        }
-
         // Create Account Statements CSV
         let csv_content = if ccd_data.is_empty() {
             "Time,Amount (CCD),Balance (CCD),Label\n".to_string()

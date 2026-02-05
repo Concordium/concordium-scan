@@ -937,6 +937,36 @@ impl PreparedTokenUpdate {
         Ok(row.total_amount.unwrap_or(BigDecimal::from(0)))
     }
 
+    async fn plt_amount_by_account_and_token(
+        &self,
+        tx: &mut sqlx::PgTransaction<'_>,
+        account_address: &str,
+        token_id: &str,
+    ) -> anyhow::Result<BigDecimal> {
+        let account_address =
+            concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(account_address)
+                .map_err(|_| {
+                    anyhow::anyhow!(
+                        "Failed to convert string into account address type: {}",
+                        account_address
+                    )
+                })?;
+        let canonical_address = account_address.get_canonical_address();
+
+        let row = sqlx::query!(
+            "SELECT COALESCE(amount, 0) AS amount
+            FROM plt_accounts
+            WHERE account_index = (SELECT index FROM accounts WHERE canonical_address = $1::bytea)
+              AND token_index = (SELECT index FROM plt_tokens WHERE token_id = $2)",
+            canonical_address.0.as_slice(),
+            token_id
+        )
+        .fetch_one(tx.as_mut())
+        .await?;
+
+        Ok(row.amount.unwrap_or(BigDecimal::from(0)))
+    }
+
     // METRICS UPDATE: PLT event counter increment
     //
     // Increments cumulative_event_count in metrics_plt table for any PLT operation.
@@ -1239,9 +1269,9 @@ impl PreparedTokenUpdate {
         .fetch_one(tx.as_mut())
         .await?;
 
-        // Get current account balance after this operation
+        // Get current account balance for this account + token after this operation
         let account_balance = self
-            .plt_amount_accross_tokens_by_account(tx, params.account_address)
+            .plt_amount_by_account_and_token(tx, params.account_address, &self.token_id)
             .await?;
 
         // Calculate normalized amount
