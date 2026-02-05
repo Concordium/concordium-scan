@@ -117,7 +117,7 @@ import type { PltEvent } from '~/types/generated'
 import { useDateNow } from '~/composables/useDateNow'
 
 import { usePltEventByIdQuery } from '~/queries/usePltEventsQuery'
-import { ref, unref, watch } from 'vue'
+import { ref, watch } from 'vue'
 const { NOW } = useDateNow()
 
 // Define Props

@@ -67,7 +67,7 @@ import {
 	holderFilterOptions,
 	TransactionFilterOption,
 } from '~/types/stable-coin'
-import { ref, unref, watch } from 'vue'
+import { ref, watch } from 'vue'
 
 // Define Props
 const props = defineProps<{
