@@ -67,7 +67,7 @@ import {
 	holderFilterOptions,
 	TransactionFilterOption,
 } from '~/types/stable-coin'
-import { ref, watch } from 'vue'
+import { ref, unref, watch } from 'vue'
 
 // Define Props
 const props = defineProps<{
@@ -82,22 +82,31 @@ const coinId = props.coinId
 const totalSupply = props.totalSupply
 
 const pageSize = ref(lastNTransactions.value)
-const maxPageSize = ref(lastNTransactions.value)
 const { first, last, after, before, pagedData, addPagedData, loadMore } =
-	usePagedData<PltAccountAmount>([], pageSize, maxPageSize)
+	usePagedData<PltAccountAmount>([], pageSize.value, lastNTransactions.value)
 
 watch(
 	() => lastNTransactions.value,
 	newValue => {
 		// Update page size and reset pagination when filter changes
 		pageSize.value = newValue
-		maxPageSize.value = newValue
 		first.value = newValue
 		after.value = undefined
 		before.value = undefined
+		last.value = undefined
 		pagedData.value = []
 	}
 )
+
+// Update first/last before query to ensure correct page size
+watch([first, last], ([firstVal, lastVal]) => {
+	if (firstVal) {
+		first.value = pageSize.value
+	}
+	if (lastVal) {
+		last.value = pageSize.value
+	}
+})
 
 const { data: pltHolderData, fetching: pltHolderLoading } =
 	usePltTokenHolderQuery(coinId, {

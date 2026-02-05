@@ -117,7 +117,7 @@ import type { PltEvent } from '~/types/generated'
 import { useDateNow } from '~/composables/useDateNow'
 
 import { usePltEventByIdQuery } from '~/queries/usePltEventsQuery'
-import { ref, watch } from 'vue'
+import { ref, unref, watch } from 'vue'
 const { NOW } = useDateNow()
 
 // Define Props
@@ -130,22 +130,31 @@ const lastNTransactions = ref(TransactionFilterOption.Top20)
 const coinId = props.coinId ?? ''
 
 const pageSize = ref(lastNTransactions.value)
-const maxPageSize = ref(lastNTransactions.value)
 const { first, last, after, before, pagedData, addPagedData, loadMore } =
-	usePagedData<PltEvent>([], pageSize, maxPageSize)
+	usePagedData<PltEvent>([], pageSize.value, lastNTransactions.value)
 
 watch(
 	() => lastNTransactions.value,
 	newValue => {
 		// Update page size and reset pagination when filter changes
 		pageSize.value = newValue
-		maxPageSize.value = newValue
 		first.value = newValue
 		after.value = undefined
 		before.value = undefined
+		last.value = undefined
 		pagedData.value = []
 	}
 )
+
+// Update first/last before query to ensure correct page size
+watch([first, last], ([firstVal, lastVal]) => {
+	if (firstVal) {
+		first.value = pageSize.value
+	}
+	if (lastVal) {
+		last.value = pageSize.value
+	}
+})
 
 const { data: pltEventsData, loading: pltEventsLoading } = usePltEventByIdQuery(
 	coinId,
