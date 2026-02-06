@@ -769,7 +769,7 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::IndexPltHolderNonZero
             }
-            
+
             SchemaVersion::IndexPltHolderNonZero => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
