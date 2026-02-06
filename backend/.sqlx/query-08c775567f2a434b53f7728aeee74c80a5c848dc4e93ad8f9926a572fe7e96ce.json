@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(amount, 0) AS amount\n            FROM plt_accounts\n            WHERE account_index = (SELECT index FROM accounts WHERE canonical_address = $1::bytea)\n              AND token_index = (SELECT index FROM plt_tokens WHERE token_id = $2)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "amount",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bytea",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "08c775567f2a434b53f7728aeee74c80a5c848dc4e93ad8f9926a572fe7e96ce"
+}

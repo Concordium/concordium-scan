@@ -1,7 +1,9 @@
 //! Module containing the implementation of a service providing the public
 //! facing REST API for `ccdscan-api`.
 
-use crate::graphql_api::{AccountStatementEntryType, ApiServiceConfig};
+use crate::graphql_api::{
+    AccountStatementEntryType, ApiServiceConfig, PltAccountStatementEntryType,
+};
 use axum::{
     extract::{Query, State},
     http::HeaderName,
@@ -56,8 +58,12 @@ impl Service {
                 get(Self::latest_balance_statistics),
             )
             .route(
-                "/rest/export/statement",
+                "/rest/export/account-statements",
                 get(Self::export_account_statements),
+            )
+            .route(
+                "/rest/export/plt-statements",
+                get(Self::export_plt_statements),
             )
             .layer(cors_layer)
             .layer(self.monitor_layer)
@@ -113,7 +119,7 @@ impl Service {
     async fn export_account_statements(
         Query(params): Query<ExportAccountStatement>,
         State(state): State<RouterState>,
-    ) -> ApiResult<(AppendHeaders<[(HeaderName, String); 2]>, String)> {
+    ) -> ApiResult<(AppendHeaders<[(HeaderName, String); 2]>, Vec<u8>)> {
         let to = params.to_time.unwrap_or_else(Utc::now);
         let account_statements_export_max_days =
             i64::try_from(state.config.export_statement_max_days).unwrap_or(32);
@@ -126,7 +132,9 @@ impl Service {
             ));
         }
 
-        let mut rows = sqlx::query_as!(
+        // Collect CCD account statement data
+        let mut ccd_data = Vec::new();
+        let mut ccd_rows = sqlx::query_as!(
             ExportAccountStatementEntry,
             r#"SELECT
                 slot_time as timestamp,
@@ -143,26 +151,30 @@ impl Service {
             to
         )
         .fetch(&state.pool);
-        let mut csv = String::from("Time,Amount (CCD),Balance (CCD),Label\n");
-        while let Some(row) = rows.try_next().await? {
+
+        while let Some(row) = ccd_rows.try_next().await? {
+            ccd_data.push(row);
+        }
+
+        // Create Account Statements CSV
+        let mut csv_content = String::from("Time,Amount (CCD),Balance (CCD),Label\n");
+        for row in ccd_data.iter() {
             let account_balance = Amount::from_micro_ccd(row.account_balance.try_into()?);
             let amount_sign = if row.amount.is_negative() { "-" } else { "" };
             let amount = Amount::from_micro_ccd(row.amount.abs().try_into()?);
-            csv.push_str(
-                format!(
-                    "{},{}{},{},{}\n",
-                    row.timestamp
-                        .to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
-                    amount_sign,
-                    amount,
-                    account_balance,
-                    row.entry_type
-                )
-                .as_str(),
-            )
+            csv_content.push_str(&format!(
+                "{},{}{},{},{}\n",
+                row.timestamp
+                    .to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+                amount_sign,
+                amount,
+                account_balance,
+                row.entry_type
+            ));
         }
+
         let filename = format!(
-            "statement-{}_{}-{}.csv",
+            "account-statements-{}_{}-{}.csv",
             params.account_address,
             from.to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
             to.to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
@@ -177,7 +189,89 @@ impl Service {
                 format!("attachment; filename=\"{}\"", filename),
             ),
         ]);
-        Ok((headers, csv))
+
+        Ok((headers, csv_content.into_bytes()))
+    }
+
+    async fn export_plt_statements(
+        Query(params): Query<ExportAccountStatement>,
+        State(state): State<RouterState>,
+    ) -> ApiResult<(AppendHeaders<[(HeaderName, String); 2]>, Vec<u8>)> {
+        let to = params.to_time.unwrap_or_else(Utc::now);
+        let account_statements_export_max_days =
+            i64::try_from(state.config.export_statement_max_days).unwrap_or(32);
+        let from = params
+            .from_time
+            .unwrap_or_else(|| to - TimeDelta::days(account_statements_export_max_days));
+        if to - from > TimeDelta::days(account_statements_export_max_days) {
+            return Err(ApiError::ExceedsMaxAllowedDaysForAccountStatementExport(
+                account_statements_export_max_days,
+            ));
+        }
+
+        // Collect PLT account statement data
+        let mut plt_data = Vec::new();
+        let mut plt_rows = sqlx::query_as!(
+            ExportPltAccountStatementEntry,
+            r#"SELECT
+                ps.slot_time as timestamp,
+                ps.amount,
+                ps.decimals,
+                ps.account_balance,
+                ps.entry_type as "entry_type: PltAccountStatementEntryType",
+                pt.token_id,
+                pt.name as token_name
+            FROM plt_accounts_statement ps
+            JOIN plt_tokens pt ON ps.token_index = pt.index
+            WHERE
+                ps.account_index = (SELECT index FROM accounts WHERE address = $1)
+                AND ps.slot_time between $2 and $3
+            ORDER BY ps.slot_time DESC"#,
+            params.account_address.to_string(),
+            from,
+            to
+        )
+        .fetch(&state.pool);
+
+        while let Some(row) = plt_rows.try_next().await? {
+            plt_data.push(row);
+        }
+
+        // Create PLT Account Statements CSV
+        let mut csv_content =
+            String::from("Time,Token Name,Token ID,Label,Amount,Balance,Decimals\n");
+        for row in plt_data.iter() {
+            csv_content.push_str(&format!(
+                "{},{},{},{},{},{},{}\n",
+                row.timestamp
+                    .to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+                row.token_name.as_deref().unwrap_or("").replace(',', ";"), // Replace commas to avoid CSV issues
+                row.token_id.replace(',', ";"), // Replace commas to avoid CSV issues
+                row.entry_type,
+                row.amount,
+                row.account_balance,
+                row.decimals
+            ));
+        }
+
+        let filename = format!(
+            "plt-statements-{}_{}-{}.csv",
+            params.account_address,
+            from.to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+            to.to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
+        );
+        let headers = AppendHeaders([
+            (
+                axum::http::header::CONTENT_TYPE,
+                "text/csv; charset=utf-8".to_string(),
+            ),
+            (
+                axum::http::header::CONTENT_DISPOSITION,
+                format!("attachment; filename=\"{}\"", filename),
+            ),
+        ]);
+
+        Ok((headers, csv_content.into_bytes()))
     }
 }
 
@@ -194,6 +288,16 @@ struct ExportAccountStatementEntry {
     amount: i64,
     account_balance: i64,
     entry_type: AccountStatementEntryType,
+}
+
+struct ExportPltAccountStatementEntry {
+    timestamp: DateTime<Utc>,
+    amount: sqlx::types::BigDecimal,
+    decimals: i32,
+    account_balance: sqlx::types::BigDecimal,
+    entry_type: PltAccountStatementEntryType,
+    token_id: String,
+    token_name: Option<String>,
 }
 
 #[derive(Debug, serde::Deserialize)]
