@@ -294,14 +294,16 @@ pub enum SchemaVersion {
     AlterTxnAddSponsoredTxn,
     #[display("0047: Plt Accounts statement table to track balance changes")]
     PltAccountsStatements,
+    #[display("0048: Add partial index for nonzero PLT holders by token")]
+    IndexPltHolderNonZero,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking (destructive) database schema versions
     /// have been introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::PltAccountsStatements;
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::IndexPltHolderNonZero;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::PltAccountsStatements;
+    const LATEST: SchemaVersion = SchemaVersion::IndexPltHolderNonZero;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -370,6 +372,7 @@ impl SchemaVersion {
             SchemaVersion::AlterPltTokensAddCurrentSupplyColumn => false,
             SchemaVersion::PltAccountsStatements => false,
             SchemaVersion::AlterTxnAddSponsoredTxn => false,
+            SchemaVersion::IndexPltHolderNonZero => false,
         }
     }
 
@@ -427,6 +430,7 @@ impl SchemaVersion {
             SchemaVersion::AlterPltTokensAddCurrentSupplyColumn => false,
             SchemaVersion::PltAccountsStatements => false,
             SchemaVersion::AlterTxnAddSponsoredTxn => false,
+            SchemaVersion::IndexPltHolderNonZero => false,
         }
     }
 
@@ -757,7 +761,16 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::PltAccountsStatements
             }
-            SchemaVersion::PltAccountsStatements => unimplemented!(
+            SchemaVersion::PltAccountsStatements => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0048_index_plt_holder_non_zero.sql"
+                    )))
+                    .await?;
+                SchemaVersion::IndexPltHolderNonZero
+            }
+
+            SchemaVersion::IndexPltHolderNonZero => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),

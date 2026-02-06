@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                account_index,\n                token_index,\n                amount,\n                decimal\n            FROM plt_accounts\n            WHERE token_index = $1",
+  "query": "SELECT\n                account_index,\n                token_index,\n                amount,\n                decimal\n            FROM plt_accounts\n            WHERE token_index = $1 AND COALESCE(amount, 0) > 0",
   "describe": {
     "columns": [
       {
@@ -36,5 +36,5 @@
       false
     ]
   },
-  "hash": "07fb90e7ac1613fe4f977edc7138a544222b92c73f686c91620fe271d7e472ac"
+  "hash": "26c4715a8b01ae00441fbf3a89b93fe10a8da6d5ed9613c92af545175196c1a2"
 }
