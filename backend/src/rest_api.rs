@@ -157,26 +157,21 @@ impl Service {
         }
 
         // Create Account Statements CSV
-        let csv_content = if ccd_data.is_empty() {
-            "Time,Amount (CCD),Balance (CCD),Label\n".to_string()
-        } else {
-            let mut ccd_csv = String::from("Time,Amount (CCD),Balance (CCD),Label\n");
-            for row in ccd_data.iter() {
-                let account_balance = Amount::from_micro_ccd(row.account_balance.try_into()?);
-                let amount_sign = if row.amount.is_negative() { "-" } else { "" };
-                let amount = Amount::from_micro_ccd(row.amount.abs().try_into()?);
-                ccd_csv.push_str(&format!(
-                    "{},{}{},{},{}\n",
-                    row.timestamp
-                        .to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
-                    amount_sign,
-                    amount,
-                    account_balance,
-                    row.entry_type
-                ));
-            }
-            ccd_csv
-        };
+        let mut csv_content = String::from("Time,Amount (CCD),Balance (CCD),Label\n");
+        for row in ccd_data.iter() {
+            let account_balance = Amount::from_micro_ccd(row.account_balance.try_into()?);
+            let amount_sign = if row.amount.is_negative() { "-" } else { "" };
+            let amount = Amount::from_micro_ccd(row.amount.abs().try_into()?);
+            csv_content.push_str(&format!(
+                "{},{}{},{},{}\n",
+                row.timestamp
+                    .to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+                amount_sign,
+                amount,
+                account_balance,
+                row.entry_type
+            ));
+        }
 
         let filename = format!(
             "account-statements-{}_{}-{}.csv",
@@ -243,26 +238,21 @@ impl Service {
         }
 
         // Create PLT Account Statements CSV
-        let csv_content = if plt_data.is_empty() {
-            "Time,Token Name,Token ID,Label,Amount,Balance,Decimals\n".to_string()
-        } else {
-            let mut plt_csv =
-                String::from("Time,Token Name,Token ID,Label,Amount,Balance,Decimals\n");
-            for row in plt_data.iter() {
-                plt_csv.push_str(&format!(
-                    "{},{},{},{},{},{},{}\n",
-                    row.timestamp
-                        .to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
-                    row.token_name.as_deref().unwrap_or("").replace(',', ";"), // Replace commas to avoid CSV issues
-                    row.token_id.replace(',', ";"), // Replace commas to avoid CSV issues
-                    row.entry_type,
-                    row.amount,
-                    row.account_balance,
-                    row.decimals
-                ));
-            }
-            plt_csv
-        };
+        let mut csv_content =
+            String::from("Time,Token Name,Token ID,Label,Amount,Balance,Decimals\n");
+        for row in plt_data.iter() {
+            csv_content.push_str(&format!(
+                "{},{},{},{},{},{},{}\n",
+                row.timestamp
+                    .to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+                row.token_name.as_deref().unwrap_or("").replace(',', ";"), // Replace commas to avoid CSV issues
+                row.token_id.replace(',', ";"), // Replace commas to avoid CSV issues
+                row.entry_type,
+                row.amount,
+                row.account_balance,
+                row.decimals
+            ));
+        }
 
         let filename = format!(
             "plt-statements-{}_{}-{}.csv",
