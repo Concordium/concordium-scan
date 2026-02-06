@@ -138,17 +138,24 @@
 					:go-to-page="goToPage"
 				/>
 			</div>
-			<div class="col-span-1 flex justify-end">
+			<div class="col-span-1 flex justify-end gap-2">
 				<a
-					class="bg-theme-button-primary px-8 py-3 hover:bg-theme-button-primary-hover rounded"
+					class="bg-theme-button-primary px-6 py-3 hover:bg-theme-button-primary-hover rounded"
 					:href="exportUrl(accountAddress, chosenMonth!)"
 				>
-					<span class="hidden md:inline">Export</span>
+					<span class="hidden md:inline">Export CCD Statement</span>
+					<DownloadIcon class="h-4 inline align-text-top" />
+				</a>
+				<a
+					class="bg-theme-button-primary px-6 py-3 hover:bg-theme-button-primary-hover rounded"
+					:href="exportPltUrl(accountAddress, chosenMonth!)"
+				>
+					<span class="hidden md:inline">Export PLT Statement</span>
 					<DownloadIcon class="h-4 inline align-text-top" />
 				</a>
 			</div>
 		</div>
-		<div class="col-span-1 flex mt-3 flex justify-end">
+		<div class="col-span-1 flex mt-3 justify-end">
 			<month-picker-input
 				variant="dark"
 				class="py-2"
@@ -231,7 +238,21 @@ const {
 
 function exportUrl(accountAddress: string, rawMonth: string) {
 	const url = new URL(apiUrl)
-	url.pathname = 'rest/export/statement' // setting pathname discards any existing path in 'apiUrl'
+	url.pathname = 'rest/export/account-statements' // Updated endpoint for account statements only
+	url.searchParams.append('accountAddress', accountAddress)
+	if (rawMonth && !isNaN(new Date(rawMonth).getTime())) {
+		const start = new Date(rawMonth)
+		const end = new Date(rawMonth)
+		end.setMonth(end.getMonth() + 1)
+		url.searchParams.append('fromTime', start.toISOString())
+		url.searchParams.append('toTime', end.toISOString())
+	}
+	return url.toString()
+}
+
+function exportPltUrl(accountAddress: string, rawMonth: string) {
+	const url = new URL(apiUrl)
+	url.pathname = 'rest/export/plt-statements'
 	url.searchParams.append('accountAddress', accountAddress)
 	if (rawMonth && !isNaN(new Date(rawMonth).getTime())) {
 		const start = new Date(rawMonth)

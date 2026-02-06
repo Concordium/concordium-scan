@@ -129,23 +129,32 @@ const lastNTransactions = ref(TransactionFilterOption.Top20)
 
 const coinId = props.coinId ?? ''
 
-const pageSize = 10
-const maxPageSize = 20
+const pageSize = ref(lastNTransactions.value)
 const { first, last, after, before, pagedData, addPagedData, loadMore } =
-	usePagedData<PltEvent>([], pageSize, maxPageSize)
-
-first.value = lastNTransactions.value
+	usePagedData<PltEvent>([], pageSize.value, lastNTransactions.value)
 
 watch(
 	() => lastNTransactions.value,
 	newValue => {
-		// Reset pagination when filter changes
+		// Update page size and reset pagination when filter changes
+		pageSize.value = newValue
 		first.value = newValue
 		after.value = undefined
 		before.value = undefined
+		last.value = undefined
 		pagedData.value = []
 	}
 )
+
+// Update first/last before query to ensure correct page size
+watch([first, last], ([firstVal, lastVal]) => {
+	if (firstVal) {
+		first.value = pageSize.value
+	}
+	if (lastVal) {
+		last.value = pageSize.value
+	}
+})
 
 const { data: pltEventsData, loading: pltEventsLoading } = usePltEventByIdQuery(
 	coinId,
