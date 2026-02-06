@@ -176,7 +176,7 @@ export type AccountMetricsBuckets = {
 
 export type AccountProtocolToken = {
   __typename?: 'AccountProtocolToken';
-  amount: Scalars['Int'];
+  amount: Scalars['Float'];
   decimal: Scalars['Int'];
   tokenId: Scalars['String'];
   tokenName: Scalars['String'];

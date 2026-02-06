@@ -19,6 +19,7 @@ use super::{
     block::Block, get_config, get_pool, ApiError, ApiResult, ConnectionQuery, InternalError,
 };
 
+use async_graphql::connection::CursorType;
 use futures::TryStreamExt;
 use sqlx::{types::Json, PgPool};
 use std::str::FromStr;
@@ -319,6 +320,7 @@ impl PltEvent {
 pub struct QueryPlt;
 
 #[Object]
+#[allow(clippy::too_many_arguments)]
 impl QueryPlt {
     async fn plt_token(&self, ctx: &Context<'_>, id: types::ID) -> ApiResult<PltToken> {
         let token_id = TokenId::from_str(id.as_ref()).map_err(|e| {
@@ -332,6 +334,7 @@ impl QueryPlt {
             .ok_or(ApiError::NotFound)
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn plt_tokens<'a>(
         &self,
         ctx: &Context<'a>,
@@ -346,7 +349,8 @@ impl QueryPlt {
     ) -> ApiResult<connection::Connection<String, PltToken>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
-        let query = ConnectionQuery::<DescendingI64>::new(
+
+        let query = ConnectionQuery::<PltTokenFieldDescCursor>::new(
             first,
             after,
             last,
@@ -354,9 +358,10 @@ impl QueryPlt {
             config.plt_tokens_collection_limit,
         )?;
 
-        let mut row_stream = sqlx::query_as!(
+        let mut tokens = sqlx::query_as!(
             PltToken,
-            r#"SELECT name,
+            r#"SELECT 
+                name,
                 index,
                 token_id,
                 transaction_index,
@@ -366,41 +371,77 @@ impl QueryPlt {
                 initial_supply,
                 total_minted,
                 total_burned,
-                normalized_current_supply::DOUBLE PRECISION AS normalized_current_supply,
-                decimal
-            FROM plt_tokens 
-            WHERE $2 < index AND index < $1
-            ORDER BY 
-                normalized_current_supply DESC,
-                CASE WHEN $3 THEN index END ASC,
-                CASE WHEN NOT $3 THEN index END DESC
-            LIMIT $4"#,
-            i64::from(query.from),
-            i64::from(query.to),
-            query.is_last,
-            query.limit
+                normalized_current_supply as "normalized_current_supply: f64",
+                decimal,
+                paused
+            FROM (
+                SELECT name,
+                    index,
+                    token_id,
+                    transaction_index,
+                    issuer_index,
+                    module_reference,
+                    metadata,
+                    initial_supply,
+                    total_minted,
+                    total_burned,
+                    (normalized_current_supply)::DOUBLE PRECISION as normalized_current_supply,
+                    decimal,
+                    paused
+                FROM plt_tokens
+                WHERE $2 < index AND index < $1
+                ORDER BY
+                    CASE WHEN $3 THEN index END ASC,
+                    CASE WHEN NOT $3 THEN index END DESC
+                LIMIT $4
+            ) AS subquery
+            ORDER BY index DESC
+            "#,
+            query.from.token_id, // $1
+            query.to.token_id,   // $2
+            query.is_last,       // $3
+            query.limit,         // $4
         )
         .fetch(pool);
+
         let mut connection = connection::Connection::new(false, false);
-        while let Some(token) = row_stream.try_next().await? {
+
+        while let Some(token) = tokens.try_next().await? {
+            let cursor = PltTokenFieldDescCursor::new(&token);
+
             connection
                 .edges
-                .push(connection::Edge::new(token.index.to_string(), token));
+                .push(connection::Edge::new(cursor.encode_cursor(), token));
         }
-        if let (Some(page_min), Some(page_max)) =
-            (connection.edges.last(), connection.edges.first())
+
+        if let (Some(page_first_edge), Some(page_last_edge)) =
+            (connection.edges.first(), connection.edges.last())
         {
-            let result = sqlx::query!(
+            let bounds = sqlx::query!(
                 "SELECT MAX(index) as max_index, MIN(index) as min_index FROM plt_tokens"
             )
-            .fetch_one(pool)
+            .fetch_optional(pool)
             .await?;
-            connection.has_next_page = result
-                .min_index
-                .is_some_and(|db_min| db_min < page_min.node.index);
-            connection.has_previous_page = result
-                .max_index
-                .is_some_and(|db_max| db_max > page_max.node.index);
+
+            if let Some(bounds) = bounds {
+                if let (Some(max_index), Some(min_index)) = (bounds.max_index, bounds.min_index) {
+                    let collection_start_cursor = PltTokenFieldDescCursor {
+                        token_id: max_index,
+                        field: max_index as f64,
+                    };
+
+                    let collection_end_cursor = PltTokenFieldDescCursor {
+                        token_id: min_index,
+                        field: min_index as f64,
+                    };
+
+                    let page_start_cursor = PltTokenFieldDescCursor::new(&page_first_edge.node);
+                    let page_end_cursor = PltTokenFieldDescCursor::new(&page_last_edge.node);
+
+                    connection.has_previous_page = collection_start_cursor < page_start_cursor;
+                    connection.has_next_page = collection_end_cursor > page_end_cursor;
+                }
+            }
         }
         Ok(connection)
     }
@@ -419,6 +460,7 @@ pub struct PltToken {
     pub total_burned: Option<BigDecimal>,
     pub normalized_current_supply: Option<f64>,
     pub decimal: Option<i32>,
+    pub paused: bool,
 }
 
 impl PltToken {
@@ -436,6 +478,7 @@ impl PltToken {
             total_burned: params.total_burned,
             normalized_current_supply: params.normalized_current_supply,
             decimal: params.decimal,
+            paused: params.paused,
         }
     }
 
@@ -453,7 +496,8 @@ impl PltToken {
                     total_minted,
                     total_burned,
                     normalized_current_supply as "normalized_current_supply: f64",
-                    decimal
+                    decimal,
+                    paused
             FROM plt_tokens WHERE token_id = $1"#,
             token_id.to_string()
         )
@@ -887,8 +931,8 @@ impl PltAccountAmount {
         let value = self
             .amount
             .clone()
-            .and_then(|amt| amt.to_u64())
-            .unwrap_or(0);
+            .and_then(|amt| amt.to_f64())
+            .unwrap_or(0.0);
         let decimals = self.decimal.unwrap_or(0) as u8;
         Ok(TokenAmount {
             value: value.to_string(),
@@ -922,11 +966,99 @@ impl AccountProtocolToken {
         Ok(self.decimal)
     }
 
-    async fn amount(&self) -> ApiResult<u64> {
-        self.amount.to_u64().ok_or_else(|| {
+    async fn amount(&self) -> ApiResult<f64> {
+        self.amount.to_f64().ok_or_else(|| {
             ApiError::InternalServerError(InternalError::InternalError(
-                "Failed to convert PLT token amount to u64".to_string(),
+                "Failed to convert PLT token amount to f64".to_string(),
             ))
         })
+    }
+}
+
+// Pagination supporting types
+
+/// Cursor for PLT token pagination supporting DESC order by token index.
+#[derive(Debug, PartialEq, Clone, Copy)]
+struct PltTokenFieldDescCursor {
+    /// The cursor value of the relevant sorting field.
+    field: f64,
+    /// The token id (index) of the cursor.
+    token_id: i64,
+}
+
+impl PltTokenFieldDescCursor {
+    fn new(token: &PltToken) -> Self {
+        PltTokenFieldDescCursor {
+            field: token.index as f64,
+            token_id: token.index,
+        }
+    }
+}
+
+impl connection::CursorType for PltTokenFieldDescCursor {
+    type Error = DecodePltTokenFieldCursor;
+
+    fn decode_cursor(s: &str) -> Result<Self, Self::Error> {
+        let (before, after) = s
+            .split_once(':')
+            .ok_or(DecodePltTokenFieldCursor::NoSemicolon)?;
+        let field: f64 = before
+            .parse()
+            .map_err(DecodePltTokenFieldCursor::ParseField)?;
+        let token_id: i64 = after
+            .parse()
+            .map_err(DecodePltTokenFieldCursor::ParseTokenId)?;
+
+        Ok(Self { field, token_id })
+    }
+
+    fn encode_cursor(&self) -> String {
+        format!("{}:{}", self.field, self.token_id)
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+enum DecodePltTokenFieldCursor {
+    #[error("Cursor must contain a semicolon.")]
+    NoSemicolon,
+    #[error("Cursor must contain valid token ID.")]
+    ParseTokenId(std::num::ParseIntError),
+    #[error("Cursor must contain valid field.")]
+    ParseField(std::num::ParseFloatError),
+}
+
+impl crate::connection::ConnectionBounds for PltTokenFieldDescCursor {
+    const END_BOUND: Self = Self {
+        token_id: i64::MIN,
+        field: f64::MIN,
+    };
+    const START_BOUND: Self = Self {
+        token_id: i64::MAX,
+        field: f64::MAX,
+    };
+}
+
+impl PartialOrd for PltTokenFieldDescCursor {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Eq for PltTokenFieldDescCursor {}
+
+impl Ord for PltTokenFieldDescCursor {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let ordering = other.field.total_cmp(&self.field);
+        if let std::cmp::Ordering::Equal = ordering {
+            other.token_id.cmp(&self.token_id)
+        } else {
+            ordering
+        }
+    }
+}
+
+impl From<DecodePltTokenFieldCursor> for ApiError {
+    fn from(err: DecodePltTokenFieldCursor) -> Self {
+        ApiError::InvalidCursorFormat(err.to_string())
     }
 }

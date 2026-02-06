@@ -145,7 +145,7 @@ type AccountProtocolToken {
 	tokenName: String!
 	tokenId: String!
 	decimal: Int!
-	amount: Int!
+	amount: Float!
 }
 
 type AccountProtocolTokenConnection {

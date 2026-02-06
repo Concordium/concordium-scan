@@ -1,6 +1,13 @@
 import { useQuery, gql } from '@urql/vue'
 import type { PltToken, PageInfo } from '~/types/generated'
-import type { QueryVariables } from '~/types/queryVariables'
+import type { Ref } from 'vue'
+
+export type PltTokensQueryVariables = {
+	after: Ref<string | null | undefined>
+	before: Ref<string | null | undefined>
+	first: Ref<number | undefined>
+	last: Ref<number | undefined>
+}
 
 export type PltTokensPagedQueryResponse = {
 	pltTokens: {
@@ -55,7 +62,9 @@ function getPageInfo(
 	return value?.pltTokens?.pageInfo ?? null
 }
 
-export const usePltTokensPagedQuery = (eventsVariables?: QueryVariables) => {
+export const usePltTokensPagedQuery = (
+	eventsVariables?: PltTokensQueryVariables
+) => {
 	const { data, fetching, error } = useQuery({
 		query: PLT_TOKENS_PAGED_QUERY,
 		requestPolicy: 'cache-and-network',

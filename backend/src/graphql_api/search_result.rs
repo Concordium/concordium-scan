@@ -741,7 +741,8 @@ impl SearchResult {
                 plt_tokens.initial_supply,
                 plt_tokens.total_minted,
                 plt_tokens.total_burned,
-                plt_tokens.decimal
+                plt_tokens.decimal,
+                plt_tokens.paused
             FROM plt_tokens
             LEFT JOIN accounts ON plt_tokens.issuer_index = accounts.index
             WHERE (
@@ -793,6 +794,7 @@ impl SearchResult {
                 total_burned: token_row.total_burned,
                 decimal: Some(token_row.decimal),
                 normalized_current_supply: token_row.normalized_current_supply,
+                paused: token_row.paused,
             });
 
             if first_index.is_none() {

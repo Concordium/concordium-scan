@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT name,\n                index,\n                token_id,\n                transaction_index,\n                issuer_index,\n                module_reference,\n                metadata as \"metadata: sqlx::types::Json<sqlx::types::JsonValue>\",\n                initial_supply,\n                total_minted,\n                total_burned,\n                normalized_current_supply::DOUBLE PRECISION AS normalized_current_supply,\n                decimal\n            FROM plt_tokens \n            WHERE $2 < index AND index < $1\n            ORDER BY \n                normalized_current_supply DESC,\n                CASE WHEN $3 THEN index END ASC,\n                CASE WHEN NOT $3 THEN index END DESC\n            LIMIT $4",
+  "query": "SELECT name,\n                    index,\n                    token_id,\n                    transaction_index,\n                    issuer_index,\n                    module_reference,\n                    metadata as \"metadata: sqlx::types::Json<sqlx::types::JsonValue>\",\n                    initial_supply,\n                    total_minted,\n                    total_burned,\n                    normalized_current_supply as \"normalized_current_supply: f64\",\n                    decimal,\n                    paused\n            FROM plt_tokens WHERE token_id = $1",
   "describe": {
     "columns": [
       {
@@ -55,21 +55,23 @@
       },
       {
         "ordinal": 10,
-        "name": "normalized_current_supply",
-        "type_info": "Float8"
+        "name": "normalized_current_supply: f64",
+        "type_info": "Numeric"
       },
       {
         "ordinal": 11,
         "name": "decimal",
         "type_info": "Int4"
+      },
+      {
+        "ordinal": 12,
+        "name": "paused",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
       "Left": [
-        "Int8",
-        "Int8",
-        "Bool",
-        "Int8"
+        "Text"
       ]
     },
     "nullable": [
@@ -83,9 +85,10 @@
       true,
       true,
       true,
-      null,
+      true,
+      false,
       false
     ]
   },
-  "hash": "3e697c28a1e582a1b86caa0d39340b85a0573d30eaafe35b4ce74120d7b16be5"
+  "hash": "5a29c8222985d37c7cfcaeb7ea93ec8b62a2a9fa2932ed584e98791131e650f4"
 }
