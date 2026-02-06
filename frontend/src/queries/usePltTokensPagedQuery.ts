@@ -1,10 +1,5 @@
 import { useQuery, gql } from '@urql/vue'
-import type {
-	PltToken,
-	PageInfo,
-	PltTokenSort,
-	PltTokenFilterInput,
-} from '~/types/generated'
+import type { PltToken, PageInfo } from '~/types/generated'
 import type { Ref } from 'vue'
 
 export type PltTokensQueryVariables = {
@@ -12,8 +7,6 @@ export type PltTokensQueryVariables = {
 	before: Ref<string | null | undefined>
 	first: Ref<number | undefined>
 	last: Ref<number | undefined>
-	sort?: Ref<PltTokenSort>
-	filter?: Ref<PltTokenFilterInput | undefined>
 }
 
 export type PltTokensPagedQueryResponse = {
@@ -24,22 +17,8 @@ export type PltTokensPagedQueryResponse = {
 }
 
 const PLT_TOKENS_PAGED_QUERY = gql<PltTokensPagedQueryResponse>`
-	query (
-		$after: String
-		$before: String
-		$first: Int
-		$last: Int
-		$sort: PltTokenSort
-		$filter: PltTokenFilterInput
-	) {
-		pltTokens(
-			first: $first
-			last: $last
-			after: $after
-			before: $before
-			sort: $sort
-			filter: $filter
-		) {
+	query ($after: String, $before: String, $first: Int, $last: Int) {
+		pltTokens(first: $first, last: $last, after: $after, before: $before) {
 			nodes {
 				name
 				tokenId

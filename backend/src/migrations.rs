@@ -292,8 +292,6 @@ pub enum SchemaVersion {
     AlterPltTokensAddCurrentSupplyColumn,
     #[display("0046: Alter transaction table to add sponsored transaction fields")]
     AlterTxnAddSponsoredTxn,
-    #[display("0047: Add composite indexes for PLT tokens pagination and filtering")]
-    AddPltTokensCompositeIndexes,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -302,7 +300,7 @@ impl SchemaVersion {
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion =
         SchemaVersion::AlterPltTokensAddCurrentSupplyColumn;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::AddPltTokensCompositeIndexes;
+    const LATEST: SchemaVersion = SchemaVersion::AlterTxnAddSponsoredTxn;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -370,7 +368,6 @@ impl SchemaVersion {
             SchemaVersion::NormalizePltCumulativeTransferAmount => false,
             SchemaVersion::AlterPltTokensAddCurrentSupplyColumn => false,
             SchemaVersion::AlterTxnAddSponsoredTxn => false,
-            SchemaVersion::AddPltTokensCompositeIndexes => false,
         }
     }
 
@@ -427,7 +424,6 @@ impl SchemaVersion {
             SchemaVersion::NormalizePltCumulativeTransferAmount => false,
             SchemaVersion::AlterPltTokensAddCurrentSupplyColumn => false,
             SchemaVersion::AlterTxnAddSponsoredTxn => false,
-            SchemaVersion::AddPltTokensCompositeIndexes => false,
         }
     }
 
@@ -750,15 +746,7 @@ impl SchemaVersion {
                     .await?;
                 SchemaVersion::AlterTxnAddSponsoredTxn
             }
-            SchemaVersion::AlterTxnAddSponsoredTxn => {
-                tx.as_mut()
-                    .execute(sqlx::raw_sql(include_str!(
-                        "./migrations/m0047-add-plt-tokens-composite-indexes.sql"
-                    )))
-                    .await?;
-                SchemaVersion::AddPltTokensCompositeIndexes
-            }
-            SchemaVersion::AddPltTokensCompositeIndexes => unimplemented!(
+            SchemaVersion::AlterTxnAddSponsoredTxn => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),

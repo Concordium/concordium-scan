@@ -2076,15 +2076,6 @@ type PltTokenEdge {
 	cursor: String!
 }
 
-input PltTokenFilterInput {
-	isPaused: Boolean
-}
-
-enum PltTokenSort {
-	AGE_DESC
-	SUPPLY_DESC
-}
-
 "This struct is used to define the buckets for PLT transfer metrics."
 type PltTransferMetricsBuckets {
 	bucketWidth: TimeSpan!
@@ -2297,7 +2288,7 @@ type Query {
 		before: String
 	): PltEventConnection!
 	pltToken(id: ID!): PltToken!
-	pltTokens(		sort: PltTokenSort,		filter: PltTokenFilterInput,
+	pltTokens(
 		"Returns the first _n_ elements from the list."
 		first: Int,
 		"Returns the elements in the list that come after the specified cursor."

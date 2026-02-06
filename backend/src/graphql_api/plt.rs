@@ -4,7 +4,7 @@ use num_traits::ToPrimitive;
 
 use crate::{
     address::AccountAddress,
-    connection::{DescendingI64, NestedCursor, Reversed},
+    connection::{DescendingI64, NestedCursor},
     graphql_api::account::Account,
     scalar_types::{
         ModuleReference, PltIndex, TokenId, TokenIndex, TransactionHash, TransactionIndex,
@@ -338,8 +338,6 @@ impl QueryPlt {
     async fn plt_tokens<'a>(
         &self,
         ctx: &Context<'a>,
-        sort: Option<PltTokenSort>,
-        filter: Option<PltTokenFilterInput>,
         #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
@@ -352,386 +350,100 @@ impl QueryPlt {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
 
-        let order: PltTokenOrder = sort.unwrap_or_default().into();
+        let query = ConnectionQuery::<PltTokenFieldDescCursor>::new(
+            first,
+            after,
+            last,
+            before,
+            config.plt_tokens_collection_limit,
+        )?;
 
-        let include_only_paused = filter.as_ref().and_then(|f| f.is_paused);
-
-        if matches!(order.dir, super::OrderDir::Desc) {
-            let query = ConnectionQuery::<PltTokenFieldDescCursor>::new(
-                first,
-                after,
-                last,
-                before,
-                config.plt_tokens_collection_limit,
-            )?;
-
-            let mut tokens = sqlx::query_as!(
-                PltToken,
-                r#"SELECT 
-                    name,
+        let mut tokens = sqlx::query_as!(
+            PltToken,
+            r#"SELECT 
+                name,
+                index,
+                token_id,
+                transaction_index,
+                issuer_index,
+                module_reference,
+                metadata as "metadata: sqlx::types::Json<sqlx::types::JsonValue>",
+                initial_supply,
+                total_minted,
+                total_burned,
+                normalized_current_supply as "normalized_current_supply: f64",
+                decimal,
+                paused
+            FROM (
+                SELECT name,
                     index,
                     token_id,
                     transaction_index,
                     issuer_index,
                     module_reference,
-                    metadata as "metadata: sqlx::types::Json<sqlx::types::JsonValue>",
+                    metadata,
                     initial_supply,
                     total_minted,
                     total_burned,
-                    normalized_current_supply as "normalized_current_supply: f64",
+                    (normalized_current_supply)::DOUBLE PRECISION as normalized_current_supply,
                     decimal,
                     paused
-                FROM (
-                    SELECT name,
-                        index,
-                        token_id,
-                        transaction_index,
-                        issuer_index,
-                        module_reference,
-                        metadata,
-                        initial_supply,
-                        total_minted,
-                        total_burned,
-                        (normalized_current_supply)::DOUBLE PRECISION as normalized_current_supply,
-                        decimal,
-                        paused
-                    FROM plt_tokens
-                    WHERE
-                        -- Filter for only the tokens that are within the
-                        -- range that correspond to the requested page.
-                        -- The first condition is true only if we don't order by that field.
-                        -- Then the whole OR condition will be true, so the filter for that
-                        -- field will be ignored.
-                        (NOT $3 OR index < $1 AND index > $2) AND
-                        (NOT $4 OR 
-                            (
-                                normalized_current_supply::DOUBLE PRECISION < $9 AND normalized_current_supply::DOUBLE PRECISION > $10 OR 
-                                (normalized_current_supply::DOUBLE PRECISION = $10 AND index > $2)
-                                OR (normalized_current_supply::DOUBLE PRECISION = $9 AND index < $1)
-                            )
-                        ) AND
-                        -- Need to filter for only paused tokens if the user requests this.
-                        (NOT $5 OR paused = $6)
-                    ORDER BY
-                        -- Order primarily by the field requested. Depending on the order of the collection
-                        -- and whether it is the first or last being queried, this sub-query must
-                        -- order by:
-                        --
-                        -- | Collection | Operation | Sub-query |
-                        -- |------------|-----------|-----------|
-                        -- | ASC        | first     | ASC       |
-                        -- | DESC       | first     | DESC      |
-                        -- | ASC        | last      | DESC      |
-                        -- | DESC       | last      | ASC       |
-                        --
-                        -- Note that `$7` below represents `is_desc != is_last`.
-                        --
-                        -- The first condition is true if we order by that field.
-                        -- Otherwise false, which makes the CASE null, which means
-                        -- it will not affect the ordering at all.
-                        -- The `PltTokenOrderField::Age` is not mentioned here because its
-                        -- sorting instruction is equivalent and would be repeated in the next step.
-                        (CASE WHEN $4 AND $7     THEN normalized_current_supply END) DESC,
-                        (CASE WHEN $4 AND NOT $7 THEN normalized_current_supply END) ASC,
-                        (CASE WHEN $3 AND $7     THEN index END) DESC,
-                        (CASE WHEN $3 AND NOT $7 THEN index END) ASC,
-                        (CASE WHEN NOT $3 AND $7     THEN index END) DESC,
-                        (CASE WHEN NOT $3 AND NOT $7 THEN index END) ASC
-                        -- Since after the ordering above, there may exist elements with the same field value,
-                        -- apply a second ordering by the unique `token_id` (index) in addition.
-                        -- This ensures a strict ordering of elements as the `PltTokenFieldDescCursor` defines.
-                    LIMIT $8
-                ) AS subquery
-                -- We need to order each page still, as we only use the DESC/ASC ordering above
-                -- to select page items from the start/end of the range.
-                -- Each page must still independently be ordered.
-                -- See also https://relay.dev/graphql/connections.htm#sec-Edge-order
+                FROM plt_tokens
+                WHERE $2 < index AND index < $1
                 ORDER BY
-                    (CASE WHEN $3 THEN index END) DESC,
-                    (CASE WHEN $4 THEN normalized_current_supply END) DESC,
-                    index DESC
-                "#,
-                query.from.token_id,                                 // $1
-                query.to.token_id,                                   // $2
-                matches!(order.field, PltTokenOrderField::Age),      // $3
-                matches!(order.field, PltTokenOrderField::Supply),   // $4
-                include_only_paused.is_some(),                       // $5
-                include_only_paused.unwrap_or(false),                // $6
-                query.is_last != true,                               // $7
-                query.limit,                                         // $8
-                query.from.field,  // $9
-                query.to.field,    // $10
-            )
-            .fetch(pool);
+                    CASE WHEN $3 THEN index END ASC,
+                    CASE WHEN NOT $3 THEN index END DESC
+                LIMIT $4
+            ) AS subquery
+            ORDER BY index DESC
+            "#,
+            query.from.token_id, // $1
+            query.to.token_id,   // $2
+            query.is_last,       // $3
+            query.limit,         // $4
+        )
+        .fetch(pool);
 
-            let mut connection = connection::Connection::new(false, false);
+        let mut connection = connection::Connection::new(false, false);
 
-            while let Some(token) = tokens.try_next().await? {
-                let cursor = PltTokenFieldDescCursor::new(order.field, &token);
+        while let Some(token) = tokens.try_next().await? {
+            let cursor = PltTokenFieldDescCursor::new(&token);
 
-                connection
-                    .edges
-                    .push(connection::Edge::new(cursor.encode_cursor(), token));
-            }
-
-            if let (Some(page_first_edge), Some(page_last_edge)) =
-                (connection.edges.first(), connection.edges.last())
-            {
-                let bounds = sqlx::query!(
-                    "WITH
-                        min_token as (
-                            SELECT index, 
-                                CASE 
-                                    WHEN $2 THEN index 
-                                    WHEN $3 THEN normalized_current_supply
-                                ELSE NULL 
-                            END AS min_value
-                            FROM plt_tokens
-                            WHERE 
-                                (NOT $1 OR paused = $4)
-                            ORDER BY min_value DESC, index DESC
-                            LIMIT 1
-                        ),
-                        max_token as (
-                            SELECT 
-                                index,
-                                CASE 
-                                    WHEN $2 THEN index 
-                                    WHEN $3 THEN normalized_current_supply
-                                ELSE NULL 
-                                END AS max_value
-                            FROM plt_tokens
-                            WHERE 
-                                (NOT $1 OR paused = $4)
-                            ORDER BY max_value ASC, index ASC
-                            LIMIT 1
-                        )
-                    SELECT
-                        min_token.index AS min_index,
-                        min_token.min_value AS min_value,
-                        max_token.index AS max_index,
-                        max_token.max_value AS max_value
-                    FROM min_token, max_token",
-                    include_only_paused.is_some(), // $1
-                    matches!(order.field, PltTokenOrderField::Age), // $2
-                    matches!(order.field, PltTokenOrderField::Supply), // $3
-                    include_only_paused.unwrap_or(false), // $4
-                )
-                .fetch_optional(pool)
-                .await?;
-
-                if let Some(bounds) = bounds {
-                    if let (Some(min_value), Some(max_value), max_index, min_index) = (
-                        bounds.min_value,
-                        bounds.max_value,
-                        bounds.max_index,
-                        bounds.min_index,
-                    ) {
-                        // min_token query returns HIGHEST value (DESC order)
-                        // max_token query returns LOWEST value (ASC order)
-                        let collection_start_cursor = PltTokenFieldDescCursor {
-                            token_id: min_index,                      // index from highest value query
-                            field: min_value.to_f64().unwrap_or(0.0), // highest value
-                        };
-
-                        let collection_end_cursor = PltTokenFieldDescCursor {
-                            token_id: max_index,                      // index from lowest value query
-                            field: max_value.to_f64().unwrap_or(0.0), // lowest value
-                        };
-
-                        let page_start_cursor =
-                            PltTokenFieldDescCursor::new(order.field, &page_first_edge.node);
-                        let page_end_cursor =
-                            PltTokenFieldDescCursor::new(order.field, &page_last_edge.node);
-
-                        connection.has_previous_page = collection_start_cursor < page_start_cursor;
-                        connection.has_next_page = collection_end_cursor > page_end_cursor;
-                    }
-                }
-            }
-            Ok(connection)
-        } else {
-            // Use an `ascending` cursor.
-            let query = ConnectionQuery::<Reversed<PltTokenFieldDescCursor>>::new(
-                first,
-                after,
-                last,
-                before,
-                config.plt_tokens_collection_limit,
-            )?;
-
-            let mut tokens = sqlx::query_as!(
-                PltToken,
-                r#"SELECT
-                    subquery.name,
-                    subquery.index,
-                    subquery.token_id,
-                    subquery.transaction_index,
-                    subquery.issuer_index,
-                    subquery.module_reference,
-                    subquery.metadata as "metadata: sqlx::types::Json<sqlx::types::JsonValue>",
-                    subquery.initial_supply,
-                    subquery.total_minted,
-                    subquery.total_burned,
-                    subquery.normalized_current_supply as "normalized_current_supply: f64",
-                    subquery.decimal,
-                    subquery.paused
-                FROM (
-                    SELECT name,
-                        index,
-                        token_id,
-                        transaction_index,
-                        issuer_index,
-                        module_reference,
-                        metadata,
-                        initial_supply,
-                        total_minted,
-                        total_burned,
-                        (normalized_current_supply)::DOUBLE PRECISION as normalized_current_supply,
-                        decimal,
-                        paused
-                    FROM plt_tokens
-                    WHERE
-                        -- Filter for only the tokens that are within the
-                        -- range that correspond to the requested page.
-                        (NOT $3 OR index > $1 AND index < $2) AND
-                        (NOT $4 OR 
-                            (
-                                normalized_current_supply::DOUBLE PRECISION > $9 AND normalized_current_supply::DOUBLE PRECISION < $10 OR 
-                                (normalized_current_supply::DOUBLE PRECISION = $10 AND index < $2)
-                                OR (normalized_current_supply::DOUBLE PRECISION = $9 AND index > $1)
-                            )
-                        ) AND
-                        -- Need to filter for only paused tokens if the user requests this.
-                        (NOT $5 OR paused = $6)
-                    ORDER BY
-                        (CASE WHEN $4 AND $7     THEN normalized_current_supply END) ASC,
-                        (CASE WHEN $4 AND NOT $7 THEN normalized_current_supply END) DESC,
-                        (CASE WHEN $3 AND $7     THEN index END) ASC,
-                        (CASE WHEN $3 AND NOT $7 THEN index END) DESC,
-                        (CASE WHEN NOT $3 AND $7     THEN index END) ASC,
-                        (CASE WHEN NOT $3 AND NOT $7 THEN index END) DESC
-                    LIMIT $8
-                ) AS subquery
-                -- We need to order each page still, as we only use the DESC/ASC ordering above
-                -- to select page items from the start/end of the range.
-                -- Each page must still independently be ordered.
-                ORDER BY
-                    (CASE WHEN $3 THEN subquery.index END) ASC,
-                    (CASE WHEN $4 THEN subquery.normalized_current_supply END) ASC,
-                    subquery.index ASC
-                "#,
-                query.from.cursor.token_id,                          // $1
-                query.to.cursor.token_id,                            // $2
-                matches!(order.field, PltTokenOrderField::Age),      // $3
-                matches!(order.field, PltTokenOrderField::Supply),   // $4
-                include_only_paused.is_some(),                       // $5
-                include_only_paused.unwrap_or(false),                // $6
-                query.is_last != false,                              // $7
-                query.limit,                                         // $8
-                query.from.cursor.field,  // $9
-                query.to.cursor.field,    // $10
-            )
-            .fetch(pool);
-
-            let mut connection = connection::Connection::new(false, false);
-
-            while let Some(token) = tokens.try_next().await? {
-                let cursor = Reversed::<PltTokenFieldDescCursor> {
-                    cursor: PltTokenFieldDescCursor::new(order.field, &token),
-                };
-
-                connection
-                    .edges
-                    .push(connection::Edge::new(cursor.encode_cursor(), token));
-            }
-
-            if let (Some(page_first_edge), Some(page_last_edge)) =
-                (connection.edges.first(), connection.edges.last())
-            {
-                let bounds = sqlx::query!(
-                    "WITH
-                        min_token as (
-                            SELECT index,
-                                CASE
-                                    WHEN $2 THEN index
-                                    WHEN $3 THEN normalized_current_supply
-                                ELSE NULL
-                            END AS min_value
-                            FROM plt_tokens
-                            WHERE
-                                (NOT $1 OR paused = $4)
-                            ORDER BY min_value ASC, index ASC
-                            LIMIT 1
-                        ),
-                        max_token as (
-                            SELECT
-                                index,
-                                CASE
-                                    WHEN $2 THEN index
-                                    WHEN $3 THEN normalized_current_supply
-                                ELSE NULL
-                                END AS max_value
-                            FROM plt_tokens
-                            WHERE
-                                (NOT $1 OR paused = $4)
-                            ORDER BY max_value DESC, index DESC
-                            LIMIT 1
-                        )
-                    SELECT
-                        min_token.index AS min_index,
-                        min_token.min_value AS min_value,
-                        max_token.index AS max_index,
-                        max_token.max_value AS max_value
-                    FROM min_token, max_token",
-                    include_only_paused.is_some(), // $1
-                    matches!(order.field, PltTokenOrderField::Age), // $2
-                    matches!(order.field, PltTokenOrderField::Supply), // $3
-                    include_only_paused.unwrap_or(false), // $4
-                )
-                .fetch_optional(pool)
-                .await?;
-
-                if let Some(bounds) = bounds {
-                    if let (Some(min_value), Some(max_value), max_index, min_index) = (
-                        bounds.min_value,
-                        bounds.max_value,
-                        bounds.max_index,
-                        bounds.min_index,
-                    ) {
-                        // min_token query returns LOWEST value (ASC order)
-                        // max_token query returns HIGHEST value (DESC order)
-                        let collection_start_cursor = Reversed {
-                            cursor: PltTokenFieldDescCursor {
-                                token_id: min_index,                      // index from lowest value query
-                                field: min_value.to_f64().unwrap_or(0.0), // lowest value
-                            },
-                        };
-
-                        let collection_end_cursor = Reversed {
-                            cursor: PltTokenFieldDescCursor {
-                                token_id: max_index,                      // index from highest value query
-                                field: max_value.to_f64().unwrap_or(0.0), // highest value
-                            },
-                        };
-
-                        let page_start_cursor = Reversed {
-                            cursor: PltTokenFieldDescCursor::new(
-                                order.field,
-                                &page_first_edge.node,
-                            ),
-                        };
-                        let page_end_cursor = Reversed {
-                            cursor: PltTokenFieldDescCursor::new(order.field, &page_last_edge.node),
-                        };
-
-                        connection.has_previous_page = collection_start_cursor < page_start_cursor;
-                        connection.has_next_page = collection_end_cursor > page_end_cursor;
-                    }
-                }
-            }
-            Ok(connection)
+            connection
+                .edges
+                .push(connection::Edge::new(cursor.encode_cursor(), token));
         }
+
+        if let (Some(page_first_edge), Some(page_last_edge)) =
+            (connection.edges.first(), connection.edges.last())
+        {
+            let bounds = sqlx::query!(
+                "SELECT MAX(index) as max_index, MIN(index) as min_index FROM plt_tokens"
+            )
+            .fetch_optional(pool)
+            .await?;
+
+            if let Some(bounds) = bounds {
+                if let (Some(max_index), Some(min_index)) = (bounds.max_index, bounds.min_index) {
+                    let collection_start_cursor = PltTokenFieldDescCursor {
+                        token_id: max_index,
+                        field: max_index as f64,
+                    };
+
+                    let collection_end_cursor = PltTokenFieldDescCursor {
+                        token_id: min_index,
+                        field: min_index as f64,
+                    };
+
+                    let page_start_cursor = PltTokenFieldDescCursor::new(&page_first_edge.node);
+                    let page_end_cursor = PltTokenFieldDescCursor::new(&page_last_edge.node);
+
+                    connection.has_previous_page = collection_start_cursor < page_start_cursor;
+                    connection.has_next_page = collection_end_cursor > page_end_cursor;
+                }
+            }
+        }
+        Ok(connection)
     }
 }
 
@@ -1264,49 +976,7 @@ impl AccountProtocolToken {
 
 // Pagination supporting types
 
-#[derive(async_graphql::Enum, Clone, Copy, PartialEq, Eq, Default)]
-enum PltTokenSort {
-    AgeDesc,
-    #[default]
-    SupplyDesc,
-}
-
-#[derive(Debug, Clone, Copy)]
-struct PltTokenOrder {
-    field: PltTokenOrderField,
-    dir: super::OrderDir,
-}
-
-impl From<PltTokenSort> for PltTokenOrder {
-    fn from(sort: PltTokenSort) -> Self {
-        match sort {
-            PltTokenSort::AgeDesc => Self {
-                field: PltTokenOrderField::Age,
-                dir: super::OrderDir::Desc,
-            },
-
-            PltTokenSort::SupplyDesc => Self {
-                field: PltTokenOrderField::Supply,
-                dir: super::OrderDir::Desc,
-            },
-        }
-    }
-}
-
-/// The fields that may be sorted by when querying PLT tokens.
-#[derive(Debug, Clone, Copy)]
-enum PltTokenOrderField {
-    Age,
-    Supply,
-}
-
-#[derive(async_graphql::InputObject)]
-struct PltTokenFilterInput {
-    is_paused: Option<bool>,
-}
-
-/// Cursor for PLT token pagination supporting DESC order sorted by a particular
-/// field, like the `normalized_current_supply` or `index` (age).
+/// Cursor for PLT token pagination supporting DESC order by token index.
 #[derive(Debug, PartialEq, Clone, Copy)]
 struct PltTokenFieldDescCursor {
     /// The cursor value of the relevant sorting field.
@@ -1316,24 +986,10 @@ struct PltTokenFieldDescCursor {
 }
 
 impl PltTokenFieldDescCursor {
-    fn supply(token: &PltToken) -> Self {
-        PltTokenFieldDescCursor {
-            field: token.normalized_current_supply.unwrap_or(0.0),
-            token_id: token.index,
-        }
-    }
-
-    fn index(token: &PltToken) -> Self {
+    fn new(token: &PltToken) -> Self {
         PltTokenFieldDescCursor {
             field: token.index as f64,
             token_id: token.index,
-        }
-    }
-
-    fn new(field: PltTokenOrderField, token: &PltToken) -> Self {
-        match field {
-            PltTokenOrderField::Age => Self::index(token),
-            PltTokenOrderField::Supply => Self::supply(token),
         }
     }
 }

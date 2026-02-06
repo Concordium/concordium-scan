@@ -2375,15 +2375,6 @@ export type PltTokenEdge = {
   node: PltToken;
 };
 
-export type PltTokenFilterInput = {
-  isPaused?: InputMaybe<Scalars['Boolean']>;
-};
-
-export enum PltTokenSort {
-  AgeDesc = 'AGE_DESC',
-  SupplyDesc = 'SUPPLY_DESC'
-}
-
 /** This struct is used to define the buckets for PLT transfer metrics. */
 export type PltTransferMetricsBuckets = {
   __typename?: 'PltTransferMetricsBuckets';
@@ -2693,10 +2684,8 @@ export type QueryPltTokenArgs = {
 export type QueryPltTokensArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
-  filter?: InputMaybe<PltTokenFilterInput>;
   first?: InputMaybe<Scalars['Int']>;
   last?: InputMaybe<Scalars['Int']>;
-  sort?: InputMaybe<PltTokenSort>;
 };
 
 

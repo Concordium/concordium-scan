@@ -31,8 +31,6 @@
 							</svg>
 							<span>Back to Overview</span>
 						</NuxtLink>
-						<PltTokenFilterSelect v-model="pausedFilter" />
-						<PltTokenSortSelect v-model="sortOption" />
 					</div>
 				</div>
 			</header>
@@ -158,38 +156,20 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { usePltTokensPagedQuery } from '~/queries/usePltTokensPagedQuery'
 import { usePagination } from '~/composables/usePagination'
 import { useDateNow } from '~/composables/useDateNow'
 import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
-import { PltTokenSort } from '~/types/generated'
-import PltTokenSortSelect from '~/components/molecules/PltTokenSortSelect.vue'
-import PltTokenFilterSelect from '~/components/molecules/PltTokenFilterSelect.vue'
 
 const { NOW } = useDateNow()
 
 const pageSize = 25
 
 // Filter and sort state
-const sortOption = ref<PltTokenSort>(PltTokenSort.SupplyDesc)
-const pausedFilter = ref<boolean | null>(null)
-
-const { after, before, first, last, goToPage, resetPagination } = usePagination(
-	{
-		pageSize,
-	}
-)
-
-// Reset pagination when filters change
-watch([sortOption, pausedFilter], () => {
-	resetPagination()
+const { after, before, first, last, goToPage } = usePagination({
+	pageSize,
 })
-
-// Build filter object
-const filter = computed(() =>
-	pausedFilter.value !== null ? { isPaused: pausedFilter.value } : undefined
-)
 
 const {
 	data,
@@ -200,8 +180,6 @@ const {
 	last,
 	after,
 	before,
-	sort: sortOption,
-	filter,
 })
 
 const pltTokenData = computed(() => data.value || [])
