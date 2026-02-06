@@ -1261,14 +1261,6 @@ impl PreparedTokenUpdate {
         tx: &mut sqlx::PgTransaction<'_>,
         params: PltAccountStatementParams<'_>,
     ) -> anyhow::Result<()> {
-        // Get block height from transaction
-        let block_height = sqlx::query_scalar!(
-            "SELECT block_height FROM transactions WHERE index = $1",
-            params.transaction_index
-        )
-        .fetch_one(tx.as_mut())
-        .await?;
-
         // Get current account balance for this account + token after this operation
         let account_balance = self
             .plt_amount_by_account_and_token(tx, params.account_address, &self.token_id)
@@ -1305,9 +1297,9 @@ impl PreparedTokenUpdate {
                 $6,
                 $7,
                 $8,
-                $9,
+                (SELECT block_height FROM transactions WHERE index = $2),
                 $2,
-                $10
+                $9
             )
             ",
             params.account_address,
@@ -1318,7 +1310,6 @@ impl PreparedTokenUpdate {
             params.decimals,
             normalized_amount,
             params.slot_time,
-            block_height,
             account_balance
         )
         .execute(tx.as_mut())
