@@ -8,6 +8,12 @@ All notable changes to this project will be documented in this file.
 
 - Fixed: Pagination issue in the all PLT list page.
 
+### Changed
+
+- LoadMore component now hides the button when there are no more pages instead of disabling it.
+
+- plt specific page activity list now supports pagination with a `Load More` button to load more activities.
+
 ## [1.7.30] - 2026-01-08
 
 ### Fixed

@@ -4,9 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+Database schema version: 47
+
+Database schema version: 48
+
 ### Fixed
 
-- Fixed: Pagination issue in the all PLT list page 
+- Fixed: Pagination issue in the all PLT list page. 
+
+- Fixed: PLT holders list now excludes accounts with zero token amounts.
+
+### Added
+
+- `plt-account-statements` can be exported via the REST API endpoint `/rest/export/plt-statements`.
 
 ## [2.0.25] - 2025-12-19
 

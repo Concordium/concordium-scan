@@ -14,6 +14,16 @@ use serde::{Deserialize, Serialize};
 
 const CONCORDIUM_SLIP_0044_CODE: u64 = 919;
 
+/// Parameters for PLT account statement insertion
+struct PltAccountStatementParams<'a> {
+    transaction_index: i64,
+    slot_time: chrono::DateTime<chrono::Utc>,
+    account_address: &'a str,
+    entry_type: &'a str,
+    amount: &'a BigDecimal,
+    decimals: i32,
+}
+
 #[derive(Union, Serialize, Deserialize, Clone, Debug)]
 #[serde(tag = "type")]
 pub enum TokenModuleRejectReasonType {
@@ -645,6 +655,29 @@ impl PreparedTokenUpdate {
                     self.update_total_minted(tx).await?;
                     self.update_account_balance(tx, target, &self.plt_amount_change)
                         .await?;
+
+                    // Insert PLT account statement for Mint operation
+                    let decimals = match &self.event {
+                        TokenEventDetails::Mint(e) => e
+                            .amount
+                            .decimals
+                            .parse::<i32>()
+                            .context("Failed to parse decimal places for mint event")?,
+                        _ => 0, // fallback
+                    };
+                    self.insert_plt_account_statement(
+                        tx,
+                        PltAccountStatementParams {
+                            transaction_index,
+                            slot_time,
+                            account_address: target,
+                            entry_type: "Mint",
+                            amount: &self.plt_amount_change,
+                            decimals,
+                        },
+                    )
+                    .await?;
+
                     let current_amount = self
                         .plt_amount_accross_tokens_by_account(tx, target)
                         .await?;
@@ -665,6 +698,29 @@ impl PreparedTokenUpdate {
                     self.update_total_burned(tx).await?;
                     self.update_account_balance(tx, target, &(-&self.plt_amount_change))
                         .await?;
+
+                    // Insert PLT account statement for Burn operation
+                    let decimals = match &self.event {
+                        TokenEventDetails::Burn(e) => e
+                            .amount
+                            .decimals
+                            .parse::<i32>()
+                            .context("Failed to parse decimal places for burn event")?,
+                        _ => 0, // fallback
+                    };
+                    self.insert_plt_account_statement(
+                        tx,
+                        PltAccountStatementParams {
+                            transaction_index,
+                            slot_time,
+                            account_address: target,
+                            entry_type: "Burn",
+                            amount: &(-&self.plt_amount_change), // Negative amount for burn
+                            decimals,
+                        },
+                    )
+                    .await?;
+
                     let current_amount = self
                         .plt_amount_accross_tokens_by_account(tx, target)
                         .await?;
@@ -684,6 +740,7 @@ impl PreparedTokenUpdate {
                         self.plt_amount_accross_tokens_by_account(tx, to).await?;
                     self.update_transfer_balances(tx, from, to, &self.plt_amount_change)
                         .await?;
+
                     // Decimal value for the token being transferred
                     let decimal = match &self.event {
                         TokenEventDetails::Transfer(e) => e
@@ -697,6 +754,35 @@ impl PreparedTokenUpdate {
                             );
                         }
                     };
+
+                    // Insert PLT account statements for Transfer operations
+                    // TransferOut for sender (negative amount)
+                    self.insert_plt_account_statement(
+                        tx,
+                        PltAccountStatementParams {
+                            transaction_index,
+                            slot_time,
+                            account_address: from,
+                            entry_type: "TransferOut",
+                            amount: &(-&self.plt_amount_change), // Negative amount for sender
+                            decimals: decimal as i32,
+                        },
+                    )
+                    .await?;
+
+                    // TransferIn for receiver (positive amount)
+                    self.insert_plt_account_statement(
+                        tx,
+                        PltAccountStatementParams {
+                            transaction_index,
+                            slot_time,
+                            account_address: to,
+                            entry_type: "TransferIn",
+                            amount: &self.plt_amount_change, // Positive amount for receiver
+                            decimals: decimal as i32,
+                        },
+                    )
+                    .await?;
 
                     // Calculate normalized amount
                     let normalized_amount = if decimal > 0 {
@@ -849,6 +935,36 @@ impl PreparedTokenUpdate {
         .fetch_one(tx.as_mut())
         .await?;
         Ok(row.total_amount.unwrap_or(BigDecimal::from(0)))
+    }
+
+    async fn plt_amount_by_account_and_token(
+        &self,
+        tx: &mut sqlx::PgTransaction<'_>,
+        account_address: &str,
+        token_id: &str,
+    ) -> anyhow::Result<BigDecimal> {
+        let account_address =
+            concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(account_address)
+                .map_err(|_| {
+                    anyhow::anyhow!(
+                        "Failed to convert string into account address type: {}",
+                        account_address
+                    )
+                })?;
+        let canonical_address = account_address.get_canonical_address();
+
+        let row = sqlx::query!(
+            "SELECT COALESCE(amount, 0) AS amount
+            FROM plt_accounts
+            WHERE account_index = (SELECT index FROM accounts WHERE canonical_address = $1::bytea)
+              AND token_index = (SELECT index FROM plt_tokens WHERE token_id = $2)",
+            canonical_address.0.as_slice(),
+            token_id
+        )
+        .fetch_one(tx.as_mut())
+        .await?;
+
+        Ok(row.amount.unwrap_or(BigDecimal::from(0)))
     }
 
     // METRICS UPDATE: PLT event counter increment
@@ -1136,6 +1252,69 @@ impl PreparedTokenUpdate {
         )
         .execute(tx.as_mut())
         .await?;
+        Ok(())
+    }
+
+    // Insert PLT account statement entry for account balance tracking
+    async fn insert_plt_account_statement(
+        &self,
+        tx: &mut sqlx::PgTransaction<'_>,
+        params: PltAccountStatementParams<'_>,
+    ) -> anyhow::Result<()> {
+        // Get current account balance for this account + token after this operation
+        let account_balance = self
+            .plt_amount_by_account_and_token(tx, params.account_address, &self.token_id)
+            .await?;
+
+        // Calculate normalized amount
+        let normalized_amount = if params.decimals > 0 {
+            let divisor = BigDecimal::from(10_u64.pow(params.decimals as u32));
+            params.amount / divisor
+        } else {
+            params.amount.clone()
+        };
+
+        sqlx::query!(
+            "
+            INSERT INTO plt_accounts_statement (
+                account_index,
+                plt_event_id,
+                token_index,
+                entry_type,
+                amount,
+                decimals,
+                normalized_amount,
+                slot_time,
+                block_height,
+                transaction_index,
+                account_balance
+            ) VALUES (
+                (SELECT index FROM accounts WHERE address = $1),
+                (SELECT COALESCE(MAX(id), 0) FROM plt_events WHERE transaction_index = $2),
+                (SELECT index FROM plt_tokens WHERE token_id = $3),
+                $4::text::plt_account_statement_entry_type,
+                $5,
+                $6,
+                $7,
+                $8,
+                (SELECT block_height FROM transactions WHERE index = $2),
+                $2,
+                $9
+            )
+            ",
+            params.account_address,
+            params.transaction_index,
+            self.token_id,
+            params.entry_type,
+            params.amount,
+            params.decimals,
+            normalized_amount,
+            params.slot_time,
+            account_balance
+        )
+        .execute(tx.as_mut())
+        .await?;
+
         Ok(())
     }
 }
