@@ -10,6 +10,8 @@ Database schema version: 48
 
 ### Fixed
 
+- Fixed: Pagination issue in the all PLT list page. 
+
 - Fixed: PLT holders list now excludes accounts with zero token amounts.
 
 ### Added

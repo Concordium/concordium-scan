@@ -42,7 +42,6 @@ watchEffect(() => {
 	const totalSupplySum = stablecoins.reduce((sum, coin) => {
 		return sum + (coin.normalizedCurrentSupply ?? 0)
 	}, 0)
-
 	delayedSupplyPercentage.value = stablecoins.map(coin => ({
 		symbol: coin.tokenId || '',
 		supplyPercentage:

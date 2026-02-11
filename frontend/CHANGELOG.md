@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Fixed
+
+- Fixed: Pagination issue in the all PLT list page.
+
 ### Changed
 
 - LoadMore component now hides the button when there are no more pages instead of disabling it.
