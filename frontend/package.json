@@ -59,6 +59,11 @@
 		"typescript": "^5.6.3",
 		"vue-tsc": "^2.1.10"
 	},
+	"resolutions": {
+		"giget@npm:1.2.5/tar": "7.5.7",
+		"@graphql-tools/executor-graphql-ws@npm:0.0.14/ws": "8.17.1",
+		"@graphql-tools/executor-legacy-ws@npm:0.0.11/ws": "8.17.1"
+	},
 	"volta": {
 		"node": "20.19.5"
 	},
