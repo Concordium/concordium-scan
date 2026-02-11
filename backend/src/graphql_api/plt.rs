@@ -348,7 +348,7 @@ impl QueryPlt {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
 
-        let query = ConnectionQuery::<PltTokenFieldDescCursor>::new(
+        let query = ConnectionQuery::<DescendingI64>::new(
             first,
             after,
             last,
@@ -395,18 +395,17 @@ impl QueryPlt {
             ) AS subquery
             ORDER BY index DESC
             "#,
-            query.from.token_id, // $1
-            query.to.token_id,   // $2
-            query.is_last,       // $3
-            query.limit,         // $4
+            i64::from(query.from), // $1
+            i64::from(query.to),   // $2
+            query.is_last,         // $3
+            query.limit,           // $4
         )
         .fetch(pool);
 
         let mut connection = connection::Connection::new(false, false);
 
         while let Some(token) = tokens.try_next().await? {
-            let cursor = PltTokenFieldDescCursor::new(&token);
-
+            let cursor = DescendingI64::from(token.index);
             connection
                 .edges
                 .push(connection::Edge::new(cursor.encode_cursor(), token));
@@ -423,18 +422,10 @@ impl QueryPlt {
 
             if let Some(bounds) = bounds {
                 if let (Some(max_index), Some(min_index)) = (bounds.max_index, bounds.min_index) {
-                    let collection_start_cursor = PltTokenFieldDescCursor {
-                        token_id: max_index,
-                        field: max_index as f64,
-                    };
-
-                    let collection_end_cursor = PltTokenFieldDescCursor {
-                        token_id: min_index,
-                        field: min_index as f64,
-                    };
-
-                    let page_start_cursor = PltTokenFieldDescCursor::new(&page_first_edge.node);
-                    let page_end_cursor = PltTokenFieldDescCursor::new(&page_last_edge.node);
+                    let collection_start_cursor = DescendingI64::from(max_index);
+                    let collection_end_cursor = DescendingI64::from(min_index);
+                    let page_start_cursor = DescendingI64::from(page_first_edge.node.index);
+                    let page_end_cursor = DescendingI64::from(page_last_edge.node.index);
 
                     connection.has_previous_page = collection_start_cursor < page_start_cursor;
                     connection.has_next_page = collection_end_cursor > page_end_cursor;
@@ -970,93 +961,5 @@ impl AccountProtocolToken {
                 "Failed to convert PLT token amount to f64".to_string(),
             ))
         })
-    }
-}
-
-// Pagination supporting types
-
-/// Cursor for PLT token pagination supporting DESC order by token index.
-#[derive(Debug, PartialEq, Clone, Copy)]
-struct PltTokenFieldDescCursor {
-    /// The cursor value of the relevant sorting field.
-    field: f64,
-    /// The token id (index) of the cursor.
-    token_id: i64,
-}
-
-impl PltTokenFieldDescCursor {
-    fn new(token: &PltToken) -> Self {
-        PltTokenFieldDescCursor {
-            field: token.index as f64,
-            token_id: token.index,
-        }
-    }
-}
-
-impl connection::CursorType for PltTokenFieldDescCursor {
-    type Error = DecodePltTokenFieldCursor;
-
-    fn decode_cursor(s: &str) -> Result<Self, Self::Error> {
-        let (before, after) = s
-            .split_once(':')
-            .ok_or(DecodePltTokenFieldCursor::NoSemicolon)?;
-        let field: f64 = before
-            .parse()
-            .map_err(DecodePltTokenFieldCursor::ParseField)?;
-        let token_id: i64 = after
-            .parse()
-            .map_err(DecodePltTokenFieldCursor::ParseTokenId)?;
-
-        Ok(Self { field, token_id })
-    }
-
-    fn encode_cursor(&self) -> String {
-        format!("{}:{}", self.field, self.token_id)
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-enum DecodePltTokenFieldCursor {
-    #[error("Cursor must contain a semicolon.")]
-    NoSemicolon,
-    #[error("Cursor must contain valid token ID.")]
-    ParseTokenId(std::num::ParseIntError),
-    #[error("Cursor must contain valid field.")]
-    ParseField(std::num::ParseFloatError),
-}
-
-impl crate::connection::ConnectionBounds for PltTokenFieldDescCursor {
-    const END_BOUND: Self = Self {
-        token_id: i64::MIN,
-        field: f64::MIN,
-    };
-    const START_BOUND: Self = Self {
-        token_id: i64::MAX,
-        field: f64::MAX,
-    };
-}
-
-impl PartialOrd for PltTokenFieldDescCursor {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Eq for PltTokenFieldDescCursor {}
-
-impl Ord for PltTokenFieldDescCursor {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        let ordering = other.field.total_cmp(&self.field);
-        if let std::cmp::Ordering::Equal = ordering {
-            other.token_id.cmp(&self.token_id)
-        } else {
-            ordering
-        }
-    }
-}
-
-impl From<DecodePltTokenFieldCursor> for ApiError {
-    fn from(err: DecodePltTokenFieldCursor) -> Self {
-        ApiError::InvalidCursorFormat(err.to_string())
     }
 }
