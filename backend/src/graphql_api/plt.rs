@@ -320,7 +320,6 @@ impl PltEvent {
 pub struct QueryPlt;
 
 #[Object]
-#[allow(clippy::too_many_arguments)]
 impl QueryPlt {
     async fn plt_token(&self, ctx: &Context<'_>, id: types::ID) -> ApiResult<PltToken> {
         let token_id = TokenId::from_str(id.as_ref()).map_err(|e| {
@@ -334,7 +333,6 @@ impl QueryPlt {
             .ok_or(ApiError::NotFound)
     }
 
-    #[allow(clippy::too_many_arguments)]
     async fn plt_tokens<'a>(
         &self,
         ctx: &Context<'a>,
