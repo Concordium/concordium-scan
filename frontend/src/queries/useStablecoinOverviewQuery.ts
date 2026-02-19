@@ -10,7 +10,7 @@ type StablecoinOverviewResponse = {
 }
 
 const STABLECOIN_OVERVIEW_QUERY = gql`
-	query {
+	query StablecoinOverview {
 		stablecoinOverview {
 			totalMarketcap
 			noOfTxnLast24H

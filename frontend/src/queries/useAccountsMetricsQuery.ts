@@ -7,7 +7,7 @@ export type AccountsMetricsQueryResponse = {
 }
 
 const AccountsMetricsQuery = gql<AccountsMetricsQueryResponse>`
-	query ($period: MetricsPeriod!) {
+	query AccountsMetrics($period: MetricsPeriod!) {
 		accountsMetrics(period: $period) {
 			lastCumulativeAccountsCreated
 			accountsCreated

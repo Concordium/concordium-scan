@@ -7,7 +7,7 @@ export type BlockMetricsQueryResponse = {
 }
 
 const BlockMetricsQuery = gql<BlockMetricsQueryResponse>`
-	query ($period: MetricsPeriod!) {
+	query BlockMetrics($period: MetricsPeriod!) {
 		blockMetrics(period: $period) {
 			lastBlockHeight
 			blocksAdded

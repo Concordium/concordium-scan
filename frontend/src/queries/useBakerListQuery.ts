@@ -24,7 +24,7 @@ type BakerListVariables = Partial<QueryVariables> & {
 }
 
 const BakerQuery = gql<BakerListResponse>`
-	query (
+	query BakerList(
 		$after: String
 		$before: String
 		$first: Int

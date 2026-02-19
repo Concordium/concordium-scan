@@ -6,7 +6,7 @@ type TransactionByTransactionHashResponse = {
 	transactionByTransactionHash: Transaction
 }
 const TransactionReleaseScheduleQuery = gql<TransactionByTransactionHashResponse>`
-	query (
+	query TransactionReleaseSchedule(
 		$hash: String!
 		$after: String
 		$before: String

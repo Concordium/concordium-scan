@@ -7,7 +7,7 @@ export type BakerMetricsQueryResponse = {
 }
 
 const BakerMetricsQuery = gql<BakerMetricsQueryResponse>`
-	query ($period: MetricsPeriod!) {
+	query BakerMetrics($period: MetricsPeriod!) {
 		bakerMetrics(period: $period) {
 			lastBakerCount
 			bakersAdded

@@ -91,20 +91,20 @@ event {
 `
 
 const TokenQuery = gql`
-query (
-	$skipEvent: Int
-	$takeEvent: Int
-	$skipAccount: Int
-	$takeAccount: Int
+query TokenDetails(
+  $skipEvent: Int
+  $takeEvent: Int
+  $skipAccount: Int
+  $takeAccount: Int
   $tokenId: String!
-	$contractAddressIndex: UnsignedLong!
-	$contractAddressSubIndex: UnsignedLong!
+  $contractAddressIndex: UnsignedLong!
+  $contractAddressSubIndex: UnsignedLong!
 ) {
-	token(
+  token(
     tokenId: $tokenId
-		contractIndex: $contractAddressIndex
-		contractSubIndex: $contractAddressSubIndex
-	) {
+    contractIndex: $contractAddressIndex
+    contractSubIndex: $contractAddressSubIndex
+  ) {
     tokenId
     contractIndex
     contractSubIndex

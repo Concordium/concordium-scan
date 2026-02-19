@@ -11,7 +11,7 @@ export type PltTokenHolderQueryResponse = {
 }
 
 const PLT_HOLDER_BY_TOKEN_ID = gql<PltTokenHolderQueryResponse>`
-	query (
+	query PltAccountsByTokenId(
 		$after: String
 		$before: String
 		$first: Int

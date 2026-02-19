@@ -7,7 +7,7 @@ export type PoolRewardMetricsForPassiveDelegationResponse = {
 }
 
 const PoolRewardMetricsForPassiveDelegationQuery = gql<PoolRewardMetricsForPassiveDelegationResponse>`
-	query ($period: MetricsPeriod!) {
+	query PoolRewardMetricsForPassiveDelegation($period: MetricsPeriod!) {
 		poolRewardMetricsForPassiveDelegation(period: $period) {
 			sumTotalRewardAmount
 			sumBakerRewardAmount

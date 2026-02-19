@@ -12,7 +12,7 @@ type BakerPoolRewardsResponse = {
 }
 
 const BakerPoolRewardsQuery = gql<BakerPoolRewardsResponse>`
-	query (
+	query BakerPoolRewards(
 		$bakerId: Long!
 		$after: String
 		$before: String

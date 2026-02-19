@@ -11,7 +11,12 @@ type TopDelegatorsResponse = {
 }
 
 const TopDelegatorsQuery = gql<TopDelegatorsResponse>`
-	query ($after: String, $before: String, $first: Int, $last: Int) {
+	query TopDelegators(
+		$after: String
+		$before: String
+		$first: Int
+		$last: Int
+	) {
 		accounts(
 			after: $after
 			before: $before

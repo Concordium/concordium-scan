@@ -30,7 +30,7 @@ type BakerResponse = {
 }
 
 const BakerQuery = gql<BakerResponse>`
-	query ($bakerId: Long!) {
+	query BakerByBakerId($bakerId: Long!) {
 		paydayStatus {
 			nextPaydayTime
 		}

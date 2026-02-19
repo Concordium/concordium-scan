@@ -47,7 +47,7 @@ type PaginationGroups =
 type BlockQueryVariables = Record<PaginationGroups, QueryVariables>
 
 const BlockSpecialEventsQuery = gql<BlockSpecialEventsResponse>`
-	query (
+	query BlockSpecialEvents(
 		$blockId: ID!
 		$afterBlockRewards: String
 		$beforeBlockRewards: String

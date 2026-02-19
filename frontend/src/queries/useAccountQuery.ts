@@ -251,7 +251,7 @@ __typename
 `
 
 const AccountQuery = gql<AccountByIdResponse>`
-	query (
+	query AccountById(
 		$id: ID!
 		$afterTx: String
 		$beforeTx: String
@@ -285,7 +285,7 @@ const AccountQuery = gql<AccountByIdResponse>`
 `
 
 const AccountQueryByAddress = gql<AccountByAddressResponse>`
-	query (
+	query AccountByAddress(
 		$address: String!
 		$afterTx: String
 		$beforeTx: String

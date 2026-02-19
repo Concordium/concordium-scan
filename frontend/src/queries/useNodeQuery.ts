@@ -17,7 +17,7 @@ type NodeResponse = {
 }
 
 const BakerQuery = gql<NodeResponse>`
-	query (
+	query NodeStatuses(
 		$sortField: NodeSortField!
 		$sortDirection: NodeSortDirection!
 		$after: String

@@ -17,7 +17,12 @@ type TransactionListResponse = {
 }
 
 const TransactionsQuery = gql<TransactionListResponse>`
-	query ($after: String, $before: String, $first: Int, $last: Int) {
+	query TransactionList(
+		$after: String
+		$before: String
+		$first: Int
+		$last: Int
+	) {
 		transactions(after: $after, before: $before, first: $first, last: $last) {
 			nodes {
 				id

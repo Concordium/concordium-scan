@@ -167,7 +167,7 @@ rejectedEvent {
 `
 
 const ContractQuery = gql`
-	query (
+	query ContractDetails(
 		$skipEvent: Int
 		$takeEvent: Int
 		$skipRejectEvent: Int

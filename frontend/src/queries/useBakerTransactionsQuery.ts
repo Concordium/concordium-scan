@@ -8,7 +8,7 @@ type BakerTxResponse = {
 }
 
 const BakerTxQuery = gql<BakerTxResponse>`
-	query (
+	query BakerTransactions(
 		$bakerId: Long!
 		$after: String
 		$before: String

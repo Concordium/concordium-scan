@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 
 - Fixed: Pagination issue in the all PLT list page.
 
+- Fixed: Added name for graphql query operations in the queries where no name was provided, which caused prometheus metrics to not be recorded for these queries, resulting to `api_request_duration_seconds_count{query="<none>"}`.
+
 ### Changed
 
 - LoadMore component now hides the button when there are no more pages instead of disabling it.

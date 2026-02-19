@@ -20,7 +20,7 @@ export type StablecoinResponse = {
 }
 
 const STABLECOIN_QUERY = gql`
-	query {
+	query LiveStablecoins {
 		liveStablecoins {
 			totalSupply
 			circulatingSupply

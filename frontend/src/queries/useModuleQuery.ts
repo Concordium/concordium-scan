@@ -5,7 +5,7 @@ import type { ModuleReferenceEvent } from '../types/generated'
 import type { PaginationOffsetQueryVariables } from '../composables/usePaginationOffset'
 
 const ContractQuery = gql`
-	query (
+	query ModuleReferenceEvent(
 		$moduleReference: String!
 		$skipEvent: Int
 		$takeEvent: Int
