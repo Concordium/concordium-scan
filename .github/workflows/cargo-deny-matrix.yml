@@ -1,6 +1,6 @@
 # the purpose of this workflow is to run cargo-deny on a schedule to catch
 # any new license/advisories/sources/bans issues that may arise as dependencies are updated.
-name: Check subfolders in concoridum scan
+name: Concordium scan cargo deny audit
 
 on:
   push:
@@ -40,7 +40,7 @@ jobs:
         env:
           SLACK_WEBHOOK: ${{ secrets.CARGO_DENY_SECURITY_ADVISORIES_SLACK_WEBHOOK_URL }}
           SLACK_COLOR: ${{ job.status }}
-          SLACK_TITLE: "Cargo Deny Audit Failed: ${{ matrix.directory }}"
+          SLACK_TITLE: "Cargo Deny Audit Failed for ccdscan backend"
           SLACK_MESSAGE: |
             The license or security audit for *${{ matrix.directory }}* has failed. 
             Please check the GitHub Actions logs.
