@@ -38,7 +38,7 @@ jobs:
         if: failure()
         uses: rtCamp/action-slack-notify@v2
         env:
-          SLACK_WEBHOOK: ${{ secrets.SECURITY_ADVISORIES_SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK: ${{ secrets.CARGO_DENY_SECURITY_ADVISORIES_SLACK_WEBHOOK_URL }}
           SLACK_COLOR: ${{ job.status }}
           SLACK_TITLE: "Cargo Deny Audit Failed: ${{ matrix.directory }}"
           SLACK_MESSAGE: |
