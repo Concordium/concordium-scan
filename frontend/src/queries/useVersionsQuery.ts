@@ -7,7 +7,7 @@ type VersionsResponse = {
 }
 
 const VersionsQuery = gql<VersionsResponse>`
-	query {
+	query Versions {
 		versions {
 			backendVersion
 		}

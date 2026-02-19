@@ -21,7 +21,7 @@ type SuspendedValidatorQueryVariables = {
 }
 
 const SuspendedValidatorQuery = gql<SuspendedValidatorsResponse>`
-	query (
+	query SuspendedValidators(
 		$afterSuspendedValidators: String
 		$beforeSuspendedValidators: String
 		$firstSuspendedValidators: Int

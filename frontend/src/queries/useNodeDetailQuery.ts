@@ -7,7 +7,7 @@ type NodeDetailResponse = {
 }
 
 const NodeDetailQuery = gql<NodeDetailResponse>`
-	query ($id: ID!) {
+	query NodeDetail($id: ID!) {
 		nodeStatus(id: $id) {
 			averageBytesPerSecondIn
 			averageBytesPerSecondOut

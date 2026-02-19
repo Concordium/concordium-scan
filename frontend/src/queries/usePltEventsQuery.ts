@@ -11,7 +11,7 @@ export type PltEventsQueryResponse = {
 }
 
 const PLT_TOKEN_QUERY = gql<PltEventsQueryResponse>`
-	query ($after: String, $before: String, $first: Int, $last: Int) {
+	query PltEvents($after: String, $before: String, $first: Int, $last: Int) {
 		pltEvents(first: $first, last: $last, after: $after, before: $before) {
 			nodes {
 				id
@@ -109,7 +109,7 @@ export type PltEventsByTokenIdQueryResponse = {
 }
 
 const PLT_EVENT_BY_ID_QUERY = gql<PltEventsByTokenIdQueryResponse>`
-	query (
+	query PltEventsByTokenId(
 		$after: String
 		$before: String
 		$first: Int

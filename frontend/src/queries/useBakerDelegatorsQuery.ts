@@ -8,7 +8,7 @@ type BakerDelegatorsResponse = {
 }
 
 const BakerDelegatorQuery = gql<BakerDelegatorsResponse>`
-	query (
+	query BakerDelegators(
 		$bakerId: Long!
 		$after: String
 		$before: String

@@ -8,7 +8,7 @@ type BakerRewardsResponse = {
 }
 
 const BakerRewardsQuery = gql<BakerRewardsResponse>`
-	query (
+	query BakerRewards(
 		$accountAddress: String!
 		$after: String
 		$before: String

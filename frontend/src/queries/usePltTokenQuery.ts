@@ -10,7 +10,7 @@ export type PltTokenQueryResponse = {
 }
 
 const PLT_TOKEN_QUERY = gql<PltTokenQueryResponse>`
-	query {
+	query PltTokens {
 		pltTokens {
 			nodes {
 				name
@@ -70,7 +70,7 @@ export type PltTokenQueryByTokenIdResponse = {
 }
 
 const PLT_TOKEN_QUERY_BY_ID = gql<PltTokenQueryByTokenIdResponse>`
-	query ($id: String!) {
+	query PltTokenById($id: String!) {
 		pltToken(id: $id) {
 			name
 			tokenId

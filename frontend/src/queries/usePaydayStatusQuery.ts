@@ -7,7 +7,7 @@ export type PaydayStatusQueryResponse = {
 }
 
 const PaydayStatusQuery = gql<PaydayStatusQueryResponse>`
-	query {
+	query PaydayStatus {
 		paydayStatus {
 			nextPaydayTime
 			paydaySummaries {

@@ -24,7 +24,7 @@ type PassiveDelegationQueryVariables = {
 }
 
 const PassiveDelegationQuery = gql<PassiveDelegationResponse>`
-	query (
+	query PassiveDelegation(
 		$afterDelegators: String
 		$beforeDelegators: String
 		$firstDelegators: Int

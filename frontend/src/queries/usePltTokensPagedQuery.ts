@@ -17,7 +17,12 @@ export type PltTokensPagedQueryResponse = {
 }
 
 const PLT_TOKENS_PAGED_QUERY = gql<PltTokensPagedQueryResponse>`
-	query ($after: String, $before: String, $first: Int, $last: Int) {
+	query PltTokensList(
+		$after: String
+		$before: String
+		$first: Int
+		$last: Int
+	) {
 		pltTokens(first: $first, last: $last, after: $after, before: $before) {
 			nodes {
 				name

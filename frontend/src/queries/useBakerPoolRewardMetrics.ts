@@ -7,7 +7,7 @@ export type PoolRewardMetricsForBakerPoolResponse = {
 }
 
 const PoolRewardMetricsForBakerPoolQuery = gql<PoolRewardMetricsForBakerPoolResponse>`
-	query ($bakerId: ID!, $period: MetricsPeriod!) {
+	query PoolRewardMetricsForBakerPool($bakerId: ID!, $period: MetricsPeriod!) {
 		poolRewardMetricsForBakerPool(bakerId: $bakerId, period: $period) {
 			sumTotalRewardAmount
 			sumBakerRewardAmount

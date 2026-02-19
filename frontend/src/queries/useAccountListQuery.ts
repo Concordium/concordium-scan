@@ -15,7 +15,7 @@ type AccountListVariables = Partial<QueryVariables> & {
 }
 
 const AccountsQuery = gql<AccountsListResponse>`
-	query (
+	query AccountsList(
 		$after: String
 		$before: String
 		$first: Int

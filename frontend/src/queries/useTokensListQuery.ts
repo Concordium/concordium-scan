@@ -13,7 +13,7 @@ type ListResponse = {
 type ListVariables = Partial<QueryVariables>
 
 const TokensQuery = gql`
-	query ($after: String, $before: String, $first: Int, $last: Int) {
+	query TokensList($after: String, $before: String, $first: Int, $last: Int) {
 		tokens(after: $after, before: $before, first: $first, last: $last) {
 			nodes {
 				contractIndex

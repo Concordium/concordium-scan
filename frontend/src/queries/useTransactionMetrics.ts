@@ -6,7 +6,7 @@ export type TransactionMetricsQueryResponse = {
 }
 
 const TransactionMetricsQuery = gql<TransactionMetricsQueryResponse>`
-	query ($period: MetricsPeriod!) {
+	query TransactionMetrics($period: MetricsPeriod!) {
 		transactionMetrics(period: $period) {
 			lastCumulativeTransactionCount
 			transactionCount

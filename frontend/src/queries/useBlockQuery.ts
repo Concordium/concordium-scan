@@ -50,7 +50,7 @@ pageInfo {
 }
 `
 const BlockQueryByHash = gql<BlockByBlockHashResponse>`
-	query (
+	query BlockByHash(
 		$hash: String!
 		$afterTx: String
 		$beforeTx: String

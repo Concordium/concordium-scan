@@ -10,7 +10,7 @@ type BlockListResponse = {
 }
 
 const BlocksQuery = gql<BlockListResponse>`
-	query ($after: String, $before: String, $first: Int, $last: Int) {
+	query BlockList($after: String, $before: String, $first: Int, $last: Int) {
 		blocks(after: $after, before: $before, first: $first, last: $last) {
 			nodes {
 				id

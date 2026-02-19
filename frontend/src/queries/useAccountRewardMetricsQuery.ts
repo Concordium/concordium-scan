@@ -7,7 +7,7 @@ export type AccountRewardMetricsQueryResponse = {
 }
 
 const AccountRewardMetricsQuery = gql<AccountRewardMetricsQueryResponse>`
-	query ($accountId: ID!, $period: MetricsPeriod!) {
+	query AccountRewardMetrics($accountId: ID!, $period: MetricsPeriod!) {
 		rewardMetricsForAccount(accountId: $accountId, period: $period) {
 			sumRewardAmount
 			buckets {

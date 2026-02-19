@@ -663,7 +663,7 @@ reason {
 `
 
 const TransactionQuery = gql<TransactionResponse>`
-	query ($id: ID!, $after: String, $before: String, $first: Int, $last: Int) {
+	query TransactionById($id: ID!, $after: String, $before: String, $first: Int, $last: Int) {
 		transaction(id: $id) {
 			id
 			ccdCost
@@ -712,7 +712,7 @@ const TransactionQuery = gql<TransactionResponse>`
 `
 
 const TransactionQueryByHash = gql<TransactionByTransactionHashResponse>`
-	query (
+	query TransactionByHash(
 		$hash: String!
 		$after: String
 		$before: String

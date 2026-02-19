@@ -11,7 +11,12 @@ export type ContractListResponse = {
 }
 
 const Query = gql<ContractListResponse>`
-	query ($after: String, $before: String, $first: Int, $last: Int) {
+	query ContractsList(
+		$after: String
+		$before: String
+		$first: Int
+		$last: Int
+	) {
 		contracts(after: $after, before: $before, first: $first, last: $last) {
 			edges {
 				node {
