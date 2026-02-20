@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [1.7.31] - 2026-02-20
+
 ### Fixed
 
 - Fixed: Pagination issue in the all PLT list page.
