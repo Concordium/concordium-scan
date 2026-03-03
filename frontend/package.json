@@ -59,6 +59,13 @@
 		"typescript": "^5.6.3",
 		"vue-tsc": "^2.1.10"
 	},
+	"resolutions": {
+		"giget@npm:1.2.3/tar": "7.5.8",
+		"@mapbox/node-pre-gyp@npm:1.0.11/tar": "7.5.8",
+		"@graphql-tools/executor-graphql-ws@npm:0.0.14/ws": "8.17.1",
+		"@graphql-tools/executor-legacy-ws@npm:0.0.11/ws": "8.17.1",
+		"@rollup/plugin-terser@npm:0.4.4/serialize-javascript": "7.0.4"
+	},
 	"volta": {
 		"node": "20.19.5"
 	},
