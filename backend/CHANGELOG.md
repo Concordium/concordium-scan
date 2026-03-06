@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Fixed
+
+- Fixed rejected transaction event processing by supporting both `AccountTransaction` and `AccountTransactionV1` block item variants.
+
 ## [2.0.26] - 2026-02-20
 
 Database schema version: 47
