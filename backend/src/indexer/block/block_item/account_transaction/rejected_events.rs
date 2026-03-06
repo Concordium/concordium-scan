@@ -36,11 +36,16 @@ impl PreparedRejectedEvent {
                     // indexed further.
                     Self::NoEvent
                 } else {
-                    let BlockItem::AccountTransaction(account_transaction) = item else {
-                        anyhow::bail!("Block item was expected to be an account transaction")
+                    let encoded_account_transaction_payload = match item {
+                        BlockItem::AccountTransaction(account_transaction) => {
+                            &account_transaction.payload
+                        }
+                        BlockItem::AccountTransactionV1(account_transaction) => {
+                            &account_transaction.payload
+                        }
+                        _ => anyhow::bail!("Block item was expected to be an account transaction"),
                     };
-                    let decoded = account_transaction
-                        .payload
+                    let decoded = encoded_account_transaction_payload
                         .decode()
                         .context("Failed decoding account transaction payload")?;
                     let module_reference = match decoded {
@@ -77,11 +82,16 @@ impl PreparedRejectedEvent {
                         reject_reason
                     );
 
-                    let BlockItem::AccountTransaction(account_transaction) = item else {
-                        anyhow::bail!("Block item was expected to be an account transaction")
+                    let encoded_payload = match item {
+                        BlockItem::AccountTransaction(account_transaction) => {
+                            &account_transaction.payload
+                        }
+                        BlockItem::AccountTransactionV1(account_transaction) => {
+                            &account_transaction.payload
+                        }
+                        _ => anyhow::bail!("Block item was expected to be an account transaction"),
                     };
-                    let payload = account_transaction
-                        .payload
+                    let payload = encoded_payload
                         .decode()
                         .context("Failed decoding account transaction payload")?;
                     let Payload::Update { payload } = payload else {
