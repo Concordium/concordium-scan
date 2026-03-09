@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [2.0.27] - 2026-03-07
+
 ### Fixed
 
 - Fixed rejected transaction event processing by supporting both `AccountTransaction` and `AccountTransactionV1` block item variants.
