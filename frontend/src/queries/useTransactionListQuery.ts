@@ -40,6 +40,19 @@ const TransactionsQuery = gql<TransactionListResponse>`
 				}
 				result {
 					__typename
+					... on Success {
+						events {
+							nodes {
+								... on DataRegistered {
+									dataAsHex
+									decoded {
+										text
+										decodeType
+									}
+								}
+							}
+						}
+					}
 				}
 				transactionType {
 					__typename

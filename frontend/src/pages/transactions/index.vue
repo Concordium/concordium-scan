@@ -70,6 +70,18 @@
 							<span class="whitespace-normal">
 								{{ translateTransactionType(transaction.transactionType) }}
 							</span>
+							<chip
+								v-if="(transaction.result as Success)?.events?.nodes?.find(e => e.__typename === 'DataRegistered')"
+							>
+								{{
+									getRegisteredDataType(
+										(transaction.result as Success)?.events?.nodes?.find(
+											e => e.__typename === 'DataRegistered'
+										) as DataRegistered
+									)
+								}}
+							</chip>
+
 							<SponsorIcon
 								v-if="transaction.sponsorAccountAddress"
 								:glow-on="true"
@@ -106,7 +118,12 @@
 
 <script lang="ts" setup>
 import Tooltip from '~/components/atoms/Tooltip.vue'
-import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
+import {
+	formatTimestamp,
+	convertTimestampToRelative,
+	formatCborData,
+	formatHexData,
+} from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import { useDateNow } from '~/composables/useDateNow'
 import { usePagedData } from '~/composables/usePagedData'
@@ -118,12 +135,15 @@ import {
 	MetricsPeriod,
 	type Transaction,
 	type Subscription,
+	type Success,
+	type DataRegistered,
 } from '~/types/generated'
 import Amount from '~/components/atoms/Amount.vue'
 import MetricCard from '~/components/atoms/MetricCard.vue'
 import TransactionResult from '~/components/molecules/TransactionResult.vue'
 import TransactionCountChart from '~/components/molecules/ChartCards/TransactionCountChart.vue'
 import CumulativeTransactionsChart from '~/components/molecules/ChartCards/CumulativeTransactionsChart.vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 
 const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()
@@ -155,6 +175,38 @@ onUnmounted(() => {
 const refetch = () => {
 	fetchNew(newItems.value)
 	newItems.value = 0
+}
+
+const safeParse = (value: string) => {
+	try {
+		// 1️ Convert h'...' to standard double-quoted string
+		value = value.replace(/h'([^']+)'/g, '"$1"')
+		// 2️ Remove trailing commas before } or ]
+		value = value.replace(/,(\s*[}\]])/g, '$1')
+		return JSON.parse(value)
+	} catch {
+		return null
+	}
+}
+
+const getRegisteredDataType = (data: DataRegistered) => {
+	const text = data?.decoded?.text as string
+	if (!text?.trim()) return null
+
+	switch (data?.decoded?.decodeType) {
+		case 'HEX': {
+			const result = formatHexData(text, true)
+			return typeof result === 'string' ? safeParse(result)?.type : null
+		}
+
+		case 'CBOR': {
+			const result = formatCborData(text, true)
+			return typeof result === 'string' ? safeParse(result)?.type : null
+		}
+
+		default:
+			return null
+	}
 }
 
 const { data } = useTransactionsListQuery({
