@@ -6,8 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
--  Fixed bug related plt_account_statement where alias address was being used instead of canonical address, which caused the account index to be null and thus the statement entries not being recorded in the database.
-
+-  Fixed bug related plt_account_statement where alias address was being used instead of canonical address, which caused the account index to be null.
 ## [2.0.27] - 2026-03-07
 
 ### Fixed
