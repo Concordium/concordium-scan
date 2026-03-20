@@ -1273,7 +1273,17 @@ impl PreparedTokenUpdate {
         } else {
             params.amount.clone()
         };
-
+        let account_address =
+            concordium_rust_sdk::base::contracts_common::AccountAddress::from_str(
+                params.account_address,
+            )
+            .map_err(|_| {
+                anyhow::anyhow!(
+                    "Failed to convert string into account address type: {}",
+                    params.account_address
+                )
+            })?;
+        let canonical_address = account_address.get_canonical_address();
         sqlx::query!(
             "
             INSERT INTO plt_accounts_statement (
@@ -1289,7 +1299,7 @@ impl PreparedTokenUpdate {
                 transaction_index,
                 account_balance
             ) VALUES (
-                (SELECT index FROM accounts WHERE address = $1),
+                (SELECT index FROM accounts WHERE canonical_address = $1),
                 (SELECT COALESCE(MAX(id), 0) FROM plt_events WHERE transaction_index = $2),
                 (SELECT index FROM plt_tokens WHERE token_id = $3),
                 $4::text::plt_account_statement_entry_type,
@@ -1302,7 +1312,7 @@ impl PreparedTokenUpdate {
                 $9
             )
             ",
-            params.account_address,
+            canonical_address.0.as_slice(),
             params.transaction_index,
             self.token_id,
             params.entry_type,
