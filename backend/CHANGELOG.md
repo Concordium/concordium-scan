@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [2.0.28] - 2026-03-20
+
 ### Fixed
 
 -  Fixed bug related plt_account_statement where alias address was being used instead of canonical address, which caused the account index to be null.
