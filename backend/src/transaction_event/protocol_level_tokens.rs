@@ -1299,7 +1299,7 @@ impl PreparedTokenUpdate {
                 transaction_index,
                 account_balance
             ) VALUES (
-                (SELECT index FROM accounts WHERE canonical_address = $1),
+                (SELECT index FROM accounts WHERE canonical_address = $1::bytea),
                 (SELECT COALESCE(MAX(id), 0) FROM plt_events WHERE transaction_index = $2),
                 (SELECT index FROM plt_tokens WHERE token_id = $3),
                 $4::text::plt_account_statement_entry_type,
