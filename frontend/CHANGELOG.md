@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [1.7.32] - 2026-03-23
+
 ### Added
 
 - TransactionList graphql query now queries the actual event data only for `RegisterData` transactions, which is then decoded to tag the transactions on the transaction list page.
