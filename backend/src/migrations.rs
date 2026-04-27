@@ -296,6 +296,8 @@ pub enum SchemaVersion {
     PltAccountsStatements,
     #[display("0048: Add partial index for nonzero PLT holders by token")]
     IndexPltHolderNonZero,
+    #[display("0049: Alter plt token modules events to add new event types")]
+    AlterPltTokenModuleEventTypes,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -303,7 +305,7 @@ impl SchemaVersion {
     /// have been introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::IndexPltHolderNonZero;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::IndexPltHolderNonZero;
+    const LATEST: SchemaVersion = SchemaVersion::AlterPltTokenModuleEventTypes;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -373,6 +375,7 @@ impl SchemaVersion {
             SchemaVersion::PltAccountsStatements => false,
             SchemaVersion::AlterTxnAddSponsoredTxn => false,
             SchemaVersion::IndexPltHolderNonZero => false,
+            SchemaVersion::AlterPltTokenModuleEventTypes => false,
         }
     }
 
@@ -431,6 +434,7 @@ impl SchemaVersion {
             SchemaVersion::PltAccountsStatements => false,
             SchemaVersion::AlterTxnAddSponsoredTxn => false,
             SchemaVersion::IndexPltHolderNonZero => false,
+            SchemaVersion::AlterPltTokenModuleEventTypes => false,
         }
     }
 
@@ -770,7 +774,16 @@ impl SchemaVersion {
                 SchemaVersion::IndexPltHolderNonZero
             }
 
-            SchemaVersion::IndexPltHolderNonZero => unimplemented!(
+            SchemaVersion::IndexPltHolderNonZero => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0049_alter_token_module_event_types.sql"
+                    )))
+                    .await?;
+                SchemaVersion::AlterPltTokenModuleEventTypes
+            }
+
+            SchemaVersion::AlterPltTokenModuleEventTypes => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),

@@ -9,7 +9,6 @@ use bigdecimal::BigDecimal;
 use std::str::FromStr;
 use tracing::error;
 
-use concordium_rust_sdk::protocol_level_tokens;
 use serde::{Deserialize, Serialize};
 
 const CONCORDIUM_SLIP_0044_CODE: u64 = 919;
@@ -93,13 +92,13 @@ pub struct MintWouldOverflowRejectReason {
     pub max_representable_amount: TokenAmount,
 }
 
-impl From<concordium_rust_sdk::protocol_level_tokens::TokenModuleRejectReasonType>
+impl From<concordium_rust_sdk::protocol_level_tokens::TokenModuleRejectReason>
     for TokenModuleRejectReasonType
 {
     fn from(
-        reject_reason: concordium_rust_sdk::protocol_level_tokens::TokenModuleRejectReasonType,
+        reject_reason: concordium_rust_sdk::protocol_level_tokens::TokenModuleRejectReason,
     ) -> Self {
-        use concordium_rust_sdk::protocol_level_tokens::TokenModuleRejectReasonType as Reason;
+        use concordium_rust_sdk::protocol_level_tokens::TokenModuleRejectReason as Reason;
         match reject_reason {
             Reason::AddressNotFound(reason) => {
                 TokenModuleRejectReasonType::AddressNotFound(reason.into())
@@ -224,6 +223,9 @@ pub enum TokenUpdateModuleType {
     RemoveDenyList,
     Pause,
     Unpause,
+    AssignAdminRoles,
+    RevokeAdminRoles,
+    UpdateMetadata,
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
@@ -484,16 +486,12 @@ impl From<concordium_rust_sdk::protocol_level_tokens::TokenEventDetails> for Tok
         match event {
             TokenEventDetailsType::Module(e) => TokenEventDetails::Module(TokenModuleEvent {
                 event_type: e.event_type.as_ref().to_string(),
-                details: {
-                    match protocol_level_tokens::TokenModuleEvent::decode_token_module_event(&e) {
-                        Ok(details) => {
-                            serde_json::to_value(details).unwrap_or(serde_json::Value::Null)
-                        }
-                        Err(err) => {
-                            serde_json::json!({
-                                "error": format!("Error decoding event details: {}", err)
-                            })
-                        }
+                details: match e.decode_token_module_event() {
+                    Ok(details) => serde_json::to_value(details).unwrap_or(serde_json::Value::Null),
+                    Err(err) => {
+                        serde_json::json!({
+                            "error": format!("Error decoding event details: {}", err)
+                        })
                     }
                 },
             }),
@@ -556,6 +554,9 @@ impl TryFrom<TokenUpdate> for PreparedTokenUpdate {
                     "removeDenyList" => Some(TokenUpdateModuleType::RemoveDenyList),
                     "pause" => Some(TokenUpdateModuleType::Pause),
                     "unpause" => Some(TokenUpdateModuleType::Unpause),
+                    "assignAdminRoles" => Some(TokenUpdateModuleType::AssignAdminRoles),
+                    "revokeAdminRoles" => Some(TokenUpdateModuleType::RevokeAdminRoles),
+                    "updateMetadata" => Some(TokenUpdateModuleType::UpdateMetadata),
                     _ => None,
                 };
                 TokenUpdateEventType::TokenModule

@@ -5,12 +5,9 @@ use crate::{
 };
 use anyhow::Context;
 use async_graphql::{Enum, SimpleObject, Union};
-use concordium_rust_sdk::{
-    base::{
-        contracts_common::schema::{VersionedModuleSchema, VersionedSchemaError},
-        smart_contracts::ReceiveName,
-    },
-    protocol_level_tokens::TokenModuleRejectReason,
+use concordium_rust_sdk::base::{
+    contracts_common::schema::{VersionedModuleSchema, VersionedSchemaError},
+    smart_contracts::ReceiveName,
 };
 
 #[derive(Union, Clone, serde::Serialize, serde::Deserialize)]
@@ -881,7 +878,8 @@ impl PreparedTransactionRejectReason {
                 })
             }
             RejectReason::TokenUpdateTransactionFailed { reject_reason } => {
-                let details = TokenModuleRejectReason::decode_reject_reason(&reject_reason)
+                let details = reject_reason
+                    .decode_reject_reason()
                     .context("Failed to decode token module transaction failure reason")?;
                 TransactionRejectReason::TokenUpdateTransactionFailed(TokenModuleReject {
                     token_id: reject_reason.token_id.clone().into(),

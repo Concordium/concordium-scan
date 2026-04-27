@@ -136,14 +136,15 @@
 			<Table>
 				<TableHead>
 					<TableRow>
-						<TableTh width="12.5%">Transaction Hash</TableTh>
-						<TableTh width="12.5%">Age</TableTh>
-						<TableTh width="12.5%">Token Event</TableTh>
-						<TableTh width="12.5%">Token Name</TableTh>
-						<TableTh width="12.5%">From</TableTh>
-						<TableTh width="12.5%">To</TableTh>
-						<TableTh width="12.5%">Target</TableTh>
-						<TableTh width="12.5%">Amount</TableTh>
+						<TableTh width="11.11%">Transaction Hash</TableTh>
+						<TableTh width="11.11%">Age</TableTh>
+						<TableTh width="11.11%">Token Event</TableTh>
+						<TableTh width="11.11%">Token Name</TableTh>
+						<TableTh width="11.11%">From</TableTh>
+						<TableTh width="11.11%">To</TableTh>
+						<TableTh width="11.11%">Target</TableTh>
+						<TableTh width="11.11%">Roles</TableTh>
+						<TableTh width="11.11%">Amount</TableTh>
 					</TableRow>
 				</TableHead>
 				<TableBody>
@@ -201,18 +202,33 @@
 									event.tokenEvent.__typename == 'BurnEvent' ||
 									event.tokenEvent.__typename == 'MintEvent'
 										? event.tokenEvent.target.address.asString
-										: ''
+										: event.tokenEvent.__typename === 'TokenModuleEvent'
+											? (event.tokenEvent.details?.revokeAdminRoles?.account?.address ||
+											   event.tokenEvent.details?.assignAdminRoles?.account?.address ||
+											   '')
+											: ''
 								"
 							/>
 						</TableTd>
-						<TableTd
-							v-if="
-								event.tokenEvent.__typename == 'BurnEvent' ||
-								event.tokenEvent.__typename == 'MintEvent' ||
-								event.tokenEvent.__typename == 'TokenTransferEvent'
-							"
-						>
+						<TableTd>
+							<div
+								v-if="event.tokenEvent.__typename === 'TokenModuleEvent'"
+								class="flex flex-wrap gap-1"
+							>
+								<span
+									v-for="role in (event.tokenEvent.details?.revokeAdminRoles?.roles || event.tokenEvent.details?.assignAdminRoles?.roles || [])"
+									:key="role"
+									class="px-1.5 py-0.5 rounded text-xs uppercase tracking-wide font-medium text-theme-text-secondary border border-theme-text-secondary/30 whitespace-nowrap"
+								>{{ role }}</span>
+							</div>
+						</TableTd>
+						<TableTd>
 							<PltAmount
+								v-if="
+									event.tokenEvent.__typename == 'BurnEvent' ||
+									event.tokenEvent.__typename == 'MintEvent' ||
+									event.tokenEvent.__typename == 'TokenTransferEvent'
+								"
 								:value="event.tokenEvent.amount.value"
 								:decimals="Number(event.tokenEvent.amount.decimals)"
 							/>

@@ -3229,10 +3229,13 @@ export enum TokenUpdateEventType {
 export enum TokenUpdateModuleType {
   AddAllowList = 'ADD_ALLOW_LIST',
   AddDenyList = 'ADD_DENY_LIST',
+  AssignAdminRoles = 'ASSIGN_ADMIN_ROLES',
   Pause = 'PAUSE',
   RemoveAllowList = 'REMOVE_ALLOW_LIST',
   RemoveDenyList = 'REMOVE_DENY_LIST',
-  Unpause = 'UNPAUSE'
+  RevokeAdminRoles = 'REVOKE_ADMIN_ROLES',
+  Unpause = 'UNPAUSE',
+  UpdateMetadata = 'UPDATE_METADATA'
 }
 
 /** A segment of a collection. */
