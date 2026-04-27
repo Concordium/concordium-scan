@@ -1,33 +1,176 @@
-
 <template>
 	<span>
-		<template v-if="reason.reasonType === 'tokenBalanceInsufficient'">
-			Transaction rejected: insufficient balance for token <b class="font-mono">{{ reason.tokenId }}</b>. Available <b>{{ calculateActualValue(reason.details.available_balance.value, reason.details.available_balance.decimals) }}</b>, required <b>{{ calculateActualValue(reason.details.required_balance.value, reason.details.required_balance.decimals) }}</b>.
-		</template>
+		<!-- Transaction is rejected because of Insufficent balance -->
+		<span v-if="reason.reasonType === 'tokenBalanceInsufficient'">
+			<Tooltip :text="reason.reasonType" text-class="text-theme-body">
+				<span class="px-2">
+					Transaction rejected because of insufficent balance.
+				</span>
+				<br />
+				<span class="px-2">
+					Token Id <b> {{ reason.tokenId }} </b>
+				</span>
+				<br />
+				<span class="px-2">
+					Available balance :
+					<b>
+						{{
+							calculateActualValue(
+								reason.details.available_balance.value,
+								reason.details.available_balance.decimals
+							)
+						}}
+					</b>
+				</span>
+				<br />
+				<span class="px-2">
+					Required balance :
+					<b>
+						{{
+							calculateActualValue(
+								reason.details.required_balance.value,
+								reason.details.required_balance.decimals
+							)
+						}}
+					</b>
+				</span>
+			</Tooltip>
+		</span>
 
-		<template v-else-if="reason.reasonType === 'deserializationFailure'">
-			Transaction rejected: deserialization failure for token <b class="font-mono">{{ reason.tokenId }}</b>. Details: {{ reason.details.cause ?? '' }}
-		</template>
-
-		<template v-else-if="reason.reasonType === 'addressNotFound'">
-			Transaction rejected: address not found for token <b class="font-mono">{{ reason.tokenId }}</b>. Address: <b>{{ reason.details.address.account.address.as_string }}</b>
-		</template>
-
-		<template v-else-if="reason.reasonType === 'unsupportedOperation'">
-			Transaction rejected: unsupported operation for token <b class="font-mono">{{ reason.tokenId }}</b>. Operation: <b>{{ reason.details.operation_type }}</b>. {{ reason.details.reason ?? '' }}
-		</template>
-
-		<template v-else-if="reason.reasonType === 'operationNotPermitted'">
-			Operation not permitted for token <b class="font-mono">{{ reason.tokenId }}</b>.<template v-if="reason.details.address?.account?.address"><br />Holder: <b>{{ reason.details.address.account.address.as_string }}</b></template><template v-if="reason.details.reason"><br />Reason: {{ reason.details.reason }}</template>
-		</template>
-
-		<template v-else-if="reason.reasonType === 'mintWouldOverflow'">
-			Transaction rejected: mint would overflow for token <b class="font-mono">{{ reason.tokenId }}</b>. Requested <b>{{ reason.details.requested_amount }}</b>, current <b>{{ reason.details.current_supply }}</b>, max <b>{{ reason.details.max_representable_amount }}</b>.
-		</template>
-
-		<template v-else>
-			Transaction rejected for token <b class="font-mono">{{ reason?.tokenId }}</b>. ({{ reason.reasonType }})
-		</template>
+		<span v-if="reason.reasonType == 'deserializationFailure'">
+			<Tooltip :text="reason.reasonType" text-class="text-theme-body">
+				<span class="px-2">
+					Transaction rejected because of deserialization failure.
+				</span>
+				<br />
+				<span class="px-2">
+					Token Id <b> {{ reason.tokenId }} </b>
+				</span>
+				<br />
+				<span class="px-2">
+					Details:
+					<b>
+						{{ reason.details.cause ?? '' }}
+					</b>
+				</span>
+			</Tooltip>
+		</span>
+		<span v-if="reason.reasonType == 'addressNotFound'">
+			<Tooltip :text="reason.reasonType" text-class="text-theme-body">
+				<span class="px-2">
+					Transaction rejected because of address is not found.
+				</span>
+				<br />
+				<span class="px-2">
+					Token Id <b> {{ reason.tokenId }} </b>
+				</span>
+				<br />
+				<span class="px-2">
+					Address:
+					<b>
+						{{ reason.details.address.account.address.as_string }}
+					</b>
+				</span>
+			</Tooltip>
+		</span>
+		<span v-if="reason.reasonType == 'unsupportedOperation'">
+			<Tooltip :text="reason.reasonType" text-class="text-theme-body">
+				<span class="px-2">
+					Transaction rejected because operation is not supported.
+				</span>
+				<br />
+				<span class="px-2">
+					Token Id <b> {{ reason.tokenId }} </b>
+				</span>
+				<br />
+				<span class="px-2">
+					Operation Type :
+					<b>
+						{{ reason.details.operation_type }}
+					</b>
+				</span>
+				<br />
+				<span class="px-2">
+					Details:
+					<b>
+						{{ reason.details.reason ?? '' }}
+					</b>
+				</span>
+			</Tooltip>
+		</span>
+		<span v-if="reason.reasonType == 'operationNotPermitted'">
+			<Tooltip :text="reason.reasonType" text-class="text-theme-body">
+				<span class="px-2">
+					Transaction rejected because operation is not permitted.
+				</span>
+				<br />
+				<span class="px-2">
+					Token Id : <b> {{ reason.tokenId }} </b>
+				</span>
+				<br />
+				<span v-if="reason.details.address?.account?.address" class="px-2">
+					Token Holder :
+					<b>
+						{{ reason.details.address?.account?.address?.as_string }}
+					</b>
+				</span>
+				<br />
+				<span v-if="reason.details.address?.account?.coin_info" class="px-2">
+					Coin Info :
+					<b>
+						{{ reason.details.address?.account?.coin_info }}
+					</b>
+				</span>
+				<br />
+				<span class="px-2">
+					Details:
+					<b>
+						{{ reason.details.reason ?? '' }}
+					</b>
+				</span>
+			</Tooltip>
+		</span>
+		<span v-if="reason.reasonType == 'mintWouldOverflow'">
+			<Tooltip :text="reason.reasonType" text-class="text-theme-body">
+				<span class="px-2">
+					Transaction rejected because mint would overflow.
+				</span>
+				<br />
+				<span class="px-2">
+					Token Id <b> {{ reason.tokenId }} </b>
+				</span>
+				<br />
+				<span class="px-2">
+					Requested amount :
+					<b>
+						{{ reason.details.requested_amount }}
+					</b>
+				</span>
+				<br />
+				<span class="px-2">
+					Current supply :
+					<b>
+						{{ reason.details.current_supply }}
+					</b>
+				</span>
+				<br />
+				<span class="px-2">
+					Max representable ammount :
+					<b>
+						{{ reason.details.max_representable_amount }}
+					</b>
+				</span>
+			</Tooltip>
+		</span>
+		<span v-if="reason.reasonType == 'unknow'">
+			<Tooltip :text="reason.reasonType" text-class="text-theme-body">
+				<span class="px-2"> Transaction rejected due to unknown reason. </span>
+				<br />
+				<span class="px-2">
+					Token Id <b> {{ reason?.tokenId }} </b>
+				</span>
+			</Tooltip>
+		</span>
 	</span>
 </template>
 
@@ -38,13 +181,6 @@ type Props = {
 	reason: TokenModuleReject
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const props = defineProps<Props>()
-
-function calculateActualValue(value: string, decimals: number): string {
-	const n = BigInt(value)
-	const d = 10n ** BigInt(decimals)
-	const whole = n / d
-	const frac = n % d
-	return frac === 0n ? `${whole}` : `${whole}.${frac.toString().padStart(decimals, '0').replace(/0+$/, '')}`
-}
 </script>

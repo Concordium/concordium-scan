@@ -203,10 +203,12 @@
 									event.tokenEvent.__typename == 'MintEvent'
 										? event.tokenEvent.target.address.asString
 										: event.tokenEvent.__typename === 'TokenModuleEvent'
-											? (event.tokenEvent.details?.revokeAdminRoles?.account?.address ||
-											   event.tokenEvent.details?.assignAdminRoles?.account?.address ||
-											   '')
-											: ''
+										? event.tokenEvent.details?.revokeAdminRoles?.account
+												?.address ||
+										  event.tokenEvent.details?.assignAdminRoles?.account
+												?.address ||
+										  ''
+										: ''
 								"
 							/>
 						</TableTd>
@@ -216,10 +218,14 @@
 								class="flex flex-wrap gap-1"
 							>
 								<span
-									v-for="role in (event.tokenEvent.details?.revokeAdminRoles?.roles || event.tokenEvent.details?.assignAdminRoles?.roles || [])"
+									v-for="role in event.tokenEvent.details?.revokeAdminRoles
+										?.roles ||
+									event.tokenEvent.details?.assignAdminRoles?.roles ||
+									[]"
 									:key="role"
 									class="px-1.5 py-0.5 rounded text-xs uppercase tracking-wide font-medium text-theme-text-secondary border border-theme-text-secondary/30 whitespace-nowrap"
-								>{{ role }}</span>
+									>{{ role }}</span
+								>
 							</div>
 						</TableTd>
 						<TableTd>
