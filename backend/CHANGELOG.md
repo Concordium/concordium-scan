@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Added
+
+Database schema version: 49
+
+- Added support for RBAC in the TokenModuleEvents.
+
 ## [2.0.28] - 2026-03-20
 
 ### Fixed

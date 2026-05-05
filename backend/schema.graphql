@@ -2739,6 +2739,9 @@ enum TokenUpdateModuleType {
 	REMOVE_DENY_LIST
 	PAUSE
 	UNPAUSE
+	ASSIGN_ADMIN_ROLES
+	REVOKE_ADMIN_ROLES
+	UPDATE_METADATA
 }
 
 "A segment of a collection."

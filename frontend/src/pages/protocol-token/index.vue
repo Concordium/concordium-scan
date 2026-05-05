@@ -201,18 +201,23 @@
 									event.tokenEvent.__typename == 'BurnEvent' ||
 									event.tokenEvent.__typename == 'MintEvent'
 										? event.tokenEvent.target.address.asString
+										: event.tokenEvent.__typename === 'TokenModuleEvent'
+										? event.tokenEvent.details?.revokeAdminRoles?.account
+												?.address ||
+										  event.tokenEvent.details?.assignAdminRoles?.account
+												?.address ||
+										  ''
 										: ''
 								"
 							/>
 						</TableTd>
-						<TableTd
-							v-if="
-								event.tokenEvent.__typename == 'BurnEvent' ||
-								event.tokenEvent.__typename == 'MintEvent' ||
-								event.tokenEvent.__typename == 'TokenTransferEvent'
-							"
-						>
+						<TableTd>
 							<PltAmount
+								v-if="
+									event.tokenEvent.__typename == 'BurnEvent' ||
+									event.tokenEvent.__typename == 'MintEvent' ||
+									event.tokenEvent.__typename == 'TokenTransferEvent'
+								"
 								:value="event.tokenEvent.amount.value"
 								:decimals="Number(event.tokenEvent.amount.decimals)"
 							/>
