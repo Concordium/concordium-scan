@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Fixed
+
+Database schema version: 50
+
+- Fix account aliasing issue for sender and sponsor in the `TokenModuleEvent` events, where the alias address was being used instead of the canonical address, which caused the account index to be null.
+
 ### Added
 
 Database schema version: 49

@@ -298,6 +298,8 @@ pub enum SchemaVersion {
     IndexPltHolderNonZero,
     #[display("0049: Alter plt token modules events to add new event types")]
     AlterPltTokenModuleEventTypes,
+    #[display("0050: Fix NULL sender_index/sponsor_index caused by account aliasing bug")]
+    FixAccountAliasingSenderSponsor,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -305,7 +307,7 @@ impl SchemaVersion {
     /// have been introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::IndexPltHolderNonZero;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::AlterPltTokenModuleEventTypes;
+    const LATEST: SchemaVersion = SchemaVersion::FixAccountAliasingSenderSponsor;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -376,6 +378,7 @@ impl SchemaVersion {
             SchemaVersion::AlterTxnAddSponsoredTxn => false,
             SchemaVersion::IndexPltHolderNonZero => false,
             SchemaVersion::AlterPltTokenModuleEventTypes => false,
+            SchemaVersion::FixAccountAliasingSenderSponsor => false,
         }
     }
 
@@ -435,6 +438,7 @@ impl SchemaVersion {
             SchemaVersion::AlterTxnAddSponsoredTxn => false,
             SchemaVersion::IndexPltHolderNonZero => false,
             SchemaVersion::AlterPltTokenModuleEventTypes => false,
+            SchemaVersion::FixAccountAliasingSenderSponsor => false,
         }
     }
 
@@ -783,7 +787,16 @@ impl SchemaVersion {
                 SchemaVersion::AlterPltTokenModuleEventTypes
             }
 
-            SchemaVersion::AlterPltTokenModuleEventTypes => unimplemented!(
+            SchemaVersion::AlterPltTokenModuleEventTypes => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0050_fix_account_aliasing_sender_sponsor.sql"
+                    )))
+                    .await?;
+                SchemaVersion::FixAccountAliasingSenderSponsor
+            }
+
+            SchemaVersion::FixAccountAliasingSenderSponsor => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),

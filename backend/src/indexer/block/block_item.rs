@@ -18,7 +18,7 @@ use anyhow::Context;
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
     base::{
-        contracts_common::HashSet,
+        contracts_common::{CanonicalAccountAddress, HashSet},
         transactions::{BlockItem, EncodedPayload},
     },
     types::{
@@ -44,12 +44,12 @@ pub struct PreparedBlockItem {
     energy_cost: i64,
     /// Absolute height of the block.
     pub block_height: i64,
-    /// Base58check representation of the account address which signed the
-    /// block, none for update and credential deployments.
-    sender: Option<String>,
-    /// Base58check representation of the account address which sponsored the
-    /// block item, none for update and credential deployments.
-    sponsor: Option<String>,
+    /// Canonical address of the sender account, used for database lookups.
+    /// None for update and credential deployments.
+    sender_canonical: Option<CanonicalAccountAddress>,
+    /// Canonical address of the sponsor account, used for database lookups.
+    /// None for non-sponsored transactions.
+    sponsor_canonical: Option<CanonicalAccountAddress>,
     /// Cost for the account sponsoring the block item (in microCCD).
     sponsor_ccd_cost: Option<i64>,
     /// Whether the block item is an account transaction, update or credential
@@ -103,14 +103,14 @@ impl PreparedBlockItem {
         };
 
         let energy_cost = i64::try_from(item_summary.energy_cost.energy)?;
-        let sender = item_summary.sender_account().map(|a| a.to_string());
+        let sender_canonical = item_summary.sender_account().map(|a| a.get_canonical_address());
 
         let (
             transaction_type,
             account_type,
             credential_type,
             update_type,
-            sponsor,
+            sponsor_canonical,
             sponsor_ccd_cost,
         ) = match item_summary.details.as_ref().known_or_err()? {
             BlockItemSummaryDetails::AccountTransaction(details) => {
@@ -119,7 +119,7 @@ impl PreparedBlockItem {
                     .map(|tx| tx.map(AccountTransactionType::from).known_or_err())
                     .transpose()?;
                 let sponsor_details = details.sponsor.clone();
-                let sponsor = sponsor_details.as_ref().map(|s| s.sponsor.to_string());
+                let sponsor_canonical = sponsor_details.as_ref().map(|s| s.sponsor.get_canonical_address());
                 let sponsor_ccd_cost = sponsor_details
                     .as_ref()
                     .map(|s| i64::try_from(s.cost.micro_ccd()))
@@ -129,7 +129,7 @@ impl PreparedBlockItem {
                     transaction_type,
                     None,
                     None,
-                    sponsor,
+                    sponsor_canonical,
                     sponsor_ccd_cost,
                 )
             }
@@ -166,7 +166,6 @@ impl PreparedBlockItem {
                 None,
             ),
         };
-
         let success = item_summary.is_success().known_or_err()?;
         let (events, reject) = if success {
             let events: serde_json::Value =
@@ -208,7 +207,9 @@ impl PreparedBlockItem {
             ccd_cost,
             energy_cost,
             block_height,
-            sender,
+            sender_canonical,
+            sponsor_canonical,
+            sponsor_ccd_cost,
             transaction_type,
             account_type,
             credential_type,
@@ -218,8 +219,6 @@ impl PreparedBlockItem {
             reject,
             affected_accounts,
             prepared_event,
-            sponsor,
-            sponsor_ccd_cost,
         })
     }
 
@@ -257,8 +256,8 @@ impl PreparedBlockItem {
                 $2,
                 $3,
                 $4,
-                (SELECT index FROM accounts WHERE address = $5),
-                (SELECT index FROM accounts WHERE address = $6),
+                (SELECT index FROM accounts WHERE canonical_address = $5),
+                (SELECT index FROM accounts WHERE canonical_address = $6),
                 $7,
                 $8,
                 $9,
@@ -272,8 +271,8 @@ impl PreparedBlockItem {
             self.ccd_cost,
             self.energy_cost,
             self.block_height,
-            self.sender,
-            self.sponsor,
+            self.sender_canonical.as_ref().map(|c| c.0.as_slice()),
+            self.sponsor_canonical.as_ref().map(|c| c.0.as_slice()),
             self.sponsor_ccd_cost,
             self.transaction_type as DbTransactionType,
             self.account_type as Option<AccountTransactionType>,
