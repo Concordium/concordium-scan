@@ -103,7 +103,9 @@ impl PreparedBlockItem {
         };
 
         let energy_cost = i64::try_from(item_summary.energy_cost.energy)?;
-        let sender_canonical = item_summary.sender_account().map(|a| a.get_canonical_address());
+        let sender_canonical = item_summary
+            .sender_account()
+            .map(|a| a.get_canonical_address());
 
         let (
             transaction_type,
@@ -119,7 +121,9 @@ impl PreparedBlockItem {
                     .map(|tx| tx.map(AccountTransactionType::from).known_or_err())
                     .transpose()?;
                 let sponsor_details = details.sponsor.clone();
-                let sponsor_canonical = sponsor_details.as_ref().map(|s| s.sponsor.get_canonical_address());
+                let sponsor_canonical = sponsor_details
+                    .as_ref()
+                    .map(|s| s.sponsor.get_canonical_address());
                 let sponsor_ccd_cost = sponsor_details
                     .as_ref()
                     .map(|s| i64::try_from(s.cost.micro_ccd()))
