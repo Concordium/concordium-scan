@@ -18,6 +18,7 @@ mod m0025_fix_passive_delegator_stake;
 mod m0026_update_genesis_validator_info;
 mod m0027_reindex_credential_deployments;
 mod m0037_update_transaction_type_add_tokenupdate;
+mod m0050_fix_account_aliasing_sender_sponsor;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.
@@ -448,8 +449,14 @@ impl SchemaVersion {
         pool: &mut sqlx::PgConnection,
         endpoints: &[v2::Endpoint],
     ) -> anyhow::Result<SchemaVersion> {
-        let mut tx = pool.begin().await?;
         let start_time = chrono::Utc::now();
+        // Some migrations perform large data fixes that must run outside the
+        // schema-tracking transaction so they can commit in small batches,
+        // keeping WAL pressure and lock duration low.
+        if let SchemaVersion::AlterPltTokenModuleEventTypes = self {
+            m0050_fix_account_aliasing_sender_sponsor::run(pool).await?;
+        }
+        let mut tx = pool.begin().await?;
         let new_version = match self {
             SchemaVersion::Empty => {
                 // Set up the initial database schema.
@@ -788,11 +795,6 @@ impl SchemaVersion {
             }
 
             SchemaVersion::AlterPltTokenModuleEventTypes => {
-                tx.as_mut()
-                    .execute(sqlx::raw_sql(include_str!(
-                        "./migrations/m0050_fix_account_aliasing_sender_sponsor.sql"
-                    )))
-                    .await?;
                 SchemaVersion::FixAccountAliasingSenderSponsor
             }
 
