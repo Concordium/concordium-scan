@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [1.7.33] - 2026-05-05
+
+### Added
+
+- Added support for displaying TokenModule RBAC events in the transaction list page and transaction details page. 
+
 ## [1.7.32] - 2026-03-23
 
 ### Added
