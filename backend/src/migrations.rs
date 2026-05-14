@@ -18,6 +18,7 @@ mod m0025_fix_passive_delegator_stake;
 mod m0026_update_genesis_validator_info;
 mod m0027_reindex_credential_deployments;
 mod m0037_update_transaction_type_add_tokenupdate;
+mod m0050_fix_account_aliasing_sender_sponsor;
 
 /// Ensure the current database schema version is compatible with the supported
 /// schema version.
@@ -298,6 +299,8 @@ pub enum SchemaVersion {
     IndexPltHolderNonZero,
     #[display("0049: Alter plt token modules events to add new event types")]
     AlterPltTokenModuleEventTypes,
+    #[display("0050: Fix NULL sender_index/sponsor_index caused by account aliasing bug")]
+    FixAccountAliasingSenderSponsor,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -305,7 +308,7 @@ impl SchemaVersion {
     /// have been introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::IndexPltHolderNonZero;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::AlterPltTokenModuleEventTypes;
+    const LATEST: SchemaVersion = SchemaVersion::FixAccountAliasingSenderSponsor;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -376,6 +379,7 @@ impl SchemaVersion {
             SchemaVersion::AlterTxnAddSponsoredTxn => false,
             SchemaVersion::IndexPltHolderNonZero => false,
             SchemaVersion::AlterPltTokenModuleEventTypes => false,
+            SchemaVersion::FixAccountAliasingSenderSponsor => false,
         }
     }
 
@@ -435,6 +439,7 @@ impl SchemaVersion {
             SchemaVersion::AlterTxnAddSponsoredTxn => false,
             SchemaVersion::IndexPltHolderNonZero => false,
             SchemaVersion::AlterPltTokenModuleEventTypes => false,
+            SchemaVersion::FixAccountAliasingSenderSponsor => false,
         }
     }
 
@@ -444,8 +449,14 @@ impl SchemaVersion {
         pool: &mut sqlx::PgConnection,
         endpoints: &[v2::Endpoint],
     ) -> anyhow::Result<SchemaVersion> {
-        let mut tx = pool.begin().await?;
         let start_time = chrono::Utc::now();
+        // Some migrations perform large data fixes that must run outside the
+        // schema-tracking transaction so they can commit in small batches,
+        // keeping WAL pressure and lock duration low.
+        if let SchemaVersion::AlterPltTokenModuleEventTypes = self {
+            m0050_fix_account_aliasing_sender_sponsor::run(pool).await?;
+        }
+        let mut tx = pool.begin().await?;
         let new_version = match self {
             SchemaVersion::Empty => {
                 // Set up the initial database schema.
@@ -783,7 +794,11 @@ impl SchemaVersion {
                 SchemaVersion::AlterPltTokenModuleEventTypes
             }
 
-            SchemaVersion::AlterPltTokenModuleEventTypes => unimplemented!(
+            SchemaVersion::AlterPltTokenModuleEventTypes => {
+                SchemaVersion::FixAccountAliasingSenderSponsor
+            }
+
+            SchemaVersion::FixAccountAliasingSenderSponsor => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),

@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Added
+
+Database schema version: 50
+
+### Fixed
+
+- Fix account aliasing issue for sender and sponsor in the Transaction events, where the alias address was being used instead of the canonical address, which caused the account index to be null.
+
 ## [2.0.29] - 2026-05-05
 
 ### Added
