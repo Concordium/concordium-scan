@@ -70,6 +70,14 @@ pub enum TransactionRejectReason {
     NonExistentTokenId(NonExistentTokenId),
     TokenUpdateTransactionFailed(TokenModuleReject),
     UnauthorizedTokenGovernance(UnauthorizedTokenGovernance),
+    NonExistentLockId(NonExistentLockId),
+    LockExpired(LockExpired),
+    LockFundNotAuthorized(LockFundNotAuthorized),
+    LockSendNotAuthorized(LockSendNotAuthorized),
+    LockReturnNotAuthorized(LockReturnNotAuthorized),
+    LockCancelNotAuthorized(LockCancelNotAuthorized),
+    LockTokenNotPermitted(LockTokenNotPermitted),
+    LockRecipientNotPermitted(LockRecipientNotPermitted),
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone, Copy)]
@@ -591,6 +599,46 @@ pub struct UnauthorizedTokenGovernance {
     pub token_id: String,
 }
 
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
+pub struct NonExistentLockId {
+    lock_id: String,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
+pub struct LockExpired {
+    lock_id: String,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
+pub struct LockFundNotAuthorized {
+    details: serde_json::Value,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
+pub struct LockSendNotAuthorized {
+    details: serde_json::Value,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
+pub struct LockReturnNotAuthorized {
+    details: serde_json::Value,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
+pub struct LockCancelNotAuthorized {
+    details: serde_json::Value,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
+pub struct LockTokenNotPermitted {
+    details: serde_json::Value,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
+pub struct LockRecipientNotPermitted {
+    details: serde_json::Value,
+}
+
 /// TransactionRejectReason being prepared for indexing.
 /// Most reject reasons can just be inserted, but a few require some processing
 /// before inserting.
@@ -890,6 +938,46 @@ impl PreparedTransactionRejectReason {
                     .context(
                         "Failed to serialize token module transaction failure details to JSON",
                     )?,
+                })
+            }
+            RejectReason::NonExistentLockId { lock_id } => {
+                TransactionRejectReason::NonExistentLockId(NonExistentLockId {
+                    lock_id: lock_id.to_string(),
+                })
+            }
+            RejectReason::LockExpired { lock_id } => {
+                TransactionRejectReason::LockExpired(LockExpired {
+                    lock_id: lock_id.to_string(),
+                })
+            }
+            RejectReason::LockFundNotAuthorized { details } => {
+                TransactionRejectReason::LockFundNotAuthorized(LockFundNotAuthorized {
+                    details: serde_json::to_value(details)?,
+                })
+            }
+            RejectReason::LockSendNotAuthorized { details } => {
+                TransactionRejectReason::LockSendNotAuthorized(LockSendNotAuthorized {
+                    details: serde_json::to_value(details)?,
+                })
+            }
+            RejectReason::LockReturnNotAuthorized { details } => {
+                TransactionRejectReason::LockReturnNotAuthorized(LockReturnNotAuthorized {
+                    details: serde_json::to_value(details)?,
+                })
+            }
+            RejectReason::LockCancelNotAuthorized { details } => {
+                TransactionRejectReason::LockCancelNotAuthorized(LockCancelNotAuthorized {
+                    details: serde_json::to_value(details)?,
+                })
+            }
+            RejectReason::LockTokenNotPermitted { details } => {
+                TransactionRejectReason::LockTokenNotPermitted(LockTokenNotPermitted {
+                    details: serde_json::to_value(details)?,
+                })
+            }
+            RejectReason::LockRecipientNotPermitted { details } => {
+                TransactionRejectReason::LockRecipientNotPermitted(LockRecipientNotPermitted {
+                    details: serde_json::to_value(details)?,
                 })
             }
         };

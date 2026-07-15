@@ -390,6 +390,7 @@ export enum AccountTransactionType {
   EncryptedTransfer = 'ENCRYPTED_TRANSFER',
   EncryptedTransferWithMemo = 'ENCRYPTED_TRANSFER_WITH_MEMO',
   InitializeSmartContractInstance = 'INITIALIZE_SMART_CONTRACT_INSTANCE',
+  MetaUpdate = 'META_UPDATE',
   RegisterData = 'REGISTER_DATA',
   RemoveBaker = 'REMOVE_BAKER',
   SimpleTransfer = 'SIMPLE_TRANSFER',
@@ -991,7 +992,7 @@ export type ChainUpdateEnqueued = {
   payload: ChainUpdatePayload;
 };
 
-export type ChainUpdatePayload = AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | BlockEnergyLimitUpdate | CooldownParametersChainUpdatePayload | CreatePltUpdate | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | FinalizationCommitteeParametersUpdate | FoundationAccountChainUpdatePayload | GasRewardsChainUpdatePayload | GasRewardsCpv2Update | Level1KeysChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | MinBlockTimeUpdate | MintDistributionChainUpdatePayload | MintDistributionV1ChainUpdatePayload | PoolParametersChainUpdatePayload | ProtocolChainUpdatePayload | RootKeysChainUpdatePayload | TimeParametersChainUpdatePayload | TimeoutParametersUpdate | TransactionFeeDistributionChainUpdatePayload | ValidatorScoreParametersUpdate;
+export type ChainUpdatePayload = AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | BlockEnergyLimitUpdate | CooldownParametersChainUpdatePayload | CreatePltUpdate | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | FinalizationCommitteeParametersUpdate | FoundationAccountChainUpdatePayload | GasRewardsChainUpdatePayload | GasRewardsCpv2Update | Level1KeysChainUpdatePayload | MaxLockDurationUpdate | MicroCcdPerEuroChainUpdatePayload | MinBlockTimeUpdate | MintDistributionChainUpdatePayload | MintDistributionV1ChainUpdatePayload | PoolParametersChainUpdatePayload | ProtocolChainUpdatePayload | RootKeysChainUpdatePayload | TimeParametersChainUpdatePayload | TimeoutParametersUpdate | TransactionFeeDistributionChainUpdatePayload | ValidatorScoreParametersUpdate;
 
 export type Cis2Event = {
   __typename?: 'Cis2Event';
@@ -1730,6 +1731,46 @@ export type LinkedContractsCollectionSegment = {
   totalCount: Scalars['Int'];
 };
 
+export type LockCancelNotAuthorized = {
+  __typename?: 'LockCancelNotAuthorized';
+  details: Scalars['JSON'];
+};
+
+export type LockExpired = {
+  __typename?: 'LockExpired';
+  lockId: Scalars['String'];
+};
+
+export type LockFundNotAuthorized = {
+  __typename?: 'LockFundNotAuthorized';
+  details: Scalars['JSON'];
+};
+
+export type LockRecipientNotPermitted = {
+  __typename?: 'LockRecipientNotPermitted';
+  details: Scalars['JSON'];
+};
+
+export type LockReturnNotAuthorized = {
+  __typename?: 'LockReturnNotAuthorized';
+  details: Scalars['JSON'];
+};
+
+export type LockSendNotAuthorized = {
+  __typename?: 'LockSendNotAuthorized';
+  details: Scalars['JSON'];
+};
+
+export type LockTokenNotPermitted = {
+  __typename?: 'LockTokenNotPermitted';
+  details: Scalars['JSON'];
+};
+
+export type MaxLockDurationUpdate = {
+  __typename?: 'MaxLockDurationUpdate';
+  durationSeconds: Scalars['UnsignedLong'];
+};
+
 export type Memo = {
   __typename?: 'Memo';
   bytes: Scalars['String'];
@@ -2003,6 +2044,11 @@ export type NonExistentCredentialId = {
   __typename?: 'NonExistentCredentialId';
   /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
+};
+
+export type NonExistentLockId = {
+  __typename?: 'NonExistentLockId';
+  lockId: Scalars['String'];
 };
 
 export type NonExistentRewardAccount = {
@@ -3208,8 +3254,10 @@ export type TokenTransferEvent = {
   __typename?: 'TokenTransferEvent';
   amount: TokenAmount;
   from: TokenHolder;
+  fromLock?: Maybe<Scalars['String']>;
   memo?: Maybe<Memo>;
   to: TokenHolder;
+  toLock?: Maybe<Scalars['String']>;
 };
 
 /** Common event struct for both Holder and Governance events. */
@@ -3319,7 +3367,7 @@ export type TransactionMetricsBuckets = {
   y_TransactionCount: Array<Scalars['Int']>;
 };
 
-export type TransactionRejectReason = AlreadyABaker | AlreadyADelegator | AmountTooLarge | BakerInCooldown | BakingRewardCommissionNotInRange | CredentialHolderDidNotSign | DelegationTargetNotABaker | DelegatorInCooldown | DuplicateAggregationKey | DuplicateCredIds | EncryptedAmountSelfTransfer | FinalizationRewardCommissionNotInRange | FirstScheduledReleaseExpired | InsufficientBalanceForBakerStake | InsufficientBalanceForDelegationStake | InsufficientDelegationStake | InvalidAccountReference | InvalidAccountThreshold | InvalidContractAddress | InvalidCredentialKeySignThreshold | InvalidCredentials | InvalidEncryptedAmountTransferProof | InvalidIndexOnEncryptedTransfer | InvalidInitMethod | InvalidModuleReference | InvalidProof | InvalidReceiveMethod | InvalidTransferToPublicProof | KeyIndexAlreadyInUse | MissingBakerAddParameters | MissingDelegationAddParameters | ModuleHashAlreadyExists | ModuleNotWf | NonExistentCredIds | NonExistentCredentialId | NonExistentRewardAccount | NonExistentTokenId | NonIncreasingSchedule | NotABaker | NotADelegator | NotAllowedMultipleCredentials | NotAllowedToHandleEncrypted | NotAllowedToReceiveEncrypted | OutOfEnergy | PoolClosed | PoolWouldBecomeOverDelegated | RejectedInit | RejectedReceive | RemoveFirstCredential | RuntimeFailure | ScheduledSelfTransfer | SerializationFailure | StakeOverMaximumThresholdForPool | StakeUnderMinimumThresholdForBaking | TokenModuleReject | TransactionFeeCommissionNotInRange | UnauthorizedTokenGovernance | ZeroScheduledAmount;
+export type TransactionRejectReason = AlreadyABaker | AlreadyADelegator | AmountTooLarge | BakerInCooldown | BakingRewardCommissionNotInRange | CredentialHolderDidNotSign | DelegationTargetNotABaker | DelegatorInCooldown | DuplicateAggregationKey | DuplicateCredIds | EncryptedAmountSelfTransfer | FinalizationRewardCommissionNotInRange | FirstScheduledReleaseExpired | InsufficientBalanceForBakerStake | InsufficientBalanceForDelegationStake | InsufficientDelegationStake | InvalidAccountReference | InvalidAccountThreshold | InvalidContractAddress | InvalidCredentialKeySignThreshold | InvalidCredentials | InvalidEncryptedAmountTransferProof | InvalidIndexOnEncryptedTransfer | InvalidInitMethod | InvalidModuleReference | InvalidProof | InvalidReceiveMethod | InvalidTransferToPublicProof | KeyIndexAlreadyInUse | LockCancelNotAuthorized | LockExpired | LockFundNotAuthorized | LockRecipientNotPermitted | LockReturnNotAuthorized | LockSendNotAuthorized | LockTokenNotPermitted | MissingBakerAddParameters | MissingDelegationAddParameters | ModuleHashAlreadyExists | ModuleNotWf | NonExistentCredIds | NonExistentCredentialId | NonExistentLockId | NonExistentRewardAccount | NonExistentTokenId | NonIncreasingSchedule | NotABaker | NotADelegator | NotAllowedMultipleCredentials | NotAllowedToHandleEncrypted | NotAllowedToReceiveEncrypted | OutOfEnergy | PoolClosed | PoolWouldBecomeOverDelegated | RejectedInit | RejectedReceive | RemoveFirstCredential | RuntimeFailure | ScheduledSelfTransfer | SerializationFailure | StakeOverMaximumThresholdForPool | StakeUnderMinimumThresholdForBaking | TokenModuleReject | TransactionFeeCommissionNotInRange | UnauthorizedTokenGovernance | ZeroScheduledAmount;
 
 export type TransactionResult = Rejected | Success;
 
@@ -3370,6 +3418,7 @@ export enum UpdateTransactionType {
   CreatePltUpdate = 'CREATE_PLT_UPDATE',
   FinalizationCommitteeParametersUpdate = 'FINALIZATION_COMMITTEE_PARAMETERS_UPDATE',
   GasRewardsCpv_2Update = 'GAS_REWARDS_CPV_2_UPDATE',
+  MaxLockDurationUpdate = 'MAX_LOCK_DURATION_UPDATE',
   MintDistributionCpv_1Update = 'MINT_DISTRIBUTION_CPV_1_UPDATE',
   MinBlockTimeUpdate = 'MIN_BLOCK_TIME_UPDATE',
   TimeoutParametersUpdate = 'TIMEOUT_PARAMETERS_UPDATE',

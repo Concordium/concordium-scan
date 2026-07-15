@@ -344,7 +344,8 @@ impl PreparedEvent {
             ),
             AccountTransactionEffects::CredentialKeysUpdated { .. }
             | AccountTransactionEffects::CredentialsUpdated { .. }
-            | AccountTransactionEffects::DataRegistered { .. } => PreparedEvent::NoOperation,
+            | AccountTransactionEffects::DataRegistered { .. }
+            | AccountTransactionEffects::MetaUpdate { .. } => PreparedEvent::NoOperation,
             AccountTransactionEffects::DelegationConfigured { data: events } => {
                 PreparedEvent::AccountDelegationEvents(
                     delegation_events::PreparedAccountDelegationEvents {

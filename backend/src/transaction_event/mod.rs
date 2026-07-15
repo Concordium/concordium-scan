@@ -546,6 +546,7 @@ pub fn events_from_summary(
                     }))
                 })
                 .collect::<anyhow::Result<Vec<_>>>()?,
+            AccountTransactionEffects::MetaUpdate { .. } => Vec::new(),
         },
         BlockItemSummaryDetails::AccountCreation(details) => {
             vec![
@@ -617,6 +618,14 @@ pub fn events_from_summary(
                             protocol_level_tokens::TokenTransferEvent {
                                 from: token_transfer_event.from.clone().into(),
                                 to: token_transfer_event.to.clone().into(),
+                                from_lock: token_transfer_event
+                                    .from_lock
+                                    .as_ref()
+                                    .map(|lock| lock.to_string()),
+                                to_lock: token_transfer_event
+                                    .to_lock
+                                    .as_ref()
+                                    .map(|lock| lock.to_string()),
                                 amount: token_transfer_event.amount.into(),
                                 memo: token_transfer_event.memo.clone().map(Into::into),
                             },

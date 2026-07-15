@@ -6,8 +6,17 @@
 			:decimals="Number(event.event.amount.decimals)"
 		/>
 		<b>{{ event.tokenId }}</b> from
-		<AccountLink :address="event.event.from.address.asString" /> to
+		<AccountLink :address="event.event.from.address.asString" />
+		<template v-if="event.event.fromLock">
+			(source lock <b>{{ event.event.fromLock }}</b
+			>)
+		</template>
+		to
 		<AccountLink :address="event.event.to.address.asString" />
+		<template v-if="event.event.toLock">
+			(destination lock <b>{{ event.event.toLock }}</b
+			>)
+		</template>
 		<PltTransferMemo v-if="event.event.memo" :memo="event.event.memo" />
 	</span>
 

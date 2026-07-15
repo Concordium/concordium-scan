@@ -39,6 +39,7 @@ pub struct ChainUpdateEnqueued {
 pub enum ChainUpdatePayload {
     Protocol(ProtocolChainUpdatePayload),
     MinBlockTime(MinBlockTimeUpdate),
+    MaxLockDuration(MaxLockDurationUpdate),
     TimeoutParameters(TimeoutParametersUpdate),
     FinalizationCommitteeParameters(FinalizationCommitteeParametersUpdate),
     BlockEnergyLimit(BlockEnergyLimitUpdate),
@@ -65,6 +66,11 @@ pub enum ChainUpdatePayload {
 
 #[derive(SimpleObject, Serialize, Deserialize)]
 pub struct MinBlockTimeUpdate {
+    pub duration_seconds: UnsignedLong,
+}
+
+#[derive(SimpleObject, Serialize, Deserialize)]
+pub struct MaxLockDurationUpdate {
     pub duration_seconds: UnsignedLong,
 }
 

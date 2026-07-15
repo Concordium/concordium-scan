@@ -298,6 +298,10 @@ pub enum SchemaVersion {
     IndexPltHolderNonZero,
     #[display("0049: Alter plt token modules events to add new event types")]
     AlterPltTokenModuleEventTypes,
+    #[display("0050: Add MetaUpdate account transaction type")]
+    AddMetaUpdateAccountTransactionType,
+    #[display("0051: Add MaxLockDuration update transaction type")]
+    AddMaxLockDurationUpdateTransactionType,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -305,7 +309,7 @@ impl SchemaVersion {
     /// have been introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::IndexPltHolderNonZero;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::AlterPltTokenModuleEventTypes;
+    const LATEST: SchemaVersion = SchemaVersion::AddMaxLockDurationUpdateTransactionType;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -376,6 +380,8 @@ impl SchemaVersion {
             SchemaVersion::AlterTxnAddSponsoredTxn => false,
             SchemaVersion::IndexPltHolderNonZero => false,
             SchemaVersion::AlterPltTokenModuleEventTypes => false,
+            SchemaVersion::AddMetaUpdateAccountTransactionType => false,
+            SchemaVersion::AddMaxLockDurationUpdateTransactionType => false,
         }
     }
 
@@ -435,6 +441,8 @@ impl SchemaVersion {
             SchemaVersion::AlterTxnAddSponsoredTxn => false,
             SchemaVersion::IndexPltHolderNonZero => false,
             SchemaVersion::AlterPltTokenModuleEventTypes => false,
+            SchemaVersion::AddMetaUpdateAccountTransactionType => false,
+            SchemaVersion::AddMaxLockDurationUpdateTransactionType => false,
         }
     }
 
@@ -783,7 +791,25 @@ impl SchemaVersion {
                 SchemaVersion::AlterPltTokenModuleEventTypes
             }
 
-            SchemaVersion::AlterPltTokenModuleEventTypes => unimplemented!(
+            SchemaVersion::AlterPltTokenModuleEventTypes => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0050_add_meta_update_account_transaction_type.sql"
+                    )))
+                    .await?;
+                SchemaVersion::AddMetaUpdateAccountTransactionType
+            }
+
+            SchemaVersion::AddMetaUpdateAccountTransactionType => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0051_add_max_lock_duration_update_transaction_type.sql"
+                    )))
+                    .await?;
+                SchemaVersion::AddMaxLockDurationUpdateTransactionType
+            }
+
+            SchemaVersion::AddMaxLockDurationUpdateTransactionType => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),

@@ -264,6 +264,9 @@ __typename
 		...on MinBlockTimeUpdate {
 			durationSeconds
 		}
+		...on MaxLockDurationUpdate {
+			durationSeconds
+		}
 		...on TimeoutParametersUpdate {
 			decrease {
 				denominator
@@ -391,6 +394,8 @@ __typename
             details
         }
         ... on TokenTransferEvent {
+            fromLock
+            toLock
             memo {
                 decoded {
                     text
@@ -469,6 +474,8 @@ __typename
                 details
             }
             ... on TokenTransferEvent {
+                fromLock
+                toLock
                 from {
                     address {
                         asString

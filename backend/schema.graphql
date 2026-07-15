@@ -353,6 +353,7 @@ enum AccountTransactionType {
 	CONFIGURE_BAKER
 	CONFIGURE_DELEGATION
 	TOKEN_UPDATE
+	META_UPDATE
 }
 
 "A segment of a collection."
@@ -894,7 +895,7 @@ type ChainUpdateEnqueued {
 	payload: ChainUpdatePayload!
 }
 
-union ChainUpdatePayload = ProtocolChainUpdatePayload | MinBlockTimeUpdate | TimeoutParametersUpdate | FinalizationCommitteeParametersUpdate | BlockEnergyLimitUpdate | GasRewardsCpv2Update | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | FoundationAccountChainUpdatePayload | MintDistributionChainUpdatePayload | MintDistributionV1ChainUpdatePayload | TransactionFeeDistributionChainUpdatePayload | GasRewardsChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | RootKeysChainUpdatePayload | Level1KeysChainUpdatePayload | AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | CooldownParametersChainUpdatePayload | PoolParametersChainUpdatePayload | TimeParametersChainUpdatePayload | ValidatorScoreParametersUpdate | CreatePltUpdate
+union ChainUpdatePayload = ProtocolChainUpdatePayload | MinBlockTimeUpdate | MaxLockDurationUpdate | TimeoutParametersUpdate | FinalizationCommitteeParametersUpdate | BlockEnergyLimitUpdate | GasRewardsCpv2Update | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | FoundationAccountChainUpdatePayload | MintDistributionChainUpdatePayload | MintDistributionV1ChainUpdatePayload | TransactionFeeDistributionChainUpdatePayload | GasRewardsChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | RootKeysChainUpdatePayload | Level1KeysChainUpdatePayload | AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | CooldownParametersChainUpdatePayload | PoolParametersChainUpdatePayload | TimeParametersChainUpdatePayload | ValidatorScoreParametersUpdate | CreatePltUpdate
 
 type Cis2Event {
 	tokenId: String!
@@ -1525,7 +1526,39 @@ type LinkedContractsCollectionSegment {
 	totalCount: Int!
 }
 
+type LockCancelNotAuthorized {
+	details: JSON!
+}
+
+type LockExpired {
+	lockId: String!
+}
+
+type LockFundNotAuthorized {
+	details: JSON!
+}
+
+type LockRecipientNotPermitted {
+	details: JSON!
+}
+
+type LockReturnNotAuthorized {
+	details: JSON!
+}
+
+type LockSendNotAuthorized {
+	details: JSON!
+}
+
+type LockTokenNotPermitted {
+	details: JSON!
+}
+
 scalar Long
+
+type MaxLockDurationUpdate {
+	durationSeconds: UnsignedLong!
+}
 
 type Memo {
 	bytes: String!
@@ -1753,6 +1786,10 @@ type NonExistentCredIds {
 
 type NonExistentCredentialId {
 	_: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
+type NonExistentLockId {
+	lockId: String!
 }
 
 type NonExistentRewardAccount {
@@ -2715,6 +2752,8 @@ type TokenModuleReject {
 type TokenTransferEvent {
 	from: TokenHolder!
 	to: TokenHolder!
+	fromLock: String
+	toLock: String
 	amount: TokenAmount!
 	memo: Memo
 }
@@ -2816,7 +2855,7 @@ type TransactionMetricsBuckets {
 	y_TransactionCount: [Int!]!
 }
 
-union TransactionRejectReason = ModuleNotWf | ModuleHashAlreadyExists | InvalidAccountReference | InvalidInitMethod | InvalidReceiveMethod | InvalidModuleReference | InvalidContractAddress | RuntimeFailure | AmountTooLarge | SerializationFailure | OutOfEnergy | RejectedInit | RejectedReceive | NonExistentRewardAccount | InvalidProof | AlreadyABaker | NotABaker | InsufficientBalanceForBakerStake | StakeUnderMinimumThresholdForBaking | BakerInCooldown | DuplicateAggregationKey | NonExistentCredentialId | KeyIndexAlreadyInUse | InvalidAccountThreshold | InvalidCredentialKeySignThreshold | InvalidEncryptedAmountTransferProof | InvalidTransferToPublicProof | EncryptedAmountSelfTransfer | InvalidIndexOnEncryptedTransfer | ZeroScheduledAmount | NonIncreasingSchedule | FirstScheduledReleaseExpired | ScheduledSelfTransfer | InvalidCredentials | DuplicateCredIds | NonExistentCredIds | RemoveFirstCredential | CredentialHolderDidNotSign | NotAllowedMultipleCredentials | NotAllowedToReceiveEncrypted | NotAllowedToHandleEncrypted | MissingBakerAddParameters | FinalizationRewardCommissionNotInRange | BakingRewardCommissionNotInRange | TransactionFeeCommissionNotInRange | AlreadyADelegator | InsufficientBalanceForDelegationStake | MissingDelegationAddParameters | InsufficientDelegationStake | DelegatorInCooldown | NotADelegator | DelegationTargetNotABaker | StakeOverMaximumThresholdForPool | PoolWouldBecomeOverDelegated | PoolClosed | NonExistentTokenId | TokenModuleReject | UnauthorizedTokenGovernance
+union TransactionRejectReason = ModuleNotWf | ModuleHashAlreadyExists | InvalidAccountReference | InvalidInitMethod | InvalidReceiveMethod | InvalidModuleReference | InvalidContractAddress | RuntimeFailure | AmountTooLarge | SerializationFailure | OutOfEnergy | RejectedInit | RejectedReceive | NonExistentRewardAccount | InvalidProof | AlreadyABaker | NotABaker | InsufficientBalanceForBakerStake | StakeUnderMinimumThresholdForBaking | BakerInCooldown | DuplicateAggregationKey | NonExistentCredentialId | KeyIndexAlreadyInUse | InvalidAccountThreshold | InvalidCredentialKeySignThreshold | InvalidEncryptedAmountTransferProof | InvalidTransferToPublicProof | EncryptedAmountSelfTransfer | InvalidIndexOnEncryptedTransfer | ZeroScheduledAmount | NonIncreasingSchedule | FirstScheduledReleaseExpired | ScheduledSelfTransfer | InvalidCredentials | DuplicateCredIds | NonExistentCredIds | RemoveFirstCredential | CredentialHolderDidNotSign | NotAllowedMultipleCredentials | NotAllowedToReceiveEncrypted | NotAllowedToHandleEncrypted | MissingBakerAddParameters | FinalizationRewardCommissionNotInRange | BakingRewardCommissionNotInRange | TransactionFeeCommissionNotInRange | AlreadyADelegator | InsufficientBalanceForDelegationStake | MissingDelegationAddParameters | InsufficientDelegationStake | DelegatorInCooldown | NotADelegator | DelegationTargetNotABaker | StakeOverMaximumThresholdForPool | PoolWouldBecomeOverDelegated | PoolClosed | NonExistentTokenId | TokenModuleReject | UnauthorizedTokenGovernance | NonExistentLockId | LockExpired | LockFundNotAuthorized | LockSendNotAuthorized | LockReturnNotAuthorized | LockCancelNotAuthorized | LockTokenNotPermitted | LockRecipientNotPermitted
 
 union TransactionResult = Success | Rejected
 
@@ -2884,6 +2923,7 @@ enum UpdateTransactionType {
 	GAS_REWARDS_CPV_2_UPDATE
 	TIMEOUT_PARAMETERS_UPDATE
 	MIN_BLOCK_TIME_UPDATE
+	MAX_LOCK_DURATION_UPDATE
 	BLOCK_ENERGY_LIMIT_UPDATE
 	FINALIZATION_COMMITTEE_PARAMETERS_UPDATE
 	VALIDATOR_SCORE_PARAMETERS_UPDATE
