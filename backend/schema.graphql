@@ -30,6 +30,16 @@ type Account {
 		"Returns the elements in the list that come before the specified cursor."
 		before: String
 	): AccountTokenConnection!
+	relatedLocks(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): AccountRelatedLockConnection!
 	transactions(
 		"Returns the first _n_ elements from the list."
 		first: Int,
@@ -161,6 +171,28 @@ type AccountProtocolTokenConnection {
 type AccountProtocolTokenEdge {
 	"The item at the end of the edge"
 	node: AccountProtocolToken!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
+type AccountRelatedLock {
+	lock: Lock!
+	accountBalances: [LockBalance!]!
+}
+
+type AccountRelatedLockConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [AccountRelatedLockEdge!]!
+	"A list of nodes."
+	nodes: [AccountRelatedLock!]!
+}
+
+"An edge in a connection."
+type AccountRelatedLockEdge {
+	"The item at the end of the edge"
+	node: AccountRelatedLock!
 	"A cursor for use in pagination"
 	cursor: String!
 }
@@ -1526,6 +1558,42 @@ type LinkedContractsCollectionSegment {
 	totalCount: Int!
 }
 
+type Lock {
+	id: ID!
+	lockId: String!
+	creator: Account
+	createdTransaction: Transaction
+	createdAt: DateTime
+	expiry: DateTime
+	canceledTransaction: Transaction
+	canceledAt: DateTime
+	status: LockStatus!
+	config: LockCreateConfig
+	rawConfig: String
+	metadataName: String
+	metadataDescription: String
+	balances: [LockBalance!]!
+	history(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): LockHistoryEventConnection!
+}
+
+type LockBalance {
+	lockId: String!
+	account: Account!
+	accountAddress: AccountAddress!
+	tokenIndex: Int!
+	tokenId: String!
+	amount: TokenAmount!
+}
+
 type LockCancelNotAuthorized {
 	details: JSON!
 }
@@ -1587,6 +1655,42 @@ type LockFunded {
 	memo: Memo
 }
 
+type LockHistoryEvent {
+	id: ID!
+	transaction: Transaction!
+	transactionIndex: Int!
+	blockHeight: Int!
+	slotTime: DateTime!
+	operationOrder: Int!
+	eventType: String!
+	lockId: String!
+	tokenIndex: Int
+	tokenId: String
+	account: Account
+	source: Account
+	recipient: Account
+	amount: TokenAmount
+	memo: JSON
+	event: JSON!
+}
+
+type LockHistoryEventConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [LockHistoryEventEdge!]!
+	"A list of nodes."
+	nodes: [LockHistoryEvent!]!
+}
+
+"An edge in a connection."
+type LockHistoryEventEdge {
+	"The item at the end of the edge"
+	node: LockHistoryEvent!
+	"A cursor for use in pagination"
+	cursor: String!
+}
+
 type LockMetadataConfig {
 	name: String
 	description: String
@@ -1624,6 +1728,12 @@ type LockSent {
 	recipient: CborHolderAccount!
 	amount: TokenAmount!
 	memo: Memo
+}
+
+enum LockStatus {
+	ACTIVE
+	EXPIRED
+	CANCELED
 }
 
 type LockTokenNotPermitted {
@@ -2423,6 +2533,7 @@ type Query {
 		before: String
 	): PltAccountAmountConnection!
 	pltUniqueAccounts: Int!
+	lock(lockId: String!): Lock!
 }
 
 """
