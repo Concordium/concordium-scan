@@ -1457,7 +1457,7 @@ export type EuroPerEnergyChainUpdatePayload = {
   exchangeRate: Ratio;
 };
 
-export type Event = AccountCreated | AmountAddedByDecryption | BakerAdded | BakerDelegationRemoved | BakerKeysUpdated | BakerRemoved | BakerResumed | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerSetMetadataUrl | BakerSetOpenStatus | BakerSetRestakeEarnings | BakerSetTransactionFeeCommission | BakerStakeDecreased | BakerStakeIncreased | BakerSuspended | ChainUpdateEnqueued | ContractCall | ContractInitialized | ContractInterrupted | ContractModuleDeployed | ContractResumed | ContractUpdated | ContractUpgraded | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | DelegationAdded | DelegationRemoved | DelegationSetDelegationTarget | DelegationSetRestakeEarnings | DelegationStakeDecreased | DelegationStakeIncreased | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TokenCreationDetails | TokenUpdate | TransferMemo | Transferred | TransferredWithSchedule;
+export type Event = AccountCreated | AmountAddedByDecryption | BakerAdded | BakerDelegationRemoved | BakerKeysUpdated | BakerRemoved | BakerResumed | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerSetMetadataUrl | BakerSetOpenStatus | BakerSetRestakeEarnings | BakerSetTransactionFeeCommission | BakerStakeDecreased | BakerStakeIncreased | BakerSuspended | ChainUpdateEnqueued | ContractCall | ContractInitialized | ContractInterrupted | ContractModuleDeployed | ContractResumed | ContractUpdated | ContractUpgraded | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | DelegationAdded | DelegationRemoved | DelegationSetDelegationTarget | DelegationSetRestakeEarnings | DelegationStakeDecreased | DelegationStakeIncreased | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | LockCanceled | LockCreated | LockDestroyed | LockFunded | LockReturned | LockSent | NewEncryptedAmount | TokenCreationDetails | TokenUpdate | TransferMemo | Transferred | TransferredWithSchedule;
 
 export type EventConnection = {
   __typename?: 'EventConnection';
@@ -1736,6 +1736,55 @@ export type LockCancelNotAuthorized = {
   details: Scalars['JSON'];
 };
 
+export type LockCanceled = {
+  __typename?: 'LockCanceled';
+  destroyed: Scalars['Boolean'];
+  lockId: Scalars['String'];
+  memo?: Maybe<Memo>;
+};
+
+export type LockControllerConfig = {
+  __typename?: 'LockControllerConfig';
+  controllerType: Scalars['String'];
+  simpleV0?: Maybe<LockControllerSimpleV0Config>;
+};
+
+export type LockControllerGrant = {
+  __typename?: 'LockControllerGrant';
+  account: CborHolderAccount;
+  roles: Array<Scalars['String']>;
+};
+
+export type LockControllerSimpleV0Config = {
+  __typename?: 'LockControllerSimpleV0Config';
+  grants: Array<LockControllerGrant>;
+  keepAlive: Scalars['Boolean'];
+  memo?: Maybe<Memo>;
+  tokenIds: Array<Scalars['String']>;
+};
+
+export type LockCreateConfig = {
+  __typename?: 'LockCreateConfig';
+  controller: LockControllerConfig;
+  expiry: Scalars['DateTime'];
+  metadata?: Maybe<LockMetadataConfig>;
+  recipients: LockRecipientsConfig;
+};
+
+export type LockCreated = {
+  __typename?: 'LockCreated';
+  config?: Maybe<LockCreateConfig>;
+  configUnavailable: Scalars['Boolean'];
+  lockId?: Maybe<Scalars['String']>;
+  rawConfig?: Maybe<Scalars['String']>;
+  rawConfigPresent: Scalars['Boolean'];
+};
+
+export type LockDestroyed = {
+  __typename?: 'LockDestroyed';
+  lockId: Scalars['String'];
+};
+
 export type LockExpired = {
   __typename?: 'LockExpired';
   lockId: Scalars['String'];
@@ -1746,9 +1795,29 @@ export type LockFundNotAuthorized = {
   details: Scalars['JSON'];
 };
 
+export type LockFunded = {
+  __typename?: 'LockFunded';
+  amount: TokenAmount;
+  lockId: Scalars['String'];
+  memo?: Maybe<Memo>;
+  tokenId: Scalars['String'];
+};
+
+export type LockMetadataConfig = {
+  __typename?: 'LockMetadataConfig';
+  description?: Maybe<Scalars['String']>;
+  name?: Maybe<Scalars['String']>;
+};
+
 export type LockRecipientNotPermitted = {
   __typename?: 'LockRecipientNotPermitted';
   details: Scalars['JSON'];
+};
+
+export type LockRecipientsConfig = {
+  __typename?: 'LockRecipientsConfig';
+  accounts: Array<CborHolderAccount>;
+  recipientType: Scalars['String'];
 };
 
 export type LockReturnNotAuthorized = {
@@ -1756,9 +1825,28 @@ export type LockReturnNotAuthorized = {
   details: Scalars['JSON'];
 };
 
+export type LockReturned = {
+  __typename?: 'LockReturned';
+  amount: TokenAmount;
+  lockId: Scalars['String'];
+  memo?: Maybe<Memo>;
+  source: CborHolderAccount;
+  tokenId: Scalars['String'];
+};
+
 export type LockSendNotAuthorized = {
   __typename?: 'LockSendNotAuthorized';
   details: Scalars['JSON'];
+};
+
+export type LockSent = {
+  __typename?: 'LockSent';
+  amount: TokenAmount;
+  lockId: Scalars['String'];
+  memo?: Maybe<Memo>;
+  recipient: CborHolderAccount;
+  source: CborHolderAccount;
+  tokenId: Scalars['String'];
 };
 
 export type LockTokenNotPermitted = {

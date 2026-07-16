@@ -186,6 +186,18 @@
 					:event="event"
 				/>
 
+				<LockEvents
+					v-else-if="
+						event.__typename === 'LockCreated' ||
+						event.__typename === 'LockFunded' ||
+						event.__typename === 'LockSent' ||
+						event.__typename === 'LockReturned' ||
+						event.__typename === 'LockCanceled' ||
+						event.__typename === 'LockDestroyed'
+					"
+					:event="event"
+				/>
+
 				<span v-else>Transaction event: {{ event.__typename }}</span>
 			</li>
 		</ul>
@@ -235,6 +247,7 @@ import DelegationSetDelegationTarget from '~/components/TransactionEventList/Eve
 import DelegationAdded from '~/components/TransactionEventList/Events/DelegationAdded.vue'
 import TokenEvents from '~/components/TransactionEventList/Events/TokenEvents.vue'
 import TokenCreationDetails from '~/components/TransactionEventList/Events/TokenCreationDetails.vue'
+import LockEvents from '~/components/TransactionEventList/Events/LockEvents.vue'
 import DelegationRemoved from '~/components/TransactionEventList/Events/DelegationRemoved.vue'
 import { PAGE_SIZE } from '~/composables/usePagination'
 import type { PaginationTarget } from '~/composables/usePagination'

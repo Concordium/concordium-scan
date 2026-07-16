@@ -1294,7 +1294,7 @@ type EuroPerEnergyChainUpdatePayload {
 	exchangeRate: Ratio!
 }
 
-union Event = Transferred | TransferMemo | TransferredWithSchedule | EncryptedAmountsRemoved | AmountAddedByDecryption | EncryptedSelfAmountAdded | NewEncryptedAmount | AccountCreated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | BakerSetOpenStatus | BakerSetMetadataURL | BakerSetTransactionFeeCommission | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerDelegationRemoved | BakerSuspended | BakerResumed | ContractInitialized | ContractModuleDeployed | ContractUpdated | ContractCall | ContractInterrupted | ContractResumed | ContractUpgraded | DelegationAdded | DelegationRemoved | DelegationStakeIncreased | DelegationStakeDecreased | DelegationSetRestakeEarnings | DelegationSetDelegationTarget | DataRegistered | ChainUpdateEnqueued | TokenUpdate | TokenCreationDetails
+union Event = Transferred | TransferMemo | TransferredWithSchedule | EncryptedAmountsRemoved | AmountAddedByDecryption | EncryptedSelfAmountAdded | NewEncryptedAmount | AccountCreated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | BakerSetOpenStatus | BakerSetMetadataURL | BakerSetTransactionFeeCommission | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerDelegationRemoved | BakerSuspended | BakerResumed | ContractInitialized | ContractModuleDeployed | ContractUpdated | ContractCall | ContractInterrupted | ContractResumed | ContractUpgraded | DelegationAdded | DelegationRemoved | DelegationStakeIncreased | DelegationStakeDecreased | DelegationSetRestakeEarnings | DelegationSetDelegationTarget | DataRegistered | ChainUpdateEnqueued | TokenUpdate | TokenCreationDetails | LockCreated | LockFunded | LockSent | LockReturned | LockCanceled | LockDestroyed
 
 type EventConnection {
 	"Information to aid in pagination."
@@ -1530,6 +1530,48 @@ type LockCancelNotAuthorized {
 	details: JSON!
 }
 
+type LockCanceled {
+	lockId: String!
+	memo: Memo
+	destroyed: Boolean!
+}
+
+type LockControllerConfig {
+	controllerType: String!
+	simpleV0: LockControllerSimpleV0Config
+}
+
+type LockControllerGrant {
+	account: CborHolderAccount!
+	roles: [String!]!
+}
+
+type LockControllerSimpleV0Config {
+	grants: [LockControllerGrant!]!
+	tokenIds: [String!]!
+	keepAlive: Boolean!
+	memo: Memo
+}
+
+type LockCreateConfig {
+	expiry: DateTime!
+	recipients: LockRecipientsConfig!
+	controller: LockControllerConfig!
+	metadata: LockMetadataConfig
+}
+
+type LockCreated {
+	lockId: String
+	config: LockCreateConfig
+	rawConfigPresent: Boolean!
+	configUnavailable: Boolean!
+	rawConfig: String
+}
+
+type LockDestroyed {
+	lockId: String!
+}
+
 type LockExpired {
 	lockId: String!
 }
@@ -1538,16 +1580,50 @@ type LockFundNotAuthorized {
 	details: JSON!
 }
 
+type LockFunded {
+	lockId: String!
+	tokenId: String!
+	amount: TokenAmount!
+	memo: Memo
+}
+
+type LockMetadataConfig {
+	name: String
+	description: String
+}
+
 type LockRecipientNotPermitted {
 	details: JSON!
+}
+
+type LockRecipientsConfig {
+	recipientType: String!
+	accounts: [CborHolderAccount!]!
 }
 
 type LockReturnNotAuthorized {
 	details: JSON!
 }
 
+type LockReturned {
+	lockId: String!
+	tokenId: String!
+	source: CborHolderAccount!
+	amount: TokenAmount!
+	memo: Memo
+}
+
 type LockSendNotAuthorized {
 	details: JSON!
+}
+
+type LockSent {
+	lockId: String!
+	tokenId: String!
+	source: CborHolderAccount!
+	recipient: CborHolderAccount!
+	amount: TokenAmount!
+	memo: Memo
 }
 
 type LockTokenNotPermitted {
