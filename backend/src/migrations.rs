@@ -302,6 +302,8 @@ pub enum SchemaVersion {
     AddMetaUpdateAccountTransactionType,
     #[display("0051: Add MaxLockDuration update transaction type")]
     AddMaxLockDurationUpdateTransactionType,
+    #[display("0052: Add PLT lock state tables")]
+    AddPltLockStateTables,
 }
 impl SchemaVersion {
     /// The minimum supported database schema version for the API.
@@ -309,7 +311,7 @@ impl SchemaVersion {
     /// have been introduced since this version.
     pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::IndexPltHolderNonZero;
     /// The latest known version of the schema.
-    const LATEST: SchemaVersion = SchemaVersion::AddMaxLockDurationUpdateTransactionType;
+    const LATEST: SchemaVersion = SchemaVersion::AddPltLockStateTables;
 
     /// Parse version number into a database schema version.
     /// None if the version is unknown.
@@ -382,6 +384,7 @@ impl SchemaVersion {
             SchemaVersion::AlterPltTokenModuleEventTypes => false,
             SchemaVersion::AddMetaUpdateAccountTransactionType => false,
             SchemaVersion::AddMaxLockDurationUpdateTransactionType => false,
+            SchemaVersion::AddPltLockStateTables => false,
         }
     }
 
@@ -443,6 +446,7 @@ impl SchemaVersion {
             SchemaVersion::AlterPltTokenModuleEventTypes => false,
             SchemaVersion::AddMetaUpdateAccountTransactionType => false,
             SchemaVersion::AddMaxLockDurationUpdateTransactionType => false,
+            SchemaVersion::AddPltLockStateTables => false,
         }
     }
 
@@ -809,7 +813,16 @@ impl SchemaVersion {
                 SchemaVersion::AddMaxLockDurationUpdateTransactionType
             }
 
-            SchemaVersion::AddMaxLockDurationUpdateTransactionType => unimplemented!(
+            SchemaVersion::AddMaxLockDurationUpdateTransactionType => {
+                tx.as_mut()
+                    .execute(sqlx::raw_sql(include_str!(
+                        "./migrations/m0052_plt_locks.sql"
+                    )))
+                    .await?;
+                SchemaVersion::AddPltLockStateTables
+            }
+
+            SchemaVersion::AddPltLockStateTables => unimplemented!(
                 "No migration implemented for database schema version {}",
                 self.as_i64()
             ),
