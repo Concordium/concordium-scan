@@ -76,6 +76,10 @@
 							:contract-address-index="drawerItem.contractAddressIndex"
 							:contract-address-sub-index="drawerItem.contractAddressSubIndex"
 						/>
+						<LockDetailsContainer
+							v-else-if="drawerItem && drawerItem.entityTypeName === 'lock'"
+							:lock-id="drawerItem.lockId"
+						/>
 					</template>
 				</Drawer>
 			</div>
@@ -96,6 +100,7 @@ import NodeDetailsContainer from '~/components/NodeDetails/NodeDetailsContainer.
 import ContractDetailsContainer from '~/components/Contracts/ContractDetailsContainer.vue'
 import ModuleDetailsContainer from '~/components/Module/ModuleDetailsContainer.vue'
 import TokenDetailsContainer from '~/components/Tokens/TokenDetailsContainer.vue'
+import LockDetailsContainer from '~/components/Locks/LockDetailsContainer.vue'
 
 const { softReset, getDisplayItems, currentDrawerCount, currentTopItem } =
 	useDrawer()

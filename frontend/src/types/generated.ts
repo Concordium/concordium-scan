@@ -47,6 +47,7 @@ export type Account = {
    */
   nonce: Scalars['Int'];
   plts: AccountProtocolTokenConnection;
+  relatedLocks: AccountRelatedLockConnection;
   releaseSchedule: AccountReleaseSchedule;
   rewards: AccountRewardConnection;
   tokens: AccountTokenConnection;
@@ -68,6 +69,14 @@ export type AccountAccountStatementArgs = {
 
 
 export type AccountPltsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type AccountRelatedLocksArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
@@ -199,6 +208,31 @@ export type AccountProtocolTokenEdge = {
   cursor: Scalars['String'];
   /** The item at the end of the edge */
   node: AccountProtocolToken;
+};
+
+export type AccountRelatedLock = {
+  __typename?: 'AccountRelatedLock';
+  accountBalances: Array<LockBalance>;
+  lock: Lock;
+};
+
+export type AccountRelatedLockConnection = {
+  __typename?: 'AccountRelatedLockConnection';
+  /** A list of edges. */
+  edges: Array<AccountRelatedLockEdge>;
+  /** A list of nodes. */
+  nodes: Array<AccountRelatedLock>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type AccountRelatedLockEdge = {
+  __typename?: 'AccountRelatedLockEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: AccountRelatedLock;
 };
 
 export type AccountReleaseSchedule = {
@@ -1731,6 +1765,43 @@ export type LinkedContractsCollectionSegment = {
   totalCount: Scalars['Int'];
 };
 
+export type Lock = {
+  __typename?: 'Lock';
+  balances: Array<LockBalance>;
+  canceledAt?: Maybe<Scalars['DateTime']>;
+  canceledTransaction?: Maybe<Transaction>;
+  config?: Maybe<LockCreateConfig>;
+  createdAt?: Maybe<Scalars['DateTime']>;
+  createdTransaction?: Maybe<Transaction>;
+  creator?: Maybe<Account>;
+  expiry?: Maybe<Scalars['DateTime']>;
+  history: LockHistoryEventConnection;
+  id: Scalars['ID'];
+  lockId: Scalars['String'];
+  metadataDescription?: Maybe<Scalars['String']>;
+  metadataName?: Maybe<Scalars['String']>;
+  rawConfig?: Maybe<Scalars['String']>;
+  status: LockStatus;
+};
+
+
+export type LockHistoryArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+export type LockBalance = {
+  __typename?: 'LockBalance';
+  account: Account;
+  accountAddress: AccountAddress;
+  amount: TokenAmount;
+  lockId: Scalars['String'];
+  tokenId: Scalars['String'];
+  tokenIndex: Scalars['Int'];
+};
+
 export type LockCancelNotAuthorized = {
   __typename?: 'LockCancelNotAuthorized';
   details: Scalars['JSON'];
@@ -1803,6 +1874,45 @@ export type LockFunded = {
   tokenId: Scalars['String'];
 };
 
+export type LockHistoryEvent = {
+  __typename?: 'LockHistoryEvent';
+  account?: Maybe<Account>;
+  amount?: Maybe<TokenAmount>;
+  blockHeight: Scalars['Int'];
+  event: Scalars['JSON'];
+  eventType: Scalars['String'];
+  id: Scalars['ID'];
+  lockId: Scalars['String'];
+  memo?: Maybe<Scalars['JSON']>;
+  operationOrder: Scalars['Int'];
+  recipient?: Maybe<Account>;
+  slotTime: Scalars['DateTime'];
+  source?: Maybe<Account>;
+  tokenId?: Maybe<Scalars['String']>;
+  tokenIndex?: Maybe<Scalars['Int']>;
+  transaction: Transaction;
+  transactionIndex: Scalars['Int'];
+};
+
+export type LockHistoryEventConnection = {
+  __typename?: 'LockHistoryEventConnection';
+  /** A list of edges. */
+  edges: Array<LockHistoryEventEdge>;
+  /** A list of nodes. */
+  nodes: Array<LockHistoryEvent>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type LockHistoryEventEdge = {
+  __typename?: 'LockHistoryEventEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: LockHistoryEvent;
+};
+
 export type LockMetadataConfig = {
   __typename?: 'LockMetadataConfig';
   description?: Maybe<Scalars['String']>;
@@ -1848,6 +1958,12 @@ export type LockSent = {
   source: CborHolderAccount;
   tokenId: Scalars['String'];
 };
+
+export enum LockStatus {
+  Active = 'ACTIVE',
+  Canceled = 'CANCELED',
+  Expired = 'EXPIRED'
+}
 
 export type LockTokenNotPermitted = {
   __typename?: 'LockTokenNotPermitted';
@@ -2625,6 +2741,7 @@ export type Query = {
   globalPltMetrics: GlobalPltMetrics;
   importState: ImportState;
   latestChainParameters: LatestChainParameters;
+  lock: Lock;
   moduleReferenceEvent: ModuleReferenceEvent;
   nodeStatus?: Maybe<NodeStatus>;
   nodeStatuses: NodeStatusConnection;
@@ -2745,6 +2862,11 @@ export type QueryContractsArgs = {
 
 export type QueryGlobalPltMetricsArgs = {
   period: MetricsPeriod;
+};
+
+
+export type QueryLockArgs = {
+  lockId: Scalars['String'];
 };
 
 
