@@ -58,8 +58,12 @@ jobs:
     name: GraphQL schema diff
     runs-on: ubuntu-latest
     steps:
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
       - name: Install diff tool
-        run: npm i --global @graphql-inspector/ci graphql @graphql-inspector/diff-command @graphql-inspector/graphql-loader
+        run: npm install --prefix "$RUNNER_TEMP/graphql-inspector" @graphql-inspector/ci@5.0.7 graphql@16.11.0
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -70,4 +74,4 @@ jobs:
           cargo run --bin ccdscan-api -- --schema-out $RUNNER_TEMP/schema.graphql
       - name: Compare schemas
         working-directory: backend
-        run: graphql-inspector diff schema.graphql $RUNNER_TEMP/schema.graphql
+        run: $RUNNER_TEMP/graphql-inspector/node_modules/.bin/graphql-inspector diff schema.graphql $RUNNER_TEMP/schema.graphql
