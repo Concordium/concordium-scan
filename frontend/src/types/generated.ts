@@ -214,6 +214,7 @@ export type AccountRelatedLock = {
   __typename?: 'AccountRelatedLock';
   accountBalances: Array<LockBalance>;
   lock: Lock;
+  roles: Array<Scalars['String']>;
 };
 
 export type AccountRelatedLockConnection = {

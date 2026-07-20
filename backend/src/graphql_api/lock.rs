@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use async_graphql::{connection, types, Context, Enum, Object};
 use bigdecimal::BigDecimal;
 use chrono::Utc;
@@ -593,6 +595,35 @@ impl AccountRelatedLock {
         .await?;
         Ok(balances)
     }
+
+    async fn query_account_address(&self, pool: &PgPool) -> ApiResult<AccountAddress> {
+        let row: AccountAddressRow =
+            sqlx::query_as("SELECT address FROM accounts WHERE index = $1")
+                .bind(self.account_index)
+                .fetch_one(pool)
+                .await?;
+        Ok(row.address.into())
+    }
+
+    async fn query_roles(&self, pool: &PgPool) -> ApiResult<Vec<String>> {
+        let Some(simple_v0) = self
+            .config
+            .as_ref()
+            .and_then(|config| config.0.controller.simple_v0.as_ref())
+        else {
+            return Ok(Vec::new());
+        };
+        let account_address = self.query_account_address(pool).await?.to_string();
+
+        Ok(simple_v0
+            .grants
+            .iter()
+            .filter(|grant| grant.account.address.to_string() == account_address)
+            .flat_map(|grant| grant.roles.iter().cloned())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect())
+    }
 }
 
 #[Object]
@@ -603,6 +634,10 @@ impl AccountRelatedLock {
 
     async fn account_balances(&self, ctx: &Context<'_>) -> ApiResult<Vec<LockBalance>> {
         self.query_account_balances(get_pool(ctx)?).await
+    }
+
+    async fn roles(&self, ctx: &Context<'_>) -> ApiResult<Vec<String>> {
+        self.query_roles(get_pool(ctx)?).await
     }
 }
 

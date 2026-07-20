@@ -96,6 +96,7 @@ plts(
 				expiry
 				status
 			}
+			roles
 			accountBalances {
 				tokenId
 				amount {

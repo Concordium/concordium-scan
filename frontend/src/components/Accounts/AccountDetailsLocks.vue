@@ -5,6 +5,7 @@
 				<TableRow>
 					<TableTh>Lock ID</TableTh>
 					<TableTh>Balance</TableTh>
+					<TableTh v-if="breakpoint >= Breakpoint.LG">Roles</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.LG">Created</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.MD">Expiry</TableTh>
 					<TableTh>Status</TableTh>
@@ -38,6 +39,12 @@
 							</div>
 						</div>
 						<span v-else class="text-theme-faded">No current balance</span>
+					</TableTd>
+					<TableTd v-if="breakpoint >= Breakpoint.LG">
+						<span v-if="relatedLock.roles.length" class="whitespace-normal">
+							{{ relatedLock.roles.join(', ') }}
+						</span>
+						<span v-else class="text-theme-faded">-</span>
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.LG">
 						{{ formatOptionalTimestamp(relatedLock.lock.createdAt) }}

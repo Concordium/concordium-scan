@@ -178,6 +178,7 @@ type AccountProtocolTokenEdge {
 type AccountRelatedLock {
 	lock: Lock!
 	accountBalances: [LockBalance!]!
+	roles: [String!]!
 }
 
 type AccountRelatedLockConnection {
