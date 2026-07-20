@@ -21,7 +21,8 @@
 
 		<div
 			v-if="searchValue !== ''"
-			class="left-0 lg:left-auto absolute border-theme-selected border solid rounded-lg p-4 bg-theme-background-primary-elevated-nontrans w-full z-20"
+			class="left-0 lg:left-auto absolute border-theme-selected border solid rounded-lg p-4 bg-theme-background-primary-elevated-nontrans z-20"
+			:class="$style.resultsPanel"
 			@click="searchValue = ''"
 		>
 			<div class="overflow-hidden whitespace-nowrap overflow-ellipsis">
@@ -509,6 +510,10 @@ const resultCount = computed(() => ({
 
 .container {
 	max-width: 600px;
+}
+
+.resultsPanel {
+	width: min(400px, calc(100vw - 2.5rem));
 }
 
 .mask {
