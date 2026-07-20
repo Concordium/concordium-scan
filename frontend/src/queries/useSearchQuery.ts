@@ -11,6 +11,7 @@ import type {
 	ModuleReferenceEvent,
 	Token,
 	PltToken,
+	Lock,
 } from '~/types/generated'
 type SearchResponse = {
 	search: {
@@ -19,6 +20,7 @@ type SearchResponse = {
 		blocks: { nodes: Block[]; pageInfo: PageInfo }
 		transactions: { nodes: Transaction[]; pageInfo: PageInfo }
 		accounts: { nodes: Account[]; pageInfo: PageInfo }
+		locks: { nodes: Lock[]; pageInfo: PageInfo }
 		nodeStatuses: { nodes: NodeStatus[]; pageInfo: PageInfo }
 		tokens: { nodes: Token[]; pageInfo: PageInfo }
 		pltTokens: { nodes: PltToken[]; pageInfo: PageInfo }
@@ -118,6 +120,17 @@ const SearchQuery = gql<SearchResponse>`
 					address {
 						asString
 					}
+				}
+				pageInfo {
+					hasNextPage
+				}
+			}
+			locks(first: 3) {
+				nodes {
+					lockId
+					status
+					createdAt
+					expiry
 				}
 				pageInfo {
 					hasNextPage

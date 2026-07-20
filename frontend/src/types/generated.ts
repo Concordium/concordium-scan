@@ -1815,6 +1815,16 @@ export type LockCanceled = {
   memo?: Maybe<Memo>;
 };
 
+export type LockConnection = {
+  __typename?: 'LockConnection';
+  /** A list of edges. */
+  edges: Array<LockEdge>;
+  /** A list of nodes. */
+  nodes: Array<Lock>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
 export type LockControllerConfig = {
   __typename?: 'LockControllerConfig';
   controllerType: Scalars['String'];
@@ -1855,6 +1865,15 @@ export type LockCreated = {
 export type LockDestroyed = {
   __typename?: 'LockDestroyed';
   lockId: Scalars['String'];
+};
+
+/** An edge in a connection. */
+export type LockEdge = {
+  __typename?: 'LockEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: Lock;
 };
 
 export type LockExpired = {
@@ -3132,6 +3151,7 @@ export type SearchResult = {
   bakers: BakerConnection;
   blocks: BlockConnection;
   contracts: ContractConnection;
+  locks: LockConnection;
   modules: ModuleReferenceEventConnection;
   nodeStatuses: NodeStatusConnection;
   pltTokens: PltTokenConnection;
@@ -3165,6 +3185,14 @@ export type SearchResultBlocksArgs = {
 
 
 export type SearchResultContractsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type SearchResultLocksArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;

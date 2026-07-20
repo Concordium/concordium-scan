@@ -3,10 +3,11 @@ use super::{
     block::Block,
     contract::{self, Contract, ContractSnapshot},
     db, get_config, get_pool,
+    lock::Lock,
     module_reference_event::ModuleReferenceEvent,
     node_status::NodeInfoReceiver,
     token::Token,
-    ApiResult, ConnectionQuery, InternalError,
+    ApiError, ApiResult, ConnectionQuery, InternalError,
 };
 use crate::{
     connection::{connection_from_slice, DescendingI64, NestedCursor},
@@ -54,6 +55,88 @@ const HASH_DUMMY_QUERY: &str = "$";
 /// Regular expression matching 256-bit hash in hexadecimal representation.
 static HASH_256_REGEX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^[a-fA-F0-9]{1,64}$").expect("invalid regex"));
+
+static LOCK_ID_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^[a-zA-Z0-9._:-]{1,128}$").expect("invalid regex"));
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct SearchLockCursor {
+    created_transaction_index: DescendingI64,
+    lock_id: String,
+}
+
+impl crate::connection::ConnectionBounds for SearchLockCursor {
+    const END_BOUND: Self = Self {
+        created_transaction_index: DescendingI64::new(i64::MIN),
+        lock_id: String::new(),
+    };
+    const START_BOUND: Self = Self {
+        created_transaction_index: DescendingI64::new(i64::MAX),
+        lock_id: String::new(),
+    };
+}
+
+impl CursorType for SearchLockCursor {
+    type Error = SearchLockCursorDecodeError;
+
+    fn decode_cursor(s: &str) -> Result<Self, Self::Error> {
+        let (created_transaction_index, lock_id) = s
+            .split_once('|')
+            .ok_or(SearchLockCursorDecodeError::MissingSeparator)?;
+        let created_transaction_index = created_transaction_index
+            .parse::<i64>()
+            .map_err(SearchLockCursorDecodeError::InvalidTransactionIndex)?;
+        if !LOCK_ID_REGEX.is_match(lock_id) {
+            return Err(SearchLockCursorDecodeError::InvalidLockId);
+        }
+        Ok(Self {
+            created_transaction_index: DescendingI64::new(created_transaction_index),
+            lock_id: lock_id.to_string(),
+        })
+    }
+
+    fn encode_cursor(&self) -> String {
+        format!("{}|{}", self.created_transaction_index.cursor, self.lock_id)
+    }
+}
+
+impl PartialOrd for SearchLockCursor {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for SearchLockCursor {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.created_transaction_index
+            .cmp(&other.created_transaction_index)
+            .then_with(|| self.lock_id.cmp(&other.lock_id))
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+enum SearchLockCursorDecodeError {
+    #[error("Missing separator")]
+    MissingSeparator,
+    #[error("Invalid transaction index: {0}")]
+    InvalidTransactionIndex(std::num::ParseIntError),
+    #[error("Invalid lock ID")]
+    InvalidLockId,
+}
+
+impl From<SearchLockCursorDecodeError> for ApiError {
+    fn from(err: SearchLockCursorDecodeError) -> Self {
+        ApiError::InvalidCursorFormat(err.to_string())
+    }
+}
+
+#[derive(sqlx::FromRow)]
+struct SearchLockCollectionEnds {
+    start_created_transaction_index: i64,
+    start_lock_id: String,
+    end_created_transaction_index: i64,
+    end_lock_id: String,
+}
 
 #[Object]
 impl SearchResult {
@@ -828,6 +911,177 @@ impl SearchResult {
             connection.has_next_page = result.min_index.is_some_and(|db_min| db_min < last_idx);
             connection.has_previous_page =
                 result.max_index.is_some_and(|db_max| db_max > first_idx);
+        }
+
+        Ok(connection)
+    }
+
+    async fn locks(
+        &self,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
+        before: Option<String>,
+    ) -> ApiResult<connection::Connection<String, Lock>> {
+        let mut connection = connection::Connection::new(false, false);
+        let query_text = self.query.trim();
+        if query_text.is_empty() || !LOCK_ID_REGEX.is_match(query_text) {
+            return Ok(connection);
+        }
+
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+        let query = ConnectionQuery::<SearchLockCursor>::new(
+            first,
+            after,
+            last,
+            before,
+            config.account_related_locks_connection_limit,
+        )?;
+
+        let from_created_transaction_index = query.from.created_transaction_index.cursor;
+        let from_lock_id = query.from.lock_id;
+        let to_created_transaction_index = query.to.created_transaction_index.cursor;
+        let to_lock_id = query.to.lock_id;
+
+        let mut row_stream = sqlx::query_as::<_, Lock>(
+            r#"
+            SELECT *
+            FROM (
+                SELECT
+                    lock_id,
+                    creator_account_index,
+                    created_transaction_index,
+                    created_at,
+                    expiry,
+                    canceled_transaction_index,
+                    canceled_at,
+                    config,
+                    raw_config,
+                    metadata_name,
+                    metadata_description
+                FROM plt_locks
+                WHERE starts_with(lock_id, $5)
+                    AND (
+                        COALESCE(created_transaction_index, 0) < $1
+                        OR (
+                            COALESCE(created_transaction_index, 0) = $1
+                            AND lock_id > $2
+                        )
+                    )
+                    AND (
+                        COALESCE(created_transaction_index, 0) > $3
+                        OR (
+                            COALESCE(created_transaction_index, 0) = $3
+                            AND lock_id < $4
+                        )
+                    )
+                ORDER BY
+                    CASE WHEN $7 THEN COALESCE(created_transaction_index, 0) END ASC,
+                    CASE WHEN $7 THEN lock_id END DESC,
+                    CASE WHEN NOT $7 THEN COALESCE(created_transaction_index, 0) END DESC,
+                    CASE WHEN NOT $7 THEN lock_id END ASC
+                LIMIT $6
+            ) locks
+            ORDER BY COALESCE(created_transaction_index, 0) DESC, lock_id ASC
+            "#,
+        )
+        .bind(from_created_transaction_index)
+        .bind(&from_lock_id)
+        .bind(to_created_transaction_index)
+        .bind(&to_lock_id)
+        .bind(query_text)
+        .bind(query.limit)
+        .bind(query.is_last)
+        .fetch(pool);
+
+        while let Some(lock) = row_stream.try_next().await? {
+            let cursor = SearchLockCursor {
+                created_transaction_index: DescendingI64::new(
+                    lock.created_transaction_index.unwrap_or_default(),
+                ),
+                lock_id: lock.lock_id.clone(),
+            };
+            connection
+                .edges
+                .push(connection::Edge::new(cursor.encode_cursor(), lock));
+        }
+
+        let (Some(first_item), Some(last_item)) =
+            (connection.edges.first(), connection.edges.last())
+        else {
+            return Ok(connection);
+        };
+
+        let collection_ends = sqlx::query_as::<_, SearchLockCollectionEnds>(
+            r#"
+            WITH
+                starting_lock AS (
+                    SELECT
+                        COALESCE(created_transaction_index, 0) AS created_transaction_index,
+                        lock_id
+                    FROM plt_locks
+                    WHERE starts_with(lock_id, $1)
+                    ORDER BY COALESCE(created_transaction_index, 0) DESC, lock_id ASC
+                    LIMIT 1
+                ),
+                ending_lock AS (
+                    SELECT
+                        COALESCE(created_transaction_index, 0) AS created_transaction_index,
+                        lock_id
+                    FROM plt_locks
+                    WHERE starts_with(lock_id, $1)
+                    ORDER BY COALESCE(created_transaction_index, 0) ASC, lock_id DESC
+                    LIMIT 1
+                )
+            SELECT
+                starting_lock.created_transaction_index AS start_created_transaction_index,
+                starting_lock.lock_id AS start_lock_id,
+                ending_lock.created_transaction_index AS end_created_transaction_index,
+                ending_lock.lock_id AS end_lock_id
+            FROM starting_lock, ending_lock
+            "#,
+        )
+        .bind(query_text)
+        .fetch_optional(pool)
+        .await?;
+
+        if let Some(collection_ends) = collection_ends {
+            let collection_start_cursor = SearchLockCursor {
+                created_transaction_index: DescendingI64::new(
+                    collection_ends.start_created_transaction_index,
+                ),
+                lock_id: collection_ends.start_lock_id,
+            };
+            let page_start_cursor = SearchLockCursor {
+                created_transaction_index: DescendingI64::new(
+                    first_item
+                        .node
+                        .created_transaction_index
+                        .unwrap_or_default(),
+                ),
+                lock_id: first_item.node.lock_id.clone(),
+            };
+            connection.has_previous_page = collection_start_cursor < page_start_cursor;
+
+            let collection_end_cursor = SearchLockCursor {
+                created_transaction_index: DescendingI64::new(
+                    collection_ends.end_created_transaction_index,
+                ),
+                lock_id: collection_ends.end_lock_id,
+            };
+            let page_end_cursor = SearchLockCursor {
+                created_transaction_index: DescendingI64::new(
+                    last_item.node.created_transaction_index.unwrap_or_default(),
+                ),
+                lock_id: last_item.node.lock_id.clone(),
+            };
+            connection.has_next_page = collection_end_cursor > page_end_cursor;
         }
 
         Ok(connection)

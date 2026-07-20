@@ -1605,6 +1605,15 @@ type LockCanceled {
 	destroyed: Boolean!
 }
 
+type LockConnection {
+	"Information to aid in pagination."
+	pageInfo: PageInfo!
+	"A list of edges."
+	edges: [LockEdge!]!
+	"A list of nodes."
+	nodes: [Lock!]!
+}
+
 type LockControllerConfig {
 	controllerType: String!
 	simpleV0: LockControllerSimpleV0Config
@@ -1639,6 +1648,14 @@ type LockCreated {
 
 type LockDestroyed {
 	lockId: String!
+}
+
+"An edge in a connection."
+type LockEdge {
+	"The item at the end of the edge"
+	node: Lock!
+	"A cursor for use in pagination"
+	cursor: String!
 }
 
 type LockExpired {
@@ -2693,6 +2710,16 @@ type SearchResult {
 		"Returns the elements in the list that come before the specified cursor."
 		before: String
 	): PltTokenConnection!
+	locks(
+		"Returns the first _n_ elements from the list."
+		first: Int,
+		"Returns the elements in the list that come after the specified cursor."
+		after: String,
+		"Returns the last _n_ elements from the list."
+		last: Int,
+		"Returns the elements in the list that come before the specified cursor."
+		before: String
+	): LockConnection!
 	accounts(
 		"Returns the first _n_ elements from the list."
 		first: Int,
