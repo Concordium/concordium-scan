@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+Database schema version: 50
+
+Database schema version: 51
+
+Database schema version: 52
+
+### Added
+
+- Added support for Locks/P11 `MetaUpdate` transaction types, reject reasons, and lock-aware PLT transfers.
+- Added lock event indexing, GraphQL lock details, account related locks, roles, and lock search.
+- Added support for `MaxLockDurationUpdate` chain update payloads.
+
 ## [2.0.29] - 2026-05-05
 
 ### Added
