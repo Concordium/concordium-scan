@@ -5,7 +5,9 @@ use super::{
 use crate::{
     address::AccountAddress,
     connection::{ConnectionBounds, DescendingI64, Reversed},
-    graphql_api::{block::Block, token::AccountTokenInterim, Transaction},
+    graphql_api::{
+        block::Block, lock::AccountRelatedLock, token::AccountTokenInterim, Transaction,
+    },
     scalar_types::{AccountIndex, Amount, BlockHeight, DateTime, Long, TransactionIndex},
     transaction_event::{
         delegation::{BakerDelegationTarget, DelegationTarget, PassiveDelegationTarget},
@@ -991,6 +993,21 @@ impl Account {
                 .is_some_and(|db_last| Cursor::from(db_last) > last.cursor);
         }
         Ok(connection)
+    }
+
+    async fn related_locks(
+        &self,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
+        before: Option<String>,
+    ) -> ApiResult<connection::Connection<String, AccountRelatedLock>> {
+        AccountRelatedLock::connection(ctx, self.index, first, after, last, before).await
     }
 
     async fn transactions(

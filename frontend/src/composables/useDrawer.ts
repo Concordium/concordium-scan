@@ -67,6 +67,11 @@ type TokenDrawerItem = {
 	contractAddressSubIndex: number
 }
 
+type LockDrawerItem = {
+	entityTypeName: 'lock'
+	lockId: string
+}
+
 export type DrawerItem = (
 	| BlockDrawerItem
 	| TxDrawerItem
@@ -79,6 +84,7 @@ export type DrawerItem = (
 	| SuspendedValidatorsItem
 	| NodeDrawerItem
 	| TokenDrawerItem
+	| LockDrawerItem
 ) & {
 	scrollY?: number
 }
@@ -169,6 +175,12 @@ export const isItemOnTop = (
 			item.contractAddressSubIndex ===
 				currentTopItem.value.contractAddressSubIndex
 		)
+	}
+	if (
+		item.entityTypeName === 'lock' &&
+		item.entityTypeName === currentTopItem.value.entityTypeName
+	) {
+		return !!(item.lockId && item.lockId === currentTopItem.value.lockId)
 	}
 
 	if (
@@ -269,6 +281,15 @@ export const pushToRouter =
 						dcontractAddressIndex: drawerItem.contractAddressIndex ?? undefined,
 						dcontractAddressSubIndex:
 							drawerItem.contractAddressSubIndex ?? undefined,
+					},
+				})
+				break
+			case 'lock':
+				router.push({
+					query: {
+						dcount,
+						dentity,
+						dlockId: drawerItem.lockId ?? undefined,
 					},
 				})
 				break
@@ -382,6 +403,14 @@ export const useDrawer = () => {
 					route.query.dcontractAddressSubIndex as string
 				),
 			})
+		} else if (route.query.dentity === 'lock' && route.query.dlockId) {
+			push(
+				{
+					entityTypeName: 'lock',
+					lockId: route.query.dlockId as string,
+				},
+				false
+			)
 		} else router.push({ query: {} })
 	}
 

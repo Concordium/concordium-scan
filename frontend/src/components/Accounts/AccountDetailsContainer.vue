@@ -12,6 +12,7 @@
 		:go-to-page-account-rewards="goToPageAccountRewards"
 		:go-to-page-account-tokens="goToPageAccountTokens"
 		:go-to-page-plt="goToPagePlt"
+		:go-to-page-related-locks="goToPageRelatedLocks"
 	/>
 </template>
 
@@ -55,6 +56,14 @@ const {
 	after: afterPlt,
 	before: beforePlt,
 	goToPage: goToPagePlt,
+} = usePagination({ pageSize: PAGE_SIZE_SMALL })
+
+const {
+	first: firstRelatedLocks,
+	last: lastRelatedLocks,
+	after: afterRelatedLocks,
+	before: beforeRelatedLocks,
+	goToPage: goToPageRelatedLocks,
 } = usePagination({ pageSize: PAGE_SIZE_SMALL })
 
 const {
@@ -106,6 +115,10 @@ const transactionVariables = {
 	lastPlt,
 	afterPlt,
 	beforePlt,
+	firstRelatedLocks,
+	lastRelatedLocks,
+	afterRelatedLocks,
+	beforeRelatedLocks,
 }
 
 const { data, error, componentState, executeQuery } = useAccountQuery({

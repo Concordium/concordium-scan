@@ -264,6 +264,9 @@ __typename
 		...on MinBlockTimeUpdate {
 			durationSeconds
 		}
+		...on MaxLockDurationUpdate {
+			durationSeconds
+		}
 		...on TimeoutParametersUpdate {
 			decrease {
 				denominator
@@ -391,6 +394,8 @@ __typename
             details
         }
         ... on TokenTransferEvent {
+            fromLock
+            toLock
             memo {
                 decoded {
                     text
@@ -436,6 +441,117 @@ __typename
         }
     }
 }
+... on LockCreated {
+    lockId
+    rawConfigPresent
+    configUnavailable
+    config {
+        expiry
+        recipients {
+            recipientType
+            accounts {
+                address {
+                    asString
+                }
+            }
+        }
+        controller {
+            controllerType
+            simpleV0 {
+                keepAlive
+                tokenIds
+                memo {
+                    decoded {
+                        text
+                        decodeType
+                    }
+                }
+                grants {
+                    roles
+                    account {
+                        address {
+                            asString
+                        }
+                    }
+                }
+            }
+        }
+        metadata {
+            name
+            description
+        }
+    }
+}
+... on LockFunded {
+    lockId
+    tokenId
+    amount {
+        value
+        decimals
+    }
+    memo {
+        decoded {
+            text
+            decodeType
+        }
+    }
+}
+... on LockSent {
+    lockId
+    tokenId
+    source {
+        address {
+            asString
+        }
+    }
+    recipient {
+        address {
+            asString
+        }
+    }
+    amount {
+        value
+        decimals
+    }
+    memo {
+        decoded {
+            text
+            decodeType
+        }
+    }
+}
+... on LockReturned {
+    lockId
+    tokenId
+    source {
+        address {
+            asString
+        }
+    }
+    amount {
+        value
+        decimals
+    }
+    memo {
+        decoded {
+            text
+            decodeType
+        }
+    }
+}
+... on LockCanceled {
+    lockId
+    destroyed
+    memo {
+        decoded {
+            text
+            decodeType
+        }
+    }
+}
+... on LockDestroyed {
+    lockId
+}
 ... on TokenCreationDetails {
     createPlt {
         tokenId
@@ -469,6 +585,8 @@ __typename
                 details
             }
             ... on TokenTransferEvent {
+                fromLock
+                toLock
                 from {
                     address {
                         asString

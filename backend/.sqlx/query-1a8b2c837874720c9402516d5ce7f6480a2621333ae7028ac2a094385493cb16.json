@@ -83,7 +83,8 @@
                 "RegisterData",
                 "ConfigureBaker",
                 "ConfigureDelegation",
-                "TokenUpdate"
+                "TokenUpdate",
+                "MetaUpdate"
               ]
             }
           }
@@ -136,7 +137,8 @@
                 "BlockEnergyLimitUpdate",
                 "FinalizationCommitteeParametersUpdate",
                 "ValidatorScoreParametersUpdate",
-                "CreatePltUpdate"
+                "CreatePltUpdate",
+                "MaxLockDurationUpdate"
               ]
             }
           }
@@ -195,7 +197,8 @@
                       "RegisterData",
                       "ConfigureBaker",
                       "ConfigureDelegation",
-                      "TokenUpdate"
+                      "TokenUpdate",
+                      "MetaUpdate"
                     ]
                   }
                 }

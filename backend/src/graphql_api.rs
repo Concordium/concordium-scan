@@ -10,6 +10,7 @@ mod block;
 mod block_metrics;
 mod contract;
 mod db;
+mod lock;
 mod module_reference_event;
 pub mod node_status;
 mod passive_delegation;
@@ -243,6 +244,18 @@ pub struct ApiServiceConfig {
         default_value = "10"
     )]
     plt_by_account_address_connection_limit: u64,
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_LOCK_HISTORY_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
+    lock_history_connection_limit: u64,
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_ACCOUNT_RELATED_LOCKS_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
+    account_related_locks_connection_limit: u64,
 }
 
 #[derive(MergedObject, Default)]
@@ -268,6 +281,7 @@ pub struct Query(
     plt::QueryPltEvent,
     plt::QueryPlt,
     plt::QueryPltAccountAmount,
+    lock::QueryLock,
 );
 
 pub struct Service {

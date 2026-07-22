@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT *\n            FROM (\n                SELECT\n                    lock_id,\n                    creator_account_index,\n                    created_transaction_index,\n                    created_at,\n                    expiry,\n                    canceled_transaction_index,\n                    canceled_at,\n                    config as \"config: sqlx::types::Json<LockCreateConfig>\",\n                    raw_config,\n                    metadata_name,\n                    metadata_description\n                FROM plt_locks\n                WHERE starts_with(lock_id, $5)\n                    AND (\n                        COALESCE(created_transaction_index, 0) < $1\n                        OR (\n                            COALESCE(created_transaction_index, 0) = $1\n                            AND lock_id > $2\n                        )\n                    )\n                    AND (\n                        COALESCE(created_transaction_index, 0) > $3\n                        OR (\n                            COALESCE(created_transaction_index, 0) = $3\n                            AND lock_id < $4\n                        )\n                    )\n                ORDER BY\n                    CASE WHEN $7 THEN COALESCE(created_transaction_index, 0) END ASC,\n                    CASE WHEN $7 THEN lock_id END DESC,\n                    CASE WHEN NOT $7 THEN COALESCE(created_transaction_index, 0) END DESC,\n                    CASE WHEN NOT $7 THEN lock_id END ASC\n                LIMIT $6\n            ) locks\n            ORDER BY COALESCE(created_transaction_index, 0) DESC, lock_id ASC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "lock_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "creator_account_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "created_transaction_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "expiry",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "canceled_transaction_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "canceled_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "config: sqlx::types::Json<LockCreateConfig>",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "raw_config",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "metadata_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "metadata_description",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Int8",
+        "Text",
+        "Text",
+        "Int8",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "30750d6fdbc34dd1e37bbf0d310b536e354b009eda4a1a6beac875ada5280680"
+}

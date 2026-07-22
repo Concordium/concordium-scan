@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT MIN(id) AS min_id, MAX(id) AS max_id\n                FROM plt_lock_events\n                WHERE lock_id = $1\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "min_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "max_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "7b80925e24833be8d444055c1b3966224c16b877986e1bc6c4fe7e0a6e9795da"
+}

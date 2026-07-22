@@ -49,6 +49,14 @@ const translations: TranslationMap = {
 	NonExistentTokenId: 'Token ID does not exist',
 	TokenModuleReject: 'Token module transaction reject reason',
 	UnauthorizedTokenGovernance: 'Unauthorized token governance action',
+	NonExistentLockId: 'Lock ID does not exist',
+	LockExpired: 'The lock has expired',
+	LockFundNotAuthorized: 'Not authorized to fund the lock',
+	LockSendNotAuthorized: 'Not authorized to send from the lock',
+	LockReturnNotAuthorized: 'Not authorized to return funds from the lock',
+	LockCancelNotAuthorized: 'Not authorized to cancel the lock',
+	LockTokenNotPermitted: 'Token is not permitted for the lock',
+	LockRecipientNotPermitted: 'Recipient is not permitted for the lock',
 }
 
 export const translateRejectionReasons = (

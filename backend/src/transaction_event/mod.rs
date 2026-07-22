@@ -8,6 +8,7 @@ use crate::{
 use anyhow::Context;
 use async_graphql::{ComplexObject, Object, SimpleObject, Union};
 use bigdecimal::BigDecimal;
+use concordium_rust_sdk::base::transactions::{BlockItem, EncodedPayload, Payload};
 use concordium_rust_sdk::smart_contracts::types::WasmVersion;
 use concordium_rust_sdk::{
     cis2, common::cbor, protocol_level_tokens::TokenModuleInitializationParameters, types::Address,
@@ -18,6 +19,7 @@ pub mod baker;
 pub mod chain_update;
 pub mod credentials;
 pub mod delegation;
+pub mod protocol_level_locks;
 pub mod protocol_level_tokens;
 pub mod smart_contracts;
 pub mod transfers;
@@ -75,6 +77,12 @@ pub enum Event {
     // Plt
     TokenUpdate(protocol_level_tokens::TokenUpdate),
     TokenCreationDetails(protocol_level_tokens::TokenCreationDetails),
+    LockCreated(protocol_level_locks::LockCreated),
+    LockFunded(protocol_level_locks::LockFunded),
+    LockSent(protocol_level_locks::LockSent),
+    LockReturned(protocol_level_locks::LockReturned),
+    LockCanceled(protocol_level_locks::LockCanceled),
+    LockDestroyed(protocol_level_locks::LockDestroyed),
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -98,6 +106,14 @@ impl DataRegistered {
 pub fn events_from_summary(
     value: concordium_rust_sdk::types::BlockItemSummaryDetails,
     block_time: DateTime,
+) -> anyhow::Result<Vec<Event>> {
+    events_from_summary_with_item(value, block_time, None)
+}
+
+pub fn events_from_summary_with_item(
+    value: concordium_rust_sdk::types::BlockItemSummaryDetails,
+    block_time: DateTime,
+    item: Option<&BlockItem<EncodedPayload>>,
 ) -> anyhow::Result<Vec<Event>> {
     use concordium_rust_sdk::types::{AccountTransactionEffects, BlockItemSummaryDetails};
     let events = match value {
@@ -546,6 +562,13 @@ pub fn events_from_summary(
                     }))
                 })
                 .collect::<anyhow::Result<Vec<_>>>()?,
+            AccountTransactionEffects::MetaUpdate { events } => {
+                let payload = item
+                    .map(meta_update_payload_from_item)
+                    .transpose()?
+                    .flatten();
+                protocol_level_locks::events_from_meta_update(&events, payload.as_ref())?
+            }
         },
         BlockItemSummaryDetails::AccountCreation(details) => {
             vec![
@@ -617,6 +640,14 @@ pub fn events_from_summary(
                             protocol_level_tokens::TokenTransferEvent {
                                 from: token_transfer_event.from.clone().into(),
                                 to: token_transfer_event.to.clone().into(),
+                                from_lock: token_transfer_event
+                                    .from_lock
+                                    .as_ref()
+                                    .map(|lock| lock.to_string()),
+                                to_lock: token_transfer_event
+                                    .to_lock
+                                    .as_ref()
+                                    .map(|lock| lock.to_string()),
                                 amount: token_transfer_event.amount.into(),
                                 memo: token_transfer_event.memo.clone().map(Into::into),
                             },
@@ -643,6 +674,25 @@ pub fn events_from_summary(
         }
     };
     Ok(events)
+}
+
+fn meta_update_payload_from_item(
+    item: &BlockItem<EncodedPayload>,
+) -> anyhow::Result<
+    Option<concordium_rust_sdk::protocol_level_tokens::meta_operations::MetaUpdatePayload>,
+> {
+    let encoded_payload = match item {
+        BlockItem::AccountTransaction(account_transaction) => &account_transaction.payload,
+        BlockItem::AccountTransactionV1(account_transaction) => &account_transaction.payload,
+        _ => return Ok(None),
+    };
+    let payload = encoded_payload
+        .decode()
+        .context("Failed decoding account transaction payload")?;
+    match payload {
+        Payload::MetaUpdate { payload } => Ok(Some(payload)),
+        _ => Ok(None),
+    }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]

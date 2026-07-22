@@ -170,9 +170,10 @@ impl PreparedBlockItem {
         let success = item_summary.is_success().known_or_err()?;
         let (events, reject) = if success {
             let events: serde_json::Value =
-                serde_json::to_value(transaction_event::events_from_summary(
+                serde_json::to_value(transaction_event::events_from_summary_with_item(
                     item_summary.details.as_ref().known_or_err()?.clone(),
                     data.block_info.block_slot_time,
+                    Some(item),
                 )?)?;
             (Some(events), None)
         } else {

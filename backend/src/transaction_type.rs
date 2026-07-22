@@ -48,6 +48,7 @@ pub enum AccountTransactionType {
     ConfigureBaker,
     ConfigureDelegation,
     TokenUpdate,
+    MetaUpdate,
 }
 
 impl From<concordium_rust_sdk::types::TransactionType> for AccountTransactionType {
@@ -78,6 +79,7 @@ impl From<concordium_rust_sdk::types::TransactionType> for AccountTransactionTyp
             TT::ConfigureBaker => ATT::ConfigureBaker,
             TT::ConfigureDelegation => ATT::ConfigureDelegation,
             TT::TokenUpdate => ATT::TokenUpdate,
+            TT::MetaUpdate => ATT::MetaUpdate,
         }
     }
 }
@@ -133,6 +135,7 @@ pub enum UpdateTransactionType {
     GasRewardsCpv2Update,
     TimeoutParametersUpdate,
     MinBlockTimeUpdate,
+    MaxLockDurationUpdate,
     BlockEnergyLimitUpdate,
     FinalizationCommitteeParametersUpdate,
     ValidatorScoreParametersUpdate,

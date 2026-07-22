@@ -12,7 +12,7 @@
 				v-model="searchValue"
 				:class="$style.input"
 				class="rounded p-2 w-full focus:ring-2 focus:ring-pink-500 outline-none md:block pl-9"
-				placeholder="Search for account, validator, block, transaction, PLT token &hellip;"
+				placeholder="Search for account, validator, block, transaction, PLT token, lock &hellip;"
 				type="search"
 				@blur="lostFocusOnSearch"
 				@keyup.enter="gotoSearchResult"
@@ -21,7 +21,8 @@
 
 		<div
 			v-if="searchValue !== ''"
-			class="left-0 lg:left-auto absolute border-theme-selected border solid rounded-lg p-4 bg-theme-background-primary-elevated-nontrans w-full z-20"
+			class="left-0 lg:left-auto absolute border-theme-selected border solid rounded-lg p-4 bg-theme-background-primary-elevated-nontrans z-20"
+			:class="$style.resultsPanel"
 			@click="searchValue = ''"
 		>
 			<div class="overflow-hidden whitespace-nowrap overflow-ellipsis">
@@ -214,6 +215,32 @@
 						</div>
 					</SearchResultCategory>
 					<SearchResultCategory
+						v-if="resultCount.locks"
+						title="Locks"
+						:has-more-results="data.search.locks.pageInfo.hasNextPage"
+					>
+						<div
+							v-for="lock in data.search.locks.nodes"
+							:key="lock.lockId"
+							:class="$style.searchColumns"
+						>
+							<LockLink
+								:lock-id="lock.lockId"
+								:hide-tooltip="true"
+								@blur="lostFocusOnSearch"
+							/>
+							<div :class="$style.twoColumns">
+								{{ lock.status }}
+							</div>
+							<div :class="$style.threeColumns">
+								Age
+								<Tooltip :text="formatTimestamp(lock.createdAt)">
+									{{ convertTimestampToRelative(lock.createdAt || '', NOW) }}
+								</Tooltip>
+							</div>
+						</div>
+					</SearchResultCategory>
+					<SearchResultCategory
 						v-if="resultCount.modules"
 						title="Modules"
 						:has-more-results="data.search.modules.pageInfo.hasNextPage"
@@ -310,6 +337,7 @@ import AccountLink from '~/components/molecules/AccountLink.vue'
 import ContractLink from '~/components/molecules/ContractLink.vue'
 import { useDateNow } from '~/composables/useDateNow'
 import NodeLink from '~/components/molecules/NodeLink.vue'
+import LockLink from '~/components/molecules/LockLink.vue'
 
 const { NOW } = useDateNow()
 const drawer = useDrawer()
@@ -396,7 +424,11 @@ const gotoSearchResult = async () => {
 			`/protocol-token/${data.value.search.pltTokens.nodes[0].tokenId}`
 		)
 		return
-	}
+	} else if (data.value.search.locks.nodes[0])
+		drawer.push({
+			entityTypeName: 'lock',
+			lockId: data.value.search.locks.nodes[0].lockId,
+		})
 	searchValue.value = ''
 	status.value = 'idle'
 	isMaskVisible.value = false
@@ -422,6 +454,7 @@ const resultCount = computed(() => ({
 	nodeStatuses: data.value?.search.nodeStatuses.nodes.length,
 	tokens: data.value?.search.tokens.nodes.length,
 	pltTokens: data.value?.search.pltTokens.nodes.length,
+	locks: data.value?.search.locks.nodes.length,
 	total:
 		(data.value?.search.contracts.nodes.length ?? 0) +
 		(data.value?.search.blocks.nodes.length ?? 0) +
@@ -431,7 +464,8 @@ const resultCount = computed(() => ({
 		(data.value?.search.nodeStatuses.nodes.length ?? 0) +
 		(data.value?.search.modules?.nodes.length ?? 0) +
 		(data.value?.search.tokens?.nodes.length ?? 0) +
-		(data.value?.search.pltTokens?.nodes.length ?? 0),
+		(data.value?.search.pltTokens?.nodes.length ?? 0) +
+		(data.value?.search.locks?.nodes.length ?? 0),
 }))
 </script>
 
@@ -476,6 +510,10 @@ const resultCount = computed(() => ({
 
 .container {
 	max-width: 600px;
+}
+
+.resultsPanel {
+	width: min(400px, calc(100vw - 2.5rem));
 }
 
 .mask {
