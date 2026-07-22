@@ -4,10 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-Database schema version: 50
-
-Database schema version: 51
-
 Database schema version: 52
 
 ### Added

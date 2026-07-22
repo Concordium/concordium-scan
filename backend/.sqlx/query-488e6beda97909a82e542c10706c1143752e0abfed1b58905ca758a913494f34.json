@@ -1,0 +1,98 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                lock_id,\n                creator_account_index,\n                created_transaction_index,\n                created_at,\n                expiry,\n                canceled_transaction_index,\n                canceled_at,\n                config as \"config: Json<LockCreateConfig>\",\n                raw_config,\n                metadata_name,\n                metadata_description,\n                account_index as \"account_index!\",\n                cursor_index as \"cursor_index!\"\n            FROM (\n                SELECT\n                    locks.lock_id,\n                    locks.creator_account_index,\n                    locks.created_transaction_index,\n                    locks.created_at,\n                    locks.expiry,\n                    locks.canceled_transaction_index,\n                    locks.canceled_at,\n                    locks.config,\n                    locks.raw_config,\n                    locks.metadata_name,\n                    locks.metadata_description,\n                    $5::BIGINT AS account_index,\n                    COALESCE(locks.created_transaction_index, 0) AS cursor_index\n                FROM plt_locks locks\n                WHERE EXISTS (\n                    SELECT 1\n                    FROM plt_lock_accounts accounts\n                    WHERE accounts.lock_id = locks.lock_id\n                        AND accounts.account_index = $5\n                )\n                    AND $2 < COALESCE(locks.created_transaction_index, 0)\n                    AND COALESCE(locks.created_transaction_index, 0) < $1\n                ORDER BY\n                    CASE WHEN $4 THEN COALESCE(locks.created_transaction_index, 0) END ASC,\n                    CASE WHEN NOT $4 THEN COALESCE(locks.created_transaction_index, 0) END DESC,\n                    locks.lock_id ASC\n                LIMIT $3\n            ) locks\n            ORDER BY cursor_index DESC, lock_id ASC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "lock_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "creator_account_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "created_transaction_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "expiry",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "canceled_transaction_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "canceled_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "config: Json<LockCreateConfig>",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "raw_config",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "metadata_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "metadata_description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "account_index!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
+        "name": "cursor_index!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Bool",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "488e6beda97909a82e542c10706c1143752e0abfed1b58905ca758a913494f34"
+}

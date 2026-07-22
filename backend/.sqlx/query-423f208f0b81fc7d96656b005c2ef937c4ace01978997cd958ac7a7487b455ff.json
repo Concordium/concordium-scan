@@ -47,7 +47,8 @@
                       "RegisterData",
                       "ConfigureBaker",
                       "ConfigureDelegation",
-                      "TokenUpdate"
+                      "TokenUpdate",
+                      "MetaUpdate"
                     ]
                   }
                 }

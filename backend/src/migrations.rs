@@ -309,7 +309,7 @@ impl SchemaVersion {
     /// The minimum supported database schema version for the API.
     /// Fails at startup if any breaking (destructive) database schema versions
     /// have been introduced since this version.
-    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::IndexPltHolderNonZero;
+    pub const API_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::AddPltLockStateTables;
     /// The latest known version of the schema.
     const LATEST: SchemaVersion = SchemaVersion::AddPltLockStateTables;
 

@@ -4,7 +4,7 @@ use async_graphql::{connection, types, Context, Enum, Object};
 use bigdecimal::BigDecimal;
 use chrono::Utc;
 use futures::TryStreamExt;
-use sqlx::{types::Json, FromRow, PgPool};
+use sqlx::{types::Json, PgPool};
 
 use crate::{
     address::AccountAddress,
@@ -38,7 +38,7 @@ pub enum LockStatus {
     Canceled,
 }
 
-#[derive(Debug, Clone, FromRow)]
+#[derive(Debug, Clone)]
 pub struct Lock {
     pub lock_id: String,
     pub creator_account_index: Option<i64>,
@@ -55,7 +55,8 @@ pub struct Lock {
 
 impl Lock {
     pub async fn query_by_id(pool: &PgPool, lock_id: &str) -> ApiResult<Option<Self>> {
-        let lock = sqlx::query_as::<_, Lock>(
+        let lock = sqlx::query_as!(
+            Lock,
             r#"
             SELECT
                 lock_id,
@@ -65,15 +66,15 @@ impl Lock {
                 expiry,
                 canceled_transaction_index,
                 canceled_at,
-                config,
+                config as "config: Json<LockCreateConfig>",
                 raw_config,
                 metadata_name,
                 metadata_description
             FROM plt_locks
             WHERE lock_id = $1
             "#,
+            lock_id
         )
-        .bind(lock_id)
         .fetch_optional(pool)
         .await?;
         Ok(lock)
@@ -90,7 +91,8 @@ impl Lock {
     }
 
     async fn query_balances(&self, pool: &PgPool) -> ApiResult<Vec<LockBalance>> {
-        let balances = sqlx::query_as::<_, LockBalance>(
+        let balances = sqlx::query_as!(
+            LockBalance,
             r#"
             SELECT
                 plt_lock_balances.lock_id,
@@ -105,8 +107,8 @@ impl Lock {
                 AND plt_lock_balances.amount <> 0
             ORDER BY plt_lock_balances.account_index ASC, plt_tokens.token_id ASC
             "#,
+            &self.lock_id
         )
-        .bind(&self.lock_id)
         .fetch_all(pool)
         .await?;
         Ok(balances)
@@ -130,7 +132,8 @@ impl Lock {
             config.lock_history_connection_limit,
         )?;
 
-        let mut row_stream = sqlx::query_as::<_, LockHistoryEvent>(
+        let mut row_stream = sqlx::query_as!(
+            LockHistoryEvent,
             r#"
             SELECT *
             FROM (
@@ -143,14 +146,14 @@ impl Lock {
                     plt_lock_events.event_type,
                     plt_lock_events.lock_id,
                     plt_lock_events.token_index,
-                    plt_tokens.token_id,
+                    plt_tokens.token_id as "token_id?: TokenId",
                     plt_lock_events.account_index,
                     plt_lock_events.source_account_index,
                     plt_lock_events.recipient_account_index,
                     plt_lock_events.amount,
                     plt_lock_events.decimals,
-                    plt_lock_events.memo,
-                    plt_lock_events.event
+                    plt_lock_events.memo as "memo: Json<serde_json::Value>",
+                    plt_lock_events.event as "event: Json<serde_json::Value>"
                 FROM plt_lock_events
                 LEFT JOIN plt_tokens ON plt_tokens.index = plt_lock_events.token_index
                 WHERE plt_lock_events.lock_id = $5
@@ -163,12 +166,12 @@ impl Lock {
             ) events
             ORDER BY id DESC
             "#,
+            i64::from(query.from),
+            i64::from(query.to),
+            query.limit,
+            query.is_last,
+            &self.lock_id
         )
-        .bind(i64::from(query.from))
-        .bind(i64::from(query.to))
-        .bind(query.limit)
-        .bind(query.is_last)
-        .bind(&self.lock_id)
         .fetch(pool);
 
         let mut connection = connection::Connection::new(false, false);
@@ -183,14 +186,14 @@ impl Lock {
         }
 
         if let (Some(page_min_id), Some(page_max_id)) = (min_id, max_id) {
-            let bounds: LockHistoryBounds = sqlx::query_as(
+            let bounds = sqlx::query!(
                 r#"
                 SELECT MIN(id) AS min_id, MAX(id) AS max_id
                 FROM plt_lock_events
                 WHERE lock_id = $1
                 "#,
+                &self.lock_id
             )
-            .bind(&self.lock_id)
             .fetch_one(pool)
             .await?;
             connection.has_previous_page = bounds.max_id.is_some_and(|db_max| db_max > page_max_id);
@@ -284,7 +287,7 @@ impl Lock {
     }
 }
 
-#[derive(Debug, Clone, FromRow)]
+#[derive(Debug, Clone)]
 pub struct LockBalance {
     lock_id: String,
     account_index: i64,
@@ -307,11 +310,12 @@ impl LockBalance {
     }
 
     async fn account_address(&self, ctx: &Context<'_>) -> ApiResult<AccountAddress> {
-        let row: AccountAddressRow =
-            sqlx::query_as("SELECT address FROM accounts WHERE index = $1")
-                .bind(self.account_index)
-                .fetch_one(get_pool(ctx)?)
-                .await?;
+        let row = sqlx::query!(
+            "SELECT address FROM accounts WHERE index = $1",
+            self.account_index
+        )
+        .fetch_one(get_pool(ctx)?)
+        .await?;
         Ok(row.address.into())
     }
 
@@ -331,7 +335,7 @@ impl LockBalance {
     }
 }
 
-#[derive(Debug, Clone, FromRow)]
+#[derive(Debug, Clone)]
 pub struct LockHistoryEvent {
     id: i64,
     transaction_index: TransactionIndex,
@@ -434,7 +438,7 @@ impl LockHistoryEvent {
     }
 }
 
-#[derive(Debug, Clone, FromRow)]
+#[derive(Debug, Clone)]
 pub struct AccountRelatedLock {
     lock_id: String,
     creator_account_index: Option<i64>,
@@ -470,9 +474,23 @@ impl AccountRelatedLock {
             config.account_related_locks_connection_limit,
         )?;
 
-        let mut row_stream = sqlx::query_as::<_, AccountRelatedLock>(
+        let mut row_stream = sqlx::query_as!(
+            AccountRelatedLock,
             r#"
-            SELECT *
+            SELECT
+                lock_id,
+                creator_account_index,
+                created_transaction_index,
+                created_at,
+                expiry,
+                canceled_transaction_index,
+                canceled_at,
+                config as "config: Json<LockCreateConfig>",
+                raw_config,
+                metadata_name,
+                metadata_description,
+                account_index as "account_index!",
+                cursor_index as "cursor_index!"
             FROM (
                 SELECT
                     locks.lock_id,
@@ -505,12 +523,12 @@ impl AccountRelatedLock {
             ) locks
             ORDER BY cursor_index DESC, lock_id ASC
             "#,
+            i64::from(query.from),
+            i64::from(query.to),
+            query.limit,
+            query.is_last,
+            account_index
         )
-        .bind(i64::from(query.from))
-        .bind(i64::from(query.to))
-        .bind(query.limit)
-        .bind(query.is_last)
-        .bind(account_index)
         .fetch(pool);
 
         let mut connection = connection::Connection::new(false, false);
@@ -527,7 +545,7 @@ impl AccountRelatedLock {
         }
 
         if let (Some(page_min_index), Some(page_max_index)) = (min_index, max_index) {
-            let bounds: AccountRelatedLocksBounds = sqlx::query_as(
+            let bounds = sqlx::query!(
                 r#"
                 SELECT
                     MIN(COALESCE(locks.created_transaction_index, 0)) AS min_index,
@@ -540,8 +558,8 @@ impl AccountRelatedLock {
                         AND accounts.account_index = $1
                 )
                 "#,
+                account_index
             )
-            .bind(account_index)
             .fetch_one(pool)
             .await?;
             connection.has_previous_page = bounds
@@ -572,7 +590,8 @@ impl AccountRelatedLock {
     }
 
     async fn query_account_balances(&self, pool: &PgPool) -> ApiResult<Vec<LockBalance>> {
-        let balances = sqlx::query_as::<_, LockBalance>(
+        let balances = sqlx::query_as!(
+            LockBalance,
             r#"
             SELECT
                 plt_lock_balances.lock_id,
@@ -588,20 +607,21 @@ impl AccountRelatedLock {
                 AND plt_lock_balances.amount <> 0
             ORDER BY plt_tokens.token_id ASC
             "#,
+            &self.lock_id,
+            self.account_index
         )
-        .bind(&self.lock_id)
-        .bind(self.account_index)
         .fetch_all(pool)
         .await?;
         Ok(balances)
     }
 
     async fn query_account_address(&self, pool: &PgPool) -> ApiResult<AccountAddress> {
-        let row: AccountAddressRow =
-            sqlx::query_as("SELECT address FROM accounts WHERE index = $1")
-                .bind(self.account_index)
-                .fetch_one(pool)
-                .await?;
+        let row = sqlx::query!(
+            "SELECT address FROM accounts WHERE index = $1",
+            self.account_index
+        )
+        .fetch_one(pool)
+        .await?;
         Ok(row.address.into())
     }
 
@@ -639,21 +659,4 @@ impl AccountRelatedLock {
     async fn roles(&self, ctx: &Context<'_>) -> ApiResult<Vec<String>> {
         self.query_roles(get_pool(ctx)?).await
     }
-}
-
-#[derive(Debug, FromRow)]
-struct LockHistoryBounds {
-    min_id: Option<i64>,
-    max_id: Option<i64>,
-}
-
-#[derive(Debug, FromRow)]
-struct AccountRelatedLocksBounds {
-    min_index: Option<i64>,
-    max_index: Option<i64>,
-}
-
-#[derive(Debug, FromRow)]
-struct AccountAddressRow {
-    address: String,
 }

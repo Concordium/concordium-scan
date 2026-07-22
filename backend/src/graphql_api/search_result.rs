@@ -16,7 +16,7 @@ use crate::{
         transaction::Transaction,
     },
     scalar_types::TokenId,
-    transaction_event::Event,
+    transaction_event::{protocol_level_locks::LockCreateConfig, Event},
     transaction_reject::TransactionRejectReason,
     transaction_type::{
         AccountTransactionType, CredentialDeploymentTransactionType, DbTransactionType,
@@ -130,7 +130,6 @@ impl From<SearchLockCursorDecodeError> for ApiError {
     }
 }
 
-#[derive(sqlx::FromRow)]
 struct SearchLockCollectionEnds {
     start_created_transaction_index: i64,
     start_lock_id: String,
@@ -949,7 +948,8 @@ impl SearchResult {
         let to_created_transaction_index = query.to.created_transaction_index.cursor;
         let to_lock_id = query.to.lock_id;
 
-        let mut row_stream = sqlx::query_as::<_, Lock>(
+        let mut row_stream = sqlx::query_as!(
+            Lock,
             r#"
             SELECT *
             FROM (
@@ -961,7 +961,7 @@ impl SearchResult {
                     expiry,
                     canceled_transaction_index,
                     canceled_at,
-                    config,
+                    config as "config: sqlx::types::Json<LockCreateConfig>",
                     raw_config,
                     metadata_name,
                     metadata_description
@@ -990,14 +990,14 @@ impl SearchResult {
             ) locks
             ORDER BY COALESCE(created_transaction_index, 0) DESC, lock_id ASC
             "#,
+            from_created_transaction_index,
+            &from_lock_id,
+            to_created_transaction_index,
+            &to_lock_id,
+            query_text,
+            query.limit,
+            query.is_last
         )
-        .bind(from_created_transaction_index)
-        .bind(&from_lock_id)
-        .bind(to_created_transaction_index)
-        .bind(&to_lock_id)
-        .bind(query_text)
-        .bind(query.limit)
-        .bind(query.is_last)
         .fetch(pool);
 
         while let Some(lock) = row_stream.try_next().await? {
@@ -1018,7 +1018,8 @@ impl SearchResult {
             return Ok(connection);
         };
 
-        let collection_ends = sqlx::query_as::<_, SearchLockCollectionEnds>(
+        let collection_ends = sqlx::query_as!(
+            SearchLockCollectionEnds,
             r#"
             WITH
                 starting_lock AS (
@@ -1040,14 +1041,14 @@ impl SearchResult {
                     LIMIT 1
                 )
             SELECT
-                starting_lock.created_transaction_index AS start_created_transaction_index,
-                starting_lock.lock_id AS start_lock_id,
-                ending_lock.created_transaction_index AS end_created_transaction_index,
-                ending_lock.lock_id AS end_lock_id
+                starting_lock.created_transaction_index AS "start_created_transaction_index!",
+                starting_lock.lock_id AS "start_lock_id!",
+                ending_lock.created_transaction_index AS "end_created_transaction_index!",
+                ending_lock.lock_id AS "end_lock_id!"
             FROM starting_lock, ending_lock
             "#,
+            query_text
         )
-        .bind(query_text)
         .fetch_optional(pool)
         .await?;
 
