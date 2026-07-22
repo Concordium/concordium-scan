@@ -535,6 +535,23 @@
 			</DescriptionList>
 		</span>
 		<span
+			v-else-if="event.payload.__typename === 'MaxLockDurationUpdate'"
+			class="text-theme-faded"
+		>
+			Updated max lock duration to:
+
+			<DescriptionList class="mt-4 ml-8">
+				<DescriptionListItem>
+					Duration
+					<template #content>
+						<span class="numerical">
+							{{ formatNumber(event.payload.durationSeconds) }}s
+						</span>
+					</template>
+				</DescriptionListItem>
+			</DescriptionList>
+		</span>
+		<span
 			v-else-if="event.payload.__typename === 'CreatePltUpdate'"
 			class="text-theme-faded"
 		>

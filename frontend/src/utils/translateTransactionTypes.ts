@@ -29,6 +29,7 @@ const translations = {
 		ENCRYPTED_TRANSFER_WITH_MEMO: 'Encrypted transfer with memo',
 		TRANSFER_WITH_SCHEDULE_WITH_MEMO: 'Transfer with schedule and memo',
 		TOKEN_UPDATE: 'Token update',
+		META_UPDATE: 'Meta update',
 		UNKNOWN: 'Unknown account transaction',
 	} as Record<AccountTransactionType | 'UNKNOWN', string>,
 	credentialDeploymentTypes: {
@@ -69,6 +70,7 @@ const translations = {
 		UPDATE_LEVEL_1_KEYS: 'Update level 1 keys',
 		UPDATE_LEVEL_2_KEYS: 'Update level 2 keys',
 		CREATE_PLT_UPDATE: 'Update create PLT',
+		MAX_LOCK_DURATION_UPDATE: 'Update max lock duration',
 		UNKNOWN: 'Unknown update transaction',
 	} as Record<UpdateTransactionType | 'UNKNOWN', string>,
 }

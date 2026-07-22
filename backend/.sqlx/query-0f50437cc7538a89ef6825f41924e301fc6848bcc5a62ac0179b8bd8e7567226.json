@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                lock_id,\n                creator_account_index,\n                created_transaction_index,\n                created_at,\n                expiry,\n                canceled_transaction_index,\n                canceled_at,\n                config as \"config: Json<LockCreateConfig>\",\n                raw_config,\n                metadata_name,\n                metadata_description\n            FROM plt_locks\n            WHERE lock_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "lock_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "creator_account_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "created_transaction_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "expiry",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "canceled_transaction_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "canceled_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "config: Json<LockCreateConfig>",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "raw_config",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "metadata_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "metadata_description",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "0f50437cc7538a89ef6825f41924e301fc6848bcc5a62ac0179b8bd8e7567226"
+}

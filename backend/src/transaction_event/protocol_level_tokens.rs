@@ -437,6 +437,8 @@ impl Memo {
 pub struct TokenTransferEvent {
     pub from: TokenHolder,
     pub to: TokenHolder,
+    pub from_lock: Option<String>,
+    pub to_lock: Option<String>,
     pub amount: TokenAmount,
     pub memo: Option<Memo>,
 }
@@ -498,6 +500,8 @@ impl From<concordium_rust_sdk::protocol_level_tokens::TokenEventDetails> for Tok
             TokenEventDetailsType::Transfer(e) => TokenEventDetails::Transfer(TokenTransferEvent {
                 from: e.from.into(),
                 to: e.to.into(),
+                from_lock: e.from_lock.map(|lock| lock.to_string()),
+                to_lock: e.to_lock.map(|lock| lock.to_string()),
                 amount: e.amount.into(),
                 memo: e.memo.map(Into::into),
             }),

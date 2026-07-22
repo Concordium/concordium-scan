@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                plt_lock_balances.lock_id,\n                plt_lock_balances.account_index,\n                plt_lock_balances.token_index,\n                plt_tokens.token_id,\n                plt_lock_balances.amount,\n                plt_lock_balances.decimal\n            FROM plt_lock_balances\n            JOIN plt_tokens ON plt_tokens.index = plt_lock_balances.token_index\n            WHERE plt_lock_balances.lock_id = $1\n                AND plt_lock_balances.amount <> 0\n            ORDER BY plt_lock_balances.account_index ASC, plt_tokens.token_id ASC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "lock_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "account_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "token_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "token_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "decimal",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f33b052d2890c72a7d64c8615a2bd08cd72f333b17f34174c8268bcfa6c35e2d"
+}

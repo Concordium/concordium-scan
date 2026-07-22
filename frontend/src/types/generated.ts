@@ -47,6 +47,7 @@ export type Account = {
    */
   nonce: Scalars['Int'];
   plts: AccountProtocolTokenConnection;
+  relatedLocks: AccountRelatedLockConnection;
   releaseSchedule: AccountReleaseSchedule;
   rewards: AccountRewardConnection;
   tokens: AccountTokenConnection;
@@ -68,6 +69,14 @@ export type AccountAccountStatementArgs = {
 
 
 export type AccountPltsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type AccountRelatedLocksArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
@@ -199,6 +208,32 @@ export type AccountProtocolTokenEdge = {
   cursor: Scalars['String'];
   /** The item at the end of the edge */
   node: AccountProtocolToken;
+};
+
+export type AccountRelatedLock = {
+  __typename?: 'AccountRelatedLock';
+  accountBalances: Array<LockBalance>;
+  lock: Lock;
+  roles: Array<Scalars['String']>;
+};
+
+export type AccountRelatedLockConnection = {
+  __typename?: 'AccountRelatedLockConnection';
+  /** A list of edges. */
+  edges: Array<AccountRelatedLockEdge>;
+  /** A list of nodes. */
+  nodes: Array<AccountRelatedLock>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type AccountRelatedLockEdge = {
+  __typename?: 'AccountRelatedLockEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: AccountRelatedLock;
 };
 
 export type AccountReleaseSchedule = {
@@ -390,6 +425,7 @@ export enum AccountTransactionType {
   EncryptedTransfer = 'ENCRYPTED_TRANSFER',
   EncryptedTransferWithMemo = 'ENCRYPTED_TRANSFER_WITH_MEMO',
   InitializeSmartContractInstance = 'INITIALIZE_SMART_CONTRACT_INSTANCE',
+  MetaUpdate = 'META_UPDATE',
   RegisterData = 'REGISTER_DATA',
   RemoveBaker = 'REMOVE_BAKER',
   SimpleTransfer = 'SIMPLE_TRANSFER',
@@ -991,7 +1027,7 @@ export type ChainUpdateEnqueued = {
   payload: ChainUpdatePayload;
 };
 
-export type ChainUpdatePayload = AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | BlockEnergyLimitUpdate | CooldownParametersChainUpdatePayload | CreatePltUpdate | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | FinalizationCommitteeParametersUpdate | FoundationAccountChainUpdatePayload | GasRewardsChainUpdatePayload | GasRewardsCpv2Update | Level1KeysChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | MinBlockTimeUpdate | MintDistributionChainUpdatePayload | MintDistributionV1ChainUpdatePayload | PoolParametersChainUpdatePayload | ProtocolChainUpdatePayload | RootKeysChainUpdatePayload | TimeParametersChainUpdatePayload | TimeoutParametersUpdate | TransactionFeeDistributionChainUpdatePayload | ValidatorScoreParametersUpdate;
+export type ChainUpdatePayload = AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | BlockEnergyLimitUpdate | CooldownParametersChainUpdatePayload | CreatePltUpdate | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | FinalizationCommitteeParametersUpdate | FoundationAccountChainUpdatePayload | GasRewardsChainUpdatePayload | GasRewardsCpv2Update | Level1KeysChainUpdatePayload | MaxLockDurationUpdate | MicroCcdPerEuroChainUpdatePayload | MinBlockTimeUpdate | MintDistributionChainUpdatePayload | MintDistributionV1ChainUpdatePayload | PoolParametersChainUpdatePayload | ProtocolChainUpdatePayload | RootKeysChainUpdatePayload | TimeParametersChainUpdatePayload | TimeoutParametersUpdate | TransactionFeeDistributionChainUpdatePayload | ValidatorScoreParametersUpdate;
 
 export type Cis2Event = {
   __typename?: 'Cis2Event';
@@ -1456,7 +1492,7 @@ export type EuroPerEnergyChainUpdatePayload = {
   exchangeRate: Ratio;
 };
 
-export type Event = AccountCreated | AmountAddedByDecryption | BakerAdded | BakerDelegationRemoved | BakerKeysUpdated | BakerRemoved | BakerResumed | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerSetMetadataUrl | BakerSetOpenStatus | BakerSetRestakeEarnings | BakerSetTransactionFeeCommission | BakerStakeDecreased | BakerStakeIncreased | BakerSuspended | ChainUpdateEnqueued | ContractCall | ContractInitialized | ContractInterrupted | ContractModuleDeployed | ContractResumed | ContractUpdated | ContractUpgraded | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | DelegationAdded | DelegationRemoved | DelegationSetDelegationTarget | DelegationSetRestakeEarnings | DelegationStakeDecreased | DelegationStakeIncreased | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TokenCreationDetails | TokenUpdate | TransferMemo | Transferred | TransferredWithSchedule;
+export type Event = AccountCreated | AmountAddedByDecryption | BakerAdded | BakerDelegationRemoved | BakerKeysUpdated | BakerRemoved | BakerResumed | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerSetMetadataUrl | BakerSetOpenStatus | BakerSetRestakeEarnings | BakerSetTransactionFeeCommission | BakerStakeDecreased | BakerStakeIncreased | BakerSuspended | ChainUpdateEnqueued | ContractCall | ContractInitialized | ContractInterrupted | ContractModuleDeployed | ContractResumed | ContractUpdated | ContractUpgraded | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | DelegationAdded | DelegationRemoved | DelegationSetDelegationTarget | DelegationSetRestakeEarnings | DelegationStakeDecreased | DelegationStakeIncreased | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | LockCanceled | LockCreated | LockDestroyed | LockFunded | LockReturned | LockSent | NewEncryptedAmount | TokenCreationDetails | TokenUpdate | TransferMemo | Transferred | TransferredWithSchedule;
 
 export type EventConnection = {
   __typename?: 'EventConnection';
@@ -1728,6 +1764,235 @@ export type LinkedContractsCollectionSegment = {
   /** A flattened list of the items. */
   items: Array<LinkedContract>;
   totalCount: Scalars['Int'];
+};
+
+export type Lock = {
+  __typename?: 'Lock';
+  balances: Array<LockBalance>;
+  canceledAt?: Maybe<Scalars['DateTime']>;
+  canceledTransaction?: Maybe<Transaction>;
+  config?: Maybe<LockCreateConfig>;
+  createdAt?: Maybe<Scalars['DateTime']>;
+  createdTransaction?: Maybe<Transaction>;
+  creator?: Maybe<Account>;
+  expiry?: Maybe<Scalars['DateTime']>;
+  history: LockHistoryEventConnection;
+  id: Scalars['ID'];
+  lockId: Scalars['String'];
+  metadataDescription?: Maybe<Scalars['String']>;
+  metadataName?: Maybe<Scalars['String']>;
+  rawConfig?: Maybe<Scalars['String']>;
+  status: LockStatus;
+};
+
+
+export type LockHistoryArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+export type LockBalance = {
+  __typename?: 'LockBalance';
+  account: Account;
+  accountAddress: AccountAddress;
+  amount: TokenAmount;
+  lockId: Scalars['String'];
+  tokenId: Scalars['String'];
+  tokenIndex: Scalars['Int'];
+};
+
+export type LockCancelNotAuthorized = {
+  __typename?: 'LockCancelNotAuthorized';
+  details: Scalars['JSON'];
+};
+
+export type LockCanceled = {
+  __typename?: 'LockCanceled';
+  destroyed: Scalars['Boolean'];
+  lockId: Scalars['String'];
+  memo?: Maybe<Memo>;
+};
+
+export type LockConnection = {
+  __typename?: 'LockConnection';
+  /** A list of edges. */
+  edges: Array<LockEdge>;
+  /** A list of nodes. */
+  nodes: Array<Lock>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+export type LockControllerConfig = {
+  __typename?: 'LockControllerConfig';
+  controllerType: Scalars['String'];
+  simpleV0?: Maybe<LockControllerSimpleV0Config>;
+};
+
+export type LockControllerGrant = {
+  __typename?: 'LockControllerGrant';
+  account: CborHolderAccount;
+  roles: Array<Scalars['String']>;
+};
+
+export type LockControllerSimpleV0Config = {
+  __typename?: 'LockControllerSimpleV0Config';
+  grants: Array<LockControllerGrant>;
+  keepAlive: Scalars['Boolean'];
+  memo?: Maybe<Memo>;
+  tokenIds: Array<Scalars['String']>;
+};
+
+export type LockCreateConfig = {
+  __typename?: 'LockCreateConfig';
+  controller: LockControllerConfig;
+  expiry: Scalars['DateTime'];
+  metadata?: Maybe<LockMetadataConfig>;
+  recipients: LockRecipientsConfig;
+};
+
+export type LockCreated = {
+  __typename?: 'LockCreated';
+  config?: Maybe<LockCreateConfig>;
+  configUnavailable: Scalars['Boolean'];
+  lockId?: Maybe<Scalars['String']>;
+  rawConfig?: Maybe<Scalars['String']>;
+  rawConfigPresent: Scalars['Boolean'];
+};
+
+export type LockDestroyed = {
+  __typename?: 'LockDestroyed';
+  lockId: Scalars['String'];
+};
+
+/** An edge in a connection. */
+export type LockEdge = {
+  __typename?: 'LockEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: Lock;
+};
+
+export type LockExpired = {
+  __typename?: 'LockExpired';
+  lockId: Scalars['String'];
+};
+
+export type LockFundNotAuthorized = {
+  __typename?: 'LockFundNotAuthorized';
+  details: Scalars['JSON'];
+};
+
+export type LockFunded = {
+  __typename?: 'LockFunded';
+  amount: TokenAmount;
+  lockId: Scalars['String'];
+  memo?: Maybe<Memo>;
+  tokenId: Scalars['String'];
+};
+
+export type LockHistoryEvent = {
+  __typename?: 'LockHistoryEvent';
+  account?: Maybe<Account>;
+  amount?: Maybe<TokenAmount>;
+  blockHeight: Scalars['Int'];
+  event: Scalars['JSON'];
+  eventType: Scalars['String'];
+  id: Scalars['ID'];
+  lockId: Scalars['String'];
+  memo?: Maybe<Scalars['JSON']>;
+  operationOrder: Scalars['Int'];
+  recipient?: Maybe<Account>;
+  slotTime: Scalars['DateTime'];
+  source?: Maybe<Account>;
+  tokenId?: Maybe<Scalars['String']>;
+  tokenIndex?: Maybe<Scalars['Int']>;
+  transaction: Transaction;
+  transactionIndex: Scalars['Int'];
+};
+
+export type LockHistoryEventConnection = {
+  __typename?: 'LockHistoryEventConnection';
+  /** A list of edges. */
+  edges: Array<LockHistoryEventEdge>;
+  /** A list of nodes. */
+  nodes: Array<LockHistoryEvent>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type LockHistoryEventEdge = {
+  __typename?: 'LockHistoryEventEdge';
+  /** A cursor for use in pagination */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge */
+  node: LockHistoryEvent;
+};
+
+export type LockMetadataConfig = {
+  __typename?: 'LockMetadataConfig';
+  description?: Maybe<Scalars['String']>;
+  name?: Maybe<Scalars['String']>;
+};
+
+export type LockRecipientNotPermitted = {
+  __typename?: 'LockRecipientNotPermitted';
+  details: Scalars['JSON'];
+};
+
+export type LockRecipientsConfig = {
+  __typename?: 'LockRecipientsConfig';
+  accounts: Array<CborHolderAccount>;
+  recipientType: Scalars['String'];
+};
+
+export type LockReturnNotAuthorized = {
+  __typename?: 'LockReturnNotAuthorized';
+  details: Scalars['JSON'];
+};
+
+export type LockReturned = {
+  __typename?: 'LockReturned';
+  amount: TokenAmount;
+  lockId: Scalars['String'];
+  memo?: Maybe<Memo>;
+  source: CborHolderAccount;
+  tokenId: Scalars['String'];
+};
+
+export type LockSendNotAuthorized = {
+  __typename?: 'LockSendNotAuthorized';
+  details: Scalars['JSON'];
+};
+
+export type LockSent = {
+  __typename?: 'LockSent';
+  amount: TokenAmount;
+  lockId: Scalars['String'];
+  memo?: Maybe<Memo>;
+  recipient: CborHolderAccount;
+  source: CborHolderAccount;
+  tokenId: Scalars['String'];
+};
+
+export enum LockStatus {
+  Active = 'ACTIVE',
+  Canceled = 'CANCELED',
+  Expired = 'EXPIRED'
+}
+
+export type LockTokenNotPermitted = {
+  __typename?: 'LockTokenNotPermitted';
+  details: Scalars['JSON'];
+};
+
+export type MaxLockDurationUpdate = {
+  __typename?: 'MaxLockDurationUpdate';
+  durationSeconds: Scalars['UnsignedLong'];
 };
 
 export type Memo = {
@@ -2003,6 +2268,11 @@ export type NonExistentCredentialId = {
   __typename?: 'NonExistentCredentialId';
   /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
   _: Scalars['Boolean'];
+};
+
+export type NonExistentLockId = {
+  __typename?: 'NonExistentLockId';
+  lockId: Scalars['String'];
 };
 
 export type NonExistentRewardAccount = {
@@ -2491,6 +2761,7 @@ export type Query = {
   globalPltMetrics: GlobalPltMetrics;
   importState: ImportState;
   latestChainParameters: LatestChainParameters;
+  lock: Lock;
   moduleReferenceEvent: ModuleReferenceEvent;
   nodeStatus?: Maybe<NodeStatus>;
   nodeStatuses: NodeStatusConnection;
@@ -2611,6 +2882,11 @@ export type QueryContractsArgs = {
 
 export type QueryGlobalPltMetricsArgs = {
   period: MetricsPeriod;
+};
+
+
+export type QueryLockArgs = {
+  lockId: Scalars['String'];
 };
 
 
@@ -2875,6 +3151,7 @@ export type SearchResult = {
   bakers: BakerConnection;
   blocks: BlockConnection;
   contracts: ContractConnection;
+  locks: LockConnection;
   modules: ModuleReferenceEventConnection;
   nodeStatuses: NodeStatusConnection;
   pltTokens: PltTokenConnection;
@@ -2908,6 +3185,14 @@ export type SearchResultBlocksArgs = {
 
 
 export type SearchResultContractsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type SearchResultLocksArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
@@ -3208,8 +3493,10 @@ export type TokenTransferEvent = {
   __typename?: 'TokenTransferEvent';
   amount: TokenAmount;
   from: TokenHolder;
+  fromLock?: Maybe<Scalars['String']>;
   memo?: Maybe<Memo>;
   to: TokenHolder;
+  toLock?: Maybe<Scalars['String']>;
 };
 
 /** Common event struct for both Holder and Governance events. */
@@ -3319,7 +3606,7 @@ export type TransactionMetricsBuckets = {
   y_TransactionCount: Array<Scalars['Int']>;
 };
 
-export type TransactionRejectReason = AlreadyABaker | AlreadyADelegator | AmountTooLarge | BakerInCooldown | BakingRewardCommissionNotInRange | CredentialHolderDidNotSign | DelegationTargetNotABaker | DelegatorInCooldown | DuplicateAggregationKey | DuplicateCredIds | EncryptedAmountSelfTransfer | FinalizationRewardCommissionNotInRange | FirstScheduledReleaseExpired | InsufficientBalanceForBakerStake | InsufficientBalanceForDelegationStake | InsufficientDelegationStake | InvalidAccountReference | InvalidAccountThreshold | InvalidContractAddress | InvalidCredentialKeySignThreshold | InvalidCredentials | InvalidEncryptedAmountTransferProof | InvalidIndexOnEncryptedTransfer | InvalidInitMethod | InvalidModuleReference | InvalidProof | InvalidReceiveMethod | InvalidTransferToPublicProof | KeyIndexAlreadyInUse | MissingBakerAddParameters | MissingDelegationAddParameters | ModuleHashAlreadyExists | ModuleNotWf | NonExistentCredIds | NonExistentCredentialId | NonExistentRewardAccount | NonExistentTokenId | NonIncreasingSchedule | NotABaker | NotADelegator | NotAllowedMultipleCredentials | NotAllowedToHandleEncrypted | NotAllowedToReceiveEncrypted | OutOfEnergy | PoolClosed | PoolWouldBecomeOverDelegated | RejectedInit | RejectedReceive | RemoveFirstCredential | RuntimeFailure | ScheduledSelfTransfer | SerializationFailure | StakeOverMaximumThresholdForPool | StakeUnderMinimumThresholdForBaking | TokenModuleReject | TransactionFeeCommissionNotInRange | UnauthorizedTokenGovernance | ZeroScheduledAmount;
+export type TransactionRejectReason = AlreadyABaker | AlreadyADelegator | AmountTooLarge | BakerInCooldown | BakingRewardCommissionNotInRange | CredentialHolderDidNotSign | DelegationTargetNotABaker | DelegatorInCooldown | DuplicateAggregationKey | DuplicateCredIds | EncryptedAmountSelfTransfer | FinalizationRewardCommissionNotInRange | FirstScheduledReleaseExpired | InsufficientBalanceForBakerStake | InsufficientBalanceForDelegationStake | InsufficientDelegationStake | InvalidAccountReference | InvalidAccountThreshold | InvalidContractAddress | InvalidCredentialKeySignThreshold | InvalidCredentials | InvalidEncryptedAmountTransferProof | InvalidIndexOnEncryptedTransfer | InvalidInitMethod | InvalidModuleReference | InvalidProof | InvalidReceiveMethod | InvalidTransferToPublicProof | KeyIndexAlreadyInUse | LockCancelNotAuthorized | LockExpired | LockFundNotAuthorized | LockRecipientNotPermitted | LockReturnNotAuthorized | LockSendNotAuthorized | LockTokenNotPermitted | MissingBakerAddParameters | MissingDelegationAddParameters | ModuleHashAlreadyExists | ModuleNotWf | NonExistentCredIds | NonExistentCredentialId | NonExistentLockId | NonExistentRewardAccount | NonExistentTokenId | NonIncreasingSchedule | NotABaker | NotADelegator | NotAllowedMultipleCredentials | NotAllowedToHandleEncrypted | NotAllowedToReceiveEncrypted | OutOfEnergy | PoolClosed | PoolWouldBecomeOverDelegated | RejectedInit | RejectedReceive | RemoveFirstCredential | RuntimeFailure | ScheduledSelfTransfer | SerializationFailure | StakeOverMaximumThresholdForPool | StakeUnderMinimumThresholdForBaking | TokenModuleReject | TransactionFeeCommissionNotInRange | UnauthorizedTokenGovernance | ZeroScheduledAmount;
 
 export type TransactionResult = Rejected | Success;
 
@@ -3370,6 +3657,7 @@ export enum UpdateTransactionType {
   CreatePltUpdate = 'CREATE_PLT_UPDATE',
   FinalizationCommitteeParametersUpdate = 'FINALIZATION_COMMITTEE_PARAMETERS_UPDATE',
   GasRewardsCpv_2Update = 'GAS_REWARDS_CPV_2_UPDATE',
+  MaxLockDurationUpdate = 'MAX_LOCK_DURATION_UPDATE',
   MintDistributionCpv_1Update = 'MINT_DISTRIBUTION_CPV_1_UPDATE',
   MinBlockTimeUpdate = 'MIN_BLOCK_TIME_UPDATE',
   TimeoutParametersUpdate = 'TIMEOUT_PARAMETERS_UPDATE',

@@ -52,6 +52,16 @@
 				</template>
 			</Accordion>
 			<Accordion>
+				Locks
+				<template #content>
+					<AccountDetailsLocks
+						:related-locks="account.relatedLocks.nodes || []"
+						:page-info="account.relatedLocks.pageInfo"
+						:go-to-page="goToPageRelatedLocks"
+					/>
+				</template>
+			</Accordion>
+			<Accordion>
 				Account statement
 				<template #content>
 					<AccountDetailsAccountStatement
@@ -133,6 +143,7 @@ import AccountDetailsAmounts from './AccountDetailsAmounts.vue'
 import AccountDetailsTransactions from './AccountDetailsTransactions.vue'
 import AccountDetailsToken from './AccountDetailsToken.vue'
 import AccountDetailsPlts from './AccountDetailsPlts.vue'
+import AccountDetailsLocks from './AccountDetailsLocks.vue'
 import AccountDetailsReleaseScheduleTransactions from './AccountDetailsReleaseScheduleTransactions.vue'
 import AccountDetailsAccountStatement from './AccountDetailsAccountStatement.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
@@ -162,6 +173,7 @@ type Props = {
 	goToPageAccountRewards: (page: PageInfo) => (target: PaginationTarget) => void
 	goToPageAccountTokens: (page: PageInfo) => (target: PaginationTarget) => void
 	goToPagePlt: (page: PageInfo) => (target: PaginationTarget) => void
+	goToPageRelatedLocks: (page: PageInfo) => (target: PaginationTarget) => void
 }
 
 defineProps<Props>()

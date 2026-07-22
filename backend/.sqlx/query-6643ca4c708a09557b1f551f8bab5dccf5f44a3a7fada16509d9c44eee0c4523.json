@@ -29,7 +29,10 @@
                 "AddDenyList",
                 "RemoveDenyList",
                 "Pause",
-                "Unpause"
+                "Unpause",
+                "AssignAdminRoles",
+                "RevokeAdminRoles",
+                "UpdateMetadata"
               ]
             }
           }
