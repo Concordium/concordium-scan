@@ -1,13 +1,16 @@
-name: PR Backend image to ECR
+name: Backend image to ECR
 
-# On every backend PR, build the indexer and api images and push them to ECR in
-# the concordium-builds account, tagged with the PR head commit SHA.
-# Release images continue to go to Docker Hub via release-backend.yml on tags.
+# On pushes to main or release/p11, build the indexer and api images and push them
+# to ECR in the concordium-builds account, tagged with the commit SHA. Release
+# images still go to Docker Hub via release-backend.yml on tags.
 on:
-  pull_request:
+  push:
+    branches:
+      - main
+      - release/p11
     paths:
       - backend/**
-      - .github/workflows/pr-ecr-backend.yml
+      - .github/workflows/ecr-backend.yml
 
 jobs:
   build-push:
@@ -30,14 +33,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Build indexer docker image
         uses: docker/build-push-action@v6
         with:
           context: backend
           file: backend/Dockerfile
-          tags: ${{ steps.login-ecr.outputs.registry }}/ccdscan-indexer:${{ github.event.pull_request.head.sha }}
+          tags: ${{ steps.login-ecr.outputs.registry }}/ccdscan-indexer:${{ github.sha }}
           push: true
           build-args: |
             target_binary=ccdscan-indexer
@@ -47,7 +49,7 @@ jobs:
         with:
           context: backend
           file: backend/Dockerfile
-          tags: ${{ steps.login-ecr.outputs.registry }}/ccdscan-api:${{ github.event.pull_request.head.sha }}
+          tags: ${{ steps.login-ecr.outputs.registry }}/ccdscan-api:${{ github.sha }}
           push: true
           build-args: |
             target_binary=ccdscan-api
