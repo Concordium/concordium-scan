@@ -1,0 +1,53 @@
+name: PR Backend image to ECR
+
+# On every backend PR, build the indexer and api images and push them to ECR in
+# the concordium-builds account, tagged with the PR head commit SHA.
+# Release images continue to go to Docker Hub via release-backend.yml on tags.
+on:
+  pull_request:
+    paths:
+      - backend/**
+      - .github/workflows/pr-ecr-backend.yml
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::053828498583:role/github-actions-ecr-push-ccdscan
+          aws-region: eu-central-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Clone repo
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Build indexer docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/Dockerfile
+          tags: ${{ steps.login-ecr.outputs.registry }}/ccdscan-indexer:${{ github.event.pull_request.head.sha }}
+          push: true
+          build-args: |
+            target_binary=ccdscan-indexer
+
+      - name: Build api docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/Dockerfile
+          tags: ${{ steps.login-ecr.outputs.registry }}/ccdscan-api:${{ github.event.pull_request.head.sha }}
+          push: true
+          build-args: |
+            target_binary=ccdscan-api

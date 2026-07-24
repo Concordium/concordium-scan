@@ -1,0 +1,42 @@
+name: PR Frontend image to ECR
+
+# On every frontend PR, build the frontend image and push it to ECR in the
+# concordium-builds account, tagged with the PR head commit SHA.
+# Release images continue to go to Docker Hub via frontend-release.yml on tags.
+on:
+  pull_request:
+    paths:
+      - frontend/**
+      - .github/workflows/pr-ecr-frontend.yml
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::053828498583:role/github-actions-ecr-push-ccdscan
+          aws-region: eu-central-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          platforms: linux/amd64
+          tags: ${{ steps.login-ecr.outputs.registry }}/ccdscan-frontend:${{ github.event.pull_request.head.sha }}
