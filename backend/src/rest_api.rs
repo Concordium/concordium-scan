@@ -245,8 +245,11 @@ impl Service {
                 "{},{},{},{},{},{},{}\n",
                 row.timestamp
                     .to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
-                row.token_name.as_deref().unwrap_or("").replace(',', ";"), // Replace commas to avoid CSV issues
-                row.token_id.replace(',', ";"), // Replace commas to avoid CSV issues
+                // Token names/IDs come from untrusted on-chain metadata: escape them
+                // so the CSV cannot inject spreadsheet formulas and so embedded
+                // commas cannot corrupt the column layout.
+                escape_csv_cell(row.token_name.as_deref().unwrap_or("")),
+                escape_csv_cell(&row.token_id),
                 row.entry_type,
                 row.amount,
                 row.account_balance,
@@ -298,6 +301,36 @@ struct ExportPltAccountStatementEntry {
     entry_type: PltAccountStatementEntryType,
     token_id: String,
     token_name: Option<String>,
+}
+
+/// Escape a value for safe inclusion in a CSV cell.
+///
+/// Cells containing separators/quotes/newlines are wrapped in double quotes with
+/// inner quotes doubled. Cells starting with `=`, `+`, `-`, `@`, tab or carriage
+/// return are additionally prefixed with a single quote so that spreadsheet
+/// applications (Excel, LibreOffice) do not evaluate them as formulas
+/// (CSV formula injection). Cell values here can originate from untrusted
+/// on-chain token metadata.
+fn escape_csv_cell(value: &str) -> String {
+    let needs_formula_guard = value
+        .chars()
+        .next()
+        .is_some_and(|c| matches!(c, '=' | '+' | '-' | '@' | '\t' | '\r'));
+    let needs_quoting = needs_formula_guard
+        || value
+            .chars()
+            .any(|c| matches!(c, ',' | '"' | '\n' | '\r'));
+    if !needs_quoting {
+        return value.to_string();
+    }
+    let mut escaped = String::with_capacity(value.len() + 4);
+    escaped.push('"');
+    if needs_formula_guard {
+        escaped.push('\'');
+    }
+    escaped.push_str(&value.replace('"', "\"\""));
+    escaped.push('"');
+    escaped
 }
 
 #[derive(Debug, serde::Deserialize)]
