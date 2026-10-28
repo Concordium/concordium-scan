@@ -80,7 +80,7 @@ pub enum Event {
     LockCreated(protocol_level_locks::LockCreated),
     LockFunded(protocol_level_locks::LockFunded),
     LockSent(protocol_level_locks::LockSent),
-    LockReturned(protocol_level_locks::LockReturned),
+    LockReleased(protocol_level_locks::LockReleased),
     LockCanceled(protocol_level_locks::LockCanceled),
     LockDestroyed(protocol_level_locks::LockDestroyed),
 }
@@ -553,21 +553,12 @@ pub fn events_from_summary_with_item(
                     })
                     .collect::<anyhow::Result<Vec<_>>>()?
             }
-            AccountTransactionEffects::TokenUpdate { events } => events
-                .iter()
-                .map(|event| {
-                    Ok(Event::TokenUpdate(protocol_level_tokens::TokenUpdate {
-                        token_id: event.token_id.clone().into(),
-                        event: event.event.clone().into(),
-                    }))
-                })
-                .collect::<anyhow::Result<Vec<_>>>()?,
-            AccountTransactionEffects::MetaUpdate { events } => {
+            AccountTransactionEffects::TokenUpdate { events } => {
                 let payload = item
-                    .map(meta_update_payload_from_item)
+                    .map(token_update_payload_from_item)
                     .transpose()?
                     .flatten();
-                protocol_level_locks::events_from_meta_update(&events, payload.as_ref())?
+                protocol_level_locks::events_from_token_update(&events, payload.as_ref())?
             }
         },
         BlockItemSummaryDetails::AccountCreation(details) => {
@@ -640,14 +631,6 @@ pub fn events_from_summary_with_item(
                             protocol_level_tokens::TokenTransferEvent {
                                 from: token_transfer_event.from.clone().into(),
                                 to: token_transfer_event.to.clone().into(),
-                                from_lock: token_transfer_event
-                                    .from_lock
-                                    .as_ref()
-                                    .map(|lock| lock.to_string()),
-                                to_lock: token_transfer_event
-                                    .to_lock
-                                    .as_ref()
-                                    .map(|lock| lock.to_string()),
                                 amount: token_transfer_event.amount.into(),
                                 memo: token_transfer_event.memo.clone().map(Into::into),
                             },
@@ -676,11 +659,9 @@ pub fn events_from_summary_with_item(
     Ok(events)
 }
 
-fn meta_update_payload_from_item(
+fn token_update_payload_from_item(
     item: &BlockItem<EncodedPayload>,
-) -> anyhow::Result<
-    Option<concordium_rust_sdk::protocol_level_tokens::meta_operations::MetaUpdatePayload>,
-> {
+) -> anyhow::Result<Option<concordium_rust_sdk::base::transactions::TokenUpdatePayload>> {
     let encoded_payload = match item {
         BlockItem::AccountTransaction(account_transaction) => &account_transaction.payload,
         BlockItem::AccountTransactionV1(account_transaction) => &account_transaction.payload,
@@ -690,7 +671,7 @@ fn meta_update_payload_from_item(
         .decode()
         .context("Failed decoding account transaction payload")?;
     match payload {
-        Payload::MetaUpdate { payload } => Ok(Some(payload)),
+        Payload::TokenUpdate { payload } => Ok(Some(payload)),
         _ => Ok(None),
     }
 }

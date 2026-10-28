@@ -53,10 +53,11 @@ const translations: TranslationMap = {
 	LockExpired: 'The lock has expired',
 	LockFundNotAuthorized: 'Not authorized to fund the lock',
 	LockSendNotAuthorized: 'Not authorized to send from the lock',
-	LockReturnNotAuthorized: 'Not authorized to return funds from the lock',
+	LockReleaseNotAuthorized: 'Not authorized to release funds from the lock',
 	LockCancelNotAuthorized: 'Not authorized to cancel the lock',
 	LockTokenNotPermitted: 'Token is not permitted for the lock',
 	LockRecipientNotPermitted: 'Recipient is not permitted for the lock',
+	LockDurationTooLong: 'The requested lock duration exceeds the maximum permitted duration',
 }
 
 export const translateRejectionReasons = (

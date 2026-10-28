@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - Added display support for lock-aware PLT transfers and lock lifecycle events.
 - Added account related lock roles and header search results for locks.
-- Added labels for Locks/P11 reject reasons, `MetaUpdate`, and `MaxLockDurationUpdate`.
+- Added labels for Locks/P11 reject reasons and `MaxLockDurationUpdate`.
 
 ## [1.7.33] - 2026-05-05
 

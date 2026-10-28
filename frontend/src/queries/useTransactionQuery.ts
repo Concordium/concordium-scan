@@ -394,8 +394,6 @@ __typename
             details
         }
         ... on TokenTransferEvent {
-            fromLock
-            toLock
             memo {
                 decoded {
                     text
@@ -520,7 +518,7 @@ __typename
         }
     }
 }
-... on LockReturned {
+... on LockReleased {
     lockId
     tokenId
     source {
@@ -585,8 +583,6 @@ __typename
                 details
             }
             ... on TokenTransferEvent {
-                fromLock
-                toLock
                 from {
                     address {
                         asString

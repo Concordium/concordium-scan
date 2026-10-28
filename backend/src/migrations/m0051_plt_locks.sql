@@ -14,12 +14,8 @@ CREATE TABLE plt_locks (
     metadata_description TEXT
 );
 
-CREATE INDEX plt_locks_created_at_idx
-ON plt_locks(created_at DESC, lock_id);
-
-CREATE INDEX plt_locks_canceled_at_idx
-ON plt_locks(canceled_at)
-WHERE canceled_at IS NOT NULL;
+CREATE INDEX plt_locks_created_at_idx ON plt_locks(created_at DESC, lock_id);
+CREATE INDEX plt_locks_canceled_at_idx ON plt_locks(canceled_at) WHERE canceled_at IS NOT NULL;
 
 CREATE TABLE plt_lock_events (
     id BIGSERIAL PRIMARY KEY,
@@ -27,16 +23,7 @@ CREATE TABLE plt_lock_events (
     block_height BIGINT NOT NULL,
     slot_time TIMESTAMPTZ NOT NULL,
     operation_order INT NOT NULL,
-    event_type TEXT NOT NULL CHECK (
-        event_type IN (
-            'LockCreate',
-            'LockFund',
-            'LockSend',
-            'LockReturn',
-            'LockCancel',
-            'LockDestroy'
-        )
-    ),
+    event_type TEXT NOT NULL CHECK (event_type IN ('LockCreate', 'LockFund', 'LockSend', 'LockRelease', 'LockCancel', 'LockDestroy')),
     lock_id TEXT NOT NULL REFERENCES plt_locks(lock_id),
     token_index BIGINT REFERENCES plt_tokens(index),
     account_index BIGINT REFERENCES accounts(index),
@@ -48,11 +35,8 @@ CREATE TABLE plt_lock_events (
     event JSONB NOT NULL
 );
 
-CREATE INDEX plt_lock_events_lock_time_idx
-ON plt_lock_events(lock_id, slot_time DESC, operation_order DESC);
-
-CREATE INDEX plt_lock_events_transaction_idx
-ON plt_lock_events(transaction_index, operation_order);
+CREATE INDEX plt_lock_events_lock_time_idx ON plt_lock_events(lock_id, slot_time DESC, operation_order DESC);
+CREATE INDEX plt_lock_events_transaction_idx ON plt_lock_events(transaction_index, operation_order);
 
 CREATE TABLE plt_lock_balances (
     lock_id TEXT NOT NULL REFERENCES plt_locks(lock_id),
@@ -63,26 +47,15 @@ CREATE TABLE plt_lock_balances (
     PRIMARY KEY (lock_id, account_index, token_index)
 );
 
-CREATE INDEX plt_lock_balances_account_idx
-ON plt_lock_balances(account_index, token_index)
-WHERE amount <> 0;
+CREATE INDEX plt_lock_balances_account_idx ON plt_lock_balances(account_index, token_index) WHERE amount <> 0;
 
 CREATE TABLE plt_lock_accounts (
     lock_id TEXT NOT NULL REFERENCES plt_locks(lock_id),
     account_index BIGINT NOT NULL REFERENCES accounts(index),
-    relationship_type TEXT NOT NULL CHECK (
-        relationship_type IN (
-            'Creator',
-            'BalanceHolder',
-            'Recipient',
-            'Controller',
-            'Touched'
-        )
-    ),
+    relationship_type TEXT NOT NULL CHECK (relationship_type IN ('Creator', 'BalanceHolder', 'Recipient', 'Controller', 'Touched')),
     first_transaction_index BIGINT NOT NULL REFERENCES transactions(index),
     last_transaction_index BIGINT NOT NULL REFERENCES transactions(index),
     PRIMARY KEY (lock_id, account_index, relationship_type)
 );
 
-CREATE INDEX plt_lock_accounts_account_idx
-ON plt_lock_accounts(account_index, lock_id);
+CREATE INDEX plt_lock_accounts_account_idx ON plt_lock_accounts(account_index, lock_id);

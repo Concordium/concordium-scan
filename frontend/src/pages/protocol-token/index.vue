@@ -180,23 +180,11 @@
 						<TableTd>
 							<template v-if="event.tokenEvent.__typename == 'TokenTransferEvent'">
 								<AccountLink :address="event.tokenEvent.from.address.asString" />
-								<div
-									v-if="event.tokenEvent.fromLock"
-									class="text-xs text-theme-text-secondary break-all"
-								>
-									Lock: {{ event.tokenEvent.fromLock }}
-								</div>
 							</template>
 						</TableTd>
 						<TableTd>
 							<template v-if="event.tokenEvent.__typename == 'TokenTransferEvent'">
 								<AccountLink :address="event.tokenEvent.to.address.asString" />
-								<div
-									v-if="event.tokenEvent.toLock"
-									class="text-xs text-theme-text-secondary break-all"
-								>
-									Lock: {{ event.tokenEvent.toLock }}
-								</div>
 							</template>
 						</TableTd>
 						<TableTd>

@@ -331,6 +331,11 @@ impl From<UpdatePayload> for ChainUpdatePayload {
                     duration_seconds: UnsignedLong(update.seconds()),
                 })
             }
+            UpdatePayload::MaxLockDuration(update) => {
+                ChainUpdatePayload::MaxLockDuration(MaxLockDurationUpdate {
+                    duration_seconds: UnsignedLong(update.seconds()),
+                })
+            }
             UpdatePayload::MintDistribution(update) => {
                 ChainUpdatePayload::MintDistribution(MintDistributionChainUpdatePayload {
                     mint_per_slot: Decimal(rust_decimal::Decimal::new(

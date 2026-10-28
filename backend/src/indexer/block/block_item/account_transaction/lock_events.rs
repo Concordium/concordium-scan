@@ -1,6 +1,6 @@
 use crate::transaction_event::{
     protocol_level_locks::{
-        LockCanceled, LockCreateConfig, LockCreated, LockDestroyed, LockFunded, LockReturned,
+        LockCanceled, LockCreateConfig, LockCreated, LockDestroyed, LockFunded, LockReleased,
         LockSent,
     },
     protocol_level_tokens::TokenAmount,
@@ -54,8 +54,8 @@ enum PreparedLockEvent {
         event: LockSent,
         sender: String,
     },
-    Returned {
-        event: LockReturned,
+    Released {
+        event: LockReleased,
         sender: String,
     },
     Canceled {
@@ -83,7 +83,7 @@ impl PreparedLockEvent {
                 event,
                 sender: sender.to_string(),
             }),
-            Event::LockReturned(event) => Some(Self::Returned {
+            Event::LockReleased(event) => Some(Self::Released {
                 event,
                 sender: sender.to_string(),
             }),
@@ -239,7 +239,7 @@ impl PreparedLockEvent {
                 upsert_relationship(tx, &event.lock_id, sender, "Touched", transaction_index)
                     .await?;
             }
-            PreparedLockEvent::Returned { event, sender } => {
+            PreparedLockEvent::Released { event, sender } => {
                 ensure_lock_exists(tx, &event.lock_id).await?;
                 let source = event.source.address.to_string();
                 insert_lock_event(
@@ -248,7 +248,7 @@ impl PreparedLockEvent {
                         transaction_index,
                         slot_time,
                         operation_order,
-                        event_type: "LockReturn",
+                        event_type: "LockRelease",
                         lock_id: &event.lock_id,
                         token_id: Some(&event.token_id),
                         account: None,
