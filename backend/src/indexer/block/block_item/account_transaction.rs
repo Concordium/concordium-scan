@@ -24,7 +24,6 @@ use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
     base::transactions::{BlockItem, EncodedPayload, Payload},
     id::types::AccountAddress,
-    protocol_level_tokens::meta_operations::MetaUpdatePayload,
     types::{queries::ProtocolVersionInt, AccountTransactionDetails, AccountTransactionEffects},
     v2::{self},
 };
@@ -171,13 +170,10 @@ enum PreparedEvent {
     ScheduledTransfer(transfer_events::PreparedScheduledReleases),
     /// Rejected transaction.
     RejectedTransaction(rejected_events::PreparedRejectedEvent),
+    /// Unified token and lock events from a token-update transaction.
+    TokenUpdateEvents(PreparedTokenUpdateEvents),
     /// No changes in the database was caused by this event.
     NoOperation,
-
-    /// Events related to token update AccountTransactionEffects.
-    TokenUpdateEvents(plt_events::PreparedTokenEvents),
-    /// Events related to meta update AccountTransactionEffects.
-    MetaUpdateEvents(PreparedMetaUpdateEvents),
 }
 impl PreparedEvent {
     async fn prepare(
@@ -351,14 +347,6 @@ impl PreparedEvent {
             AccountTransactionEffects::CredentialKeysUpdated { .. }
             | AccountTransactionEffects::CredentialsUpdated { .. }
             | AccountTransactionEffects::DataRegistered { .. } => PreparedEvent::NoOperation,
-            AccountTransactionEffects::MetaUpdate { events } => {
-                let payload = meta_update_payload_from_item(item)?;
-                PreparedEvent::MetaUpdateEvents(PreparedMetaUpdateEvents::prepare(
-                    events,
-                    payload.as_ref(),
-                    sender,
-                )?)
-            }
             AccountTransactionEffects::DelegationConfigured { data: events } => {
                 PreparedEvent::AccountDelegationEvents(
                     delegation_events::PreparedAccountDelegationEvents {
@@ -375,12 +363,12 @@ impl PreparedEvent {
                 )
             }
             AccountTransactionEffects::TokenUpdate { events } => {
-                PreparedEvent::TokenUpdateEvents(PreparedTokenEvents {
-                    events: events
-                        .iter()
-                        .map(PreparedTokenEvent::prepare)
-                        .collect::<anyhow::Result<Vec<_>>>()?,
-                })
+                let payload = token_update_payload_from_item(item)?;
+                PreparedEvent::TokenUpdateEvents(PreparedTokenUpdateEvents::prepare(
+                    events,
+                    payload.as_ref(),
+                    sender,
+                )?)
             }
         };
         Ok(prepared_event)
@@ -434,40 +422,38 @@ impl PreparedEvent {
                 .save(tx, tx_idx, slot_time)
                 .await
                 .context("Failed processing block item event with token update events"),
-            PreparedEvent::MetaUpdateEvents(event) => event
-                .save(tx, tx_idx, slot_time)
-                .await
-                .context("Failed processing block item event with meta update events"),
             PreparedEvent::NoOperation => Ok(()),
         }
     }
 }
 
 #[derive(Debug)]
-struct PreparedMetaUpdateEvents {
+struct PreparedTokenUpdateEvents {
     token_events: PreparedTokenEvents,
     lock_events: PreparedLockEvents,
 }
 
-impl PreparedMetaUpdateEvents {
+impl PreparedTokenUpdateEvents {
     fn prepare(
-        events: &[concordium_rust_sdk::protocol_level_tokens::MetaEvent],
-        payload: Option<&MetaUpdatePayload>,
+        events: &[concordium_rust_sdk::v2::Upward<
+            concordium_rust_sdk::protocol_level_tokens::OperationEvent,
+        >],
+        payload: Option<&concordium_rust_sdk::base::transactions::TokenUpdatePayload>,
         sender: &AccountAddress,
     ) -> anyhow::Result<Self> {
+        let events = protocol_level_locks::events_from_token_update(events, payload)?;
         let token_events = PreparedTokenEvents {
             events: events
                 .iter()
                 .filter_map(|event| match event {
-                    concordium_rust_sdk::protocol_level_tokens::MetaEvent::Token(event) => {
-                        Some(PreparedTokenEvent::prepare(event))
-                    }
+                    crate::transaction_event::Event::TokenUpdate(event) => Some(event),
                     _ => None,
                 })
-                .collect::<anyhow::Result<Vec<_>>>()?,
+                .cloned()
+                .map(|event| PreparedTokenEvent { event })
+                .collect(),
         };
-        let lock_events = protocol_level_locks::events_from_meta_update(events, payload)
-            .and_then(|events| PreparedLockEvents::prepare(events, sender.to_string()))?;
+        let lock_events = PreparedLockEvents::prepare(events, sender.to_string())?;
         Ok(Self {
             token_events,
             lock_events,
@@ -490,9 +476,9 @@ impl PreparedMetaUpdateEvents {
     }
 }
 
-fn meta_update_payload_from_item(
+fn token_update_payload_from_item(
     item: &BlockItem<EncodedPayload>,
-) -> anyhow::Result<Option<MetaUpdatePayload>> {
+) -> anyhow::Result<Option<concordium_rust_sdk::base::transactions::TokenUpdatePayload>> {
     let encoded_payload = match item {
         BlockItem::AccountTransaction(account_transaction) => &account_transaction.payload,
         BlockItem::AccountTransactionV1(account_transaction) => &account_transaction.payload,
@@ -502,7 +488,7 @@ fn meta_update_payload_from_item(
         .decode()
         .context("Failed decoding account transaction payload")?;
     match payload {
-        Payload::MetaUpdate { payload } => Ok(Some(payload)),
+        Payload::TokenUpdate { payload } => Ok(Some(payload)),
         _ => Ok(None),
     }
 }

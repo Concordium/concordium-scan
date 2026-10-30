@@ -386,7 +386,6 @@ enum AccountTransactionType {
 	CONFIGURE_BAKER
 	CONFIGURE_DELEGATION
 	TOKEN_UPDATE
-	META_UPDATE
 }
 
 "A segment of a collection."
@@ -1327,7 +1326,7 @@ type EuroPerEnergyChainUpdatePayload {
 	exchangeRate: Ratio!
 }
 
-union Event = Transferred | TransferMemo | TransferredWithSchedule | EncryptedAmountsRemoved | AmountAddedByDecryption | EncryptedSelfAmountAdded | NewEncryptedAmount | AccountCreated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | BakerSetOpenStatus | BakerSetMetadataURL | BakerSetTransactionFeeCommission | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerDelegationRemoved | BakerSuspended | BakerResumed | ContractInitialized | ContractModuleDeployed | ContractUpdated | ContractCall | ContractInterrupted | ContractResumed | ContractUpgraded | DelegationAdded | DelegationRemoved | DelegationStakeIncreased | DelegationStakeDecreased | DelegationSetRestakeEarnings | DelegationSetDelegationTarget | DataRegistered | ChainUpdateEnqueued | TokenUpdate | TokenCreationDetails | LockCreated | LockFunded | LockSent | LockReturned | LockCanceled | LockDestroyed
+union Event = Transferred | TransferMemo | TransferredWithSchedule | EncryptedAmountsRemoved | AmountAddedByDecryption | EncryptedSelfAmountAdded | NewEncryptedAmount | AccountCreated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | BakerSetOpenStatus | BakerSetMetadataURL | BakerSetTransactionFeeCommission | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerDelegationRemoved | BakerSuspended | BakerResumed | ContractInitialized | ContractModuleDeployed | ContractUpdated | ContractCall | ContractInterrupted | ContractResumed | ContractUpgraded | DelegationAdded | DelegationRemoved | DelegationStakeIncreased | DelegationStakeDecreased | DelegationSetRestakeEarnings | DelegationSetDelegationTarget | DataRegistered | ChainUpdateEnqueued | TokenUpdate | TokenCreationDetails | LockCreated | LockFunded | LockSent | LockReleased | LockCanceled | LockDestroyed
 
 type EventConnection {
 	"Information to aid in pagination."
@@ -1650,6 +1649,10 @@ type LockDestroyed {
 	lockId: String!
 }
 
+type LockDurationTooLong {
+	lockId: String!
+}
+
 "An edge in a connection."
 type LockEdge {
 	"The item at the end of the edge"
@@ -1723,11 +1726,11 @@ type LockRecipientsConfig {
 	accounts: [CborHolderAccount!]!
 }
 
-type LockReturnNotAuthorized {
+type LockReleaseNotAuthorized {
 	details: JSON!
 }
 
-type LockReturned {
+type LockReleased {
 	lockId: String!
 	tokenId: String!
 	source: CborHolderAccount!
@@ -2967,8 +2970,6 @@ type TokenModuleReject {
 type TokenTransferEvent {
 	from: TokenHolder!
 	to: TokenHolder!
-	fromLock: String
-	toLock: String
 	amount: TokenAmount!
 	memo: Memo
 }
@@ -3070,7 +3071,7 @@ type TransactionMetricsBuckets {
 	y_TransactionCount: [Int!]!
 }
 
-union TransactionRejectReason = ModuleNotWf | ModuleHashAlreadyExists | InvalidAccountReference | InvalidInitMethod | InvalidReceiveMethod | InvalidModuleReference | InvalidContractAddress | RuntimeFailure | AmountTooLarge | SerializationFailure | OutOfEnergy | RejectedInit | RejectedReceive | NonExistentRewardAccount | InvalidProof | AlreadyABaker | NotABaker | InsufficientBalanceForBakerStake | StakeUnderMinimumThresholdForBaking | BakerInCooldown | DuplicateAggregationKey | NonExistentCredentialId | KeyIndexAlreadyInUse | InvalidAccountThreshold | InvalidCredentialKeySignThreshold | InvalidEncryptedAmountTransferProof | InvalidTransferToPublicProof | EncryptedAmountSelfTransfer | InvalidIndexOnEncryptedTransfer | ZeroScheduledAmount | NonIncreasingSchedule | FirstScheduledReleaseExpired | ScheduledSelfTransfer | InvalidCredentials | DuplicateCredIds | NonExistentCredIds | RemoveFirstCredential | CredentialHolderDidNotSign | NotAllowedMultipleCredentials | NotAllowedToReceiveEncrypted | NotAllowedToHandleEncrypted | MissingBakerAddParameters | FinalizationRewardCommissionNotInRange | BakingRewardCommissionNotInRange | TransactionFeeCommissionNotInRange | AlreadyADelegator | InsufficientBalanceForDelegationStake | MissingDelegationAddParameters | InsufficientDelegationStake | DelegatorInCooldown | NotADelegator | DelegationTargetNotABaker | StakeOverMaximumThresholdForPool | PoolWouldBecomeOverDelegated | PoolClosed | NonExistentTokenId | TokenModuleReject | UnauthorizedTokenGovernance | NonExistentLockId | LockExpired | LockFundNotAuthorized | LockSendNotAuthorized | LockReturnNotAuthorized | LockCancelNotAuthorized | LockTokenNotPermitted | LockRecipientNotPermitted
+union TransactionRejectReason = ModuleNotWf | ModuleHashAlreadyExists | InvalidAccountReference | InvalidInitMethod | InvalidReceiveMethod | InvalidModuleReference | InvalidContractAddress | RuntimeFailure | AmountTooLarge | SerializationFailure | OutOfEnergy | RejectedInit | RejectedReceive | NonExistentRewardAccount | InvalidProof | AlreadyABaker | NotABaker | InsufficientBalanceForBakerStake | StakeUnderMinimumThresholdForBaking | BakerInCooldown | DuplicateAggregationKey | NonExistentCredentialId | KeyIndexAlreadyInUse | InvalidAccountThreshold | InvalidCredentialKeySignThreshold | InvalidEncryptedAmountTransferProof | InvalidTransferToPublicProof | EncryptedAmountSelfTransfer | InvalidIndexOnEncryptedTransfer | ZeroScheduledAmount | NonIncreasingSchedule | FirstScheduledReleaseExpired | ScheduledSelfTransfer | InvalidCredentials | DuplicateCredIds | NonExistentCredIds | RemoveFirstCredential | CredentialHolderDidNotSign | NotAllowedMultipleCredentials | NotAllowedToReceiveEncrypted | NotAllowedToHandleEncrypted | MissingBakerAddParameters | FinalizationRewardCommissionNotInRange | BakingRewardCommissionNotInRange | TransactionFeeCommissionNotInRange | AlreadyADelegator | InsufficientBalanceForDelegationStake | MissingDelegationAddParameters | InsufficientDelegationStake | DelegatorInCooldown | NotADelegator | DelegationTargetNotABaker | StakeOverMaximumThresholdForPool | PoolWouldBecomeOverDelegated | PoolClosed | NonExistentTokenId | TokenModuleReject | UnauthorizedTokenGovernance | NonExistentLockId | LockExpired | LockFundNotAuthorized | LockSendNotAuthorized | LockReleaseNotAuthorized | LockCancelNotAuthorized | LockTokenNotPermitted | LockRecipientNotPermitted | LockDurationTooLong
 
 union TransactionResult = Success | Rejected
 

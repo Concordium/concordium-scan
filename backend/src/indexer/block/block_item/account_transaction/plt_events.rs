@@ -4,7 +4,6 @@
 
 use crate::transaction_event::protocol_level_tokens::TokenUpdate;
 use chrono::{DateTime, Utc};
-use concordium_rust_sdk::protocol_level_tokens::{self};
 
 /// Collection of prepared token holder events.
 /// This struct is required by the event processing interface, even if not
@@ -38,13 +37,6 @@ pub struct PreparedTokenEvent {
 }
 
 impl PreparedTokenEvent {
-    /// Converts a protocol-level token holder event into a prepared wrapper.
-    pub fn prepare(event: &protocol_level_tokens::TokenEvent) -> anyhow::Result<Self> {
-        Ok(PreparedTokenEvent {
-            event: TokenUpdate::prepare(event)?,
-        })
-    }
-
     /// Saves the prepared token event to the database.
     pub async fn save(
         &self,

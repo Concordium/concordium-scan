@@ -74,10 +74,11 @@ pub enum TransactionRejectReason {
     LockExpired(LockExpired),
     LockFundNotAuthorized(LockFundNotAuthorized),
     LockSendNotAuthorized(LockSendNotAuthorized),
-    LockReturnNotAuthorized(LockReturnNotAuthorized),
+    LockReleaseNotAuthorized(LockReleaseNotAuthorized),
     LockCancelNotAuthorized(LockCancelNotAuthorized),
     LockTokenNotPermitted(LockTokenNotPermitted),
     LockRecipientNotPermitted(LockRecipientNotPermitted),
+    LockDurationTooLong(LockDurationTooLong),
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone, Copy)]
@@ -620,7 +621,7 @@ pub struct LockSendNotAuthorized {
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
-pub struct LockReturnNotAuthorized {
+pub struct LockReleaseNotAuthorized {
     details: serde_json::Value,
 }
 
@@ -637,6 +638,11 @@ pub struct LockTokenNotPermitted {
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct LockRecipientNotPermitted {
     details: serde_json::Value,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
+pub struct LockDurationTooLong {
+    lock_id: String,
 }
 
 /// TransactionRejectReason being prepared for indexing.
@@ -960,8 +966,8 @@ impl PreparedTransactionRejectReason {
                     details: serde_json::to_value(details)?,
                 })
             }
-            RejectReason::LockReturnNotAuthorized { details } => {
-                TransactionRejectReason::LockReturnNotAuthorized(LockReturnNotAuthorized {
+            RejectReason::LockReleaseNotAuthorized { details } => {
+                TransactionRejectReason::LockReleaseNotAuthorized(LockReleaseNotAuthorized {
                     details: serde_json::to_value(details)?,
                 })
             }
@@ -978,6 +984,11 @@ impl PreparedTransactionRejectReason {
             RejectReason::LockRecipientNotPermitted { details } => {
                 TransactionRejectReason::LockRecipientNotPermitted(LockRecipientNotPermitted {
                     details: serde_json::to_value(details)?,
+                })
+            }
+            RejectReason::LockDurationTooLong { lock_id } => {
+                TransactionRejectReason::LockDurationTooLong(LockDurationTooLong {
+                    lock_id: lock_id.to_string(),
                 })
             }
         };

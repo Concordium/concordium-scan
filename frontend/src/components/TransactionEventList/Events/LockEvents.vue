@@ -62,8 +62,8 @@
 		<PltTransferMemo v-if="event.memo" :memo="event.memo" />
 	</span>
 
-	<span v-else-if="event.__typename === 'LockReturned'">
-		Returned
+	<span v-else-if="event.__typename === 'LockReleased'">
+		Released
 		<PltAmount
 			:value="event.amount.value"
 			:decimals="Number(event.amount.decimals)"
@@ -90,7 +90,7 @@ import type {
 	LockCreated,
 	LockDestroyed,
 	LockFunded,
-	LockReturned,
+	LockReleased,
 	LockSent,
 } from '~/types/generated'
 import { formatTimestamp } from '~/utils/format'
@@ -101,7 +101,7 @@ type LockEvent =
 	| LockCreated
 	| LockFunded
 	| LockSent
-	| LockReturned
+	| LockReleased
 	| LockCanceled
 	| LockDestroyed
 

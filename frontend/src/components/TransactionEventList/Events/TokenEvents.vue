@@ -7,14 +7,8 @@
 		/>
 		<b>{{ event.tokenId }}</b> from
 		<AccountLink :address="event.event.from.address.asString" />
-		<template v-if="event.event.fromLock">
-			(source lock <LockLink :lock-id="event.event.fromLock" />)
-		</template>
 		to
 		<AccountLink :address="event.event.to.address.asString" />
-		<template v-if="event.event.toLock">
-			(destination lock <LockLink :lock-id="event.event.toLock" />)
-		</template>
 		<PltTransferMemo v-if="event.event.memo" :memo="event.event.memo" />
 	</span>
 
@@ -148,7 +142,6 @@
 import type { TokenUpdate } from '~/types/generated'
 import PltTransferMemo from './PltTransferMemo.vue'
 import ExternalLinkIcon from '~/components/icons/ExternalLinkIcon.vue'
-import LockLink from '~/components/molecules/LockLink.vue'
 
 type Props = {
 	event: TokenUpdate

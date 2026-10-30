@@ -191,7 +191,7 @@
 						event.__typename === 'LockCreated' ||
 						event.__typename === 'LockFunded' ||
 						event.__typename === 'LockSent' ||
-						event.__typename === 'LockReturned' ||
+						event.__typename === 'LockReleased' ||
 						event.__typename === 'LockCanceled' ||
 						event.__typename === 'LockDestroyed'
 					"

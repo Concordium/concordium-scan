@@ -298,11 +298,9 @@ pub enum SchemaVersion {
     IndexPltHolderNonZero,
     #[display("0049: Alter plt token modules events to add new event types")]
     AlterPltTokenModuleEventTypes,
-    #[display("0050: Add MetaUpdate account transaction type")]
-    AddMetaUpdateAccountTransactionType,
-    #[display("0051: Add MaxLockDuration update transaction type")]
+    #[display("0050: Add MaxLockDuration update transaction type")]
     AddMaxLockDurationUpdateTransactionType,
-    #[display("0052: Add PLT lock state tables")]
+    #[display("0051: Add PLT lock state tables")]
     AddPltLockStateTables,
 }
 impl SchemaVersion {
@@ -382,7 +380,6 @@ impl SchemaVersion {
             SchemaVersion::AlterTxnAddSponsoredTxn => false,
             SchemaVersion::IndexPltHolderNonZero => false,
             SchemaVersion::AlterPltTokenModuleEventTypes => false,
-            SchemaVersion::AddMetaUpdateAccountTransactionType => false,
             SchemaVersion::AddMaxLockDurationUpdateTransactionType => false,
             SchemaVersion::AddPltLockStateTables => false,
         }
@@ -444,7 +441,6 @@ impl SchemaVersion {
             SchemaVersion::AlterTxnAddSponsoredTxn => false,
             SchemaVersion::IndexPltHolderNonZero => false,
             SchemaVersion::AlterPltTokenModuleEventTypes => false,
-            SchemaVersion::AddMetaUpdateAccountTransactionType => false,
             SchemaVersion::AddMaxLockDurationUpdateTransactionType => false,
             SchemaVersion::AddPltLockStateTables => false,
         }
@@ -798,16 +794,7 @@ impl SchemaVersion {
             SchemaVersion::AlterPltTokenModuleEventTypes => {
                 tx.as_mut()
                     .execute(sqlx::raw_sql(include_str!(
-                        "./migrations/m0050_add_meta_update_account_transaction_type.sql"
-                    )))
-                    .await?;
-                SchemaVersion::AddMetaUpdateAccountTransactionType
-            }
-
-            SchemaVersion::AddMetaUpdateAccountTransactionType => {
-                tx.as_mut()
-                    .execute(sqlx::raw_sql(include_str!(
-                        "./migrations/m0051_add_max_lock_duration_update_transaction_type.sql"
+                        "./migrations/m0050_add_max_lock_duration_update_transaction_type.sql"
                     )))
                     .await?;
                 SchemaVersion::AddMaxLockDurationUpdateTransactionType
@@ -816,7 +803,7 @@ impl SchemaVersion {
             SchemaVersion::AddMaxLockDurationUpdateTransactionType => {
                 tx.as_mut()
                     .execute(sqlx::raw_sql(include_str!(
-                        "./migrations/m0052_plt_locks.sql"
+                        "./migrations/m0051_plt_locks.sql"
                     )))
                     .await?;
                 SchemaVersion::AddPltLockStateTables

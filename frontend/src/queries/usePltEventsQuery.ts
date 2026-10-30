@@ -44,8 +44,6 @@ const PLT_TOKEN_QUERY = gql<PltEventsQueryResponse>`
 						}
 					}
 					... on TokenTransferEvent {
-						fromLock
-						toLock
 						from {
 							address {
 								asString
@@ -156,8 +154,6 @@ const PLT_EVENT_BY_ID_QUERY = gql<PltEventsByTokenIdQueryResponse>`
 						}
 					}
 					... on TokenTransferEvent {
-						fromLock
-						toLock
 						from {
 							address {
 								asString
